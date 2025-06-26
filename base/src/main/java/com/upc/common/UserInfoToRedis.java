@@ -14,8 +14,6 @@ import java.time.LocalDateTime;
 @Accessors(chain = true)
 public class UserInfoToRedis {
 
-    private static final long serialVersionUID = 1L;
-
     @ApiModelProperty("用户ID")
     @TableId("id")
     private Long id;
