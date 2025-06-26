@@ -42,7 +42,7 @@ public class CodeGeneratorConfig {
 //        String url = "jdbc:mysql://119.186.61.60/future_village";
 //        String url = "jdbc:mysql://182.254.147.39/village";
 //        String url = "jdbc:mysql://27.223.88.150:10003/new_restructure";
-        String url = "jdbc:kingbase8://172.19.162.132:54321/kingbase?currentSchema=smart_textbook";
+        String url = "jdbc:kingbase8://172.19.162.132:54321/kingbase";
         String username = "system";
         String password = "123456789";
 
@@ -67,14 +67,14 @@ public class CodeGeneratorConfig {
                 // 包配置
                 .packageConfig(builder -> {
                     // 设置父包名
-                    builder.parent("com.upc.modular.student")
+                    builder.parent("com.upc.modular.auth")
                             .controller("controller")
                             .entity("entity")
                             .service("service")
                             .serviceImpl("service.impl")
                             .mapper("mapper")
                             .pathInfo(Collections.singletonMap(OutputFile.mapperXml,
-                                    System.getProperty("user.dir") + "/" + moduleName + "/src/main/resources/mapper/student"))
+                                    System.getProperty("user.dir") + "/" + moduleName + "/src/main/resources/mapper/auth"))
                     ;
                 })
                 //生成策略配置

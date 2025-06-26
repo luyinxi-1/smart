@@ -12,11 +12,11 @@ public class CodeGenerator {
         String author = "byh";
 
 //        模块名
-        String moduleName = "main";
+        String moduleName = "base";
 
 //        表名
         String[] tables = {
-                "student"
+                "sys_user","sys_authority","sys_role","role_authority_list","user_role_list","teaching_material","sys_dict_type","sys_dict_item","sys_log"
         };
 
         new CodeGeneratorConfig(author, moduleName, tables).generate();
