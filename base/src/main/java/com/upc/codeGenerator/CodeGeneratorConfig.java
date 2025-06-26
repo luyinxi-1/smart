@@ -67,14 +67,14 @@ public class CodeGeneratorConfig {
                 // 包配置
                 .packageConfig(builder -> {
                     // 设置父包名
-                    builder.parent("com.upc.modular.ecochain")
+                    builder.parent("com.upc.modular.student")
                             .controller("controller")
                             .entity("entity")
                             .service("service")
                             .serviceImpl("service.impl")
                             .mapper("mapper")
                             .pathInfo(Collections.singletonMap(OutputFile.mapperXml,
-                                    System.getProperty("user.dir") + "/" + moduleName + "/src/main/resources/mapper/ecochain"))
+                                    System.getProperty("user.dir") + "/" + moduleName + "/src/main/resources/mapper/student"))
                     ;
                 })
                 //生成策略配置
