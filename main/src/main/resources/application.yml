@@ -14,6 +14,18 @@ spring:
     druid:
       stat-view-servlet:
         enabled: false
+  redis:
+    database: 0
+    host: 172.19.162.132
+    password: c505123
+    port: 6379
+    timeout: 10000
+    lettuce:
+      pool:
+        max-active: 8
+        max-wait: -1
+        max-idle: 8
+        min-idle: 0
 
   jackson:
     default-property-inclusion: non_null # JSON处理时忽略非空字段
