@@ -9,23 +9,15 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.upc</groupId>
-    <artifactId>SmartTextbook</artifactId>
+    <artifactId>base</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>SmartTextbook</name>
-    <description>SmartTextbook</description>
+    <name>base</name>
+    <description>base</description>
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
-
-    <packaging>pom</packaging>
-
-    <modules>
-        <module>main</module>
-        <module>base</module>
-    </modules>
-
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
