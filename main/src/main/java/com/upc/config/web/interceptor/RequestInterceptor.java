@@ -48,6 +48,7 @@ public class RequestInterceptor implements HandlerInterceptor {
         }
         // 2.检查token合法性和有效性——即使 token 不为空，也可能是伪造、无效、过期的
         // 当token过期redis中取不到数据会抛异常
+        // 将用户信息存入线程
         try {
             ValueOperations<String, Map<String, Object>> operation = redisTemplate.opsForValue();
             Map<String, Object> map  = operation.get(token);

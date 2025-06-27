@@ -35,7 +35,7 @@ public enum BusinessErrorEnum implements CommonError {
     /**
      * 账号或密码错误
      */
-    LOGIN_FAIL(20002, "登录失败"),
+    LOGIN_FAIL(20002, "账号或密码错误，登录失败！"),
     /**
      * 用户的身份不正确，请检查后重试
      */
