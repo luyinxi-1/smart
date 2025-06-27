@@ -1,5 +1,9 @@
 package com.upc.modular.auth.service;
 
+import com.upc.common.responseparam.PageBaseReturnParam;
+import com.upc.common.responseparam.R;
+import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.controller.param.SysDictTypeParam.SysDictTypeSearchParam;
 import com.upc.modular.auth.entity.SysDictType;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -14,4 +18,10 @@ import com.baomidou.mybatisplus.extension.service.IService;
 public interface ISysDictTypeService extends IService<SysDictType> {
 
     String checkDictTypeUnique(SysDictType param);
+
+    void deleteDictTypeByIds(IdParam idParam);
+
+    void updateDictType(SysDictType dict);
+
+    R<PageBaseReturnParam<SysDictType>> selectDictTypeList(SysDictTypeSearchParam dictType);
 }
