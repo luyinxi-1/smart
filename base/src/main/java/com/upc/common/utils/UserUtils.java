@@ -1,4 +1,4 @@
-package com.upc.common;
+package com.upc.common.utils;
 
 import lombok.Data;
 import lombok.experimental.Accessors;

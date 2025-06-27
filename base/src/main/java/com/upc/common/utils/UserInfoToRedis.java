@@ -1,4 +1,4 @@
-package com.upc.common;
+package com.upc.common.utils;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableId;
