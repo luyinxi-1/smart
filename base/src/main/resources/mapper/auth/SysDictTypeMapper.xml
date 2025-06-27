@@ -19,7 +19,7 @@
         SELECT *
         FROM sys_dict_type
         WHERE dict_type_name = #{dictTypeName}
-            LIMIT 1
+        LIMIT 1
     </select>
 
 </mapper>
