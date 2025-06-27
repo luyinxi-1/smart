@@ -14,5 +14,12 @@
         <result column="operator" property="operator" />
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
+    <select id="checkDictTypeUnique" parameterType="java.lang.String"
+            resultType="com.upc.modular.auth.entity.SysDictType">
+        SELECT *
+        FROM sys_dict_type
+        WHERE dict_type_name = #{dictTypeName}
+            LIMIT 1
+    </select>
 
 </mapper>
