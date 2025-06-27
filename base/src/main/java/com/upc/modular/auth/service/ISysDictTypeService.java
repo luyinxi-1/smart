@@ -13,4 +13,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface ISysDictTypeService extends IService<SysDictType> {
 
+    String checkDictTypeUnique(SysDictType param);
 }

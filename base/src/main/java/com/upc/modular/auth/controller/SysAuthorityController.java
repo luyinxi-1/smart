@@ -1,6 +1,7 @@
 package com.upc.modular.auth.controller;
 
 
+import io.swagger.annotations.Api;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import org.springframework.web.bind.annotation.RestController;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/sys-authority")
+@Api(tags = "用户权限")
 public class SysAuthorityController {
 
 }
