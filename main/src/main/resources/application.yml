@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: SmartTextBook
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher # 确保使用 AntPathMatcher 进行路径匹配
 
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
@@ -14,6 +17,27 @@ spring:
     druid:
       stat-view-servlet:
         enabled: false
+      # ====== 添加以下 Druid 连接池配置来解决警告并确保连接健康 ======
+      initial-size: 5               # 初始化时建立物理连接的个数
+      min-idle: 5                   # 最小连接池数量
+      max-active: 20                # 最大连接池数量
+      max-wait: 60000               # 获取连接时最大等待时间，单位ms
+      # 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒
+      time-between-eviction-runs-millis: 60000
+      # 配置一个连接在池中最小生存的时间，单位是毫秒
+      min-evictable-idle-time-millis: 300000
+      # 用于测试连接是否有效的SQL语句，Kingbase8 可以使用 SELECT 1
+      validation-query: SELECT 1
+      # 建议配置为true，这样在检测到连接失效时，Druid会重新获取连接
+      test-while-idle: true
+      # 申请连接时执行validationQuery检测连接是否有效，禁用此功能可以提升性能，但在发生网络异常时无法及时发现问题
+      test-on-borrow: false
+      # 归还连接时执行validationQuery检测连接是否有效，禁用此功能可以提升性能，但在发生网络异常时无法及时发现问题
+      test-on-return: false
+      # 是否打开PSCache，当SQL语句重复率高时可提高性能。Druid和MyBatis都开启，会导致SQL解析异常
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 20
+      # ====== 结束 Druid 连接池配置 ======
   redis:
     database: 0
     host: 172.19.162.132
