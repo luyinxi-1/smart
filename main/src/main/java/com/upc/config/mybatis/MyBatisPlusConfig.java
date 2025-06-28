@@ -1,6 +1,7 @@
 package com.upc.config.mybatis;
 
 import com.baomidou.mybatisplus.annotation.DbType;
+import com.baomidou.mybatisplus.autoconfigure.ConfigurationCustomizer;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
@@ -9,6 +10,8 @@ import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerIntercept
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.time.LocalDateTime;
 
 @Configuration
 @MapperScan({
@@ -50,5 +53,13 @@ public class MyBatisPlusConfig {
     @Bean
     public MetaObjectHandler metaObjectHandler() {
         return new CustomMetaObjectHandler();
+    }
+
+    @Bean
+    public ConfigurationCustomizer configurationCustomizer() {
+        return configuration -> {
+            // 注册自定义的 LocalDateTime 类型处理器
+            configuration.getTypeHandlerRegistry().register(LocalDateTime.class, KingbaseLocalDateTimeTypeHandler.class);
+        };
     }
 }

@@ -97,6 +97,10 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
 
     @Override
     public Page<SysDictType> selectDictTypeList(SysDictTypeSearchParam dictType) {
+        Page<SysDictType> page = new Page<>(dictType.getCurrent(), dictType.getSize());
+        MyLambdaQueryWrapper<SysDictType> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(ObjectUtils.isNotEmpty(dictType.getStatus()), SysDictType::getStatus, dictType.getStatus())
+                .like(ObjectUtils.isNotEmpty(dictType.getDictTypeName()), SysDictType::getDictTypeName, dictType.getDictTypeName());
         return null;
     }
 
