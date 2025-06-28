@@ -65,11 +65,13 @@ public class SysDictTypeController {
         return R.commonReturn(200, "修改成功", "");
     }
 
+
     @ApiOperation(value = "检查数据字典类型是否已存在")
     @GetMapping("/checkDictTypeUnique")
     public String checkDictTypeUnique(SysDictType param) {
         return dictTypeService.checkDictTypeUnique(param);
     }
+
 
     @ApiOperation(value = "分页按条件查询字典类型")
     @PostMapping("/getPage")
