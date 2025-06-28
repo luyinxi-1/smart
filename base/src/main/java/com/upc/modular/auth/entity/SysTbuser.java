@@ -8,6 +8,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -20,11 +21,10 @@ import lombok.experimental.Accessors;
  * @author byh
  * @since 2025-06-26
  */
-@Getter
-@Setter
 @Accessors(chain = true)
 @TableName("sys_tbuser")
 @ApiModel(value = "SysUser对象", description = "")
+@Data
 public class SysTbuser implements Serializable {
 
     private static final long serialVersionUID = 1L;

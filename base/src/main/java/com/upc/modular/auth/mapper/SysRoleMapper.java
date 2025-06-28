@@ -3,6 +3,9 @@ package com.upc.modular.auth.mapper;
 import com.upc.modular.auth.entity.SysTbrole;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * <p>
@@ -14,5 +17,7 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface SysRoleMapper extends BaseMapper<SysTbrole> {
+
+    List<String> getAccessUrlsByRoleId(@Param("roleId") Long roleId);
 
 }
