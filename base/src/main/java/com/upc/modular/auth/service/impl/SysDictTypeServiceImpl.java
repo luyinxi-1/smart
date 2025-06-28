@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
@@ -94,9 +95,8 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
         dictTypeMapper.updateById(dict);
     }
 
-
     @Override
-    public R<PageBaseReturnParam<SysDictType>> selectDictTypeList(SysDictTypeSearchParam dictType) {
+    public Page<SysDictType> selectDictTypeList(SysDictTypeSearchParam dictType) {
         return null;
     }
 

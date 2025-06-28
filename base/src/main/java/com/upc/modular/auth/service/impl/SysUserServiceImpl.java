@@ -29,8 +29,6 @@ import java.util.UUID;
 public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> implements ISysUserService {
 
     @Autowired
-    private ISysUserService sysUserService;
-    @Autowired
     private RedisTemplate redisTemplate;
 
 
@@ -44,7 +42,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         queryWrapper
                 .eq(SysUser::getUsername, userLogin.getUsername())
                 .eq(SysUser::getPassword, userLogin.getPassword());
-        SysUser userInfo = sysUserService.getOne(queryWrapper);
+        SysUser userInfo = this.getOne(queryWrapper);
         if (userInfo == null) {
             throw new BusinessException(BusinessErrorEnum.LOGIN_FAIL);
         }

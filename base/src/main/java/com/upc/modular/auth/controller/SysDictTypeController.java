@@ -1,6 +1,7 @@
 package com.upc.modular.auth.controller;
 
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
@@ -73,7 +74,9 @@ public class SysDictTypeController {
     @ApiOperation(value = "分页按条件查询字典类型")
     @PostMapping("/getPage")
     public R<PageBaseReturnParam<SysDictType>> getPage(@RequestBody SysDictTypeSearchParam dictType) {
-        return dictTypeService.selectDictTypeList(dictType);
+        Page<SysDictType> page = dictTypeService.selectDictTypeList(dictType);
+        PageBaseReturnParam<SysDictType> result = PageBaseReturnParam.ok(page);
+        return R.page(result);
     }
 
 
