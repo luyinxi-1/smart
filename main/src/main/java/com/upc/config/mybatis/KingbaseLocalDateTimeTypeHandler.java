@@ -9,7 +9,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp; // 引入 java.sql.Timestamp
 import java.time.LocalDateTime;
 
-// TypeHandler for LocalDateTime
+// TypeHandler for LocalDateTime 人大金仓LocalDateTime报错
 public class KingbaseLocalDateTimeTypeHandler extends BaseTypeHandler<LocalDateTime> {
 
     @Override
