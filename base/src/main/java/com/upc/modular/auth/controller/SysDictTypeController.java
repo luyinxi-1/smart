@@ -45,28 +45,28 @@ public class SysDictTypeController {
     }
 
     @ApiOperation(value = "删除字典类型")
-    @PostMapping("/batchDelete")
+    @DeleteMapping("/batchDelete")
     public R batchDelete(@RequestBody IdParam idParam) {
         dictTypeService.deleteDictTypeByIds(idParam);
         return R.commonReturn(200, "删除成功", "");
     }
 
     @ApiOperation(value = "查询字典类型")
-    @PostMapping("/getById")
+    @GetMapping("/getById")
     public R getById(@RequestParam("dictId") Integer dictId) {
         SysDictType dictType = dictTypeService.getById(dictId);
         return R.commonReturn(200, "查询成功", dictType);
     }
 
     @ApiOperation(value = "修改字典类型")
-    @PostMapping("/update")
+    @PutMapping("/update")
     public R update(@RequestBody SysDictType dict) {
         dictTypeService.updateDictType(dict);
         return R.commonReturn(200, "修改成功", "");
     }
 
     @ApiOperation(value = "检查数据字典类型是否已存在")
-    @PostMapping("/checkDictTypeUnique")
+    @GetMapping("/checkDictTypeUnique")
     public String checkDictTypeUnique(SysDictType param) {
         return dictTypeService.checkDictTypeUnique(param);
     }
