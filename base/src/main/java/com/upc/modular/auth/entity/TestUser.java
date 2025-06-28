@@ -10,6 +10,7 @@ import java.util.Date;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -22,8 +23,7 @@ import lombok.experimental.Accessors;
  * @author byh
  * @since 2025-06-28
  */
-@Getter
-@Setter
+@Data
 @Accessors(chain = true)
 @TableName("test_user")
 @ApiModel(value = "TestUser对象", description = "")

@@ -13,4 +13,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface ISysDictItemService extends IService<SysDictItem> {
 
+    boolean insertDictItem(SysDictItem dictItem);
 }

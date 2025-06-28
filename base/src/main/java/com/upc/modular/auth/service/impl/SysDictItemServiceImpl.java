@@ -1,5 +1,6 @@
 package com.upc.modular.auth.service.impl;
 
+import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.modular.auth.entity.SysDictItem;
 import com.upc.modular.auth.mapper.SysDictItemMapper;
 import com.upc.modular.auth.service.ISysDictItemService;
@@ -17,4 +18,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class SysDictItemServiceImpl extends ServiceImpl<SysDictItemMapper, SysDictItem> implements ISysDictItemService {
 
+    @Override
+    public boolean insertDictItem(SysDictItem dictItem) {
+        MyLambdaQueryWrapper<SysDictItem> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        return false;
+    }
 }

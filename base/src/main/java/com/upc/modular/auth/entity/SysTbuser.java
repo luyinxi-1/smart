@@ -21,6 +21,8 @@ import lombok.experimental.Accessors;
  * @author byh
  * @since 2025-06-26
  */
+@Getter
+@Setter
 @Accessors(chain = true)
 @TableName("sys_tbuser")
 @ApiModel(value = "SysUser对象", description = "")
