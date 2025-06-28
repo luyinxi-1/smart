@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
-import com.upc.modular.auth.entity.SysUser;
+import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.auth.param.UserLoginParam;
 import com.upc.modular.auth.service.ISysUserService;
@@ -26,7 +26,7 @@ import java.util.UUID;
  * @since 2025-06-26
  */
 @Service
-public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> implements ISysUserService {
+public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> implements ISysUserService {
 
     @Autowired
     private RedisTemplate redisTemplate;
@@ -38,11 +38,11 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             throw new BusinessException(BusinessErrorEnum.IS_EMPTY);
         }
 
-        LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<SysTbuser> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper
-                .eq(SysUser::getUsername, userLogin.getUsername())
-                .eq(SysUser::getPassword, userLogin.getPassword());
-        SysUser userInfo = this.getOne(queryWrapper);
+                .eq(SysTbuser::getUsername, userLogin.getUsername())
+                .eq(SysTbuser::getPassword, userLogin.getPassword());
+        SysTbuser userInfo = this.getOne(queryWrapper);
         if (userInfo == null) {
             throw new BusinessException(BusinessErrorEnum.LOGIN_FAIL);
         }

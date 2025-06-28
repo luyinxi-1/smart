@@ -10,7 +10,7 @@ public class InterceptorConst {
      * 拦截器中排除的路径(这里的路径通常都是swagger资源等，自定义的排除路径应写在别的常量中)，这些路径不会经过拦截器
      */
     public static final String[] EXCLUDE_PATH_PATTERNS = {
-            "/", "/csrf", "/upload/public/**", "/doc.html", "/doc.html/**", "/sysUser/login", "/sysUser/register", "/download/**", "/webjars/**",
+            "/", "/csrf", "/upload/public/**", "/doc.html", "/doc.html/**", "/sys-user/login", "/download/**", "/webjars/**",
             "/swagger-resources/**", "/v2/**", "/swagger-ui.html/**", "/error/**"
     };
 

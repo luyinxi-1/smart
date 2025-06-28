@@ -17,12 +17,4 @@ public class PageBaseSearchParam {
     @ApiModelProperty("是否升序排列（默认为0）")
     private Integer isAsc = 0;
 
-    @ApiModelProperty("是否查询适用区域（0：查询管辖区域），1：查询适用区域")
-    private Integer isApplicableArea;
-
-    @ApiModelProperty("所属区域（适用区域）id")
-    private Long areaId;
-
-    @ApiModelProperty("查询标识")
-    private Integer flag;
 }
