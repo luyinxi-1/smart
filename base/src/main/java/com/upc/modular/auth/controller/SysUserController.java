@@ -1,17 +1,12 @@
 package com.upc.modular.auth.controller;
 
 
-import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
-import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
-import com.upc.modular.auth.controller.param.SysDictTypeParam.SysDictTypeSearchParam;
-import com.upc.modular.auth.entity.SysDictType;
 import com.upc.modular.auth.param.UserLoginParam;
 import com.upc.modular.auth.service.ISysUserService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;

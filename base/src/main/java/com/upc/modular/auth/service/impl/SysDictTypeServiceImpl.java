@@ -7,13 +7,11 @@ import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.upc.common.responseparam.PageBaseReturnParam;
-import com.upc.common.responseparam.R;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
-import com.upc.modular.auth.controller.param.SysDictTypeParam.SysDictTypeSearchParam;
+import com.upc.modular.auth.controller.param.SysDictTypeParam.SysDictTypePageSearchParam;
 import com.upc.modular.auth.entity.SysDictItem;
 import com.upc.modular.auth.entity.SysDictType;
 import com.upc.modular.auth.mapper.SysDictItemMapper;
@@ -96,7 +94,7 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
     }
 
     @Override
-    public Page<SysDictType> selectDictTypeList(SysDictTypeSearchParam dictType) {
+    public Page<SysDictType> selectDictTypeList(SysDictTypePageSearchParam dictType) {
         Page<SysDictType> page = new Page<>(dictType.getCurrent(), dictType.getSize());
         MyLambdaQueryWrapper<SysDictType> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
         lambdaQueryWrapper.eq(ObjectUtils.isNotEmpty(dictType.getStatus()), SysDictType::getStatus, dictType.getStatus())

@@ -6,11 +6,10 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 @Accessors(chain = true)
-public class SysDictTypeSearchParam extends PageBaseSearchParam {
+public class SysDictTypePageSearchParam extends PageBaseSearchParam {
     private static final long serialVersionUID = 1L;
 
     @ApiModelProperty("字典主键")

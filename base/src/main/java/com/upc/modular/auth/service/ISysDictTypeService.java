@@ -1,10 +1,8 @@
 package com.upc.modular.auth.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.upc.common.responseparam.PageBaseReturnParam;
-import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
-import com.upc.modular.auth.controller.param.SysDictTypeParam.SysDictTypeSearchParam;
+import com.upc.modular.auth.controller.param.SysDictTypeParam.SysDictTypePageSearchParam;
 import com.upc.modular.auth.entity.SysDictType;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -24,5 +22,5 @@ public interface ISysDictTypeService extends IService<SysDictType> {
 
     void updateDictType(SysDictType dict);
 
-    Page<SysDictType> selectDictTypeList(SysDictTypeSearchParam dictType);
+    Page<SysDictType> selectDictTypeList(SysDictTypePageSearchParam dictType);
 }
