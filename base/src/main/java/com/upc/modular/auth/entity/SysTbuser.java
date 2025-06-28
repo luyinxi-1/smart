@@ -23,9 +23,9 @@ import lombok.experimental.Accessors;
 @Getter
 @Setter
 @Accessors(chain = true)
-@TableName("sys_user")
+@TableName("sys_tbuser")
 @ApiModel(value = "SysUser对象", description = "")
-public class SysUser implements Serializable {
+public class SysTbuser implements Serializable {
 
     private static final long serialVersionUID = 1L;
 

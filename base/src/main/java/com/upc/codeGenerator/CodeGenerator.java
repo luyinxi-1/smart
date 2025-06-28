@@ -16,7 +16,7 @@ public class CodeGenerator {
 
 //        表名
         String[] tables = {
-                "sys_user","sys_authority","sys_role","role_authority_list","user_role_list","teaching_material","sys_dict_type","sys_dict_item","sys_log"
+                "test_user"
         };
 
         new CodeGeneratorConfig(author, moduleName, tables).generate();

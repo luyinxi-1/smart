@@ -1,6 +1,6 @@
 package com.upc.modular.auth.service;
 
-import com.upc.modular.auth.entity.SysUser;
+import com.upc.modular.auth.entity.SysTbuser;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.auth.param.UserLoginParam;
 
@@ -14,7 +14,7 @@ import javax.servlet.http.HttpServletRequest;
  * @author byh
  * @since 2025-06-26
  */
-public interface ISysUserService extends IService<SysUser> {
+public interface ISysUserService extends IService<SysTbuser> {
 
     /**
      * WEB端用户登录

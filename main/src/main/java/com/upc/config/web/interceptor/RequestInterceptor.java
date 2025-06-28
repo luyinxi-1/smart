@@ -7,10 +7,13 @@ import com.upc.common.utils.UserUtils;
 import com.upc.context.LoginContextHolder;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.auth.service.ISysRoleService;
+import com.upc.modular.auth.service.ISysUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -30,6 +33,14 @@ public class RequestInterceptor implements HandlerInterceptor {
 
     @Autowired
     private RedisTemplate redisTemplate;
+
+    /**
+     * TODO 这里的写法可能不对，好像这样不能注入进来
+     */
+    @Autowired
+    private ISysRoleService sysRoleService;
+    @Autowired
+    private ISysUserService sysUserService;
 
 
     /**
@@ -58,6 +69,7 @@ public class RequestInterceptor implements HandlerInterceptor {
             }
             UserUtils.set(userInfoToRedis);
             LoginContextHolder.setLogined(true);
+            // System.out.println(sysUserService.getById(1));
             return true;
         } catch (IllegalArgumentException e) {
             log.error("Token校验失败：" + e.getMessage());
