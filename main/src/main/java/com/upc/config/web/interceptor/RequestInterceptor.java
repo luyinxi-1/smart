@@ -7,6 +7,10 @@ import com.upc.common.utils.UserUtils;
 import com.upc.context.LoginContextHolder;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.auth.entity.SysTbrole;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.mapper.SysRoleMapper;
+import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.auth.service.ISysRoleService;
 import com.upc.modular.auth.service.ISysUserService;
 import lombok.extern.slf4j.Slf4j;
@@ -14,12 +18,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,14 +39,10 @@ public class RequestInterceptor implements HandlerInterceptor {
 
     @Autowired
     private RedisTemplate redisTemplate;
-
-    /**
-     * TODO 这里的写法可能不对，好像这样不能注入进来
-     */
     @Autowired
-    private ISysRoleService sysRoleService;
+    private SysRoleMapper sysRoleMapper;
     @Autowired
-    private ISysUserService sysUserService;
+    private SysUserMapper sysUserMapper;
 
 
     /**
@@ -69,8 +71,8 @@ public class RequestInterceptor implements HandlerInterceptor {
             }
             UserUtils.set(userInfoToRedis);
             LoginContextHolder.setLogined(true);
-            // System.out.println(sysUserService.getById(1));
-            return true;
+            return hasPermission(request, userInfoToRedis);
+            // return true;
         } catch (IllegalArgumentException e) {
             log.error("Token校验失败：" + e.getMessage());
             return false;
@@ -86,6 +88,42 @@ public class RequestInterceptor implements HandlerInterceptor {
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
         UserUtils.clear();
         LoginContextHolder.clear();
+    }
+
+
+    /**
+     * 判断当前登录的（用户的）角色信息是否有权访问该地址
+     * @param request
+     * @param userInfo
+     * @return
+     */
+    private boolean hasPermission(HttpServletRequest request, UserInfoToRedis userInfo) {
+        String requestPath = request.getRequestURI();
+        // 查询当前登录用户的角色信息
+        List<SysTbrole> roles = sysUserMapper.getRolesByUserId(userInfo.getId());
+        if (roles.isEmpty() || roles.get(0) == null) {
+            throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
+        }
+        SysTbrole sysTbrole = roles.get(0);
+        List<String> accessUrlsByRoleId = sysRoleMapper.getAccessUrlsByRoleId(sysTbrole.getId());
+        if (accessUrlsByRoleId.isEmpty()) {
+            throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
+        }
+        boolean pathMatched = this.isPathMatched(requestPath, accessUrlsByRoleId);
+
+        return pathMatched;
+    }
+
+
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
+
+    private boolean isPathMatched(String requestPath, List<String> allowedPaths) {
+        for (String path : allowedPaths) {
+            if (pathMatcher.match(path, requestPath)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

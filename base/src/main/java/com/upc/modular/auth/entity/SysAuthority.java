@@ -37,10 +37,6 @@ public class SysAuthority implements Serializable {
     @TableField("access_url")
     private String accessUrl;
 
-    @ApiModelProperty("所属组别")
-    @TableField("father_authority")
-    private String fatherAuthority;
-
     @ApiModelProperty("权限有效期（小时）")
     @TableField("validity_period")
     private Long validityPeriod;

@@ -21,10 +21,12 @@ import lombok.experimental.Accessors;
  * @author byh
  * @since 2025-06-26
  */
-@Data
+@Getter
+@Setter
 @Accessors(chain = true)
 @TableName("sys_tbuser")
 @ApiModel(value = "SysUser对象", description = "")
+@Data
 public class SysTbuser implements Serializable {
 
     private static final long serialVersionUID = 1L;

@@ -13,4 +13,11 @@
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
 
+    <select id="getAccessUrlsByRoleId" resultType="java.lang.String">
+        SELECT a.access_url
+        FROM sys_authority a
+                 JOIN role_authority_list ra ON a.id = ra.authority_id
+        WHERE ra.role_id = #{roleId}
+    </select>
+
 </mapper>

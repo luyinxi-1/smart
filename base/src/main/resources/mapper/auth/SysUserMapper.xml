@@ -23,4 +23,11 @@
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
 
+    <select id="getRolesByUserId" resultType="com.upc.modular.auth.entity.SysTbrole">
+        SELECT r.*
+        FROM sys_tbrole r
+                 JOIN user_role_list ur ON ur.role_id = r.id
+        WHERE ur.user_id = #{userId}
+    </select>
+
 </mapper>

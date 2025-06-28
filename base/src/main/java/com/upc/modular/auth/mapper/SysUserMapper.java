@@ -1,8 +1,12 @@
 package com.upc.modular.auth.mapper;
 
+import com.upc.modular.auth.entity.SysTbrole;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * <p>
@@ -14,5 +18,8 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface SysUserMapper extends BaseMapper<SysTbuser> {
+
+    List<SysTbrole> getRolesByUserId(@Param("userId") Long userId);
+
 
 }
