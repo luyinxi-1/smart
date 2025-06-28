@@ -59,7 +59,6 @@ build/
 ### VS Code ###
 .vscode/
 
-/main/src/test/**
 /main/src/test/java/upc/c505/MyTest.java
 
 /local.log.**
