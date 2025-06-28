@@ -18,14 +18,14 @@ import lombok.experimental.Accessors;
  * </p>
  *
  * @author byh
- * @since 2025-06-26
+ * @since 2025-06-28
  */
 @Getter
 @Setter
 @Accessors(chain = true)
-@TableName("sys_role")
-@ApiModel(value = "SysRole对象", description = "")
-public class SysRole implements Serializable {
+@TableName("sys_tbrole")
+@ApiModel(value = "SysTbrole对象", description = "")
+public class SysTbrole implements Serializable {
 
     private static final long serialVersionUID = 1L;
 

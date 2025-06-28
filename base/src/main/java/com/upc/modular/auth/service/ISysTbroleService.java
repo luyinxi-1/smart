@@ -1,6 +1,6 @@
 package com.upc.modular.auth.service;
 
-import com.upc.modular.auth.entity.SysRole;
+import com.upc.modular.auth.entity.SysTbrole;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 /**
@@ -9,8 +9,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * </p>
  *
  * @author byh
- * @since 2025-06-26
+ * @since 2025-06-28
  */
-public interface ISysRoleService extends IService<SysRole> {
+public interface ISysTbroleService extends IService<SysTbrole> {
 
 }

@@ -1,6 +1,6 @@
 package com.upc.modular.auth.mapper;
 
-import com.upc.modular.auth.entity.SysRole;
+import com.upc.modular.auth.entity.SysTbrole;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -10,9 +10,9 @@ import org.apache.ibatis.annotations.Mapper;
  * </p>
  *
  * @author byh
- * @since 2025-06-26
+ * @since 2025-06-28
  */
 @Mapper
-public interface SysRoleMapper extends BaseMapper<SysRole> {
+public interface SysTbroleMapper extends BaseMapper<SysTbrole> {
 
 }
