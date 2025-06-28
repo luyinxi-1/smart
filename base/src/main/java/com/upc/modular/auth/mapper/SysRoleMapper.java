@@ -10,9 +10,9 @@ import org.apache.ibatis.annotations.Mapper;
  * </p>
  *
  * @author byh
- * @since 2025-06-28
+ * @since 2025-06-26
  */
 @Mapper
-public interface SysTbroleMapper extends BaseMapper<SysTbrole> {
+public interface SysRoleMapper extends BaseMapper<SysTbrole> {
 
 }
