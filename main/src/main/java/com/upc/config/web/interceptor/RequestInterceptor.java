@@ -76,8 +76,8 @@ public class RequestInterceptor implements HandlerInterceptor {
             UserUtils.set(userInfoToRedis);
             LoginContextHolder.setLogined(true);
             // 3.权限拦截
-            // return hasPermission(request, userInfoToRedis);
-            return true;
+            return hasPermission(request, userInfoToRedis);
+            // return true;
         } catch (IllegalArgumentException e) {
             log.error("Token校验失败：" + e.getMessage());
             return false;
@@ -118,12 +118,19 @@ public class RequestInterceptor implements HandlerInterceptor {
 
         if (pathMatched) {
             // 记录该访问到日志信息
-            SysLog sysLog = new SysLog();
-            sysLog.setUserId(userInfo.getId());
-            sysLog.setLogContent(requestPath);
+            if (userInfo.getId() != null && StringUtils.isNotBlank(requestPath)) {
+                SysLog sysLog = new SysLog();
+                sysLog.setUserId(userInfo.getId());
+                sysLog.setLogContent(requestPath);
+                if (sysLog != null) {
+                    sysLogService.save(sysLog);
+                }
+            }
+            return true;
+        } else {
+            throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
         }
 
-        return pathMatched;
     }
 
 

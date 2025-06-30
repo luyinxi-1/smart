@@ -40,7 +40,7 @@ public class SysLog implements Serializable {
     private String logContent;
 
     @ApiModelProperty("创建时间")
-    @TableField(value = "add_datetime", fill = FieldFill.INSERT)
+    @TableField(value = "add_datetime")
     private LocalDateTime addDatetime;
 
 
