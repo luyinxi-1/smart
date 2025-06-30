@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -18,31 +17,27 @@ import java.time.LocalDateTime;
  * </p>
  *
  * @author byh
- * @since 2025-06-26
+ * @since 2025-06-28
  */
 @Data
 @Accessors(chain = true)
-@TableName("sys_log")
-@ApiModel(value = "SysLog对象", description = "")
-public class SysLog implements Serializable {
+@TableName("test_user")
+@ApiModel(value = "TestUser对象", description = "")
+public class TestUser implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty("主键")
     @TableId(value = "id", type = IdType.AUTO)
-    private Long id;
+    private Integer id;
 
-    @ApiModelProperty("用户id")
-    @TableField("user_id")
-    private Long userId;
+    @TableField("name")
+    private String name;
 
-    @ApiModelProperty("日志内容")
-    @TableField("log_content")
-    private String logContent;
+    @TableField("age")
+    private Integer age;
 
-    @ApiModelProperty("创建时间")
-    @TableField(value = "add_datetime")
-    private LocalDateTime addDatetime;
+    @TableField("created_at")
+    private LocalDateTime createdAt;
 
 
 }

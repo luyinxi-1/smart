@@ -1,8 +1,5 @@
 package com.upc;
 
-import com.upc.modular.auth.entity.TestUser;
-import com.upc.modular.auth.service.ISysUserService;
-import com.upc.modular.auth.service.ITestUserService;
 import com.upc.modular.student.entity.Student;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
