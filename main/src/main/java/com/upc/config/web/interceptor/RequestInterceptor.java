@@ -71,8 +71,8 @@ public class RequestInterceptor implements HandlerInterceptor {
             }
             UserUtils.set(userInfoToRedis);
             LoginContextHolder.setLogined(true);
-            return hasPermission(request, userInfoToRedis);
-            // return true;
+            // return hasPermission(request, userInfoToRedis);
+            return true;
         } catch (IllegalArgumentException e) {
             log.error("Token校验失败：" + e.getMessage());
             return false;
