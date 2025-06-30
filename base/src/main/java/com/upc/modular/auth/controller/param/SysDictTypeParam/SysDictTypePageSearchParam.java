@@ -1,5 +1,6 @@
 package com.upc.modular.auth.controller.param.SysDictTypeParam;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.upc.common.requestparam.PageBaseSearchParam;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;

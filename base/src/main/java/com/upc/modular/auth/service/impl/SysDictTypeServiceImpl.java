@@ -64,10 +64,12 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
         for (SysDictType dictType : dictTypes) {
             String dictTypeCode = dictType.getDictTypeCode();
 
-            // 删除所有该类型下的字典项
-            LambdaQueryWrapper<SysDictItem> itemWrapper = Wrappers.lambdaQuery(SysDictItem.class)
-                    .eq(StringUtils.isNotBlank(dictTypeCode), SysDictItem::getDictTypeCode, dictTypeCode);
-            dictItemMapper.delete(itemWrapper);
+
+            if (StringUtils.isNotBlank(dictTypeCode)) {
+                LambdaQueryWrapper<SysDictItem> itemWrapper = Wrappers.lambdaQuery(SysDictItem.class)
+                        .eq(StringUtils.isNotBlank(dictTypeCode), SysDictItem::getDictTypeCode, dictTypeCode);
+                dictItemMapper.delete(itemWrapper);
+            }
 
             // 删除字典类型
             dictTypeMapper.deleteById(dictType.getId());

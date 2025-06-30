@@ -1,9 +1,11 @@
 package com.upc.config.time;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
+import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,14 +14,17 @@ import java.time.format.DateTimeFormatter;
 
 @Configuration
 public class JacksonConfig {
+
+    private static final String DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
+
     @Bean
-    public ObjectMapper objectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        JavaTimeModule module = new JavaTimeModule();
-        module.addSerializer(LocalDateTime.class, new LocalDateTimeSerializer(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        module.addDeserializer(LocalDateTime.class, new LocalDateTimeDeserializer(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        mapper.registerModule(module);
-        return mapper;
+    public Jackson2ObjectMapperBuilderCustomizer jacksonCustomizer() {
+        return builder -> {
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern(DATETIME_FORMAT);
+            JavaTimeModule timeModule = new JavaTimeModule();
+            timeModule.addSerializer(LocalDateTime.class, new LocalDateTimeSerializer(dtf));
+            timeModule.addDeserializer(LocalDateTime.class, new LocalDateTimeDeserializer(dtf));
+            builder.modules(timeModule);
+        };
     }
 }
-
