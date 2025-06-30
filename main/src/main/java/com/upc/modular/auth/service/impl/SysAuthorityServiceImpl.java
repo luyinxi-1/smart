@@ -37,7 +37,7 @@ public class SysAuthorityServiceImpl extends ServiceImpl<SysAuthorityMapper, Sys
 
     @Override
     public R<Page<SysAuthority>> getSysAuthorityPage(SysAuthoritySearchParam param) {
-        Page pageInfo = new Page(param.getCurrent(), param.getSize());
+        Page<SysAuthority> pageInfo = new Page(param.getCurrent(), param.getSize());
         Page<SysAuthority> page = this.page(pageInfo,
                 new LambdaQueryWrapper<SysAuthority>().like(StringUtils.isNotBlank(param.getAccessUrl()), SysAuthority::getAccessUrl, param.getAccessUrl())
         );
