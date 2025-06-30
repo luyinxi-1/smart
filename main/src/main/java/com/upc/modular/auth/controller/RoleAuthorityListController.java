@@ -5,8 +5,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.auth.entity.RoleAuthorityList;
 import com.upc.modular.auth.entity.SysAuthority;
+import com.upc.modular.auth.param.RoleAuthorityAssociationSearchParam;
 import com.upc.modular.auth.param.SysAuthoritySearchParam;
+import com.upc.modular.auth.service.IRoleAuthorityListService;
 import com.upc.modular.auth.service.ISysAuthorityService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -32,29 +35,29 @@ import java.util.List;
 public class RoleAuthorityListController {
 
     @Autowired
-    private ISysAuthorityService sysAuthorityService;
+    private IRoleAuthorityListService roleAuthorityListService;
 
     @ApiOperation(value = "删除角色权限关联关系")
-    @PostMapping("/deleteRoleAuthority")
-    public R deleteSysAuthorityByIds(@RequestBody List<Long> ids) {
-        sysAuthorityService.deleteSysAuthorityByIds(ids);
+    @PostMapping("/deleteRoleAuthorityAssociation")
+    public R deleteRoleAuthorityAssociation(@RequestBody List<Long> ids) {
+        roleAuthorityListService.deleteRoleAuthorityAssociation(ids);
         return R.commonReturn(200, "删除成功", "");
     }
 
-    @ApiOperation(value = "新增权限")
-    @PostMapping("/insertSysAuthority")
-    public R insertSysAuthority(@RequestBody List<SysAuthority> sysAuthoritys) {
-        if (sysAuthoritys.isEmpty()) {
+    @ApiOperation(value = "新增角色权限关联关系")
+    @PostMapping("/insertRoleAuthorityAssociation")
+    public R insertRoleAuthorityAssociation(@RequestBody List<RoleAuthorityList> roleAuthorityAssociations) {
+        if (roleAuthorityAssociations.isEmpty()) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
-        sysAuthorityService.saveBatch(sysAuthoritys);
+        roleAuthorityListService.saveBatch(roleAuthorityAssociations);
         return R.commonReturn(200, "新增成功", "");
     }
 
-    @ApiOperation(value = "按关键字分页查询权限数据")
-    @PostMapping("/getSysAuthorityPage")
-    public R<Page<SysAuthority>> getSysAuthorityPage(@RequestBody SysAuthoritySearchParam param) {
-        return sysAuthorityService.getSysAuthorityPage(param);
+    @ApiOperation(value = "条件分页查询权限数据")
+    @PostMapping("/getRoleAuthorityAssociationPage")
+    public R<Page<RoleAuthorityList>> getRoleAuthorityAssociationPage(@RequestBody RoleAuthorityAssociationSearchParam param) {
+        return roleAuthorityListService.getRoleAuthorityAssociationPage(param);
     }
 
 

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.auth.entity.UserRoleList;
 import com.upc.modular.auth.mapper.UserRoleListMapper;
+import com.upc.modular.auth.service.IUserRoleListService;
 import org.springframework.stereotype.Service;
 
 /**
@@ -15,6 +16,6 @@ import org.springframework.stereotype.Service;
  * @since 2025-06-26
  */
 @Service
-public class UserRoleListServiceImpl extends ServiceImpl<UserRoleListMapper, UserRoleList> implements IService<UserRoleList> {
+public class UserRoleListServiceImpl extends ServiceImpl<UserRoleListMapper, UserRoleList> implements IUserRoleListService {
 
 }
