@@ -1,29 +1,19 @@
-package com.upc.modular.group.entity;
+package com.upc.modular.group.controller.param;
 
-import com.baomidou.mybatisplus.annotation.*;
-
-import java.io.Serializable;
-import java.time.LocalDateTime;
-import io.swagger.annotations.ApiModel;
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.upc.common.requestparam.PageBaseSearchParam;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 
-/**
- * <p>
- * 
- * </p>
- *
- * @author byh
- * @since 2025-06-26
- */
+import java.time.LocalDateTime;
+
 @Data
 @Accessors(chain = true)
-@TableName("user_class_list")
-@ApiModel(value = "UserClassList对象", description = "")
-public class UserClassList implements Serializable {
+public class pageUserClassList extends PageBaseSearchParam {
 
     private static final long serialVersionUID = 1L;
 
@@ -56,8 +46,7 @@ public class UserClassList implements Serializable {
     private Long operator;
 
     @ApiModelProperty("操作时间")
-    @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
-    private LocalDateTime operationDatetime;
-
+    @TableField("operation_time")
+    private LocalDateTime operationTime;
 
 }

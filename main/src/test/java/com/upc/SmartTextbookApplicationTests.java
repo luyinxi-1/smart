@@ -49,16 +49,4 @@ class SmartTextbookApplicationTests {
 
     }
 
-    @Autowired
-    private ISysUserService sysUserService;
-    @Autowired
-    private ITestUserService testUserService;
-
-    @Test
-    void test2() {
-        List<TestUser> list = testUserService.list();
-        System.out.println(testUserService.list());
-        System.out.println(list.get(0).getCreatedAt());
-    }
-
 }
