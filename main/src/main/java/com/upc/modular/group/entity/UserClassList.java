@@ -56,8 +56,8 @@ public class UserClassList implements Serializable {
     private Long operator;
 
     @ApiModelProperty("操作时间")
-    @TableField("operation_time")
-    private LocalDateTime operationTime;
+    @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
+    private LocalDateTime operationDatetime;
 
 
 }

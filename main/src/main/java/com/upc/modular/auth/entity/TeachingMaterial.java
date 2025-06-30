@@ -1,9 +1,6 @@
 package com.upc.modular.auth.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -64,13 +61,13 @@ public class TeachingMaterial implements Serializable {
     @TableField("file_size")
     private Integer fileSize;
 
-    @ApiModelProperty("上传时间")
-    @TableField("upload_time")
-    private LocalDateTime uploadTime;
+    @ApiModelProperty("创建时间")
+    @TableField(value = "add_datetime", fill = FieldFill.INSERT)
+    private LocalDateTime addDatetime;
 
-    @ApiModelProperty("更新时间")
-    @TableField("update_time")
-    private LocalDateTime updateTime;
+    @ApiModelProperty("操作时间")
+    @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
+    private LocalDateTime operationDatetime;
 
 
 }
