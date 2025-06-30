@@ -57,7 +57,8 @@ public class RequestInterceptor implements HandlerInterceptor {
         String token = request.getHeader("token");
         // 1.验证常规token
         if (StringUtils.isBlank(token)) {
-            return false;
+            throw new BusinessException(BusinessErrorEnum.PLEASE_LOGIN);
+            // return false;
         }
         // 2.检查token合法性和有效性——即使 token 不为空，也可能是伪造、无效、过期的
         // 当token过期redis中取不到数据会抛异常
