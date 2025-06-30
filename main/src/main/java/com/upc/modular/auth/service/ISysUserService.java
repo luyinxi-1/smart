@@ -5,6 +5,7 @@ import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.param.UserLoginParam;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
  * <p>
@@ -21,4 +22,6 @@ public interface ISysUserService extends IService<SysTbuser> {
      * @return 返回登陆成功的token
      */
     String login(UserLoginParam userLogin, HttpServletRequest request);
+
+    void batchDelete(List<Long> idList);
 }
