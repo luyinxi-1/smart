@@ -54,11 +54,6 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
         if (group == null || group.getId() == null) {
             return false;
         }
-        // 手动填充操作者和操作时间字段
-        // 同样，我们使用一个固定的ID（-1L）代表“系统”或“未知操作者”
-        Long systemOperatorId = -1L;
-        group.setOperator(systemOperatorId);
-        group.setOperationDatetime(LocalDateTime.now());
         return this.updateById(group);
     }
 
@@ -84,15 +79,6 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
         // 1. 参数校验：检查列表是否为空
         if (CollectionUtils.isEmpty(groupsList)) {
             return false;
-        }
-        // 2. 填充公共字段
-        Long systemOperatorId = -1L;
-        LocalDateTime now = LocalDateTime.now();
-
-        // 遍历列表，为每个对象手动设置创建者和创建时间
-        for (Group group : groupsList) {
-            group.setCreator(systemOperatorId);
-            group.setAddDatetime(now);
         }
         return this.saveBatch(groupsList);
     }

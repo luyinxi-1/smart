@@ -32,15 +32,6 @@ public class UserClassListServiceImpl extends ServiceImpl<UserClassListMapper, U
         if (CollectionUtils.isEmpty(userClassLists)) {
             return false;
         }
-        // 2. 填充公共字段
-        Long systemOperatorId = -1L;
-        LocalDateTime now = LocalDateTime.now();
-
-        // 遍历列表，为每个对象手动设置创建者和创建时间
-        for (UserClassList userClassList : userClassLists) {
-            userClassList.setCreator(systemOperatorId);
-            userClassList.setAddDatetime(now);
-        }
         return this.saveBatch(userClassLists);
     }
 
@@ -66,11 +57,7 @@ public class UserClassListServiceImpl extends ServiceImpl<UserClassListMapper, U
         if (userClassList == null || userClassList.getId() == null) {
             return false;
         }
-        // 手动填充操作者和操作时间字段
-        // 同样，我们使用一个固定的ID（-1L）代表“系统”或“未知操作者”
-        Long systemOperatorId = -1L;
-        userClassList.setOperator(systemOperatorId);
-        userClassList.setOperationTime(LocalDateTime.now());
+
         return this.updateById(userClassList);
     }
 
