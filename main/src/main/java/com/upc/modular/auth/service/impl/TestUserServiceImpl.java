@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.auth.entity.TestUser;
 import com.upc.modular.auth.mapper.TestUserMapper;
+import com.upc.modular.auth.service.ITestUserService;
 import org.springframework.stereotype.Service;
 
 /**
@@ -15,6 +16,6 @@ import org.springframework.stereotype.Service;
  * @since 2025-06-28
  */
 @Service
-public class TestUserServiceImpl extends ServiceImpl<TestUserMapper, TestUser> implements IService<TestUser> {
+public class TestUserServiceImpl extends ServiceImpl<TestUserMapper, TestUser> implements ITestUserService {
 
 }

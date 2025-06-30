@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.auth.entity.TeachingMaterial;
 import com.upc.modular.auth.mapper.TeachingMaterialMapper;
+import com.upc.modular.auth.service.ITeachingMaterialService;
 import org.springframework.stereotype.Service;
 
 /**
@@ -15,6 +16,6 @@ import org.springframework.stereotype.Service;
  * @since 2025-06-26
  */
 @Service
-public class TeachingMaterialServiceImpl extends ServiceImpl<TeachingMaterialMapper, TeachingMaterial> implements IService<TeachingMaterial> {
+public class TeachingMaterialServiceImpl extends ServiceImpl<TeachingMaterialMapper, TeachingMaterial> implements ITeachingMaterialService {
 
 }
