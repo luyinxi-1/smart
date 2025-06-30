@@ -1,0 +1,57 @@
+package com.upc.modular.auth.entity;
+
+import com.baomidou.mybatisplus.annotation.*;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
+import lombok.experimental.Accessors;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
+
+/**
+ * <p>
+ * 
+ * </p>
+ *
+ * @author byh
+ * @since 2025-06-26
+ */
+@Data
+@Accessors(chain = true)
+@TableName("user_role_list")
+@ApiModel(value = "UserRoleList对象", description = "")
+public class UserRoleList implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    @ApiModelProperty("主键")
+    @TableId(value = "id", type = IdType.AUTO)
+    private Long id;
+
+    @ApiModelProperty("用户id")
+    @TableField("user_id")
+    private Long userId;
+
+    @ApiModelProperty("角色id")
+    @TableField("role_id")
+    private Long roleId;
+
+    @ApiModelProperty("创建人")
+    @TableField(value = "creator", fill = FieldFill.INSERT)
+    private Long creator;
+
+    @ApiModelProperty("创建时间")
+    @TableField(value = "add_datetime", fill = FieldFill.INSERT)
+    private LocalDateTime addDatetime;
+
+    @ApiModelProperty("操作人")
+    @TableField(value = "operator", fill = FieldFill.UPDATE)
+    private Long operator;
+
+    @ApiModelProperty("操作时间")
+    @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
+    private LocalDateTime operationDatetime;
+
+
+}

@@ -4,20 +4,15 @@ package com.upc.modular.auth.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
-import com.upc.exception.BusinessErrorEnum;
-import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.controller.param.SysLogParam.SysLogPageReturnParam;
 import com.upc.modular.auth.controller.param.SysLogParam.SysLogPageSearchParam;
-import com.upc.modular.auth.entity.SysDictType;
 import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.auth.service.ISysLogService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Collection;
 
 /**
  * <p>
