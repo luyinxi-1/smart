@@ -1,10 +1,14 @@
 package com.upc.modular.auth.controller;
 
 
+import com.upc.modular.auth.service.ISysAuthorityService;
 import io.swagger.annotations.Api;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import org.springframework.web.bind.annotation.RestController;
+
+import javax.annotation.Resource;
 
 /**
  * <p>
@@ -16,7 +20,12 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/role-authority-list")
-@Api(tags = "用户权限关联")
+@Api(tags = "角色权限关联")
 public class RoleAuthorityListController {
+
+    @Autowired
+    private ISysAuthorityService sysAuthorityService;
+
+
 
 }

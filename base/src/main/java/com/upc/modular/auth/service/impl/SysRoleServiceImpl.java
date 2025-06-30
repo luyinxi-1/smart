@@ -47,7 +47,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysTbrole> im
     public R<Page<SysTbrole>> getSysRolePage(SysRoleSearchParam param) {
         Page<SysTbrole> pageInfo = new Page<>(param.getCurrent(), param.getSize());
         LambdaQueryWrapper<SysTbrole> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(!StringUtils.isEmpty(param.getRoleName()), SysTbrole::getRoleName, param.getRoleName());
+        queryWrapper.like(!StringUtils.isEmpty(param.getRoleName()), SysTbrole::getRoleName, param.getRoleName());
         queryWrapper.eq(param.getStatus() != null, SysTbrole::getStatus, param.getStatus());
 
         Page<SysTbrole> page = this.page(pageInfo, queryWrapper);

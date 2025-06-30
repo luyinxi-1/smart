@@ -35,14 +35,6 @@ public class SysAuthority implements Serializable {
     @TableField("access_url")
     private String accessUrl;
 
-    @ApiModelProperty("权限有效期（小时）")
-    @TableField("validity_period")
-    private Long validityPeriod;
-
-    @ApiModelProperty("状态")
-    @TableField("status")
-    private Integer status;
-
     @ApiModelProperty("创建时间")
     @TableField(value = "add_datetime", fill = FieldFill.INSERT)
     private LocalDateTime addDatetime;

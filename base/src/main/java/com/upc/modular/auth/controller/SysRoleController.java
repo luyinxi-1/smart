@@ -3,6 +3,8 @@ package com.upc.modular.auth.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
+import com.upc.exception.BusinessErrorEnum;
+import com.upc.exception.BusinessException;
 import com.upc.modular.auth.entity.SysTbrole;
 import com.upc.modular.auth.param.SysRoleSearchParam;
 import com.upc.modular.auth.service.ISysRoleService;
@@ -29,11 +31,22 @@ public class SysRoleController {
     @Autowired
     private ISysRoleService sysRoleService;
 
-    @ApiOperation(value = "删除角色")
-    @PostMapping("/deleteSysRoleByIds")
-    public R deleteSysRoleByIds(@RequestBody List<Long> ids) {
-        sysRoleService.deleteSysRoleByIds(ids);
-        return R.commonReturn(200, "删除成功", "");
+//    @ApiOperation(value = "删除角色")
+//    @PostMapping("/deleteSysRoleByIds")
+//    public R deleteSysRoleByIds(@RequestBody List<Long> ids) {
+//        sysRoleService.deleteSysRoleByIds(ids);
+//        return R.commonReturn(200, "删除成功", "");
+//    }
+
+    @ApiOperation(value = "新增角色")
+    @PostMapping("/insertSysRole")
+    public R insertSysRole(@RequestBody SysTbrole sysTbrole) {
+        if (sysTbrole == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+        sysTbrole.setStatus(1);
+        sysRoleService.save(sysTbrole);
+        return R.commonReturn(200, "新增成功", "");
     }
 
     @ApiOperation(value = "查询角色信息")
@@ -50,7 +63,7 @@ public class SysRoleController {
         return R.commonReturn(200, "修改成功", "");
     }
 
-    @ApiOperation(value = "分页按条件查询字典类型")
+    @ApiOperation(value = "分页按条件查询角色信息")
     @PostMapping("/getSysRolePage")
     public R<Page<SysTbrole>> getSysRolePage(@RequestBody SysRoleSearchParam param) {
         return sysRoleService.getSysRolePage(param);
