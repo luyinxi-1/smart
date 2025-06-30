@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/role-authority-list")
-@Api(tags = "用户权限关联")
+@Api(tags = "角色权限关联")
 public class RoleAuthorityListController {
 
 }
