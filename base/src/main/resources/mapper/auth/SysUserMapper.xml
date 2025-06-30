@@ -27,7 +27,7 @@
         SELECT r.*
         FROM sys_tbrole r
                  JOIN user_role_list ur ON ur.role_id = r.id
-        WHERE ur.user_id = #{userId}
+        WHERE ur.user_id = #{userId} AND r.status = 1
     </select>
 
 </mapper>
