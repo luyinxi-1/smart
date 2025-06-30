@@ -9,5 +9,37 @@
         <result column="log_content" property="logContent" />
         <result column="add_datetime" property="addDatetime" />
     </resultMap>
+    <select id="getLogPage"
+            parameterType="map"
+            resultType="com.upc.modular.auth.controller.param.SysLogParam.SysLogPageReturnParam">
+        SELECT
+        log.*,
+        stu.name AS student_name
+        FROM
+        sys_log log
+        LEFT JOIN
+        student stu ON log.user_id = stu.user_id
+
+        <where>
+            <if test="param.startTime != null and param.endTime != null">
+                AND log.add_datetime BETWEEN #{param.startTime} AND #{param.endTime}
+            </if>
+
+            <if test="param.name != null and param.name != ''">
+                AND stu.name LIKE CONCAT('%', #{param.name}, '%')
+            </if>
+        </where>
+
+        ORDER BY log.add_datetime
+        <choose>
+            <when test="param.isAsc == 1">
+                ASC
+            </when>
+            <otherwise>
+                DESC
+            </otherwise>
+        </choose>
+    </select>
+
 
 </mapper>

@@ -1,5 +1,8 @@
 package com.upc.modular.auth.mapper;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.modular.auth.controller.param.SysLogParam.SysLogPageReturnParam;
+import com.upc.modular.auth.controller.param.SysLogParam.SysLogPageSearchParam;
 import com.upc.modular.auth.entity.SysLog;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
@@ -15,4 +18,5 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface SysLogMapper extends BaseMapper<SysLog> {
 
+    Page<SysLogPageReturnParam> getLogPage(Page<SysLogPageReturnParam> page, SysLogPageSearchParam param);
 }

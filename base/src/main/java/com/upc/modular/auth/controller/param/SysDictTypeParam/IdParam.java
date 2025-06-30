@@ -8,6 +8,6 @@ import java.util.List;
 
 @Data
 public class IdParam {
-    @ApiModelProperty(value = "ID列表,角色传入realId")
-    List<Long> idList = new ArrayList<>();
+    @ApiModelProperty(value = "删除ID列表")
+    private List<Long> idList;
 }
