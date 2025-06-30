@@ -7,10 +7,12 @@ import com.upc.common.utils.UserUtils;
 import com.upc.context.LoginContextHolder;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.auth.entity.SysTbrole;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.mapper.SysRoleMapper;
 import com.upc.modular.auth.mapper.SysUserMapper;
+import com.upc.modular.auth.service.ISysLogService;
 import com.upc.modular.auth.service.ISysRoleService;
 import com.upc.modular.auth.service.ISysUserService;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +41,8 @@ public class RequestInterceptor implements HandlerInterceptor {
 
     @Autowired
     private RedisTemplate redisTemplate;
+    @Autowired
+    private ISysLogService sysLogService;
     @Autowired
     private SysRoleMapper sysRoleMapper;
     @Autowired
@@ -71,8 +75,9 @@ public class RequestInterceptor implements HandlerInterceptor {
             }
             UserUtils.set(userInfoToRedis);
             LoginContextHolder.setLogined(true);
-            return hasPermission(request, userInfoToRedis);
-            // return true;
+            // 3.权限拦截
+            // return hasPermission(request, userInfoToRedis);
+            return true;
         } catch (IllegalArgumentException e) {
             log.error("Token校验失败：" + e.getMessage());
             return false;
@@ -111,6 +116,13 @@ public class RequestInterceptor implements HandlerInterceptor {
         }
         boolean pathMatched = this.isPathMatched(requestPath, accessUrlsByRoleId);
 
+        if (pathMatched) {
+            // 记录该访问到日志信息
+            SysLog sysLog = new SysLog();
+            sysLog.setUserId(userInfo.getId());
+            sysLog.setLogContent(requestPath);
+        }
+
         return pathMatched;
     }
 
@@ -119,6 +131,7 @@ public class RequestInterceptor implements HandlerInterceptor {
 
     private boolean isPathMatched(String requestPath, List<String> allowedPaths) {
         for (String path : allowedPaths) {
+            // 有权访问该路径，放行
             if (pathMatcher.match(path, requestPath)) {
                 return true;
             }
