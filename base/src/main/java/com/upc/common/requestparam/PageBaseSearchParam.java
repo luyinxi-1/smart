@@ -14,7 +14,7 @@ public class PageBaseSearchParam {
     @ApiModelProperty("当前页，默认为第一页")
     private Long current = 1L;
 
-    @ApiModelProperty("0为升序 1为降序")
+    @ApiModelProperty("0为降序 1为升序")
     private Integer isAsc = 0;
 
 }
