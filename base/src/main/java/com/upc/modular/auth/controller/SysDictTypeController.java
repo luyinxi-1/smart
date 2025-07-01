@@ -53,7 +53,7 @@ public class SysDictTypeController {
 
     @ApiOperation(value = "查询字典类型")
     @GetMapping("/getById")
-    public R getById(@RequestParam("dictId") Integer dictId) {
+    public R getById(@RequestParam("dictId") Long dictId) {
         SysDictType dictType = dictTypeService.getById(dictId);
         return R.commonReturn(200, "查询成功", dictType);
     }
@@ -73,7 +73,7 @@ public class SysDictTypeController {
     }
 
 
-    @ApiOperation(value = "分页按条件查询字典类型")
+    @ApiOperation(value = "分页查询字典类型")
     @PostMapping("/getPage")
     public R<PageBaseReturnParam<SysDictType>> getPage(@RequestBody SysDictTypePageSearchParam dictType) {
         Page<SysDictType> page = dictTypeService.selectDictTypeList(dictType);

@@ -1,5 +1,8 @@
 package com.upc.modular.teacher.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.teacher.controller.param.TeacherPageSearchParam;
 import com.upc.modular.teacher.entity.Teacher;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -13,4 +16,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface ITeacherService extends IService<Teacher> {
 
+    void insert(Teacher teacher);
+
+    void deleteDictItemByIds(IdParam idParam);
+
+    Page<Teacher> getPage(TeacherPageSearchParam param);
 }

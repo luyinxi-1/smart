@@ -73,7 +73,6 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
                 .eq(dictType.getUserId() != null, Student::getUserId, dictType.getUserId())
                 .eq(!StringUtils.isEmpty(dictType.getIdentityId()), Student::getIdentityId, dictType.getIdentityId())
                 .eq(dictType.getClassId() != null, Student::getClassId, dictType.getClassId())
-                .eq(dictType.getStatus() != null, Student::getStatus, dictType.getStatus())
                 .eq(!StringUtils.isEmpty(dictType.getGender()), Student::getGender, dictType.getGender())
                 // 模糊匹配查询 (like)
                 .like(!StringUtils.isEmpty(dictType.getName()), Student::getName, dictType.getName())
