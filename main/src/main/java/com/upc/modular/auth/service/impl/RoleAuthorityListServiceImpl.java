@@ -11,12 +11,14 @@ import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.entity.RoleAuthorityList;
 import com.upc.modular.auth.entity.SysAuthority;
+import com.upc.modular.auth.entity.SysTbrole;
 import com.upc.modular.auth.mapper.RoleAuthorityListMapper;
 import com.upc.modular.auth.param.RoleAuthorityAssociationSearchParam;
 import com.upc.modular.auth.service.IRoleAuthorityListService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * <p>
@@ -41,7 +43,9 @@ public class RoleAuthorityListServiceImpl extends ServiceImpl<RoleAuthorityListM
     public R<Page<RoleAuthorityList>> getRoleAuthorityAssociationPage(RoleAuthorityAssociationSearchParam param) {
         Page<RoleAuthorityList> pageInfo = new Page(param.getCurrent(), param.getSize());
         Page<RoleAuthorityList> page = this.page(pageInfo,
-                new LambdaQueryWrapper<RoleAuthorityList>().eq(param.getRoleId() != null && param.getRoleId() != 0L, RoleAuthorityList::getRoleId, param.getRoleId())
+                new LambdaQueryWrapper<RoleAuthorityList>()
+                        .eq(param.getRoleId() != null && param.getRoleId() != 0L, RoleAuthorityList::getRoleId, param.getRoleId())
+                        .orderBy(true, Objects.equals(1, param.getIsAsc()), RoleAuthorityList::getAddDatetime)
         );
 
         return R.ok(page);

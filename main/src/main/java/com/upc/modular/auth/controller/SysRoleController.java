@@ -13,6 +13,8 @@ import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * <p>
  *  前端控制器
@@ -29,12 +31,12 @@ public class SysRoleController {
     @Autowired
     private ISysRoleService sysRoleService;
 
-//    @ApiOperation(value = "删除角色")
-//    @PostMapping("/deleteSysRoleByIds")
-//    public R deleteSysRoleByIds(@RequestBody List<Long> ids) {
-//        sysRoleService.deleteSysRoleByIds(ids);
-//        return R.commonReturn(200, "删除成功", "");
-//    }
+    @ApiOperation(value = "删除角色")
+    @PostMapping("/deleteSysRoleByIds")
+    public R deleteSysRoleByIds(@RequestBody List<Long> ids) {
+        sysRoleService.deleteSysRoleByIds(ids);
+        return R.commonReturn(200, "删除成功", "");
+    }
 
     @ApiOperation(value = "新增角色")
     @PostMapping("/insertSysRole")
