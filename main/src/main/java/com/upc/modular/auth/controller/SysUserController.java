@@ -71,20 +71,6 @@ public class SysUserController {
         return R.commonReturn(200, "删除成功", "");
     }
 
-    @ApiOperation("批量导入用户 Excel")
-    @PostMapping("/importSysUser")
-    public R<ImportSysUserReturnParam> importSysUser(MultipartFile file) throws IOException {
-        String fileName = file.getOriginalFilename();
-        if (fileName.matches("^.+\\.(?i)(xls)$")) {
-            //03版本excel,xls
-            return R.fail("该文件类型已不支持，请使用07版本后缀为.xlsx版本导入");
-        } else if (fileName.matches("^.+\\.(?i)(xlsx)$")) {
-            //07版本,xlsx
-            return R.ok(sysUserService.importSysUser(file));
-        }else{
-            return R.fail("文件格式不支持，请使用xlsx");
-        }
-    }
 
 
 }

@@ -33,5 +33,4 @@ public interface ISysUserService extends IService<SysTbuser> {
 
     void insert(SysTbuser sysTbuser);
 
-    ImportSysUserReturnParam importSysUser(MultipartFile file);
 }
