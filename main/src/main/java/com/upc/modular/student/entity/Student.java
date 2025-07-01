@@ -59,7 +59,7 @@ public class Student implements Serializable {
     @TableField("birthday")
     private String birthday;
 
-    @ApiModelProperty("电子邮件")
+    @ApiModelProperty("电子邮箱")
     @TableField("email")
     private String email;
 

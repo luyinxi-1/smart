@@ -1,4 +1,4 @@
-package com.upc.modular.auth.utils;
+package com.upc.utils;
 
 
 public class TypeConversionUtils {

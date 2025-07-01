@@ -1,21 +1,30 @@
 package com.upc.modular.teacher.service.impl;
 
+import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.ExcelReader;
+import com.alibaba.excel.read.metadata.ReadSheet;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
-import com.upc.modular.auth.entity.SysDictType;
+import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.service.ISysUserService;
-import com.upc.modular.teacher.controller.param.TeacherPageSearchParam;
+import com.upc.modular.teacher.vo.GenerateUserResultVo;
+import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
+import com.upc.modular.teacher.dto.TeacherImportDto;
+import com.upc.modular.teacher.dto.TeacherPageSearchDto;
 import com.upc.modular.teacher.entity.Teacher;
+import com.upc.modular.teacher.listener.TeacherListener;
 import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.teacher.service.ITeacherService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -79,7 +88,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     }
 
     @Override
-    public Page<Teacher> getPage(TeacherPageSearchParam param) {
+    public Page<Teacher> getPage(TeacherPageSearchDto param) {
         Page<Teacher> page = new Page<>(param.getCurrent(), param.getSize());
         MyLambdaQueryWrapper<Teacher> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
 
@@ -96,6 +105,45 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
 
         // 分页查询
         return this.page(page, lambdaQueryWrapper);
+    }
+
+    @Override
+    public ImportTeacherReturnVo importTeacherData(MultipartFile file) {
+        ExcelReader excelReader = null;
+        List<Teacher> teachers = teacherMapper.selectList(null);
+        ImportTeacherReturnVo importTeacherReturnParam = new ImportTeacherReturnVo();
+        try {
+            TeacherListener teacherListener = new TeacherListener(this, teachers);
+            excelReader = EasyExcel.read(file.getInputStream(), TeacherImportDto.class, teacherListener).build();
+            // 这两行用于执行读操作，不加不运行
+            ReadSheet readSheet = EasyExcel.readSheet(0).build();
+            excelReader.read(readSheet);
+            importTeacherReturnParam.setUpdateTotal(teacherListener.getUpdateTotal());
+            importTeacherReturnParam.setInsertTotal(teacherListener.getInsertTotal());
+            return importTeacherReturnParam;
+        } catch (IOException e) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "导入文件格式不合法");
+        } finally {
+            if (excelReader != null) {
+                // 这里千万别忘记关闭，读的时候会创建临时文件，到时磁盘会崩的
+                excelReader.finish();
+            }
+        }
+    }
+
+    @Override
+    public SysTbuser getTeacherUser(Teacher param) {
+        if (ObjectUtils.isEmpty(param.getUserId())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "该教师未绑定用户");
+        }
+        MyLambdaQueryWrapper<SysTbuser> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(SysTbuser::getId, param.getUserId());
+        return sysUserService.getOne(lambdaQueryWrapper);
+    }
+
+    @Override
+    public GenerateUserResultVo generateUsersForTeachers() {
+        return null;
     }
 
 }

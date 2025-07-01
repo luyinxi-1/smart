@@ -4,11 +4,11 @@ package com.upc.modular.teacher.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
-import com.upc.modular.auth.controller.param.SysDictItemParam.SysDictItemPageSearchParam;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
-import com.upc.modular.auth.entity.SysDictItem;
-import com.upc.modular.auth.service.ISysUserService;
-import com.upc.modular.teacher.controller.param.TeacherPageSearchParam;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.teacher.vo.GenerateUserResultVo;
+import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
+import com.upc.modular.teacher.dto.TeacherPageSearchDto;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.service.ITeacherService;
 import io.swagger.annotations.Api;
@@ -16,8 +16,6 @@ import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
 
 /**
  * <p>
@@ -58,26 +56,50 @@ public class TeacherController {
 
     @ApiOperation(value = "分页查询教师")
     @PostMapping("/getPage")
-    public R<PageBaseReturnParam<Teacher>> getPage(@RequestBody TeacherPageSearchParam param) {
+    public R<PageBaseReturnParam<Teacher>> getPage(@RequestBody TeacherPageSearchDto param) {
         Page<Teacher> page = teacherService.getPage(param);
         PageBaseReturnParam<Teacher> result = PageBaseReturnParam.ok(page);
         return R.page(result);
     }
 
-//    @ApiOperation("批量导入教师 Excel")
-//    @PostMapping("/importTeacherData")
-//    @ResponseBody
-//    public R<ImportTeacherReturnParam> importPopulationData(MultipartFile file) throws IOException {
-//        String fileName = file.getOriginalFilename();
-//        if (fileName.matches("^.+\\.(?i)(xls)$")) {
-//            //03版本excel,xls
-//            return R.fail("该文件类型已不支持，请使用07版本后缀为.xlsx版本导入");
-//        } else if (fileName.matches("^.+\\.(?i)(xlsx)$")) {
-//            //07版本,xlsx
-//            return R.ok(teacherService.importTeacherData(file));
-//        }else{
-//            return R.fail("文件格式不支持，请使用xlsx");
-//        }
-//    }
+    @ApiOperation("批量导入教师 Excel")
+    @PostMapping("/importTeacherData")
+    @ResponseBody
+    public R<ImportTeacherReturnVo> importPopulationData(MultipartFile file){
+        String fileName = file.getOriginalFilename();
+        if (fileName.matches("^.+\\.(?i)(xls)$")) {
+            //03版本excel,xls
+            return R.fail("该文件类型已不支持，请使用07版本后缀为.xlsx版本导入");
+        } else if (fileName.matches("^.+\\.(?i)(xlsx)$")) {
+            //07版本,xlsx
+            return R.ok(teacherService.importTeacherData(file));
+        }else{
+            return R.fail("文件格式不支持，请使用xlsx");
+        }
+    }
+
+    @ApiOperation("查询教师的用户信息")
+    @PostMapping("/getTeacherUser")
+    public R<SysTbuser> getTeacherUser(@RequestBody Teacher param) {
+        SysTbuser sysTbuser = teacherService.getTeacherUser(param);
+        return R.ok(sysTbuser);
+    }
+
+    @ApiOperation("查询未绑定用户的教师")
+    @PostMapping("/getTeacherNoUser")
+    public R<SysTbuser> getTeacherNoUser(@RequestBody Teacher param) {
+        SysTbuser sysTbuser = teacherService.getTeacherUser(param);
+        return R.ok(sysTbuser);
+    }
+
+    @PostMapping("/generateTeacherUsers")
+    @ApiOperation("批量生成教师用户并绑定")
+    public R<GenerateUserResultVo> generateTeacherUsers() {
+        GenerateUserResultVo result = teacherService.generateUsersForTeachers();
+        return R.ok(result);
+    }
+
+
+
 
 }

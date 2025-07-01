@@ -2,9 +2,13 @@ package com.upc.modular.teacher.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
-import com.upc.modular.teacher.controller.param.TeacherPageSearchParam;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.teacher.vo.GenerateUserResultVo;
+import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
+import com.upc.modular.teacher.dto.TeacherPageSearchDto;
 import com.upc.modular.teacher.entity.Teacher;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * <p>
@@ -20,5 +24,11 @@ public interface ITeacherService extends IService<Teacher> {
 
     void deleteDictItemByIds(IdParam idParam);
 
-    Page<Teacher> getPage(TeacherPageSearchParam param);
+    Page<Teacher> getPage(TeacherPageSearchDto param);
+
+    ImportTeacherReturnVo importTeacherData(MultipartFile file);
+
+    SysTbuser getTeacherUser(Teacher param);
+
+    GenerateUserResultVo generateUsersForTeachers();
 }

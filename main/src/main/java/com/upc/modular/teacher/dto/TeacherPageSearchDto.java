@@ -1,4 +1,4 @@
-package com.upc.modular.teacher.controller.param;
+package com.upc.modular.teacher.dto;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.upc.common.requestparam.PageBaseSearchParam;
@@ -8,7 +8,7 @@ import lombok.experimental.Accessors;
 
 @Data
 @Accessors(chain = true)
-public class TeacherPageSearchParam extends PageBaseSearchParam {
+public class TeacherPageSearchDto extends PageBaseSearchParam {
     @ApiModelProperty("工号")
     @TableField("identity_id")
     private String identityId;

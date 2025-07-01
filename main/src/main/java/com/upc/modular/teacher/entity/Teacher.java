@@ -1,9 +1,7 @@
 package com.upc.modular.teacher.entity;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import io.swagger.annotations.ApiModel;
@@ -30,7 +28,7 @@ public class Teacher implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @ApiModelProperty("主键")
-    @TableId("id")
+    @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
     @ApiModelProperty("用户id")
@@ -69,7 +67,7 @@ public class Teacher implements Serializable {
     @TableField("professional_title")
     private String professionalTitle;
 
-    @ApiModelProperty("邮件")
+    @ApiModelProperty("邮箱")
     @TableField("email")
     private String email;
 
