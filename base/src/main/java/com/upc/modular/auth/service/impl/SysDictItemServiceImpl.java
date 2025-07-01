@@ -75,7 +75,6 @@ public class SysDictItemServiceImpl extends ServiceImpl<SysDictItemMapper, SysDi
                 .like(ObjectUtils.isNotEmpty(param.getDictItemName()), SysDictItem::getDictItemName, param.getDictItemName())
                 .eq(ObjectUtils.isNotEmpty(param.getStatus()), SysDictItem::getStatus, param.getStatus())
                 .orderByAsc(SysDictItem::getItemOrder);  // 按 item_order 升序排列
-
         return this.page(page, lambdaQueryWrapper);
     }
 

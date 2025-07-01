@@ -11,6 +11,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.auth.entity.SysDictType;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.entity.UserRoleList;
 import com.upc.modular.auth.listener.SysUserListener;
@@ -97,7 +98,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
                 .eq(ObjectUtils.isNotEmpty(param.getUserType()), SysTbuser::getUserType, param.getUserType())
                 .eq(ObjectUtils.isNotEmpty(param.getGender()), SysTbuser::getGender, param.getGender())
                 .eq(ObjectUtils.isNotEmpty(param.getIdcard()), SysTbuser::getIdcard, param.getIdcard())
-                .like(ObjectUtils.isNotEmpty(param.getName()), SysTbuser::getName, param.getName());
+                .like(ObjectUtils.isNotEmpty(param.getName()), SysTbuser::getName, param.getName())
+                .orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
         return this.page(page, lambdaQueryWrapper);
     }
 
