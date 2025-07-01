@@ -55,33 +55,33 @@ public class SysUserListener extends AnalysisEventListener<SysUserImportParam> {
     public SysUserListener(ISysUserService sysUserService, List<SysTbuser> existSysUserList) {
         this.sysUserService= sysUserService;
         this.existSysUserMap = existSysUserList.stream()
-                .filter(user -> StringUtils.isNotBlank(user.getIdentityId()))
+                .filter(user -> StringUtils.isNotBlank(user.getIdcard()))
                 .collect(Collectors.toMap(
-                        SysTbuser::getIdentityId,
+                        SysTbuser::getIdcard,
                         Function.identity(), // value 就是这个 user 本身
                         (oldVal, newVal) -> oldVal // 如果身份证重复，保留第一个
                 ));
     }
     @Override
     public void invoke(SysUserImportParam sysUserImportParam, AnalysisContext analysisContext) {
-        String identityId = sysUserImportParam.getIdentityId();
-        if (StringUtils.isBlank(identityId)) {
-            // 如果身份证为空，可选择跳过，或者记录异常
-            log.warn("跳过一条数据，身份证为空: {}", sysUserImportParam);
-            return;
+        String idcard = sysUserImportParam.getIdcard();
+        if (StringUtils.isBlank(idcard) || idcard.length() < 14) {
+            log.warn("跳过无效数据，身份证号格式错误：{}", idcard);
+            return; // 或者记录到错误列表中
         }
         SysTbuser sysTbuser = new SysTbuser();
         BeanUtils.copyProperties(sysUserImportParam, sysTbuser);
-        String dateBirth = AgeQuantifyUtils.getBirthDateFromIdNumber(sysUserImportParam.getIdentityId());
-        int age = AgeQuantifyUtils.getAgeFromIdNumber(sysUserImportParam.getIdentityId());
-        String newGender = TypeConversionUtils.sexToString(AgeQuantifyUtils.getGenderFromIdNumber(sysUserImportParam.getIdentityId()));
+        String dateBirth = AgeQuantifyUtils.getBirthDateFromIdNumber(sysUserImportParam.getIdcard());
+        int age = AgeQuantifyUtils.getAgeFromIdNumber(sysUserImportParam.getIdcard());
+        String newGender = TypeConversionUtils.sexToString(AgeQuantifyUtils.getGenderFromIdNumber(sysUserImportParam.getIdcard()));
 
         sysTbuser.setBirthday(dateBirth);
         sysTbuser.setAge(age);
         sysTbuser.setGender(newGender);
+        sysTbuser.setStatus(0);
 
         // 用 map 判断是否存在
-        SysTbuser existUser = existSysUserMap.get(sysTbuser.getIdentityId());
+        SysTbuser existUser = existSysUserMap.get(sysTbuser.getIdcard());
 
         if (existUser != null) {
             sysTbuser.setId(existUser.getId()); // 设置 ID 用于更新
