@@ -1,10 +1,13 @@
 package com.upc.modular.auth.controller;
 
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysDictType;
 import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.param.SysUserPageSearchParam;
 import com.upc.modular.auth.param.UserLoginParam;
 import com.upc.modular.auth.service.ISysUserService;
 import io.swagger.annotations.Api;
@@ -49,6 +52,22 @@ public class SysUserController {
         sysUserService.updateById(param);
         return R.commonReturn(200, "修改成功", "");
     }
+
+    @ApiOperation(value = "分页查询用户信息")
+    @PostMapping("/getPage")
+    public R<PageBaseReturnParam<SysTbuser>> getPage(@RequestBody SysUserPageSearchParam param) {
+        Page<SysTbuser> page = sysUserService.getPage(param);
+        PageBaseReturnParam<SysTbuser> result = PageBaseReturnParam.ok(page);
+        return R.page(result);
+    }
+
+    @ApiOperation(value = "新增用户")
+    @PostMapping("/insert")
+    public R insert(@RequestBody SysTbuser sysTbuser) {
+        sysUserService.insert(sysTbuser);
+        return R.commonReturn(200, "删除成功", "");
+    }
+
 
 
 

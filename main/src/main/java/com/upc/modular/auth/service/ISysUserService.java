@@ -1,7 +1,9 @@
 package com.upc.modular.auth.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.param.SysUserPageSearchParam;
 import com.upc.modular.auth.param.UserLoginParam;
 
 import javax.servlet.http.HttpServletRequest;
@@ -24,4 +26,8 @@ public interface ISysUserService extends IService<SysTbuser> {
     String login(UserLoginParam userLogin, HttpServletRequest request);
 
     void batchDelete(List<Long> idList);
+
+    Page<SysTbuser> getPage(SysUserPageSearchParam param);
+
+    void insert(SysTbuser sysTbuser);
 }
