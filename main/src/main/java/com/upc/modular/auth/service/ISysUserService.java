@@ -3,8 +3,10 @@ package com.upc.modular.auth.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.param.ImportSysUserReturnParam;
 import com.upc.modular.auth.param.SysUserPageSearchParam;
 import com.upc.modular.auth.param.UserLoginParam;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -30,4 +32,6 @@ public interface ISysUserService extends IService<SysTbuser> {
     Page<SysTbuser> getPage(SysUserPageSearchParam param);
 
     void insert(SysTbuser sysTbuser);
+
+    ImportSysUserReturnParam importSysUser(MultipartFile file);
 }

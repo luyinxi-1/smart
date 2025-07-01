@@ -50,7 +50,7 @@ public class SysLogController {
     }
 
     @ApiOperation(value = "分页查询系统日志")
-    @DeleteMapping("/getPage")
+    @PostMapping("/getPage")
     public R<PageBaseReturnParam<SysLogPageReturnParam>> getPage(@RequestBody SysLogPageSearchParam param) {
         Page<SysLogPageReturnParam> page = sysLogService.getPage(param);
         PageBaseReturnParam<SysLogPageReturnParam> resultPage = PageBaseReturnParam.ok(page);

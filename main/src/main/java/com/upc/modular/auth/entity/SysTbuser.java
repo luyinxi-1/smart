@@ -81,6 +81,10 @@ public class SysTbuser implements Serializable {
     @TableField("status")
     private Integer status;
 
+    @ApiModelProperty("年龄")
+    @TableField("age")
+    private Integer age;
+
     @ApiModelProperty("创建人")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;

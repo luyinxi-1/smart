@@ -7,6 +7,7 @@ import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysDictType;
 import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.param.ImportSysUserReturnParam;
 import com.upc.modular.auth.param.SysUserPageSearchParam;
 import com.upc.modular.auth.param.UserLoginParam;
 import com.upc.modular.auth.service.ISysUserService;
@@ -14,8 +15,10 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 
 /**
  * <p>
@@ -68,7 +71,20 @@ public class SysUserController {
         return R.commonReturn(200, "删除成功", "");
     }
 
-
+    @ApiOperation("批量导入用户 Excel")
+    @PostMapping("/importSysUser")
+    public R<ImportSysUserReturnParam> importSysUser(MultipartFile file) throws IOException {
+        String fileName = file.getOriginalFilename();
+        if (fileName.matches("^.+\\.(?i)(xls)$")) {
+            //03版本excel,xls
+            return R.fail("该文件类型已不支持，请使用07版本后缀为.xlsx版本导入");
+        } else if (fileName.matches("^.+\\.(?i)(xlsx)$")) {
+            //07版本,xlsx
+            return R.ok(sysUserService.importSysUser(file));
+        }else{
+            return R.fail("文件格式不支持，请使用xlsx");
+        }
+    }
 
 
 }

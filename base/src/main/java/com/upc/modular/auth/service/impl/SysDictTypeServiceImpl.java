@@ -107,7 +107,7 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
                         dictType.getStartTime(),
                         dictType.getEndTime()
                 )
-                .orderBy(true, dictType.getIsAsc() == 1, SysDictType::getId);
+                .orderBy(true, dictType.getIsAsc() == 1, SysDictType::getAddDatetime);
         return this.page(page, lambdaQueryWrapper);
     }
 
