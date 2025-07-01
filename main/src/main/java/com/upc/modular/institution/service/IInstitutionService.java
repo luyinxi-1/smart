@@ -1,7 +1,12 @@
 package com.upc.modular.institution.service;
 
+import com.upc.common.responseparam.R;
+import com.upc.modular.auth.param.InstitutionDto;
+import com.upc.modular.institution.Param.InstitutionSearchParam;
 import com.upc.modular.institution.entity.Institution;
 import com.baomidou.mybatisplus.extension.service.IService;
+
+import java.util.List;
 
 /**
  * <p>
@@ -13,4 +18,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IInstitutionService extends IService<Institution> {
 
+    void deleteInstitutionByIds(List<Long> ids);
+
+    void updateInstitutionById(Institution institution);
+
+    R<List<InstitutionDto>> getInstitutionByConditions(InstitutionSearchParam param);
 }

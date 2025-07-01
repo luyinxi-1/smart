@@ -50,8 +50,11 @@ public class SysRoleController {
     }
 
     @ApiOperation(value = "查询角色信息")
-    @PostMapping("/geSysRoleById")
-    public R geSysRoleById(@RequestParam("sysRoleId") Integer sysRoleId) {
+    @PostMapping("/getSysRoleById")
+    public R getSysRoleById(@RequestParam("sysRoleId") Long sysRoleId) {
+        if (sysRoleId == null || sysRoleId == 0L) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
         SysTbrole sysTbrole = sysRoleService.getById(sysRoleId);
         return R.commonReturn(200, "查询成功", sysTbrole);
     }
