@@ -64,13 +64,4 @@ public class SysUserController {
         return R.page(result);
     }
 
-    @ApiOperation(value = "新增用户")
-    @PostMapping("/insert")
-    public R insert(@RequestBody SysTbuser sysTbuser) {
-        sysUserService.insert(sysTbuser);
-        return R.commonReturn(200, "删除成功", "");
-    }
-
-
-
 }

@@ -31,6 +31,4 @@ public interface ISysUserService extends IService<SysTbuser> {
 
     Page<SysTbuser> getPage(SysUserPageSearchParam param);
 
-    void insert(SysTbuser sysTbuser);
-
 }
