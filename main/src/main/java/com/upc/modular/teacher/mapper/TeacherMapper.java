@@ -1,7 +1,10 @@
 package com.upc.modular.teacher.mapper;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.modular.teacher.dto.TeacherPageSearchDto;
 import com.upc.modular.teacher.entity.Teacher;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.upc.modular.teacher.vo.TeacherReturnVo;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -15,4 +18,5 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface TeacherMapper extends BaseMapper<Teacher> {
 
+    Page<TeacherReturnVo> selectTeacherWithInstitution(Page<TeacherReturnVo> page, TeacherPageSearchDto param);
 }

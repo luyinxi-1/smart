@@ -11,11 +11,14 @@ import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
 import com.upc.modular.teacher.dto.TeacherPageSearchDto;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.service.ITeacherService;
+import com.upc.modular.teacher.vo.TeacherReturnVo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 /**
  * <p>
@@ -56,9 +59,9 @@ public class TeacherController {
 
     @ApiOperation(value = "分页查询教师")
     @PostMapping("/getPage")
-    public R<PageBaseReturnParam<Teacher>> getPage(@RequestBody TeacherPageSearchDto param) {
-        Page<Teacher> page = teacherService.getPage(param);
-        PageBaseReturnParam<Teacher> result = PageBaseReturnParam.ok(page);
+    public R<PageBaseReturnParam<TeacherReturnVo>> getPage(@RequestBody TeacherPageSearchDto param) {
+        Page<TeacherReturnVo> page = teacherService.getPage(param);
+        PageBaseReturnParam<TeacherReturnVo> result = PageBaseReturnParam.ok(page);
         return R.page(result);
     }
 
@@ -80,16 +83,16 @@ public class TeacherController {
 
     @ApiOperation("查询教师的用户信息")
     @PostMapping("/getTeacherUser")
-    public R<SysTbuser> getTeacherUser(@RequestBody Teacher param) {
+    public R<SysTbuser> getTeacherUser(@RequestBody TeacherReturnVo param) {
         SysTbuser sysTbuser = teacherService.getTeacherUser(param);
         return R.ok(sysTbuser);
     }
 
     @ApiOperation("查询未绑定用户的教师")
     @PostMapping("/getTeacherNoUser")
-    public R<SysTbuser> getTeacherNoUser(@RequestBody Teacher param) {
-        SysTbuser sysTbuser = teacherService.getTeacherUser(param);
-        return R.ok(sysTbuser);
+    public R<List<TeacherReturnVo>> getTeacherNoUser() {
+        List<TeacherReturnVo> result = teacherService.getTeacherNoUser();
+        return R.ok(result);
     }
 
     @PostMapping("/generateTeacherUsers")

@@ -20,6 +20,8 @@ import com.upc.modular.teacher.listener.TeacherListener;
 import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.teacher.service.ITeacherService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.upc.modular.teacher.vo.TeacherReturnVo;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -88,23 +90,9 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     }
 
     @Override
-    public Page<Teacher> getPage(TeacherPageSearchDto param) {
-        Page<Teacher> page = new Page<>(param.getCurrent(), param.getSize());
-        MyLambdaQueryWrapper<Teacher> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
-
-        // 条件过滤（模糊或精确匹配）
-        lambdaQueryWrapper
-                .like(ObjectUtils.isNotEmpty(param.getName()), Teacher::getName, param.getName())
-                .like(ObjectUtils.isNotEmpty(param.getIdentityId()), Teacher::getIdentityId, param.getIdentityId())
-                .like(ObjectUtils.isNotEmpty(param.getIdcard()), Teacher::getIdcard, param.getIdcard())
-                .eq(ObjectUtils.isNotEmpty(param.getGender()), Teacher::getGender, param.getGender())
-                .like(ObjectUtils.isNotEmpty(param.getNationality()), Teacher::getNationality, param.getNationality())
-                .like(ObjectUtils.isNotEmpty(param.getPosition()), Teacher::getPosition, param.getPosition())
-                .like(ObjectUtils.isNotEmpty(param.getProfessionalTitle()), Teacher::getProfessionalTitle, param.getProfessionalTitle())
-                .orderBy(true, param.getIsAsc() == 1, Teacher::getAddDatetime);;
-
-        // 分页查询
-        return this.page(page, lambdaQueryWrapper);
+    public Page<TeacherReturnVo> getPage(TeacherPageSearchDto param) {
+        Page<TeacherReturnVo> page = new Page<>(param.getCurrent(), param.getSize());
+        return teacherMapper.selectTeacherWithInstitution(page, param);
     }
 
     @Override
@@ -132,7 +120,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     }
 
     @Override
-    public SysTbuser getTeacherUser(Teacher param) {
+    public SysTbuser getTeacherUser(TeacherReturnVo param) {
         if (ObjectUtils.isEmpty(param.getUserId())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "该教师未绑定用户");
         }
@@ -145,5 +133,21 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     public GenerateUserResultVo generateUsersForTeachers() {
         return null;
     }
+
+    @Override
+    public List<TeacherReturnVo> getTeacherNoUser() {
+        MyLambdaQueryWrapper<Teacher> queryWrapper = new MyLambdaQueryWrapper<>();
+        queryWrapper.isNull(Teacher::getUserId);
+
+        List<Teacher> teacherList = this.list(queryWrapper);
+
+        // 映射为 TeacherReturnVo（假设结构一致，否则请手动赋值）
+        return teacherList.stream().map(teacher -> {
+            TeacherReturnVo vo = new TeacherReturnVo();
+            BeanUtils.copyProperties(teacher, vo);
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
 
 }

@@ -8,7 +8,10 @@ import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
 import com.upc.modular.teacher.dto.TeacherPageSearchDto;
 import com.upc.modular.teacher.entity.Teacher;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.teacher.vo.TeacherReturnVo;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 /**
  * <p>
@@ -24,11 +27,13 @@ public interface ITeacherService extends IService<Teacher> {
 
     void deleteDictItemByIds(IdParam idParam);
 
-    Page<Teacher> getPage(TeacherPageSearchDto param);
+    Page<TeacherReturnVo> getPage(TeacherPageSearchDto param);
 
     ImportTeacherReturnVo importTeacherData(MultipartFile file);
 
-    SysTbuser getTeacherUser(Teacher param);
+    SysTbuser getTeacherUser(TeacherReturnVo param);
 
     GenerateUserResultVo generateUsersForTeachers();
+
+    List<TeacherReturnVo> getTeacherNoUser();
 }

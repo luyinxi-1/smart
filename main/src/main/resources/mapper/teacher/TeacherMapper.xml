@@ -22,5 +22,42 @@
         <result column="operator" property="operator" />
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
+    <select id="selectTeacherWithInstitution" resultType="com.upc.modular.teacher.vo.TeacherReturnVo">
+        SELECT
+        t.*,
+        u.institution_id,
+        i.institution_name
+        FROM teacher t
+        LEFT JOIN sys_tbuser u ON t.user_id = u.id
+        LEFT JOIN institution i ON u.institution_id = i.id
+        <where>
+            <if test="param.name != null and param.name != ''">
+                AND t.name LIKE CONCAT('%', #{param.name}, '%')
+            </if>
+            <if test="param.identityId != null and param.identityId != ''">
+                AND t.identity_id LIKE CONCAT('%', #{param.identityId}, '%')
+            </if>
+            <if test="param.idcard != null and param.idcard != ''">
+                AND t.idcard LIKE CONCAT('%', #{param.idcard}, '%')
+            </if>
+            <if test="param.gender != null and param.gender != ''">
+                AND t.gender = #{param.gender}
+            </if>
+            <if test="param.nationality != null and param.nationality != ''">
+                AND t.nationality LIKE CONCAT('%', #{param.nationality}, '%')
+            </if>
+            <if test="param.position != null and param.position != ''">
+                AND t.position LIKE CONCAT('%', #{param.position}, '%')
+            </if>
+            <if test="param.professionalTitle != null and param.professionalTitle != ''">
+                AND t.professional_title LIKE CONCAT('%', #{param.professionalTitle}, '%')
+            </if>
+        </where>
+        ORDER BY t.add_datetime
+        <choose>
+            <when test="param.isAsc == 1">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+    </select>
 
 </mapper>
