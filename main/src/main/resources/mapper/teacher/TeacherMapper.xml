@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.teacher.mapper.TeacherMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.upc.modular.teacher.entity.Teacher">
+        <id column="id" property="id" />
+        <result column="user_id" property="userId" />
+        <result column="identity_id" property="identityId" />
+        <result column="idcard" property="idcard" />
+        <result column="name" property="name" />
+        <result column="gender" property="gender" />
+        <result column="nationality" property="nationality" />
+        <result column="birthday" property="birthday" />
+        <result column="position" property="position" />
+        <result column="professional_title" property="professionalTitle" />
+        <result column="email" property="email" />
+        <result column="phone" property="phone" />
+        <result column="introduction" property="introduction" />
+        <result column="creator" property="creator" />
+        <result column="add_datetime" property="addDatetime" />
+        <result column="operator" property="operator" />
+        <result column="operation_datetime" property="operationDatetime" />
+    </resultMap>
+
+</mapper>

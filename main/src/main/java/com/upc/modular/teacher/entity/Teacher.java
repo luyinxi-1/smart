@@ -1,7 +1,9 @@
-package com.upc.modular.student.entity;
+package com.upc.modular.teacher.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
-
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import io.swagger.annotations.ApiModel;
@@ -17,25 +19,25 @@ import lombok.experimental.Accessors;
  * </p>
  *
  * @author byh
- * @since 2025-06-26
+ * @since 2025-07-01
  */
 @Data
 @Accessors(chain = true)
-@TableName("student")
-@ApiModel(value = "Student对象", description = "")
-public class Student implements Serializable {
+@TableName("teacher")
+@ApiModel(value = "Teacher对象", description = "")
+public class Teacher implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
     @ApiModelProperty("主键")
-    @TableId(value = "id", type = IdType.AUTO)
+    @TableId("id")
     private Long id;
 
     @ApiModelProperty("用户id")
     @TableField("user_id")
     private Long userId;
 
-    @ApiModelProperty("用户学号")
+    @ApiModelProperty("工号")
     @TableField("identity_id")
     private String identityId;
 
@@ -51,15 +53,23 @@ public class Student implements Serializable {
     @TableField("gender")
     private String gender;
 
-    @ApiModelProperty("学院")
-    @TableField("college")
-    private String college;
+    @ApiModelProperty("民族")
+    @TableField("nationality")
+    private String nationality;
 
     @ApiModelProperty("生日")
     @TableField("birthday")
     private String birthday;
 
-    @ApiModelProperty("电子邮件")
+    @ApiModelProperty("职务")
+    @TableField("position")
+    private String position;
+
+    @ApiModelProperty("职称")
+    @TableField("professional_title")
+    private String professionalTitle;
+
+    @ApiModelProperty("邮件")
     @TableField("email")
     private String email;
 
@@ -67,13 +77,9 @@ public class Student implements Serializable {
     @TableField("phone")
     private String phone;
 
-    @ApiModelProperty("班级id")
-    @TableField("class_id")
-    private Long classId;
-
-    @ApiModelProperty("电话")
-    @TableField("nationality")
-    private String nationality;
+    @ApiModelProperty("介绍")
+    @TableField("introduction")
+    private String introduction;
 
     @ApiModelProperty("创建者")
     @TableField(value = "creator", fill = FieldFill.INSERT)
