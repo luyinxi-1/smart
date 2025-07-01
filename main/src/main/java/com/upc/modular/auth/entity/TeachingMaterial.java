@@ -54,8 +54,8 @@ public class TeachingMaterial implements Serializable {
     private String introduction;
 
     @ApiModelProperty("作者id")
-    @TableField("teacher_id")
-    private Long teacherId;
+    @TableField(value = "creator", fill = FieldFill.INSERT)
+    private Long creator;
 
     @ApiModelProperty("文件大小")
     @TableField("file_size")
