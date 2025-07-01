@@ -78,7 +78,11 @@ public enum BusinessErrorEnum implements CommonError {
      * excel导入失败
      */
     NO_EXIT(40003,"")
-    ;
+    ,
+    /**
+     * 删除失败，存在绑定关系
+     */
+    BINDING_ERR(50001,"删除失败，存在绑定关系");
 
 
     BusinessErrorEnum(int errCode, String errMsg) {
