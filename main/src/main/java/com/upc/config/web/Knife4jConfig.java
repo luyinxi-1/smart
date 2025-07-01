@@ -153,4 +153,26 @@ public class Knife4jConfig implements WebMvcConfigurer { // 实现 WebMvcConfigu
                 .paths(PathSelectors.any())
                 .build();
     }
+
+    @Bean
+    public Docket teacher() {
+        return new Docket(DocumentationType.SWAGGER_2)
+                .apiInfo(apiInfo())
+                .groupName("教师管理")
+                .select()
+                .apis(RequestHandlerSelectors.basePackage("com.upc.modular.teacher.controller"))
+                .paths(PathSelectors.any())
+                .build();
+    }
+
+    @Bean
+    public Docket institution() {
+        return new Docket(DocumentationType.SWAGGER_2)
+                .apiInfo(apiInfo())
+                .groupName("机构管理")
+                .select()
+                .apis(RequestHandlerSelectors.basePackage("com.upc.modular.institution.controller"))
+                .paths(PathSelectors.any())
+                .build();
+    }
 }
