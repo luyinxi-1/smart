@@ -1,4 +1,4 @@
-package com.upc.modular.auth.utils;
+package com.upc.utils;
 
 import java.time.LocalDate;
 import java.time.Period;
