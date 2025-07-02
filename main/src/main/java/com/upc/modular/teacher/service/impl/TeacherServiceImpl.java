@@ -1,5 +1,6 @@
 package com.upc.modular.teacher.service.impl;
 
+import cn.hutool.crypto.digest.MD5;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.ExcelReader;
 import com.alibaba.excel.read.metadata.ReadSheet;
@@ -21,12 +22,14 @@ import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.teacher.service.ITeacherService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.teacher.vo.TeacherReturnVo;
+import com.upc.utils.MD5Utils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -47,6 +50,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
 
     @Autowired
     private ISysUserService sysUserService;
+    
 
     @Override
     public void insert(Teacher teacher) {
@@ -129,10 +133,6 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         return sysUserService.getOne(lambdaQueryWrapper);
     }
 
-    @Override
-    public GenerateUserResultVo generateUsersForTeachers() {
-        return null;
-    }
 
     @Override
     public List<TeacherReturnVo> getTeacherNoUser() {
@@ -147,6 +147,57 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
             BeanUtils.copyProperties(teacher, vo);
             return vo;
         }).collect(Collectors.toList());
+    }
+
+    @Override
+    public GenerateUserResultVo generateTeacherUsers(List<TeacherReturnVo> param, Long institutionId) {
+        int successCount = 0;
+        int failCount = 0;
+        List<String> failedTeachers = new ArrayList<>();
+
+        for (TeacherReturnVo teacherVo : param) {
+            try {
+                if (teacherVo.getUserId() != null) {
+                    continue; // 已绑定用户，跳过
+                }
+
+                String identityId = teacherVo.getIdentityId();
+                if (identityId == null || identityId.trim().isEmpty()) {
+                    failCount++;
+                    failedTeachers.add(teacherVo.getName() + "(工号为空)");
+                    continue;
+                }
+
+                // 构造用户
+                SysTbuser user = new SysTbuser()
+                        .setUsername(identityId)
+                        .setPassword(MD5Utils.sha256(identityId))
+                        .setUserType("2") // 教师
+                        .setInstitutionId(institutionId)
+                        .setStatus(1); // 默认启用
+
+                sysUserService.save(user);
+
+                // 更新 teacher 的 user_id
+                teacherVo.setUserId(user.getId());
+                teacherMapper.updateById(teacherVo);
+
+                successCount++;
+            } catch (Exception e) {
+                failCount++;
+                failedTeachers.add(teacherVo.getName() + "(异常：" + e.getMessage() + ")");
+            }
+        }
+
+        boolean allSuccess = failCount == 0;
+
+        GenerateUserResultVo resultVo = new GenerateUserResultVo();
+        resultVo.setAllSuccess(allSuccess);
+        resultVo.setSuccessCount(successCount);
+        resultVo.setFailCount(failCount);
+        resultVo.setTotalProcessed(param.size());
+        resultVo.setFailedTeachers(failedTeachers);
+        return resultVo;
     }
 
 

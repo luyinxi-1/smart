@@ -8,8 +8,6 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class GenerateUserResultVo {
 
     @ApiModelProperty(value = "是否全部成功")

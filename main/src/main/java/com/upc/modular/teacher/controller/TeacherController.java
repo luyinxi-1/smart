@@ -97,8 +97,8 @@ public class TeacherController {
 
     @PostMapping("/generateTeacherUsers")
     @ApiOperation("批量生成教师用户并绑定")
-    public R<GenerateUserResultVo> generateTeacherUsers() {
-        GenerateUserResultVo result = teacherService.generateUsersForTeachers();
+    public R<GenerateUserResultVo> generateTeacherUsers(List<TeacherReturnVo> param, Long institionId) {
+        GenerateUserResultVo result = teacherService.generateTeacherUsers(param, institionId);
         return R.ok(result);
     }
 

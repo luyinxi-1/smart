@@ -33,7 +33,7 @@ public interface ITeacherService extends IService<Teacher> {
 
     SysTbuser getTeacherUser(TeacherReturnVo param);
 
-    GenerateUserResultVo generateUsersForTeachers();
-
     List<TeacherReturnVo> getTeacherNoUser();
+
+    GenerateUserResultVo generateTeacherUsers(List<TeacherReturnVo> param, Long institionId);
 }
