@@ -3,6 +3,7 @@ package com.upc.modular.teacher.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.teacher.dto.TeacherGenerateDto;
 import com.upc.modular.teacher.vo.GenerateUserResultVo;
 import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
 import com.upc.modular.teacher.dto.TeacherPageSearchDto;
@@ -35,5 +36,5 @@ public interface ITeacherService extends IService<Teacher> {
 
     List<TeacherReturnVo> getTeacherNoUser();
 
-    GenerateUserResultVo generateTeacherUsers(List<TeacherReturnVo> param, Long institionId);
+    GenerateUserResultVo generateTeacherUsers(TeacherGenerateDto dto);
 }

@@ -1,6 +1,5 @@
 package com.upc.modular.teacher.service.impl;
 
-import cn.hutool.crypto.digest.MD5;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.ExcelReader;
 import com.alibaba.excel.read.metadata.ReadSheet;
@@ -11,7 +10,9 @@ import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.auth.service.ISysUserService;
+import com.upc.modular.teacher.dto.TeacherGenerateDto;
 import com.upc.modular.teacher.vo.GenerateUserResultVo;
 import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
 import com.upc.modular.teacher.dto.TeacherImportDto;
@@ -50,6 +51,9 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
 
     @Autowired
     private ISysUserService sysUserService;
+
+    @Autowired
+    private SysUserMapper sysUserMapper;
     
 
     @Override
@@ -150,12 +154,12 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     }
 
     @Override
-    public GenerateUserResultVo generateTeacherUsers(List<TeacherReturnVo> param, Long institutionId) {
+    public GenerateUserResultVo generateTeacherUsers(TeacherGenerateDto dto) {
         int successCount = 0;
         int failCount = 0;
         List<String> failedTeachers = new ArrayList<>();
 
-        for (TeacherReturnVo teacherVo : param) {
+        for (TeacherReturnVo teacherVo : dto.getTeacher()) {
             try {
                 if (teacherVo.getUserId() != null) {
                     continue; // 已绑定用户，跳过
@@ -173,14 +177,16 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
                         .setUsername(identityId)
                         .setPassword(MD5Utils.sha256(identityId))
                         .setUserType("2") // 教师
-                        .setInstitutionId(institutionId)
+                        .setInstitutionId(dto.getInstitutionId())
                         .setStatus(1); // 默认启用
 
-                sysUserService.save(user);
+                sysUserMapper.insert(user);
 
                 // 更新 teacher 的 user_id
                 teacherVo.setUserId(user.getId());
-                teacherMapper.updateById(teacherVo);
+                Teacher teacher = new Teacher();
+                BeanUtils.copyProperties(teacherVo, teacher);
+                teacherMapper.updateById(teacher);
 
                 successCount++;
             } catch (Exception e) {
@@ -195,7 +201,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         resultVo.setAllSuccess(allSuccess);
         resultVo.setSuccessCount(successCount);
         resultVo.setFailCount(failCount);
-        resultVo.setTotalProcessed(param.size());
+        resultVo.setTotalProcessed(dto.getTeacher().size());
         resultVo.setFailedTeachers(failedTeachers);
         return resultVo;
     }

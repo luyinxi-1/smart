@@ -6,6 +6,7 @@ import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.teacher.dto.TeacherGenerateDto;
 import com.upc.modular.teacher.vo.GenerateUserResultVo;
 import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
 import com.upc.modular.teacher.dto.TeacherPageSearchDto;
@@ -97,8 +98,8 @@ public class TeacherController {
 
     @PostMapping("/generateTeacherUsers")
     @ApiOperation("批量生成教师用户并绑定")
-    public R<GenerateUserResultVo> generateTeacherUsers(List<TeacherReturnVo> param, Long institionId) {
-        GenerateUserResultVo result = teacherService.generateTeacherUsers(param, institionId);
+    public R<GenerateUserResultVo> generateTeacherUsers(@RequestBody TeacherGenerateDto dto) {
+        GenerateUserResultVo result = teacherService.generateTeacherUsers(dto);
         return R.ok(result);
     }
 
