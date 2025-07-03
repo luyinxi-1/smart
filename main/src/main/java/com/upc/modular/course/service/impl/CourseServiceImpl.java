@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> implements ICourseService {
 
     @Autowired
-    CourseMapper courseMapper;
+    private CourseMapper courseMapper;
     @Override
     public Void deleteCourseByIds(IdParam idParam) {
         List<Long> idList = idParam.getIdList();

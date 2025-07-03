@@ -1,7 +1,10 @@
 package com.upc.modular.course.service;
 
+import com.upc.modular.course.controller.param.ClassInfoReturnParam;
 import com.upc.modular.course.entity.CourseClassList;
 import com.baomidou.mybatisplus.extension.service.IService;
+
+import java.util.List;
 
 /**
  * <p>
@@ -13,4 +16,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface ICourseClassListService extends IService<CourseClassList> {
 
+    void associateClasses(Long courseId, List<Long> classIdList);
+
+    List<ClassInfoReturnParam> getClassesByCourse(Long courseId);
 }
