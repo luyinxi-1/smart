@@ -71,10 +71,6 @@ public class Student implements Serializable {
     @TableField("class_id")
     private Long classId;
 
-    @ApiModelProperty("电话")
-    @TableField("nationality")
-    private String nationality;
-
     @ApiModelProperty("创建者")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;

@@ -90,7 +90,7 @@ public class TeacherController {
     }
 
     @ApiOperation("查询未绑定用户的教师")
-    @PostMapping("/getTeacherNoUser")
+    @GetMapping("/getTeacherNoUser")
     public R<List<TeacherReturnVo>> getTeacherNoUser() {
         List<TeacherReturnVo> result = teacherService.getTeacherNoUser();
         return R.ok(result);

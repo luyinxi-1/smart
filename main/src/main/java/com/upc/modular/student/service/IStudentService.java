@@ -1,9 +1,16 @@
 package com.upc.modular.student.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.upc.modular.student.controller.param.pageStudent;
+import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.student.controller.param.vo.GenerateUserResultVoStudent;
+import com.upc.modular.student.controller.param.vo.ImportStudentReturnVo;
+import com.upc.modular.student.controller.param.dto.StudentGenerateDto;
+import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
+import com.upc.modular.student.controller.param.vo.StudentReturnVo;
 import com.upc.modular.student.entity.Student;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -17,13 +24,18 @@ import java.util.List;
  */
 public interface IStudentService extends IService<Student> {
 
-    boolean insertstudentlist(List<Student> studentList);
+    void insertstudent(Student student);
 
-    boolean batchDelectStudents(List<Long> idList);
 
-    Student getByIdStudents(Long studentId);
+    void deleteByIds(IdParam idParam);
 
-    boolean updateByIdStudents(Student student);
+    Page<StudentReturnVo> getPage(StudentPageSearchDto param);
 
-    Page<Student> selectgetByidPage(pageStudent dictType);
+    ImportStudentReturnVo importStudentData(MultipartFile file);
+
+    SysTbuser getStudentUser(StudentReturnVo param);
+
+    List<StudentReturnVo> getStudentNoUser();
+
+    GenerateUserResultVoStudent generateStudentUsers(StudentGenerateDto dto);
 }
