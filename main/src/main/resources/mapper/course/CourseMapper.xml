@@ -17,4 +17,33 @@
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
 
+    <select id="selectCourse" resultType="com.upc.modular.course.controller.param.CoursePageReturnParam">
+        SELECT
+        c.id,
+        c.textbook_id as textbookId,
+        c.course_name as courseName,
+        c.credit,
+        c.description,
+        c.status,
+        c.user_id as userId
+        FROM
+        course c
+        LEFT JOIN
+        teacher t ON c.user_id = t.user_id
+        <where>
+            <!-- 条件1: 根据课程名称模糊查询 -->
+            <if test="param.courseName != null and param.courseName != ''">
+                AND c.course_name LIKE CONCAT('%', #{param.courseName}, '%')
+            </if>
+            <!-- 条件2: 根据教师姓名模糊查询 -->
+            <if test="param.teacherName != null and param.teacherName != ''">
+                AND t.name LIKE CONCAT('%', #{param.teacherName}, '%')
+            </if>
+        </where>
+        ORDER BY c.add_datetime
+        <choose>
+            <when test="param.isAsc == 1">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+    </select>
 </mapper>
