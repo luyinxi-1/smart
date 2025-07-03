@@ -41,7 +41,7 @@ public class UserClassList implements Serializable {
 
     @ApiModelProperty("类型")
     @TableField("type")
-    private Integer type;
+    private Integer type; //0是管理员 1是学生 2是老师
 
     @ApiModelProperty("创建时间")
     @TableField(value = "add_datetime", fill = FieldFill.INSERT)

@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -53,7 +54,6 @@ public class GroupController {
     }
 
 
-
     @ApiOperation(value = "根据ID获取班级信息")
     @GetMapping("/getById")
     public R<Group> getById(@RequestParam("groupId") Long groupId) {
@@ -80,5 +80,11 @@ public class GroupController {
         return R.page(result);
     }
 
+    @ApiOperation(value = "按照班级查询班级关联人数")
+    @PostMapping("/getByiduser")
+    public R<Map<String,Long>> ByIdGetUsers(@RequestParam("groupId") Long groupId) {
+        Map<String,Long> result = groupService.getUserTypeCountByClassId(groupId);
+        return R.ok(result);
+    }
 
 }

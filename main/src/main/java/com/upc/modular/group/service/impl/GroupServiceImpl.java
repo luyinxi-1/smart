@@ -4,17 +4,25 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.common.wrapper.MyLambdaQueryWrapper;
+import com.upc.modular.group.controller.param.UserTypeCount;
 import com.upc.modular.group.controller.param.pageGroup;
 import com.upc.modular.group.entity.Group;
+import com.upc.modular.group.entity.UserClassList;
 import com.upc.modular.group.mapper.GroupMapper;
 import com.upc.modular.group.service.IGroupService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.student.controller.param.pageStudent;
 import com.upc.modular.student.entity.Student;
+import org.apache.poi.hpsf.ClassID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -26,7 +34,8 @@ import java.util.List;
  */
 @Service
 public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements IGroupService {
-
+    @Autowired
+    private UserClassListServiceImpl userClassListService;
     @Override
     public Page<Group> selectgetByidPage(pageGroup dictType) {
         // 从传入的 dictType 参数中获取分页信息 (current, size)
@@ -81,5 +90,25 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
             return false;
         }
         return this.saveBatch(groupsList);
+    }
+
+    @Override
+    public Map<String, Long> getUserTypeCountByClassId(Long groupId) {
+        MyLambdaQueryWrapper<UserClassList> listMyLambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        listMyLambdaQueryWrapper.eq(UserClassList::getClassId, groupId)
+                .select(UserClassList::getType);
+
+
+        List<UserClassList> userList = userClassListService.list(listMyLambdaQueryWrapper);
+
+        Map<Integer, Long> typeCountMap = userList.stream()
+                .collect(Collectors.groupingBy(UserClassList::getType, Collectors.counting()));
+
+        // 4. 格式化输出结果（按角色名称）
+        Map<String, Long> result = new HashMap<>();
+        result.put("管理员", typeCountMap.getOrDefault(0, 0L));
+        result.put("学生", typeCountMap.getOrDefault(1, 0L));
+        result.put("老师", typeCountMap.getOrDefault(2, 0L));
+        return result;
     }
 }
