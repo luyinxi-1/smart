@@ -60,6 +60,10 @@ public enum BusinessErrorEnum implements CommonError {
      * token失效,请重新登录
      */
     TOKEN_IS_INVALID(20008, "登陆超时"),
+    /**
+     * 账号状态不为1
+     */
+    ACCOUNT_BANNED(20009, "账号可能处于封禁状态，请联系管理员"),
 
     /**
      * 数据库错误

@@ -11,6 +11,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.entity.UserRoleList;
 import com.upc.modular.auth.mapper.SysUserMapper;
@@ -18,6 +19,7 @@ import com.upc.modular.auth.param.ImportSysUserReturnParam;
 import com.upc.modular.auth.param.SysUserImportParam;
 import com.upc.modular.auth.param.SysUserPageSearchParam;
 import com.upc.modular.auth.param.UserLoginParam;
+import com.upc.modular.auth.service.ISysLogService;
 import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.auth.service.IUserRoleListService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +51,9 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
     private IUserRoleListService userRoleListService;
 
     @Autowired
-    private SysUserMapper sysUserMapper;
+    private ISysLogService sysLogService;
+
+    private static Integer ENABLE_STATUS = 1;
 
 
     @Override
@@ -66,10 +70,23 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
         if (userInfo == null) {
             throw new BusinessException(BusinessErrorEnum.LOGIN_FAIL);
         }
+        if (userInfo.getStatus() != ENABLE_STATUS) {
+            throw new BusinessException(BusinessErrorEnum.ACCOUNT_BANNED);
+        }
 
         String token = UUID.randomUUID().toString().replace("-", "_");
 
         redisTemplate.opsForValue().set(token, userInfo, Duration.ofHours(2));
+
+        // 记录该登录信息到日志
+        if (userInfo.getId() != null && StringUtils.isNotBlank(request.getRequestURI())) {
+            SysLog sysLog = new SysLog();
+            sysLog.setUserId(userInfo.getId());
+            sysLog.setLogContent(request.getRequestURI());
+            if (sysLog != null) {
+                sysLogService.save(sysLog);
+            }
+        }
 
         return token;
     }
