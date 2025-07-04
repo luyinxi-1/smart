@@ -12,6 +12,6 @@ public class StudentGenerateDto {
     private List<StudentReturnVo> student ;
 
     @ApiModelProperty("机构id")
-    private Long institutionId;
+    private String institutionId;
 
 }
