@@ -1,6 +1,7 @@
 package com.upc.modular.questionbank.controller;
 
 
+import io.swagger.annotations.Api;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import org.springframework.web.bind.annotation.RestController;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/student-exercises-record")
+@Api(tags = "学生做题记录")
 public class StudentExercisesRecordController {
 
 }

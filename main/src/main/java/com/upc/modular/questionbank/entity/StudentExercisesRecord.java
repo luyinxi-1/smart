@@ -8,6 +8,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -20,8 +21,7 @@ import lombok.experimental.Accessors;
  * @author byh
  * @since 2025-07-04
  */
-@Getter
-@Setter
+@Data
 @Accessors(chain = true)
 @TableName("student_exercises_record")
 @ApiModel(value = "StudentExercisesRecord对象", description = "")

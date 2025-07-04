@@ -1,6 +1,7 @@
 package com.upc.modular.questionbank.controller;
 
 
+import io.swagger.annotations.Api;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import org.springframework.web.bind.annotation.RestController;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/teaching-question")
+@Api(tags = "题目")
 public class TeachingQuestionController {
 
 }
