@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.questionbank.mapper.QuestionsBanksListMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.upc.modular.questionbank.entity.QuestionsBanksList">
+        <id column="id" property="id" />
+        <result column="question_id" property="questionId" />
+        <result column="bank_id" property="bankId" />
+        <result column="order" property="order" />
+        <result column="score" property="score" />
+    </resultMap>
+
+</mapper>

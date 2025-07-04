@@ -1,0 +1,51 @@
+package com.upc.modular.questionbank.entity;
+
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import java.io.Serializable;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
+
+/**
+ * <p>
+ * 
+ * </p>
+ *
+ * @author byh
+ * @since 2025-07-04
+ */
+@Getter
+@Setter
+@Accessors(chain = true)
+@TableName("questions_banks_list")
+@ApiModel(value = "QuestionsBanksList对象", description = "")
+public class QuestionsBanksList implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    @ApiModelProperty("主键")
+    @TableId("id")
+    private Long id;
+
+    @ApiModelProperty("题目id")
+    @TableField("question_id")
+    private Long questionId;
+
+    @ApiModelProperty("题库id")
+    @TableField("bank_id")
+    private Long bankId;
+
+    @ApiModelProperty("顺序")
+    @TableField("order")
+    private Integer order;
+
+    @ApiModelProperty("每道题目分值")
+    @TableField("score")
+    private Double score;
+
+
+}
