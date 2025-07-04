@@ -8,6 +8,7 @@ import com.upc.modular.student.controller.param.pageStudent;
 import com.upc.modular.student.entity.Student;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -28,4 +29,6 @@ public interface IGroupService extends IService<Group> {
     boolean batchDelectStudents(List<Long> idList);
 
     boolean insertstudentlist(List<Group> groupsList);
+
+    Map<String, Long> getUserTypeCountByClassId(Long groupId);
 }
