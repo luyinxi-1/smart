@@ -14,5 +14,5 @@ public class TeacherGenerateDto {
     private List<TeacherReturnVo> teacher ;
 
     @ApiModelProperty("机构id")
-    private String institutionId;
+    private Long institutionId;
 }
