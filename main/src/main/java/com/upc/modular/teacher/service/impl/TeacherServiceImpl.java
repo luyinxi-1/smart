@@ -16,6 +16,8 @@ import com.upc.modular.auth.mapper.SysRoleMapper;
 import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.auth.mapper.UserRoleListMapper;
 import com.upc.modular.auth.service.ISysUserService;
+import com.upc.modular.auth.service.IUserRoleListService;
+import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.institution.mapper.InstitutionMapper;
 import com.upc.modular.institution.service.IInstitutionService;
 import com.upc.modular.teacher.dto.TeacherGenerateDto;
@@ -34,11 +36,13 @@ import com.upc.utils.MD5Utils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -66,13 +70,14 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     private InstitutionMapper institutionMapper;
 
     @Autowired
-    private UserRoleListMapper userRoleListMapper;
+    private IUserRoleListService userRoleListService;
 
     @Autowired
     private SysRoleMapper sysRoleMapper;
     
 
     @Override
+    @Transactional
     public void insert(TeacherInsertDto teacher) {
         if (ObjectUtils.isEmpty(teacher.getIdentityId())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教师工号不能为空");
@@ -103,7 +108,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
             UserRoleList userRoleList = new UserRoleList()
                     .setRoleId(id)
                     .setUserId(user.getId());
-            userRoleListMapper.insert(userRoleList);
+            userRoleListService.save(userRoleList);
         }
     }
 
@@ -145,16 +150,27 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         ExcelReader excelReader = null;
         List<Teacher> teachers = teacherMapper.selectList(null);
         ImportTeacherReturnVo importTeacherReturnParam = new ImportTeacherReturnVo();
+        MyLambdaQueryWrapper<SysTbrole> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(SysTbrole::getRoleName, "普通教师");
+        List<SysTbrole> sysTbroles = sysRoleMapper.selectList(lambdaQueryWrapper);
+        Long id = 0L;
+        if (ObjectUtils.isNotEmpty(sysTbroles)) {
+             id = sysTbroles.get(0).getId();
+        }
+        List<Institution> institutions = institutionMapper.selectList(null);
+        Map<String, Long> institutionMap = institutions.stream()
+                .collect(Collectors.toMap(Institution::getInstitutionName, Institution::getId));
+
         try {
-            TeacherListener teacherListener = new TeacherListener(this, teachers, sysUserMapper, institutionMapper, userRoleListMapper, sysRoleMapper);
+            TeacherListener teacherListener = new TeacherListener(this, teachers, sysUserMapper, institutionMap, userRoleListService, id);
             excelReader = EasyExcel.read(file.getInputStream(), TeacherImportDto.class, teacherListener).build();
             // 这两行用于执行读操作，不加不运行
             ReadSheet readSheet = EasyExcel.readSheet(0).build();
             excelReader.read(readSheet);
             importTeacherReturnParam.setInsertTotal(teacherListener.getInsertTotal());
             importTeacherReturnParam.setUpdateTotal(teacherListener.getUpdateTotal());
-//            importTeacherReturnParam.setErrorTotal(teacherListener.getErrorList().size());
-//            importTeacherReturnParam.setErrorDetails(teacherListener.getErrorList());
+            importTeacherReturnParam.setErrorTotal(teacherListener.getErrorList().size());
+            importTeacherReturnParam.setErrorDetails(teacherListener.getErrorList());
             return importTeacherReturnParam;
         } catch (IOException e) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "导入文件格式不合法");
@@ -197,6 +213,13 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         int successCount = 0;
         int failCount = 0;
         List<String> failedTeachers = new ArrayList<>();
+        MyLambdaQueryWrapper<SysTbrole> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(SysTbrole::getRoleName, "普通教师");
+        List<SysTbrole> sysTbroles = sysRoleMapper.selectList(lambdaQueryWrapper);
+        Long roleId = 0L;
+        if (ObjectUtils.isNotEmpty(sysTbroles)) {
+            roleId = sysTbroles.get(0).getId();
+        }
 
         for (TeacherReturnVo teacherVo : dto.getTeacher()) {
             try {
@@ -226,6 +249,13 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
                 Teacher teacher = new Teacher();
                 BeanUtils.copyProperties(teacherVo, teacher);
                 teacherMapper.updateById(teacher);
+
+                if (roleId != 0L) {
+                    UserRoleList userOrRole = new UserRoleList();
+                    userOrRole.setUserId(user.getId());
+                    userOrRole.setRoleId(roleId);
+                    userRoleListService.save(userOrRole);
+                }
 
                 successCount++;
             } catch (Exception e) {
