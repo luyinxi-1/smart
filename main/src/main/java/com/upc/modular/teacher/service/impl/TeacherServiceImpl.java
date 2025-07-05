@@ -213,6 +213,13 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         int successCount = 0;
         int failCount = 0;
         List<String> failedTeachers = new ArrayList<>();
+        MyLambdaQueryWrapper<SysTbrole> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(SysTbrole::getRoleName, "普通教师");
+        List<SysTbrole> sysTbroles = sysRoleMapper.selectList(lambdaQueryWrapper);
+        Long roleId = 0L;
+        if (ObjectUtils.isNotEmpty(sysTbroles)) {
+            roleId = sysTbroles.get(0).getId();
+        }
 
         for (TeacherReturnVo teacherVo : dto.getTeacher()) {
             try {
@@ -242,6 +249,13 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
                 Teacher teacher = new Teacher();
                 BeanUtils.copyProperties(teacherVo, teacher);
                 teacherMapper.updateById(teacher);
+
+                if (roleId != 0L) {
+                    UserRoleList userOrRole = new UserRoleList();
+                    userOrRole.setUserId(user.getId());
+                    userOrRole.setRoleId(roleId);
+                    userRoleListService.save(userOrRole);
+                }
 
                 successCount++;
             } catch (Exception e) {
