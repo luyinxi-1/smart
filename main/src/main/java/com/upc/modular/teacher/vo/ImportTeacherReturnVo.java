@@ -1,5 +1,6 @@
 package com.upc.modular.teacher.vo;
 
+import com.upc.modular.teacher.dto.TeacherImportErrorDto;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -16,10 +17,10 @@ public class ImportTeacherReturnVo {
     @ApiModelProperty(value = "更新数量")
     private long updateTotal;
 
-//    @ApiModelProperty(value = "出错条数")
-//    private long errorTotal;
-//
-//    @ApiModelProperty(value = "出错详细信息")
-//    private List<String> errorDetails;
+    @ApiModelProperty(value = "出错条数")
+    private long errorTotal;
+
+    @ApiModelProperty(value = "出错详细信息")
+    private List<TeacherImportErrorDto> errorDetails;
 
 }
