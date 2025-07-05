@@ -7,6 +7,7 @@ import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.teacher.dto.TeacherGenerateDto;
+import com.upc.modular.teacher.dto.TeacherInsertDto;
 import com.upc.modular.teacher.vo.GenerateUserResultVo;
 import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
 import com.upc.modular.teacher.dto.TeacherPageSearchDto;
@@ -39,7 +40,7 @@ public class TeacherController {
 
     @ApiOperation(value = "新增教师")
     @PostMapping("/insert")
-    public R insert(@RequestBody Teacher teacher) {
+    public R insert(@RequestBody TeacherInsertDto teacher) {
         teacherService.insert(teacher);
         return R.commonReturn(200, "新增成功", "");
     }

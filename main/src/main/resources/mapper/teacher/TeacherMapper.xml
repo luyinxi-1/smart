@@ -26,10 +26,14 @@
         SELECT
         t.*,
         u.institution_id,
-        i.institution_name
+        i.institution_name,
+        ur.role_id,
+        r.role_name
         FROM teacher t
         LEFT JOIN sys_tbuser u ON t.user_id = u.id
         LEFT JOIN institution i ON u.institution_id = i.id
+        LEFT JOIN user_role_list ur ON u.id = ur.user_id
+        LEFT JOIN sys_tbrole r ON ur.role_id = r.id
         <where>
             <if test="param.name != null and param.name != ''">
                 AND t.name LIKE CONCAT('%', #{param.name}, '%')
@@ -52,6 +56,12 @@
             <if test="param.professionalTitle != null and param.professionalTitle != ''">
                 AND t.professional_title LIKE CONCAT('%', #{param.professionalTitle}, '%')
             </if>
+            <if test="param.educationalBackground != null">
+                AND t.educational_background = #{param.educationalBackground}
+            </if>
+            <if test="param.isPartyNumber != null">
+                AND t.is_party_number = #{param.isPartyNumber}
+            </if>
         </where>
         ORDER BY t.add_datetime
         <choose>
@@ -59,5 +69,6 @@
             <otherwise>DESC</otherwise>
         </choose>
     </select>
+
 
 </mapper>

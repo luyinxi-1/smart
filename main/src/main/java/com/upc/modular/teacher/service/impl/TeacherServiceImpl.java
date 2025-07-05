@@ -9,10 +9,17 @@ import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.entity.SysTbrole;
 import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.entity.UserRoleList;
+import com.upc.modular.auth.mapper.SysRoleMapper;
 import com.upc.modular.auth.mapper.SysUserMapper;
+import com.upc.modular.auth.mapper.UserRoleListMapper;
 import com.upc.modular.auth.service.ISysUserService;
+import com.upc.modular.institution.mapper.InstitutionMapper;
+import com.upc.modular.institution.service.IInstitutionService;
 import com.upc.modular.teacher.dto.TeacherGenerateDto;
+import com.upc.modular.teacher.dto.TeacherInsertDto;
 import com.upc.modular.teacher.vo.GenerateUserResultVo;
 import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
 import com.upc.modular.teacher.dto.TeacherImportDto;
@@ -54,20 +61,50 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
 
     @Autowired
     private SysUserMapper sysUserMapper;
+
+    @Autowired
+    private InstitutionMapper institutionMapper;
+
+    @Autowired
+    private UserRoleListMapper userRoleListMapper;
+
+    @Autowired
+    private SysRoleMapper sysRoleMapper;
     
 
     @Override
-    public void insert(Teacher teacher) {
-        if (ObjectUtils.isEmpty(teacher.getIdcard())) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户身份证号不为空");
+    public void insert(TeacherInsertDto teacher) {
+        if (ObjectUtils.isEmpty(teacher.getIdentityId())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教师工号不能为空");
         }
         MyLambdaQueryWrapper<Teacher> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
-        lambdaQueryWrapper.eq(Teacher::getIdcard, teacher.getIdcard());
+        lambdaQueryWrapper.eq(Teacher::getIdentityId, teacher.getIdentityId());
         List<Teacher> teachers = teacherMapper.selectList(lambdaQueryWrapper);
         if (ObjectUtils.isNotEmpty(teachers)) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户已存在");
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教师工号已存在");
         }
-        this.save(teacher);
+        SysTbuser user = new SysTbuser()
+                .setUsername(teacher.getIdentityId())
+                .setPassword(MD5Utils.sha256(teacher.getIdentityId()))
+                .setUserType("2") // 教师
+                .setInstitutionId(teacher.getInstitutionId())
+                .setStatus(1); // 默认启用
+
+        sysUserMapper.insert(user);
+        Teacher newTeacher = new Teacher();
+        BeanUtils.copyProperties(teacher, newTeacher);
+        newTeacher.setUserId(user.getId());
+        this.save(newTeacher);
+        MyLambdaQueryWrapper<SysTbrole> sysTbroleMyLambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        sysTbroleMyLambdaQueryWrapper.eq(SysTbrole::getRoleName, "普通教师");
+        List<SysTbrole> sysTbroles = sysRoleMapper.selectList(sysTbroleMyLambdaQueryWrapper);
+        if (ObjectUtils.isNotEmpty(sysTbroles)) {
+            Long id = sysTbroles.get(0).getId();
+            UserRoleList userRoleList = new UserRoleList()
+                    .setRoleId(id)
+                    .setUserId(user.getId());
+            userRoleListMapper.insert(userRoleList);
+        }
     }
 
     @Override
@@ -109,13 +146,15 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         List<Teacher> teachers = teacherMapper.selectList(null);
         ImportTeacherReturnVo importTeacherReturnParam = new ImportTeacherReturnVo();
         try {
-            TeacherListener teacherListener = new TeacherListener(this, teachers);
+            TeacherListener teacherListener = new TeacherListener(this, teachers, sysUserMapper, institutionMapper, userRoleListMapper, sysRoleMapper);
             excelReader = EasyExcel.read(file.getInputStream(), TeacherImportDto.class, teacherListener).build();
             // 这两行用于执行读操作，不加不运行
             ReadSheet readSheet = EasyExcel.readSheet(0).build();
             excelReader.read(readSheet);
-            importTeacherReturnParam.setUpdateTotal(teacherListener.getUpdateTotal());
             importTeacherReturnParam.setInsertTotal(teacherListener.getInsertTotal());
+            importTeacherReturnParam.setUpdateTotal(teacherListener.getUpdateTotal());
+//            importTeacherReturnParam.setErrorTotal(teacherListener.getErrorList().size());
+//            importTeacherReturnParam.setErrorDetails(teacherListener.getErrorList());
             return importTeacherReturnParam;
         } catch (IOException e) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "导入文件格式不合法");

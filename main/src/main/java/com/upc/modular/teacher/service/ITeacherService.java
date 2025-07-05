@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.teacher.dto.TeacherGenerateDto;
+import com.upc.modular.teacher.dto.TeacherInsertDto;
 import com.upc.modular.teacher.vo.GenerateUserResultVo;
 import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
 import com.upc.modular.teacher.dto.TeacherPageSearchDto;
@@ -24,7 +25,7 @@ import java.util.List;
  */
 public interface ITeacherService extends IService<Teacher> {
 
-    void insert(Teacher teacher);
+    void insert(TeacherInsertDto teacher);
 
     void deleteDictItemByIds(IdParam idParam);
 

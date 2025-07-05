@@ -2,6 +2,7 @@ package com.upc.modular.teacher.dto;
 
 import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
+import com.baomidou.mybatisplus.annotation.TableField;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
@@ -43,4 +44,21 @@ public class TeacherImportDto {
     @ApiModelProperty("介绍")
     @ExcelProperty("介绍")
     private String introduction;
+
+    @ApiModelProperty("学历（0：本科，1：硕士，2：博士）")
+    @ExcelProperty("学历")
+    private String educationalBackground;
+
+    @ApiModelProperty("是否为党员（0为否，1为是）")
+    @ExcelProperty("是否为党员")
+    private String isPartyNumber;
+
+    @ApiModelProperty("教学年限")
+    @ExcelProperty("教学年限")
+    private String teachingYears;
+
+    @ApiModelProperty("机构名称")
+    @ExcelProperty("机构名称")
+    private String institutionName;
+
 }
