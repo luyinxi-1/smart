@@ -1,6 +1,7 @@
 package com.upc.modular.auth.controller;
 
 
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
@@ -45,7 +46,7 @@ public class SysAuthorityController {
     @ApiOperation(value = "新增权限")
     @PostMapping("/insertSysAuthority")
     public R insertSysAuthority(@RequestBody SysAuthority sysAuthority) {
-        if (sysAuthority == null) {
+        if (sysAuthority == null || !StringUtils.isNotBlank(sysAuthority.getAccessUrl())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
         sysAuthorityService.save(sysAuthority);

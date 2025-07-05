@@ -13,11 +13,13 @@
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
 
+    <!--获取所有根节点权限-->
     <select id="getAccessUrlsByRoleId" resultType="java.lang.String">
         SELECT a.access_url
         FROM sys_authority a
                  JOIN role_authority_list ra ON a.id = ra.authority_id
         WHERE ra.role_id = #{roleId}
+          AND (a.id IS NULL OR a.id = 0) -- 获取根节点权限
     </select>
 
 </mapper>

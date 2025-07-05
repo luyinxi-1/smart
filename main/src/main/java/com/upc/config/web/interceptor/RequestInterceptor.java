@@ -7,11 +7,16 @@ import com.upc.common.utils.UserUtils;
 import com.upc.context.LoginContextHolder;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.auth.entity.SysAuthority;
 import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.auth.entity.SysTbrole;
+import com.upc.modular.auth.mapper.SysAuthorityMapper;
 import com.upc.modular.auth.mapper.SysRoleMapper;
 import com.upc.modular.auth.mapper.SysUserMapper;
+import com.upc.modular.auth.param.SysAuthorityTreeReturnParam;
+import com.upc.modular.auth.service.ISysAuthorityService;
 import com.upc.modular.auth.service.ISysLogService;
+import com.upc.modular.auth.service.impl.SysAuthorityServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -43,6 +48,10 @@ public class RequestInterceptor implements HandlerInterceptor {
     private SysRoleMapper sysRoleMapper;
     @Autowired
     private SysUserMapper sysUserMapper;
+    @Autowired
+    private SysAuthorityMapper sysAuthorityMapper;
+    @Autowired
+    private SysAuthorityServiceImpl sysAuthorityService;
 
 
     /**
@@ -73,8 +82,8 @@ public class RequestInterceptor implements HandlerInterceptor {
             UserUtils.set(userInfoToRedis);
             LoginContextHolder.setLogined(true);
             // 3.权限拦截
-            // return hasPermission(request, userInfoToRedis);
-            return true;
+            return hasPermission(request, userInfoToRedis);
+            // return true;
         } catch (IllegalArgumentException e) {
             log.error("Token校验失败：" + e.getMessage());
             return false;
@@ -107,11 +116,15 @@ public class RequestInterceptor implements HandlerInterceptor {
             throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
         }
         SysTbrole sysTbrole = roles.get(0);
-        List<String> accessUrlsByRoleId = sysRoleMapper.getAccessUrlsByRoleId(sysTbrole.getId());
-        if (accessUrlsByRoleId.isEmpty()) {
+
+        List<SysAuthority> SysAuthoritys = sysAuthorityMapper.getPermissionsByRoleId(sysTbrole.getId());
+        if (SysAuthoritys.isEmpty()) {
             throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
         }
-        boolean pathMatched = this.isPathMatched(requestPath, accessUrlsByRoleId);
+        List<SysAuthorityTreeReturnParam> permissions = sysAuthorityService.buildTree(SysAuthoritys);
+
+
+        boolean pathMatched = this.isPathMatchedInTree(requestPath, permissions, "");
 
         if (pathMatched) {
             // 记录该访问到日志信息
@@ -133,11 +146,27 @@ public class RequestInterceptor implements HandlerInterceptor {
 
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
-    private boolean isPathMatched(String requestPath, List<String> allowedPaths) {
-        for (String path : allowedPaths) {
-            // 有权访问该路径，放行
-            if (pathMatcher.match(path, requestPath)) {
+    /**
+     * 判断路径是否匹配权限树中的某个节点
+     * @param requestPath 请求路径
+     * @param permissions 权限树
+     * @return
+     */
+    private boolean isPathMatchedInTree(String requestPath, List<SysAuthorityTreeReturnParam> permissions, String parentPath) {
+        for (SysAuthorityTreeReturnParam permission : permissions) {
+            String currentPath = parentPath + permission.getAccessUrl(); // 拼接当前节点的路径
+
+            // 判断当前权限的路径是否匹配完整路径
+            if (pathMatcher.match(currentPath, requestPath)) {
                 return true;
+            }
+
+            // 如果有子权限，递归检查
+            List<SysAuthorityTreeReturnParam> subPermissions = permission.getSysAuthorityList();
+            if (subPermissions != null && !subPermissions.isEmpty()) {
+                if (isPathMatchedInTree(requestPath, subPermissions, currentPath)) {
+                    return true;
+                }
             }
         }
         return false;

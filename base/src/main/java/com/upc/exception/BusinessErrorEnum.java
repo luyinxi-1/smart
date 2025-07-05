@@ -86,7 +86,12 @@ public enum BusinessErrorEnum implements CommonError {
     /**
      * 删除失败，存在绑定关系
      */
-    BINDING_ERR(50001,"删除失败，存在绑定关系");
+    BINDING_ERR(50001,"删除失败，存在绑定关系"),
+
+    /**
+     * "存在嵌套循环，请检查权限的父子关系"
+     */
+    HAS_CYCLE_ERR(50002, "存在嵌套循环，请检查权限的父子关系");
 
 
     BusinessErrorEnum(int errCode, String errMsg) {

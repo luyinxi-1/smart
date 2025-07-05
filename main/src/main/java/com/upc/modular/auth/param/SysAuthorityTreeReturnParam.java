@@ -12,5 +12,5 @@ import java.util.List;
 @Data
 public class SysAuthorityTreeReturnParam extends SysAuthority {
 
-    private List<SysAuthority> sysAuthorityList;
+    private List<SysAuthorityTreeReturnParam> sysAuthorityList;
 }
