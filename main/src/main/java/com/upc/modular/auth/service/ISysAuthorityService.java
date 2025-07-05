@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.entity.SysAuthority;
 import com.upc.modular.auth.param.SysAuthoritySearchParam;
+import com.upc.modular.auth.param.SysAuthorityTreeReturnParam;
 
 import java.util.List;
 
@@ -20,5 +21,5 @@ public interface ISysAuthorityService extends IService<SysAuthority> {
 
     void deleteSysAuthorityByIds(List<Long> ids);
 
-    R<Page<SysAuthority>> getSysAuthorityPage(SysAuthoritySearchParam param);
+    R<List<SysAuthorityTreeReturnParam>> getSysAuthorityPage(SysAuthoritySearchParam param);
 }

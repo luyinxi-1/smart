@@ -7,6 +7,7 @@ import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.entity.SysAuthority;
 import com.upc.modular.auth.param.SysAuthoritySearchParam;
+import com.upc.modular.auth.param.SysAuthorityTreeReturnParam;
 import com.upc.modular.auth.service.ISysAuthorityService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -43,17 +44,17 @@ public class SysAuthorityController {
 
     @ApiOperation(value = "新增权限")
     @PostMapping("/insertSysAuthority")
-    public R insertSysAuthority(@RequestBody List<SysAuthority> sysAuthoritys) {
-        if (sysAuthoritys.isEmpty()) {
+    public R insertSysAuthority(@RequestBody SysAuthority sysAuthority) {
+        if (sysAuthority == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
-        sysAuthorityService.saveBatch(sysAuthoritys);
+        sysAuthorityService.save(sysAuthority);
         return R.commonReturn(200, "新增成功", "");
     }
 
     @ApiOperation(value = "按关键字分页查询权限数据")
     @PostMapping("/getSysAuthorityPage")
-    public R<Page<SysAuthority>> getSysAuthorityPage(@RequestBody SysAuthoritySearchParam param) {
+    public R<List<SysAuthorityTreeReturnParam>> getSysAuthorityPage(@RequestBody SysAuthoritySearchParam param) {
         return sysAuthorityService.getSysAuthorityPage(param);
     }
 

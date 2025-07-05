@@ -33,6 +33,14 @@ public class SysAuthority implements Serializable {
     @TableField("access_url")
     private String accessUrl;
 
+    @ApiModelProperty("该权限的父节点，0表示根节点")
+    @TableField("father_id")
+    private Long fatherId;
+
+    @ApiModelProperty("放行路径名")
+    @TableField("access_name")
+    private String accessName;
+
     @ApiModelProperty("创建时间")
     @TableField(value = "add_datetime", fill = FieldFill.INSERT)
     private LocalDateTime addDatetime;
