@@ -4,6 +4,7 @@ package com.upc.modular.teachingActivities.controller;
 import com.upc.common.responseparam.R;
 import com.upc.modular.teachingActivities.entity.DiscussionTopic;
 import com.upc.modular.teachingActivities.entity.UserLikes;
+import com.upc.modular.teachingActivities.param.LikeStateParam;
 import com.upc.modular.teachingActivities.service.IUserLikesService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -42,18 +43,18 @@ public class UserLikesController {
     @PostMapping("/deleteUserLikeById")
     public R deleteUserLikeById(@RequestParam Long id) {
         userLikesService.deleteUserLikeById(id);
-        return R.commonReturn(200, "新增成功", "");
+        return R.commonReturn(200, "取消点赞成功", "");
     }
 
     /**
      * 当前用户是否已为该活动/回复点赞（根据用户id和活动id/回复id查询点赞信息）
-     * @param id
+     * @param param
      * @return
      */
-    @ApiOperation(value = "")
+    @ApiOperation(value = "查询点赞状态")
     @PostMapping("/getLikeState")
-    public R getLikeState(@RequestParam Long id) {
-        userLikesService.getLikeState(id);
-        return R.commonReturn(200, "新增成功", "");
+    public R<Boolean> getLikeState(@RequestBody LikeStateParam param) {
+        boolean likeState = userLikesService.getLikeState(param);
+        return R.ok(likeState);
     }
 }

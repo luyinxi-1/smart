@@ -2,6 +2,7 @@ package com.upc.modular.teachingActivities.service;
 
 import com.upc.modular.teachingActivities.entity.UserLikes;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.teachingActivities.param.LikeStateParam;
 
 /**
  * <p>
@@ -17,5 +18,5 @@ public interface IUserLikesService extends IService<UserLikes> {
 
     void deleteUserLikeById(Long id);
 
-    void getLikeState(Long id);
+    boolean getLikeState(LikeStateParam param);
 }
