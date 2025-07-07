@@ -1,8 +1,11 @@
 package com.upc.modular.questionbank.mapper;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchParam;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * <p>
@@ -15,4 +18,11 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface TeachingQuestionMapper extends BaseMapper<TeachingQuestion> {
 
+//    Page<TeachingQuestion> selectCourse(Page<TeachingQuestion> page, TeachingQuestionPageSearchParam param);
+
+    Page<TeachingQuestion> selectQuestion(
+            Page<TeachingQuestion> page,
+            @Param("param") TeachingQuestionPageSearchParam param
+    );
 }
+
