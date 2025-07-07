@@ -1,6 +1,6 @@
 package com.upc.modular.teachingActivities.service;
 
-import com.upc.modular.auth.param.DiscussionTopicSearchParam;
+import com.upc.modular.teachingActivities.param.DiscussionTopicSearchParam;
 import com.upc.modular.teachingActivities.entity.DiscussionTopic;
 import com.baomidou.mybatisplus.extension.service.IService;
 

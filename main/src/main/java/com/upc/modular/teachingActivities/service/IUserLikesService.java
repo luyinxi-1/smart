@@ -13,4 +13,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IUserLikesService extends IService<UserLikes> {
 
+    void insertUserLike(UserLikes userLikes);
+
+    void deleteUserLikeById(Long id);
+
+    void getLikeState(Long id);
 }
