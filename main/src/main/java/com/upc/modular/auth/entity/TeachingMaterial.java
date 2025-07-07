@@ -33,6 +33,10 @@ public class TeachingMaterial implements Serializable {
     @TableField("object_id")
     private Long objectId;
 
+    @ApiModelProperty("绑定的实体类型")
+    @TableField("object_type")
+    private String objectType;
+
     @ApiModelProperty("教学资料名称")
     @TableField("name")
     private String name;
