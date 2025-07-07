@@ -4,7 +4,7 @@ package com.upc.modular.teachingActivities.controller;
 import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
-import com.upc.modular.auth.param.DiscussionTopicSearchParam;
+import com.upc.modular.teachingActivities.param.DiscussionTopicSearchParam;
 import com.upc.modular.teachingActivities.entity.DiscussionTopic;
 import com.upc.modular.teachingActivities.service.IDiscussionTopicService;
 import io.swagger.annotations.Api;

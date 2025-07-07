@@ -1,4 +1,4 @@
-package com.upc.modular.auth.param;
+package com.upc.modular.teachingActivities.param;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import io.swagger.annotations.ApiModelProperty;

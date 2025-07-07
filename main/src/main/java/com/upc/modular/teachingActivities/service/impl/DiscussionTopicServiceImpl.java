@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
-import com.upc.modular.auth.param.DiscussionTopicSearchParam;
+import com.upc.modular.teachingActivities.param.DiscussionTopicSearchParam;
 import com.upc.modular.teachingActivities.entity.DiscussionTopic;
 import com.upc.modular.teachingActivities.mapper.DiscussionTopicMapper;
 import com.upc.modular.teachingActivities.service.IDiscussionTopicService;
