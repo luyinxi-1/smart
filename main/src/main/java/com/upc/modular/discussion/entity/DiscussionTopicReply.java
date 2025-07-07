@@ -37,11 +37,11 @@ public class DiscussionTopicReply implements Serializable {
     @TableField("reply_content")
     private String replyContent;
 
-    @ApiModelProperty("关联教学活动的类型")
+    @ApiModelProperty("类型（1：回复的话题；2：回复的其他回复。）")
     @TableField("type")
     private Integer type;
 
-    @ApiModelProperty("回复关联的教学活动ID")
+    @ApiModelProperty("回复关联的教学活动ID或关联的其他回复的id")
     @TableField("topic_id")
     private Long topicId;
 
