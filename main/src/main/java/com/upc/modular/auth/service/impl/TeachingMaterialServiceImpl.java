@@ -18,4 +18,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class TeachingMaterialServiceImpl extends ServiceImpl<TeachingMaterialMapper, TeachingMaterial> implements ITeachingMaterialService {
 
+    @Override
+    public Boolean updateTeachingMaterial(TeachingMaterial teachingMaterial) {
+        return null;
+    }
 }

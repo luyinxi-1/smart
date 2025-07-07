@@ -1,4 +1,4 @@
-package com.upc.modular.discussion.entity;
+package com.upc.modular.teachingActivities.entity;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -9,8 +9,6 @@ import java.time.LocalDateTime;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 
 /**
@@ -29,15 +27,15 @@ public class UserLikes implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty("用户点赞数量表主键")
+    @ApiModelProperty("用户点赞表主键")
     @TableId("id")
     private Long id;
 
-    @ApiModelProperty("关联类型（如教学活动、回复等）")
+    @ApiModelProperty("关联类型（1：教学活动；2:回复）")
     @TableField("type")
     private Integer type;
 
-    @ApiModelProperty("关联的教学活动或回复ID")
+    @ApiModelProperty("关联的教学活动或回复id")
     @TableField("correlation_id")
     private Long correlationId;
 
