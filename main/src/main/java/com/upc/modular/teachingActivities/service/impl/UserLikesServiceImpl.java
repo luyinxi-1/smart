@@ -1,8 +1,8 @@
-package com.upc.modular.discussion.service.impl;
+package com.upc.modular.teachingActivities.service.impl;
 
-import com.upc.modular.discussion.entity.UserLikes;
-import com.upc.modular.discussion.mapper.UserLikesMapper;
-import com.upc.modular.discussion.service.IUserLikesService;
+import com.upc.modular.teachingActivities.entity.UserLikes;
+import com.upc.modular.teachingActivities.mapper.UserLikesMapper;
+import com.upc.modular.teachingActivities.service.IUserLikesService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
 

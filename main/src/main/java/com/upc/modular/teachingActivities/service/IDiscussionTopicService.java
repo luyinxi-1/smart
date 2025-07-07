@@ -1,8 +1,7 @@
-package com.upc.modular.discussion.service;
+package com.upc.modular.teachingActivities.service;
 
-import com.upc.common.responseparam.R;
 import com.upc.modular.auth.param.DiscussionTopicSearchParam;
-import com.upc.modular.discussion.entity.DiscussionTopic;
+import com.upc.modular.teachingActivities.entity.DiscussionTopic;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.util.List;

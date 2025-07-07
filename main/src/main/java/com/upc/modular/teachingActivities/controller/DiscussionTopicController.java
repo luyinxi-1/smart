@@ -1,15 +1,12 @@
-package com.upc.modular.discussion.controller;
+package com.upc.modular.teachingActivities.controller;
 
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
-import com.upc.modular.auth.entity.SysTbrole;
 import com.upc.modular.auth.param.DiscussionTopicSearchParam;
-import com.upc.modular.auth.param.SysRoleSearchParam;
-import com.upc.modular.discussion.entity.DiscussionTopic;
-import com.upc.modular.discussion.service.IDiscussionTopicService;
+import com.upc.modular.teachingActivities.entity.DiscussionTopic;
+import com.upc.modular.teachingActivities.service.IDiscussionTopicService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;

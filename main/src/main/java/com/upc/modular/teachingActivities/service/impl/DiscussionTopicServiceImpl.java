@@ -1,15 +1,14 @@
-package com.upc.modular.discussion.service.impl;
+package com.upc.modular.teachingActivities.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.param.DiscussionTopicSearchParam;
-import com.upc.modular.discussion.entity.DiscussionTopic;
-import com.upc.modular.discussion.mapper.DiscussionTopicMapper;
-import com.upc.modular.discussion.service.IDiscussionTopicService;
+import com.upc.modular.teachingActivities.entity.DiscussionTopic;
+import com.upc.modular.teachingActivities.mapper.DiscussionTopicMapper;
+import com.upc.modular.teachingActivities.service.IDiscussionTopicService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
 

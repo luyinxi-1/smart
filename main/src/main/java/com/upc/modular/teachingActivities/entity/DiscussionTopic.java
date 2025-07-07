@@ -1,4 +1,4 @@
-package com.upc.modular.discussion.entity;
+package com.upc.modular.teachingActivities.entity;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -9,8 +9,6 @@ import java.time.LocalDateTime;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 
 /**
@@ -23,41 +21,49 @@ import lombok.experimental.Accessors;
  */
 @Data
 @Accessors(chain = true)
-@TableName("discussion_topic_reply")
-@ApiModel(value = "DiscussionTopicReply对象", description = "")
-public class DiscussionTopicReply implements Serializable {
+@TableName("discussion_topic")
+@ApiModel(value = "DiscussionTopic对象", description = "")
+public class DiscussionTopic implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty("回复表主键")
+    @ApiModelProperty("教学活动主键")
     @TableId("id")
     private Long id;
 
-    @ApiModelProperty("回复的内容")
-    @TableField("reply_content")
-    private String replyContent;
+    @ApiModelProperty("话题的标题")
+    @TableField("topic_title")
+    private String topicTitle;
 
-    @ApiModelProperty("类型（1：回复的话题；2：回复的其他回复。）")
+    @ApiModelProperty("话题的内容")
+    @TableField("topic_content")
+    private String topicContent;
+
+    @ApiModelProperty("话题的类型")
     @TableField("type")
     private Integer type;
 
-    @ApiModelProperty("回复关联的教学活动ID或关联的其他回复的id")
-    @TableField("topic_id")
-    private Long topicId;
+    @ApiModelProperty("讨论关联的教材主表")
+    @TableField("textbook_id")
+    private Long textbookId;
 
-    @ApiModelProperty("回复创建人")
+    @ApiModelProperty("讨论关联的教材目录")
+    @TableField("textbook_catalog_id")
+    private Long textbookCatalogId;
+
+    @ApiModelProperty("话题创建人")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;
 
-    @ApiModelProperty("回复创建时间")
+    @ApiModelProperty("话题创建时间")
     @TableField(value = "add_datetime", fill = FieldFill.INSERT)
     private LocalDateTime addDatetime;
 
-    @ApiModelProperty("回复操作人")
+    @ApiModelProperty("话题操作人")
     @TableField(value = "operator", fill = FieldFill.UPDATE)
     private Long operator;
 
-    @ApiModelProperty("回复操作时间")
+    @ApiModelProperty("话题操作时间")
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
     private LocalDateTime operationDatetime;
 

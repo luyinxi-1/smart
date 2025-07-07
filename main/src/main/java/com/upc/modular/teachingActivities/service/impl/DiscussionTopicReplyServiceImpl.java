@@ -1,8 +1,8 @@
-package com.upc.modular.discussion.service.impl;
+package com.upc.modular.teachingActivities.service.impl;
 
-import com.upc.modular.discussion.entity.DiscussionTopicReply;
-import com.upc.modular.discussion.mapper.DiscussionTopicReplyMapper;
-import com.upc.modular.discussion.service.IDiscussionTopicReplyService;
+import com.upc.modular.teachingActivities.entity.DiscussionTopicReply;
+import com.upc.modular.teachingActivities.mapper.DiscussionTopicReplyMapper;
+import com.upc.modular.teachingActivities.service.IDiscussionTopicReplyService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
 

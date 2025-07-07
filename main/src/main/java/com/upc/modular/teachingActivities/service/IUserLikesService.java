@@ -1,6 +1,6 @@
-package com.upc.modular.discussion.service;
+package com.upc.modular.teachingActivities.service;
 
-import com.upc.modular.discussion.entity.UserLikes;
+import com.upc.modular.teachingActivities.entity.UserLikes;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 /**
