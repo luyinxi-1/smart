@@ -6,13 +6,17 @@
     <resultMap id="BaseResultMap" type="com.upc.modular.auth.entity.SysAuthority">
         <id column="id" property="id" />
         <result column="access_url" property="accessUrl" />
-        <result column="father_authority" property="fatherAuthority" />
-        <result column="validity_period" property="validityPeriod" />
-        <result column="status" property="status" />
         <result column="add_datetime" property="addDatetime" />
         <result column="creator" property="creator" />
         <result column="operator" property="operator" />
-        <result column="operation_time" property="operationTime" />
+        <result column="father_id" property="fatherId" />
     </resultMap>
+
+    <select id="getPermissionsByRoleId" resultType="com.upc.modular.auth.entity.SysAuthority">
+        SELECT a.id, a.access_url, a.father_id
+        FROM sys_authority a
+                 JOIN role_authority_list ra ON a.id = ra.authority_id
+        WHERE ra.role_id = #{roleId}
+    </select>
 
 </mapper>

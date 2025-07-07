@@ -48,6 +48,13 @@ public class SysAuthorityServiceImpl extends ServiceImpl<SysAuthorityMapper, Sys
                         .orderBy(true, Objects.equals(1, param.getIsAsc()), SysAuthority::getAddDatetime)
         );
 
+        List<SysAuthorityTreeReturnParam> rootAuthorities = buildTree(allAuthorities);
+
+        // 返回根节点权限列表，已经构建了树形结构
+        return R.ok(rootAuthorities);
+    }
+
+    public List<SysAuthorityTreeReturnParam> buildTree(List<SysAuthority> allAuthorities) {
         // 用来存储权限ID与对应树形节点的映射
         Map<Long, SysAuthorityTreeReturnParam> authorityMap = new HashMap<>();
         List<SysAuthorityTreeReturnParam> rootAuthorities = new ArrayList<>();
@@ -63,7 +70,7 @@ public class SysAuthorityServiceImpl extends ServiceImpl<SysAuthorityMapper, Sys
         // 0. 检测是否存在循环嵌套
         for (SysAuthority authority : allAuthorities) {
             if (hasCycle(authority.getId(), parentMap, new HashSet<>())) {
-                return R.fail("存在循环嵌套，构建失败，请检查权限父子关系！");
+                throw new BusinessException(BusinessErrorEnum.HAS_CYCLE_ERR);
             }
         }
 
@@ -91,8 +98,7 @@ public class SysAuthorityServiceImpl extends ServiceImpl<SysAuthorityMapper, Sys
             }
         }
 
-        // 返回根节点权限列表，已经构建了树形结构
-        return R.ok(rootAuthorities);
+        return rootAuthorities;
     }
 
     // 检测是否存在循环依赖

@@ -18,6 +18,10 @@ import java.util.List;
 @Mapper
 public interface SysRoleMapper extends BaseMapper<SysTbrole> {
 
+    /**
+     * 获取所有根节点权限
+     * @param roleId
+     * @return
+     */
     List<String> getAccessUrlsByRoleId(@Param("roleId") Long roleId);
-
 }
