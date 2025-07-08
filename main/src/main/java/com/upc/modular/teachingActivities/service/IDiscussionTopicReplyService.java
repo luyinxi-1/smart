@@ -26,4 +26,6 @@ public interface IDiscussionTopicReplyService extends IService<DiscussionTopicRe
     Page<DiscussionTopicSecondReplyPageReturnParam> getSecondReply(DiscussionTopicSecondReplyPageSearchParam param);
 
     R<DiscussionTopicMyReturnParam> getMyReplyContent(DiscussionTopicMySearchParam param);
+
+    void updateReply(DiscussionTopicReply reply);
 }
