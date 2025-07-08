@@ -16,7 +16,7 @@ public class CodeGenerator {
 
 //        表名
         String[] tables = {
-                "user_likes","discussion_topic","discussion_topic_reply"
+                "textbook","textbook_catalog","textbook_authority"
         };
 
         new CodeGeneratorConfig(author, moduleName, tables).generate();
