@@ -197,4 +197,14 @@ public class Knife4jConfig implements WebMvcConfigurer { // 实现 WebMvcConfigu
                 .paths(PathSelectors.any())
                 .build();
     }
+    @Bean
+    public Docket textbook() {
+        return new Docket(DocumentationType.SWAGGER_2)
+                .apiInfo(apiInfo())
+                .groupName("教材管理")
+                .select()
+                .apis(RequestHandlerSelectors.basePackage("com.upc.modular.textbook.controller"))
+                .paths(PathSelectors.any())
+                .build();
+    }
 }
