@@ -182,7 +182,7 @@ public class Knife4jConfig implements WebMvcConfigurer { // 实现 WebMvcConfigu
                 .apiInfo(apiInfo())
                 .groupName("教学活动")
                 .select()
-                .apis(RequestHandlerSelectors.basePackage("com.upc.modular.discussion.controller"))
+                .apis(RequestHandlerSelectors.basePackage("com.upc.modular.teachingActivities.controller"))
                 .paths(PathSelectors.any())
                 .build();
     }
