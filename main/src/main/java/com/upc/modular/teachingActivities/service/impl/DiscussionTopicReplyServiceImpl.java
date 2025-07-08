@@ -11,6 +11,8 @@ import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.student.entity.Student;
 import com.upc.modular.student.mapper.StudentMapper;
+import com.upc.modular.teacher.entity.Teacher;
+import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.teachingActivities.entity.DiscussionTopic;
 import com.upc.modular.teachingActivities.entity.DiscussionTopicReply;
 import com.upc.modular.teachingActivities.entity.UserLikes;
@@ -25,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -49,6 +52,9 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
 
     @Autowired
     private StudentMapper studentMapper;
+
+    @Autowired
+    private TeacherMapper teacherMapper;
 
     @Override
     public void insert(DiscussionTopicReply reply) {
@@ -190,28 +196,28 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
 
     @Override
     public Page<DiscussionTopicReplyPageReturnParam> getReply(DiscussionTopicReplyPageSearchParam param) {
+
         // 参数校验
         if (param == null || param.getTopicId() == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "话题ID不能为空");
         }
 
-        // 获取当前登录用户 ID（可为空；为空时统一视为“非本人”）
-        Long loginUserId = UserUtils.get().getId();
+        Long loginUserId = UserUtils.get().getId();   // 允许为空
 
         long current = Math.max(1, param.getCurrent());
         long size    = Math.max(1, param.getSize());
 
-        // 拉一级回复
+        // 拉取一级回复（type = 1）
         List<DiscussionTopicReply> allReplies = discussionTopicReplyMapper.selectList(
                 new LambdaQueryWrapper<DiscussionTopicReply>()
                         .eq(DiscussionTopicReply::getTopicId, param.getTopicId())
                         .eq(DiscussionTopicReply::getType, 1)
         );
         if (allReplies.isEmpty()) {
-            return new Page<>(current, size);
+            return new Page<>(current, size);   // 空页
         }
 
-        // 点赞 / 回复数 / 姓名映射
+        // 统计点赞 / 子回复数
         Set<Long> replyIds   = allReplies.stream().map(DiscussionTopicReply::getId).collect(Collectors.toSet());
         Set<Long> creatorIds = allReplies.stream().map(DiscussionTopicReply::getCreator).collect(Collectors.toSet());
 
@@ -227,38 +233,54 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
                         .in(DiscussionTopicReply::getTopicId, replyIds)
         ).stream().collect(Collectors.groupingBy(DiscussionTopicReply::getTopicId, Collectors.counting()));
 
-        Map<Long, String> creatorNameMap = studentMapper.selectList(
+        // 姓名映射：学生 → 老师 → 匿名
+        // 先 student
+        Map<Long, String> nameMap = studentMapper.selectList(
                 new LambdaQueryWrapper<Student>().in(Student::getUserId, creatorIds)
         ).stream().collect(Collectors.toMap(Student::getUserId, Student::getName));
 
-        // VO 封装（含 isMine）
+        // 再 teacher 补缺
+        Set<Long> missingIds = creatorIds.stream()
+                .filter(uid -> !nameMap.containsKey(uid))
+                .collect(Collectors.toSet());
+        if (!missingIds.isEmpty()) {
+            Map<Long, String> teacherNameMap = teacherMapper.selectList(
+                    new LambdaQueryWrapper<Teacher>().in(Teacher::getUserId, missingIds)
+            ).stream().collect(Collectors.toMap(Teacher::getUserId, Teacher::getName));
+            nameMap.putAll(teacherNameMap);
+        }
+
+        Function<Long, String> safeName = uid -> nameMap.getOrDefault(uid, "【匿名】");
+
+        // VO 封装
         List<DiscussionTopicReplyPageReturnParam> voList = allReplies.stream().map(reply -> {
             DiscussionTopicReplyPageReturnParam vo = new DiscussionTopicReplyPageReturnParam();
             BeanUtils.copyProperties(reply, vo);
 
             vo.setLikeNumber(likeCountMap.getOrDefault(reply.getId(), 0L).intValue());
             vo.setReplyNumber(replyCountMap.getOrDefault(reply.getId(), 0L).intValue());
-            vo.setCreatorName(creatorNameMap.getOrDefault(reply.getCreator(), "【匿名】"));
-
-            // 是否本人发布
+            vo.setCreatorName(safeName.apply(reply.getCreator()));
             vo.setIsMine((loginUserId != null && Objects.equals(reply.getCreator(), loginUserId)) ? 1 : 0);
+
             return vo;
         }).collect(Collectors.toList());
 
         // 排序
-        if (param.getOrder() != null && param.getOrder() == 1) {
+        if (param.getOrder() != null && param.getOrder() == 1) {          // 1 = 按点赞数倒序
             voList.sort(Comparator.comparingInt(DiscussionTopicReplyPageReturnParam::getLikeNumber).reversed());
-        } else {
-            voList.sort(Comparator.comparing(DiscussionTopicReply::getAddDatetime).reversed());
+        } else {                                                          // 默认：时间倒序
+            voList.sort(Comparator.comparing(DiscussionTopicReplyPageReturnParam::getAddDatetime).reversed());
         }
 
-        //手动分页
+        // 手动分页
         int from = (int) ((current - 1) * size);
+        if (from >= voList.size()) {                                      // 越界直接空页
+            return new Page<>(current, size);
+        }
         int to   = Math.min(from + (int) size, voList.size());
-        List<DiscussionTopicReplyPageReturnParam> pageRecords =
-                from < voList.size() ? voList.subList(from, to) : Collections.emptyList();
+        List<DiscussionTopicReplyPageReturnParam> pageRecords = voList.subList(from, to);
 
-        // 组装 Page 返回
+        // 返回 Page
         Page<DiscussionTopicReplyPageReturnParam> resultPage = new Page<>();
         resultPage.setCurrent(current);
         resultPage.setSize(size);
@@ -266,6 +288,8 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
         resultPage.setRecords(pageRecords);
         return resultPage;
     }
+
+
 
 
     @Override
@@ -285,9 +309,10 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
 
         // BFS 拉取整条二级回复链
         Set<Long> frontierIds = new HashSet<>(Collections.singleton(param.getReplyId()));
-        Map<Long, DiscussionTopicReply> chainReplyMap = new LinkedHashMap<>();
+        Map<Long, DiscussionTopicReply> chainReplyMap = new LinkedHashMap<>();  // 保留插入顺序
+        int depthGuard = 0, maxDepth = 6;   // 最多 6 层防炸（基本够用）
 
-        while (!frontierIds.isEmpty()) {
+        while (!frontierIds.isEmpty() && depthGuard++ < maxDepth) {
             List<DiscussionTopicReply> layer = discussionTopicReplyMapper.selectList(
                     new LambdaQueryWrapper<DiscussionTopicReply>()
                             .eq(DiscussionTopicReply::getType, 2)
@@ -295,9 +320,8 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
             );
             frontierIds = new HashSet<>();
             for (DiscussionTopicReply r : layer) {
-                if (!chainReplyMap.containsKey(r.getId())) {
-                    chainReplyMap.put(r.getId(), r);
-                    frontierIds.add(r.getId());   // 继续向下
+                if (chainReplyMap.putIfAbsent(r.getId(), r) == null) {   // 新节点才继续往下
+                    frontierIds.add(r.getId());
                 }
             }
         }
@@ -307,7 +331,7 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
 
         List<DiscussionTopicReply> chainReplies = new ArrayList<>(chainReplyMap.values());
 
-        // 点赞统计 & 姓名映射
+        // 点赞统计
         Set<Long> replyIds   = chainReplies.stream().map(DiscussionTopicReply::getId).collect(Collectors.toSet());
         Set<Long> creatorIds = chainReplies.stream().map(DiscussionTopicReply::getCreator).collect(Collectors.toSet());
 
@@ -317,43 +341,55 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
                         .in(UserLikes::getCorrelationId, replyIds)
         ).stream().collect(Collectors.groupingBy(UserLikes::getCorrelationId, Collectors.counting()));
 
-        Map<Long, String> creatorNameMap = studentMapper.selectList(
+        // 姓名映射：学生 → 老师 → 匿名
+        Map<Long, String> nameMap = studentMapper.selectList(
                 new LambdaQueryWrapper<Student>().in(Student::getUserId, creatorIds)
         ).stream().collect(Collectors.toMap(Student::getUserId, Student::getName));
+
+        Set<Long> missingIds = creatorIds.stream()
+                .filter(uid -> !nameMap.containsKey(uid))
+                .collect(Collectors.toSet());
+        if (!missingIds.isEmpty()) {
+            Map<Long, String> teacherNameMap = teacherMapper.selectList(
+                    new LambdaQueryWrapper<Teacher>().in(Teacher::getUserId, missingIds)
+            ).stream().collect(Collectors.toMap(Teacher::getUserId, Teacher::getName));
+            nameMap.putAll(teacherNameMap);
+        }
+        Function<Long, String> safeName = uid -> nameMap.getOrDefault(uid, "【匿名】");
 
         // 时间升序排序
         chainReplies.sort(Comparator.comparing(DiscussionTopicReply::getAddDatetime));
 
-        // 构造 VO，拼接 @姓名 & isMine
-        Map<Long, String> parentNameMap = new HashMap<>();
-        for (DiscussionTopicReply r : chainReplies) {
-            parentNameMap.put(r.getId(), creatorNameMap.getOrDefault(r.getCreator(), "【未知】"));
-        }
+        // 构造 VO
+        Map<Long, String> parentNameMap = chainReplies.stream()
+                .collect(Collectors.toMap(DiscussionTopicReply::getId,
+                        r -> safeName.apply(r.getCreator())));
 
         List<DiscussionTopicSecondReplyPageReturnParam> voAll = chainReplies.stream().map(r -> {
             DiscussionTopicSecondReplyPageReturnParam vo = new DiscussionTopicSecondReplyPageReturnParam();
             BeanUtils.copyProperties(r, vo);
 
-            // 拼接 @被回复人姓名
+            // 拼接 @ 被回复人
             if (!Objects.equals(r.getTopicId(), param.getReplyId())) {
                 String targetName = parentNameMap.getOrDefault(r.getTopicId(), "【匿名】");
                 vo.setReplyContent("@" + targetName + "：" + r.getReplyContent());
             }
 
-            // 其它字段
-            vo.setCreatorName(creatorNameMap.getOrDefault(r.getCreator(), "【匿名】"));
+            vo.setCreatorName(safeName.apply(r.getCreator()));
             vo.setLikeNumber(likeCountMap.getOrDefault(r.getId(), 0L).intValue());
-            vo.setIsMine(Objects.equals(r.getCreator(), loginUserId) ? 1 : 0);   // ★ 是否本人回复
+            vo.setIsMine(Objects.equals(r.getCreator(), loginUserId) ? 1 : 0);
             return vo;
         }).collect(Collectors.toList());
 
         // 手动分页
         int from = (int) ((current - 1) * size);
-        int to   = Math.min(from + (int) size, voAll.size());
-        List<DiscussionTopicSecondReplyPageReturnParam> pageRecords =
-                from < voAll.size() ? voAll.subList(from, to) : Collections.emptyList();
+        if (from >= voAll.size()) {
+            return new Page<>(current, size);   // 越界空页
+        }
+        int to = Math.min(from + (int) size, voAll.size());
+        List<DiscussionTopicSecondReplyPageReturnParam> pageRecords = voAll.subList(from, to);
 
-        // 返回 Page
+        // 组装 Page
         Page<DiscussionTopicSecondReplyPageReturnParam> resultPage = new Page<>();
         resultPage.setCurrent(current);
         resultPage.setSize(size);
@@ -361,6 +397,7 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
         resultPage.setRecords(pageRecords);
         return resultPage;
     }
+
 
     @Override
     public R<DiscussionTopicMyReturnParam> getMyReplyContent(DiscussionTopicMySearchParam param) {
@@ -374,9 +411,8 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "当前用户未登录");
         }
 
-        // 拿到“我这条回复”
-        DiscussionTopicReply myReply =
-                discussionTopicReplyMapper.selectById(param.getReplyId());
+        // 查询“我这条回复”
+        DiscussionTopicReply myReply = discussionTopicReplyMapper.selectById(param.getReplyId());
         if (myReply == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "回复不存在");
         }
@@ -384,23 +420,20 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "该回复不属于当前用户");
         }
 
-        // 解析话题标题 &（如有）父回复
+        // 解析话题 &（可选）父回复
         Long rootTopicId;
-        DiscussionTopicReply parentReply = null;   // 仅当 myReply.type == 2 时才会用
+        DiscussionTopicReply parentReply = null;   // 仅 myReply.type == 2 时使用
         if (myReply.getType() == 1) {
-            // 直接回复话题
             rootTopicId = myReply.getTopicId();
         } else {
-            // 回复了别人的回复：先拿父节点
             parentReply = discussionTopicReplyMapper.selectById(myReply.getTopicId());
-            // 再沿链找到最上层 type = 1 的 reply，然后取其 topic_id
             rootTopicId = resolveRootTopicId(parentReply);
         }
 
         DiscussionTopic topic = discussionTopicMapper.selectById(rootTopicId);
-        String topicTitle = topic != null ? topic.getTopicTitle() : param.getTopicTitle();
+        String topicTitle = topic != null ? topic.getTopicTitle() : "【未知话题】";
 
-        // 查询“别人对我这条回复”的子回复
+        // 查询子回复
         List<DiscussionTopicReply> childReplies = discussionTopicReplyMapper.selectList(
                 new LambdaQueryWrapper<DiscussionTopicReply>()
                         .eq(DiscussionTopicReply::getType, 2)
@@ -421,24 +454,40 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
                 UserLikes::getCorrelationId, Collectors.counting()
         ));
 
-        // 姓名映射
+        // 姓名映射：student → teacher → 匿名
+        // 收集所有待查 creatorId
         Set<Long> creatorIds = new HashSet<>();
         creatorIds.add(myReply.getCreator());
         childReplies.forEach(r -> creatorIds.add(r.getCreator()));
         if (parentReply != null) creatorIds.add(parentReply.getCreator());
 
+        // 先 student 表
         Map<Long, String> nameMap = studentMapper.selectList(
                 new LambdaQueryWrapper<Student>().in(Student::getUserId, creatorIds)
         ).stream().collect(Collectors.toMap(Student::getUserId, Student::getName));
 
-        // 构造 replyList —— 我的回复置首位
+        // 再 teacher 表补缺
+        Set<Long> missingIds = creatorIds.stream()
+                .filter(uid -> !nameMap.containsKey(uid))
+                .collect(Collectors.toSet());
+        if (!missingIds.isEmpty()) {
+            Map<Long, String> teacherNameMap = teacherMapper.selectList(
+                    new LambdaQueryWrapper<Teacher>().in(Teacher::getUserId, missingIds)
+            ).stream().collect(Collectors.toMap(Teacher::getUserId, Teacher::getName));
+            nameMap.putAll(teacherNameMap);
+        }
+
+        // 安全获取姓名函数
+        Function<Long, String> safeName = uid -> nameMap.getOrDefault(uid, "【匿名】");
+
+        // 组装 replyList
         List<DiscussionTopicMyReplyList> replyList = new ArrayList<>();
 
         // 我的这条
         replyList.add(new DiscussionTopicMyReplyList()
                 .setId(myReply.getId())
                 .setReplyContent(myReply.getReplyContent())
-                .setCreatorName(nameMap.getOrDefault(myReply.getCreator(), "【匿名】"))
+                .setCreatorName(safeName.apply(myReply.getCreator()))
                 .setAddDatetime(myReply.getAddDatetime())
                 .setLikeNumber(likeCountMap.getOrDefault(myReply.getId(), 0L).intValue())
         );
@@ -448,20 +497,20 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
                 new DiscussionTopicMyReplyList()
                         .setId(child.getId())
                         .setReplyContent(child.getReplyContent())
-                        .setCreatorName(nameMap.getOrDefault(child.getCreator(), "【匿名】"))
+                        .setCreatorName(safeName.apply(child.getCreator()))
                         .setAddDatetime(child.getAddDatetime())
                         .setLikeNumber(likeCountMap.getOrDefault(child.getId(), 0L).intValue())
         ));
 
-        // 组装返回 DTO
+        // DTO 返回
         DiscussionTopicMyReturnParam dto = new DiscussionTopicMyReturnParam()
                 .setTopicTitle(topicTitle)
                 .setReplyList(replyList)
-                .setIsMine(1);                       // 个人中心必为本人
+                .setIsMine(1);   // 个人中心固定本人
 
         if (myReply.getType() == 2 && parentReply != null) {
             dto.setReplyContent(parentReply.getReplyContent())
-                    .setReplyAuthor(nameMap.getOrDefault(parentReply.getCreator(), "【匿名】"))
+                    .setReplyAuthor(safeName.apply(parentReply.getCreator()))
                     .setReplyDateTime(parentReply.getAddDatetime());
         }
 
