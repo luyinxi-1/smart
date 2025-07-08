@@ -13,4 +13,5 @@ import com.upc.modular.auth.entity.TeachingMaterial;
  */
 public interface ITeachingMaterialService extends IService<TeachingMaterial> {
 
+    Boolean updateTeachingMaterial(TeachingMaterial teachingMaterial);
 }

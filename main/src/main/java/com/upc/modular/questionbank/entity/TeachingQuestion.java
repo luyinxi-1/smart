@@ -69,5 +69,7 @@ public class TeachingQuestion implements Serializable {
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
     private LocalDateTime operationDatetime;
 
-
+    @ApiModelProperty("所属学科")
+    @TableField("subject")
+    private String subject;
 }

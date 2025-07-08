@@ -61,9 +61,9 @@ public class CourseController {
 
     @ApiOperation("根据id查询单个课程信息")
     @PostMapping("selectCourse")
-    public R selectCourse(@RequestBody Course course){
-        courseService.getById(course);
-        return R.commonReturn(200, "查找成功", "");
+    public R<Course> selectCourse(@RequestBody Course course){
+        Course result = courseService.getById(course);
+        return R.ok(result);
     }
 
     @ApiOperation(value = "根据课程名称、教师姓名分页查询课程")
