@@ -275,5 +275,13 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         return resultVo;
     }
 
+    @Override
+    public void updateTeacher(Teacher teacher) {
+        if (ObjectUtils.isEmpty(teacher) || ObjectUtils.isEmpty(teacher.getId())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+        this.updateById(teacher);
+    }
+
 
 }

@@ -45,7 +45,7 @@ public class DiscussionTopicReplyController {
     @ApiOperation(value = "修改回复")
     @PutMapping("/update")
     public R update(@RequestBody DiscussionTopicReply reply) {
-        discussionTopicReplyService.updateById(reply);
+        discussionTopicReplyService.updateReply(reply);
         return R.commonReturn(200, "修改成功", "");
     }
 

@@ -517,6 +517,14 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
         return R.ok(dto);
     }
 
+    @Override
+    public void updateReply(DiscussionTopicReply reply) {
+        if (ObjectUtils.isEmpty(reply) || ObjectUtils.isEmpty(reply.getId())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+        this.updateById(reply);
+    }
+
     //  向上追溯到顶层 type = 1
     private Long resolveRootTopicId(DiscussionTopicReply reply) {
         int maxDepth = 10;

@@ -55,7 +55,7 @@ public class TeacherController {
     @ApiOperation(value = "修改教师")
     @PutMapping("/update")
     public R update(@RequestBody Teacher teacher) {
-        teacherService.updateById(teacher);
+        teacherService.updateTeacher(teacher);
         return R.commonReturn(200, "修改成功", "");
     }
 

@@ -38,4 +38,6 @@ public interface ITeacherService extends IService<Teacher> {
     List<TeacherReturnVo> getTeacherNoUser();
 
     GenerateUserResultVo generateTeacherUsers(TeacherGenerateDto dto);
+
+    void updateTeacher(Teacher teacher);
 }
