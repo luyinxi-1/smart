@@ -10,9 +10,17 @@ import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.entity.SysTbrole;
 import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.mapper.SysRoleMapper;
 import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.auth.service.ISysUserService;
+import com.upc.modular.auth.service.IUserRoleListService;
+import com.upc.modular.group.entity.Group;
+import com.upc.modular.group.mapper.GroupMapper;
+import com.upc.modular.group.service.IUserClassListService;
+import com.upc.modular.institution.entity.Institution;
+import com.upc.modular.institution.mapper.InstitutionMapper;
 import com.upc.modular.student.controller.param.dto.StudentGenerateDto;
 import com.upc.modular.student.controller.param.dto.StudentImportDto;
 import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
@@ -23,6 +31,9 @@ import com.upc.modular.student.controller.param.vo.StudentReturnVo;
 import com.upc.modular.student.entity.Student;
 import com.upc.modular.student.mapper.StudentMapper;
 import com.upc.modular.student.service.IStudentService;
+import com.upc.modular.teacher.entity.Teacher;
+import com.upc.modular.teacher.mapper.TeacherMapper;
+import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
 import com.upc.utils.MD5Utils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +43,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -52,14 +64,29 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
     private ISysUserService sysUserService;
     @Autowired
     private SysUserMapper sysUserMapper;
+    @Autowired
+    private TeacherMapper teacherMapper;
 
+    @Autowired
+    private InstitutionMapper institutionMapper;
+
+    @Autowired
+    private IUserRoleListService userRoleListService;
+
+    @Autowired
+    private GroupMapper groupMapper; // Injected GroupMapper
+    @Autowired
+    private IUserClassListService userClassListService; // Injected IUserClassListService
+
+    @Autowired
+    private SysRoleMapper sysRoleMapper;
     @Override
     public void insertstudent(Student student) {
-        if (ObjectUtils.isEmpty(student.getIdcard())) {
+        if (ObjectUtils.isEmpty(student.getIdentityId())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户身份证号为空");
         }
         MyLambdaQueryWrapper<Student> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
-        lambdaQueryWrapper.eq(Student::getIdcard, student.getIdcard());
+        lambdaQueryWrapper.eq(Student::getIdentityId, student.getIdentityId());
         List<Student> students = studentMapper.selectList(lambdaQueryWrapper);
         if (ObjectUtils.isNotEmpty(students)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户已存在");
@@ -74,7 +101,7 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "ID列表不能为空");
         }
 
-        // 查询教师记录
+        // 查询学生记录
         List<Student> students = studentMapper.selectBatchIds(idList);
         if (ObjectUtils.isEmpty(students)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "未找到对应的学生记录");
@@ -100,26 +127,69 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
 
     @Override
     public ImportStudentReturnVo importStudentData(MultipartFile file) {
-        ExcelReader excelReader = null;
-        List<Student> students = studentMapper.selectList(null);
-        ImportStudentReturnVo importStudentReturnparam = new ImportStudentReturnVo();
-        try {
-            StudentListener studentListener = new StudentListener(this, students);
-            excelReader = EasyExcel.read(file.getInputStream(), StudentImportDto.class, studentListener).build();
-            // 这两行用于执行读操作，不加不运行
-            ReadSheet readSheet = EasyExcel.readSheet(0).build();
-            excelReader.read(readSheet);
-            importStudentReturnparam.setUpdateTotal(studentListener.getUpdateTotal());
-            importStudentReturnparam.setInsertTotal(studentListener.getInsertTotal());
-            return importStudentReturnparam;
+        ImportStudentReturnVo importStudentReturnVo = new ImportStudentReturnVo();
+
+        // 1. 获取所有现有学生数据，并以学号为键构建 Map，用于快速查找学生是否存在（用于更新）
+        List<Student> existingStudents = studentMapper.selectList(null);
+        Map<String, Student> existStudentMap = existingStudents.stream()
+                .filter(s -> ObjectUtils.isNotEmpty(s.getIdentityId()))
+                .collect(Collectors.toMap(Student::getIdentityId, s -> s, (s1, s2) -> s1));
+
+        // 2. 获取“学生”角色的ID，后续创建用户时需要关联此角色
+        Long studentRoleId = getStudentRoleId();
+
+
+        // 3. 获取所有班级数据，并以班级名称为键构建 Map，用于将 Excel 中的班级名称转换为班级ID
+        List<Group> groups = groupMapper.selectList(null);
+        Map<String, Long> classMap = groups.stream()
+                .collect(Collectors.toMap(Group::getName, Group::getId, (g1, g2) -> g1));
+
+        // 4. 获取所有机构数据，并以机构名称为键构建 Map，用于将 Excel 中的班级名称作为机构名称去查找机构ID
+        List<Institution> institutions = institutionMapper.selectList(null);
+        Map<String, Long> institutionMap = institutions.stream()
+                .collect(Collectors.toMap(Institution::getInstitutionName, Institution::getId, (i1, i2) -> i1));
+// 创建 StudentListener 实例
+        StudentListener studentListener = new StudentListener(this, sysUserService, userRoleListService, userClassListService,
+                existStudentMap, classMap, institutionMap, studentRoleId);
+
+// 使用 EasyExcel 的链式调用来读取 Excel 文件。
+// EasyExcel.read() 方法会返回一个 ReadWorkbookBuilder，通过链式调用 .sheet() 和 .doRead() 来完成整个读取过程。
+// 这里的 try-with-resources 是为了确保文件输入流被正确关闭。
+        try { //
+            EasyExcel.read(file.getInputStream(), StudentImportDto.class, studentListener) //
+                    .sheet(0) // 读取第一个工作表（索引为0）
+                    .doRead(); // 执行读取操作
+
+            // 获取监听器中的结果。
+            // 因为 EasyExcel.read()...doRead() 已经完成了所有操作，
+            // studentListener 实例中已经包含了导入的统计结果和错误列表。
+            importStudentReturnVo.setErrorTotal(studentListener.getErrorList().size()); // 将失败条数赋值给 errorTotal
+            importStudentReturnVo.setInsertTotal(studentListener.getInsertTotal()); // 将新增数量赋值给 insertTotal
+            importStudentReturnVo.setUpdateTotal(studentListener.getUpdateTotal()); // 将更新数量赋值给 updateTotal
+            importStudentReturnVo.setErrorDetails(studentListener.getErrorList()); // 将出错详细信息赋值给 errorDetails
+
         } catch (IOException e) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "导入文件格式不合法");
-        } finally {
-            if (excelReader != null) {
-                // 这里千万别忘记关闭，读的时候会创建临时文件，到时磁盘会崩的
-                excelReader.finish();
-            }
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "文件读取失败: " + e.getMessage());
         }
+
+        return importStudentReturnVo;
+    }
+
+
+    /**
+     * Helper method to get the '学生' role ID.
+     * @return Role ID for '学生'
+     */
+    private Long getStudentRoleId() {
+        MyLambdaQueryWrapper<SysTbrole> queryWrapper = new MyLambdaQueryWrapper<>();
+        queryWrapper.eq(SysTbrole::getRoleName, "学生");
+        SysTbrole studentRole = sysRoleMapper.selectOne(queryWrapper);
+        return studentRole != null ? studentRole.getId() : null;
+    }
+
+
+    public void saveBatchUsers(List<SysTbuser> users) {
+        sysUserService.saveBatch(users);
     }
 
     @Override

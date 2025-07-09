@@ -71,6 +71,34 @@ public class Student implements Serializable {
     @TableField("class_id")
     private Long classId;
 
+    @ApiModelProperty("账号状态")
+    @TableField("account_status")
+    private Integer accountStatus;
+
+    @ApiModelProperty("职务")
+    @TableField("position")
+    private String position;
+
+    @ApiModelProperty("入学日期")
+    @TableField("enrollment_data")
+    private LocalDateTime enrollmentData;
+
+    @ApiModelProperty("预计结业时间")
+    @TableField("planned_graduation_date")
+    private LocalDateTime plannedGraduationDate;
+
+    @ApiModelProperty("备注")
+    @TableField("remark")
+    private String remark;
+
+    @ApiModelProperty("证件照片")
+    @TableField("id_photo")
+    private String idPhoto;
+
+    @ApiModelProperty("专业")
+    @TableField("major")
+    private String major;
+
     @ApiModelProperty("创建者")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;

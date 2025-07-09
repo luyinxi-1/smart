@@ -150,6 +150,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         ExcelReader excelReader = null;
         List<Teacher> teachers = teacherMapper.selectList(null);
         ImportTeacherReturnVo importTeacherReturnParam = new ImportTeacherReturnVo();
+
         MyLambdaQueryWrapper<SysTbrole> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
         lambdaQueryWrapper.eq(SysTbrole::getRoleName, "普通教师");
         List<SysTbrole> sysTbroles = sysRoleMapper.selectList(lambdaQueryWrapper);
