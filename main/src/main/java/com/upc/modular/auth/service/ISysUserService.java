@@ -3,6 +3,7 @@ package com.upc.modular.auth.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.param.GetUserIsInInstitutionParam;
 import com.upc.modular.auth.param.ImportSysUserReturnParam;
 import com.upc.modular.auth.param.SysUserPageSearchParam;
 import com.upc.modular.auth.param.UserLoginParam;
@@ -31,4 +32,5 @@ public interface ISysUserService extends IService<SysTbuser> {
 
     Page<SysTbuser> getPage(SysUserPageSearchParam param);
 
+    Boolean getUserIsInInstitution(GetUserIsInInstitutionParam param);
 }

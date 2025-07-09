@@ -15,13 +15,13 @@ import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.entity.UserRoleList;
 import com.upc.modular.auth.mapper.SysUserMapper;
-import com.upc.modular.auth.param.ImportSysUserReturnParam;
-import com.upc.modular.auth.param.SysUserImportParam;
-import com.upc.modular.auth.param.SysUserPageSearchParam;
-import com.upc.modular.auth.param.UserLoginParam;
+import com.upc.modular.auth.param.*;
 import com.upc.modular.auth.service.ISysLogService;
 import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.auth.service.IUserRoleListService;
+import com.upc.modular.institution.entity.Institution;
+import com.upc.modular.institution.mapper.InstitutionMapper;
+import com.upc.utils.InstitutionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -52,6 +52,12 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
 
     @Autowired
     private ISysLogService sysLogService;
+
+    @Autowired
+    private InstitutionMapper institutionMapper;
+
+    @Autowired
+    private SysUserMapper sysUserMapper;
 
     private static Integer ENABLE_STATUS = 1;
 
@@ -108,6 +114,29 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
         lambdaQueryWrapper.eq(ObjectUtils.isNotEmpty(param.getUserType()), SysTbuser::getUserType, param.getUserType())
                 .orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
         return this.page(page, lambdaQueryWrapper);
+    }
+
+    @Override
+    public Boolean getUserIsInInstitution(GetUserIsInInstitutionParam param) {
+        if (ObjectUtils.isEmpty(param) || ObjectUtils.isEmpty(param.getInstitutionId()) || ObjectUtils.isEmpty(param.getUserId())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+
+        // 获取所有子机构（含自身）
+        List<Institution> institutions = institutionMapper.selectList(null);
+        List<Long> allSubInstitutionIds = InstitutionUtil.getAllSubInstitutionIds(param.getInstitutionId(), institutions);
+
+        // 查询教师对应的机构ID（通过teacher.user_id -> sys_tbuser.institution_id）
+        MyLambdaQueryWrapper<SysTbuser> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(SysTbuser::getId, param.getUserId());
+        SysTbuser sysTbuser = sysUserMapper.selectOne(lambdaQueryWrapper);
+        Long institutionId = sysTbuser.getInstitutionId();
+
+        if (institutionId == null) {
+            return false;  // 教师没有绑定机构，直接false
+        }
+
+        return allSubInstitutionIds.contains(institutionId);
     }
 
 

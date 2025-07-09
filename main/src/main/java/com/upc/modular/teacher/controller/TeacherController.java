@@ -6,6 +6,7 @@ import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.teacher.dto.GetTeacherIsInInstitutionParam;
 import com.upc.modular.teacher.dto.TeacherGenerateDto;
 import com.upc.modular.teacher.dto.TeacherInsertDto;
 import com.upc.modular.teacher.vo.GenerateUserResultVo;
@@ -104,6 +105,12 @@ public class TeacherController {
         return R.ok(result);
     }
 
+    @ApiOperation(value = "查询教师是否在机构内")
+    @PostMapping("/getTeacherIsInInstitution")
+    public R<Boolean> getTeacherIsInInstitution(@RequestBody GetTeacherIsInInstitutionParam param) {
+        Boolean result = teacherService.getTeacherIsInInstitution(param);
+        return R.ok(result);
+    }
 
 
 

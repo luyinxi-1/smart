@@ -7,7 +7,7 @@ import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.param.InstitutionDto;
-import com.upc.modular.institution.Param.InstitutionSearchParam;
+import com.upc.modular.institution.param.InstitutionSearchParam;
 import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.institution.mapper.InstitutionMapper;
 import com.upc.modular.institution.service.IInstitutionService;

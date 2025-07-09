@@ -5,9 +5,11 @@ import com.alibaba.excel.annotation.ExcelProperty;
 import com.baomidou.mybatisplus.annotation.TableField;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 @Data
 @ExcelIgnoreUnannotated
+@Accessors(chain = true)
 public class TeacherImportDto {
     @ApiModelProperty("工号")
     @ExcelProperty("工号")
