@@ -11,4 +11,37 @@
         <result column="score" property="score" />
     </resultMap>
 
+    <select id="selectQuestionPageList" resultMap="BaseResultMap">
+        SELECT
+        t.id,
+        t.question_id,
+        t.bank_id,
+        t.order,
+        t.score
+        FROM
+        questions_banks_list t
+        <where>
+            <!-- 条件1: 根据题目ID精确查询 -->
+            <if test="param.questionId != null">
+                AND t.question_id = #{param.questionId}
+            </if>
+            <!-- 条件2: 根据题库ID精确查询 -->
+            <if test="param.bankId != null">
+                AND t.bank_id = #{param.bankId}
+            </if>
+            <!-- 条件3: 根据顺序精确查询 -->
+            <if test="param.order != null">
+                AND t.order = #{param.order}
+            </if>
+            <!-- 条件4: 根据分值精确查询 -->
+            <if test="param.score != null">
+                AND t.score = #{param.score}
+            </if>
+        </where>
+        ORDER BY t.order
+        <choose>
+            <when test="param.isAsc != null and param.isAsc == 1">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+    </select>
 </mapper>
