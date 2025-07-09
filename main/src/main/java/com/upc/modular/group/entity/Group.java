@@ -21,7 +21,7 @@ import lombok.experimental.Accessors;
  */
 @Data
 @Accessors(chain = true)
-@TableName("group")
+@TableName("\"group\"") // <--- 关键修改在这里
 @ApiModel(value = "Group对象", description = "")
 public class Group implements Serializable {
 

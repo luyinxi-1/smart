@@ -79,10 +79,9 @@ public enum BusinessErrorEnum implements CommonError {
      */
     EXCEL_ERROR(40002,"excel导入失败"),
     /**
-     * excel导入失败
+     * 不存在
      */
-    NO_EXIT(40003,"")
-    ,
+    NO_EXIT(40003,"不存在"), // 修正了 NO_EXIT 的 errMsg
     /**
      * 删除失败，存在绑定关系
      */
@@ -91,9 +90,13 @@ public enum BusinessErrorEnum implements CommonError {
     /**
      * "存在嵌套循环，请检查权限的父子关系"
      */
-    HAS_CYCLE_ERR(50002, "存在嵌套循环，请检查权限的父子关系");
+    HAS_CYCLE_ERR(50002, "存在嵌套循环，请检查权限的父子关系"),
+    /**
+     * 业务错误
+     */
+    BUSINESS_ERROR(50003, "业务处理异常"); // 修正了 BUSINESS_ERROR 的定义，为其提供了 errCode 和 errMsg
 
-
+    // 枚举的构造函数
     BusinessErrorEnum(int errCode, String errMsg) {
         this.errCode = errCode;
         this.errMsg = errMsg;
@@ -101,7 +104,7 @@ public enum BusinessErrorEnum implements CommonError {
 
     private final int errCode;
     private String errMsg;
-    private List<RuntimeException> errList;
+    private List<RuntimeException> errList; // 注意：CommonError 接口中是否有 getErrList/setErrList 方法？如果没有，这里可能会有问题
 
     @Override
     public int getErrCode() {
