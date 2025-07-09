@@ -18,4 +18,56 @@
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
 
+
+    <select id="selectQuestionBank" resultMap="BaseResultMap">
+        SELECT
+        t.id,
+        t.name,
+        t.description,
+        t.status,
+        t.textbook_id,
+        t.textbook_catalog_id,
+        t.max_attempts,
+        t.score_policy,
+        t.creator,
+        t.add_datetime,
+        t.operator,
+        t.operation_datetime
+        FROM teaching_question_bank t
+        <where>
+            <!-- 条件1: 根据题库名称模糊查询 -->
+            <if test="param.name != null and param.name != ''">
+                AND t.name LIKE CONCAT('%', #{param.name}, '%')
+            </if>
+            <!-- 条件2: 根据题库说明模糊查询 -->
+            <if test="param.description != null and param.description != ''">
+                AND t.description LIKE CONCAT('%', #{param.description}, '%')
+            </if>
+            <!-- 条件3: 根据教学题库状态精确查询 -->
+            <if test="param.status != null">
+                AND t.status = #{param.status}
+            </if>
+            <!-- 条件4: 根据关联教材ID精确查询 -->
+            <if test="param.textbookId != null">
+                AND t.textbook_id = #{param.textbookId}
+            </if>
+            <!-- 条件5: 根据关联教材目录ID精确查询 (这是导致你报错的关键点) -->
+            <if test="param.textbookCatalogId != null">
+                AND t.textbook_catalog_id = #{param.textbookCatalogId}
+            </if>
+            <!-- 条件6: 根据答题次数限制精确查询 -->
+            <if test="param.maxAttempts != null">
+                AND t.max_attempts = #{param.maxAttempts}
+            </if>
+            <!-- 条件7: 根据成绩取值方式精确查询 -->
+            <if test="param.scorePolicy != null">
+                AND t.score_policy = #{param.scorePolicy}
+            </if>
+        </where>
+        ORDER BY t.add_datetime
+        <choose>
+            <when test="param.isAsc != null and param.isAsc == 1">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+    </select>
 </mapper>

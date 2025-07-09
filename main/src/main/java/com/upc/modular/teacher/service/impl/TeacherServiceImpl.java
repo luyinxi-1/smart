@@ -5,6 +5,7 @@ import com.alibaba.excel.ExcelReader;
 import com.alibaba.excel.read.metadata.ReadSheet;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.common.responseparam.R;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
@@ -20,18 +21,16 @@ import com.upc.modular.auth.service.IUserRoleListService;
 import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.institution.mapper.InstitutionMapper;
 import com.upc.modular.institution.service.IInstitutionService;
-import com.upc.modular.teacher.dto.TeacherGenerateDto;
-import com.upc.modular.teacher.dto.TeacherInsertDto;
+import com.upc.modular.teacher.dto.*;
 import com.upc.modular.teacher.vo.GenerateUserResultVo;
 import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
-import com.upc.modular.teacher.dto.TeacherImportDto;
-import com.upc.modular.teacher.dto.TeacherPageSearchDto;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.listener.TeacherListener;
 import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.teacher.service.ITeacherService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.teacher.vo.TeacherReturnVo;
+import com.upc.utils.InstitutionUtil;
 import com.upc.utils.MD5Utils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -274,6 +273,34 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         resultVo.setTotalProcessed(dto.getTeacher().size());
         resultVo.setFailedTeachers(failedTeachers);
         return resultVo;
+    }
+
+    @Override
+    public void updateTeacher(Teacher teacher) {
+        if (ObjectUtils.isEmpty(teacher) || ObjectUtils.isEmpty(teacher.getId())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+        this.updateById(teacher);
+    }
+
+    @Override
+    public Boolean getTeacherIsInInstitution(GetTeacherIsInInstitutionParam param) {
+        if (ObjectUtils.isEmpty(param) || ObjectUtils.isEmpty(param.getTeacherId()) || ObjectUtils.isEmpty(param.getInstitutionId())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+
+        // 获取所有子机构（含自身）
+        List<Institution> institutions = institutionMapper.selectList(null);
+        List<Long> allSubInstitutionIds = InstitutionUtil.getAllSubInstitutionIds(param.getInstitutionId(), institutions);
+
+        // 查询教师对应的机构ID（通过teacher.user_id -> sys_tbuser.institution_id）
+        Long institutionId = teacherMapper.getInstitutionIdByTeacherId(param.getTeacherId());
+
+        if (institutionId == null) {
+            return false;  // 教师没有绑定机构，直接false
+        }
+
+        return allSubInstitutionIds.contains(institutionId);
     }
 
 

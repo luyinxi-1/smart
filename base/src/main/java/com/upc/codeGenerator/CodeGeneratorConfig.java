@@ -67,14 +67,14 @@ public class CodeGeneratorConfig {
                 // 包配置
                 .packageConfig(builder -> {
                     // 设置父包名
-                    builder.parent("com.upc.modular.discussion")
+                    builder.parent("com.upc.modular.ai")
                             .controller("controller")
                             .entity("entity")
                             .service("service")
                             .serviceImpl("service.impl")
                             .mapper("mapper")
                             .pathInfo(Collections.singletonMap(OutputFile.mapperXml,
-                                    System.getProperty("user.dir") + "/" + moduleName + "/src/main/resources/mapper/discussion"))
+                                    System.getProperty("user.dir") + "/" + moduleName + "/src/main/resources/mapper/ai"))
                     ;
                 })
                 //生成策略配置

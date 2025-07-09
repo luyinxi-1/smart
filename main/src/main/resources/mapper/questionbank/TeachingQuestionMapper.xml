@@ -35,23 +35,23 @@
         <where>
             <!-- 条件1: 根据题目内容模糊查询 -->
             <if test="param.content != null and param.content != ''">
-                AND content LIKE CONCAT('%', #{param.content}, '%')
+                AND t.content LIKE CONCAT('%', #{param.content}, '%')
             </if>
             <!-- 条件2: 根据题型精确查询  -->
             <if test="param.type != null">
-                AND type = #{param.type}
+                AND t.type = #{param.type}
             </if>
             <!-- 条件3: 根据难度等级精确查询 -->
             <if test="param.difficulty != null">
-                AND difficulty = #{param.difficulty}
+                AND t.difficulty = #{param.difficulty}
             </if>
             <!-- 条件4: 根据状态精确查询 -->
             <if test="param.status != null">
-                AND status = #{param.status}
+                AND t.status = #{param.status}
             </if>
             <!-- 条件4: 根据题目所属学科模糊查询 -->
             <if test="param.subject != null and param.subject != ''">
-                AND content LIKE CONCAT('%', #{param.subject}, '%')
+                AND t.content LIKE CONCAT('%', #{param.subject}, '%')
             </if>
         </where>
         ORDER BY t.add_datetime

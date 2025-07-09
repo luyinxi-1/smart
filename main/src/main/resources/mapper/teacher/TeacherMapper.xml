@@ -69,6 +69,13 @@
             <otherwise>DESC</otherwise>
         </choose>
     </select>
+    <select id="getInstitutionIdByTeacherId" resultType="java.lang.Long" parameterType="java.lang.Long">
+        SELECT u.institution_id
+        FROM teacher t
+                 LEFT JOIN sys_tbuser u ON t.user_id = u.id
+        WHERE t.id = #{teacherId}
+    </select>
+
 
 
 </mapper>

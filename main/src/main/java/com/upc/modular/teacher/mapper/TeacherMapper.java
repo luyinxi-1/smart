@@ -19,4 +19,6 @@ import org.apache.ibatis.annotations.Mapper;
 public interface TeacherMapper extends BaseMapper<Teacher> {
 
     Page<TeacherReturnVo> selectTeacherWithInstitution(Page<TeacherReturnVo> page, TeacherPageSearchDto param);
+
+    Long getInstitutionIdByTeacherId(Long teacherId);
 }

@@ -2,7 +2,7 @@ package com.upc.modular.institution.service;
 
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.param.InstitutionDto;
-import com.upc.modular.institution.Param.InstitutionSearchParam;
+import com.upc.modular.institution.param.InstitutionSearchParam;
 import com.upc.modular.institution.entity.Institution;
 import com.baomidou.mybatisplus.extension.service.IService;
 

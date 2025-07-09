@@ -16,6 +16,6 @@ public class DiscussionTopicReplyPageSearchParam extends PageBaseSearchParam {
     private Long topicId;
 
     @ApiModelProperty("排序方式(0：按时间倒序 1：按点赞数)")
-    private Integer order;
+    private Integer order = 0;
 
 }

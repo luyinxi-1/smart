@@ -1,7 +1,6 @@
-package com.upc.modular.institution.Param;
+package com.upc.modular.institution.param;
 
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.upc.common.requestparam.PageBaseSearchParam;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 

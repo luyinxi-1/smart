@@ -7,11 +7,13 @@ import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysDictType;
 import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.param.GetUserIsInInstitutionParam;
 import com.upc.modular.auth.param.ImportSysUserReturnParam;
 import com.upc.modular.auth.param.SysUserPageSearchParam;
 import com.upc.modular.auth.param.UserLoginParam;
 import com.upc.modular.auth.service.ISysUserService;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiModelProperty;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -62,6 +64,13 @@ public class SysUserController {
         Page<SysTbuser> page = sysUserService.getPage(param);
         PageBaseReturnParam<SysTbuser> result = PageBaseReturnParam.ok(page);
         return R.page(result);
+    }
+
+    @ApiModelProperty("查询用户是否在该机构里")
+    @PostMapping("/getUserIsInInstitution")
+    public R<Boolean> getUserIsInInstitution(@RequestBody GetUserIsInInstitutionParam param) {
+        Boolean result = sysUserService.getUserIsInInstitution(param);
+        return R.ok(result);
     }
 
 }

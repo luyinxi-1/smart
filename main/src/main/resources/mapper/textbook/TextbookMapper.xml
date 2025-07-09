@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.textbook.mapper.TextbookMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.upc.modular.textbook.entity.Textbook">
+        <id column="id" property="id" />
+        <result column="textbook_name" property="textbookName" />
+        <result column="type" property="type" />
+        <result column="description" property="description" />
+        <result column="textbook_publishing_house" property="textbookPublishingHouse" />
+        <result column="textbook_publishing_time" property="textbookPublishingTime" />
+        <result column="textbook_author_id" property="textbookAuthorId" />
+        <result column="textbook_version" property="textbookVersion" />
+        <result column="release_status" property="releaseStatus" />
+        <result column="review_status" property="reviewStatus" />
+        <result column="creator" property="creator" />
+        <result column="add_datetime" property="addDatetime" />
+        <result column="operator" property="operator" />
+        <result column="operation_datetime" property="operationDatetime" />
+    </resultMap>
+    <select id="selectTextbookPage" resultType="com.upc.modular.textbook.param.TextbookPageReturnParam">
+        SELECT
+        t.id,
+        t.textbook_name,
+        t.type,
+        t.textbook_publishing_house,
+        t.textbook_publishing_time,
+        t.textbook_version,
+        t.release_status,
+        t.review_status,
+        t.creator,
+        t.add_datetime,
+        t.operator,
+        t.operation_datetime,
+        a.name AS textbook_author_name,
+        d.dict_item_name AS type_name
+        FROM textbook t
+        LEFT JOIN teacher a ON t.textbook_author_id = a.id
+        LEFT JOIN sys_dict_item d ON t.type = d.id
+        <where>
+            <if test="param.textbookName != null and param.textbookName != ''">
+                AND t.textbook_name LIKE CONCAT('%', #{param.textbookName}, '%')
+            </if>
+            <if test="param.authorName != null and param.authorName != ''">
+                AND a.name LIKE CONCAT('%', #{param.authorName}, '%')
+            </if>
+            <if test="param.releaseStatus != null and param.releaseStatus != ''">
+                AND t.release_status = #{param.releaseStatus}
+            </if>
+            <if test="param.reviewStatus != null and param.reviewStatus != ''">
+                AND t.review_status = #{param.reviewStatus}
+            </if>
+            <if test="param.startTime != null">
+                AND t.add_datetime &gt;= #{param.startTime}
+            </if>
+            <if test="param.endTime != null">
+                AND t.add_datetime &lt;= #{param.endTime}
+            </if>
+        </where>
+        <choose>
+            <when test="param.isAsc == 1">
+                ORDER BY t.add_datetime ASC
+            </when>
+            <otherwise>
+                ORDER BY t.add_datetime DESC
+            </otherwise>
+        </choose>
+    </select>
+
+
+</mapper>

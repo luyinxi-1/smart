@@ -1,0 +1,36 @@
+package com.upc.modular.textbook.param;
+
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.upc.common.requestparam.PageBaseSearchParam;
+import com.upc.modular.textbook.entity.Textbook;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.Accessors;
+
+import java.time.LocalDateTime;
+
+@EqualsAndHashCode(callSuper = true)
+@Data
+@Accessors(chain = true)
+public class TextbookPageSearchParam extends PageBaseSearchParam {
+
+    @ApiModelProperty("作者姓名")
+    private String authorName;
+
+    @ApiModelProperty("教材名称")
+    private String textbookName;
+
+    @ApiModelProperty("教材发布状态（已发布/未发布）")
+    private String releaseStatus;
+
+    @ApiModelProperty("教材审核状态（未提交审核；审核中；审核通过）")
+    private String reviewStatus;
+
+    @ApiModelProperty("开始时间")
+    private LocalDateTime startTime;
+
+    @ApiModelProperty("结束时间")
+    private LocalDateTime endTime;
+
+}
