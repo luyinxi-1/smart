@@ -37,19 +37,23 @@ public class Group implements Serializable {
 
     @ApiModelProperty("年级")
     @TableField("grade")
-    private Integer grade;
-
-    @ApiModelProperty("专业")
-    @TableField("major")
-    private Integer major;
-
-    @ApiModelProperty("学期")
-    @TableField("semester")
-    private Integer semester;
+    private Long grade;
 
     @ApiModelProperty("状态")
     @TableField("status")
     private Integer status;
+
+    @ApiModelProperty("教师")
+    @TableField("teacher_id")
+    private Long teacherId;
+
+    @ApiModelProperty("备注")
+    @TableField("remark")
+    private String remark;
+
+    @ApiModelProperty("组织")
+    @TableField("institution_id")
+    private Long institutionId;
 
     @ApiModelProperty("创建人")
     @TableField(value = "creator", fill = FieldFill.INSERT)
