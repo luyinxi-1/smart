@@ -154,6 +154,10 @@ public class TeacherListener extends AnalysisEventListener<TeacherImportDto> {
                     .setStatus(1); // 默认启用
             if (ObjectUtils.isNotEmpty(teacherImportDto.getInstitutionName()) && ObjectUtils.isNotEmpty(institutionMap.get(teacherImportDto.getInstitutionName()))) {
                 user.setInstitutionId(institutionMap.get(teacherImportDto.getInstitutionName()));
+            } else {
+                BeanUtils.copyProperties(teacherImportDto, errorDto);
+                errorDto.setErrorReason("未查询到机构");
+                errorList.add(errorDto);
             }
             try {
                 sysUserMapper.insert(user);  // Try to insert the user

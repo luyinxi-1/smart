@@ -2,6 +2,9 @@ package com.upc.modular.ai.service;
 
 import com.upc.modular.ai.entity.AiConversationRecords;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.ai.param.AIConRecordsSessionId;
+
+import java.util.List;
 
 /**
  * <p>
@@ -13,4 +16,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IAiConversationRecordsService extends IService<AiConversationRecords> {
 
+    List<AiConversationRecords> selectDeepseekConRecords(Long dpConId);
+
+    Long insertDeepseekConRecords(AIConRecordsSessionId deepseekConRecordsSessionId);
 }
