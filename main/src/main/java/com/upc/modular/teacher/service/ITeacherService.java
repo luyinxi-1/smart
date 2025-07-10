@@ -27,9 +27,9 @@ import java.util.List;
  */
 public interface ITeacherService extends IService<Teacher> {
 
-    void insert(TeacherInsertDto teacher);
+    Boolean insert(TeacherInsertDto teacher);
 
-    void deleteDictItemByIds(IdParam idParam);
+    Boolean batchDelete(IdParam idParam);
 
     Page<TeacherReturnVo> getPage(TeacherPageSearchDto param);
 
@@ -41,7 +41,7 @@ public interface ITeacherService extends IService<Teacher> {
 
     GenerateUserResultVo generateTeacherUsers(TeacherGenerateDto dto);
 
-    void updateTeacher(Teacher teacher);
+    Boolean updateTeacher(Teacher teacher);
 
     Boolean getTeacherIsInInstitution(GetTeacherIsInInstitutionParam param);
 }

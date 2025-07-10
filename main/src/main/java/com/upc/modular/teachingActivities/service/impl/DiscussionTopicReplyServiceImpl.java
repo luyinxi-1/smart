@@ -57,27 +57,28 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
     private TeacherMapper teacherMapper;
 
     @Override
-    public void insert(DiscussionTopicReply reply) {
+    public Boolean insert(DiscussionTopicReply reply) {
         if (ObjectUtils.isEmpty(reply)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
         }
-        discussionTopicReplyMapper.insert(reply);
+        return this.save(reply);
     }
 
     @Override
-    public void deleteDictItemByIds(IdParam idParam) {
-        List<Long> idList = idParam.getIdList();
-        if (ObjectUtils.isNotEmpty(idList)) {
-            discussionTopicReplyMapper.deleteBatchIds(idList);
+    public Boolean deleteDictItemByIds(IdParam idParam) {
+        if (ObjectUtils.isEmpty(idParam) || ObjectUtils.isEmpty(idParam.getIdList())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "ID列表不能为空");
         }
+        List<Long> idList = idParam.getIdList();
+        return this.removeBatchByIds(idList);
     }
 
     @Override
     public Page<DiscussionTopicMyPageReturnParam> getMyReply(DiscussionTopicMyPageSearchParam param) {
-        Long id = UserUtils.get().getId();
-        if (ObjectUtils.isEmpty(id)) {
+        if (ObjectUtils.isEmpty(UserUtils.get().getId())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户id为空");
         }
+        Long id = UserUtils.get().getId();
         List<DiscussionTopicReply> discussionTopicReplies = discussionTopicReplyMapper.selectList(new MyLambdaQueryWrapper<DiscussionTopicReply>()
                 .eq(DiscussionTopicReply::getCreator, id)
                 .between(
@@ -299,11 +300,11 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
         if (param == null || param.getReplyId() == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "replyId 不能为空");
         }
-        Long loginUserId = UserUtils.get().getId();
-        if (loginUserId == null) {
+
+        if (UserUtils.get().getId() == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "当前用户未登录");
         }
-
+        Long loginUserId = UserUtils.get().getId();
         long current = Math.max(1, param.getCurrent());
         long size    = Math.max(1, param.getSize());
 
@@ -518,11 +519,11 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
     }
 
     @Override
-    public void updateReply(DiscussionTopicReply reply) {
+    public Boolean updateReply(DiscussionTopicReply reply) {
         if (ObjectUtils.isEmpty(reply) || ObjectUtils.isEmpty(reply.getId())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
         }
-        this.updateById(reply);
+        return this.updateById(reply);
     }
 
     //  向上追溯到顶层 type = 1

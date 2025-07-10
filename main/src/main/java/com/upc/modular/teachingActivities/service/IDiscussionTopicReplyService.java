@@ -16,8 +16,8 @@ import com.upc.modular.teachingActivities.param.*;
  * @since 2025-07-07
  */
 public interface IDiscussionTopicReplyService extends IService<DiscussionTopicReply> {
-    void insert(DiscussionTopicReply reply);
-    void deleteDictItemByIds(IdParam idParam);
+    Boolean insert(DiscussionTopicReply reply);
+    Boolean deleteDictItemByIds(IdParam idParam);
 
     Page<DiscussionTopicMyPageReturnParam> getMyReply(DiscussionTopicMyPageSearchParam param);
 
@@ -27,5 +27,5 @@ public interface IDiscussionTopicReplyService extends IService<DiscussionTopicRe
 
     R<DiscussionTopicMyReturnParam> getMyReplyContent(DiscussionTopicMySearchParam param);
 
-    void updateReply(DiscussionTopicReply reply);
+    Boolean updateReply(DiscussionTopicReply reply);
 }

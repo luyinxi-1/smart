@@ -30,23 +30,20 @@ public class DiscussionTopicReplyController {
 
     @ApiOperation(value = "新增回复")
     @PostMapping("/insert")
-    public R insert(@RequestBody DiscussionTopicReply reply) {
-        discussionTopicReplyService.insert(reply);
-        return R.commonReturn(200, "回复成功", "");
+    public R<Boolean> insert(@RequestBody DiscussionTopicReply reply) {
+        return R.ok(discussionTopicReplyService.insert(reply));
     }
 
     @ApiOperation(value = "删除回复")
     @DeleteMapping("/batchDelete")
-    public R batchDelete(@RequestBody IdParam idParam) {
-        discussionTopicReplyService.deleteDictItemByIds(idParam);
-        return R.commonReturn(200, "删除成功", "");
+    public R<Boolean> batchDelete(@RequestBody IdParam idParam) {
+        return R.ok(discussionTopicReplyService.deleteDictItemByIds(idParam));
     }
 
     @ApiOperation(value = "修改回复")
     @PutMapping("/update")
-    public R update(@RequestBody DiscussionTopicReply reply) {
-        discussionTopicReplyService.updateReply(reply);
-        return R.commonReturn(200, "修改成功", "");
+    public R<Boolean> update(@RequestBody DiscussionTopicReply reply) {
+        return R.ok(discussionTopicReplyService.updateReply(reply));
     }
 
     @ApiOperation(value = "分页查询自身回复（个人中心）")

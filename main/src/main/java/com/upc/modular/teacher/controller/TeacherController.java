@@ -41,23 +41,20 @@ public class TeacherController {
 
     @ApiOperation(value = "新增教师")
     @PostMapping("/insert")
-    public R insert(@RequestBody TeacherInsertDto teacher) {
-        teacherService.insert(teacher);
-        return R.commonReturn(200, "新增成功", "");
+    public R<Boolean> insert(@RequestBody TeacherInsertDto teacher) {
+        return R.ok(teacherService.insert(teacher));
     }
 
     @ApiOperation(value = "删除教师")
     @DeleteMapping("/batchDelete")
-    public R batchDelete(@RequestBody IdParam idParam) {
-        teacherService.deleteDictItemByIds(idParam);
-        return R.commonReturn(200, "删除成功", "");
+    public R<Boolean> batchDelete(@RequestBody IdParam idParam) {
+        return R.ok(teacherService.batchDelete(idParam));
     }
 
     @ApiOperation(value = "修改教师")
     @PutMapping("/update")
-    public R update(@RequestBody Teacher teacher) {
-        teacherService.updateTeacher(teacher);
-        return R.commonReturn(200, "修改成功", "");
+    public R<Boolean> update(@RequestBody Teacher teacher) {
+        return R.ok(teacherService.updateTeacher(teacher));
     }
 
     @ApiOperation(value = "分页查询教师")

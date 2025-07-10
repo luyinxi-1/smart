@@ -24,7 +24,7 @@ import java.util.UUID;
 @Slf4j
 @RestController
 @RequestMapping("/common")
-@Api("通用方法")
+@Api(tags = "通用方法")
 public class CommonController {
 
     @Value("${files.path}")

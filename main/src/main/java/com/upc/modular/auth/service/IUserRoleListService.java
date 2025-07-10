@@ -1,7 +1,11 @@
 package com.upc.modular.auth.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.UserRoleList;
+import com.upc.modular.auth.param.UserRoleListPageReturnParam;
+import com.upc.modular.auth.param.UserRoleListPageSearchParam;
 
 /**
  * <p>
@@ -13,4 +17,11 @@ import com.upc.modular.auth.entity.UserRoleList;
  */
 public interface IUserRoleListService extends IService<UserRoleList> {
 
+    Boolean insert(UserRoleList userRoleList);
+
+    Boolean batchDelete(IdParam idParam);
+
+    Boolean updateUserRoleList(UserRoleList userRoleList);
+
+    Page<UserRoleListPageReturnParam> getPage(UserRoleListPageSearchParam param);
 }

@@ -77,7 +77,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
 
     @Override
     @Transactional
-    public void insert(TeacherInsertDto teacher) {
+    public Boolean insert(TeacherInsertDto teacher) {
         if (ObjectUtils.isEmpty(teacher.getIdentityId())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教师工号不能为空");
         }
@@ -109,15 +109,15 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
                     .setUserId(user.getId());
             userRoleListService.save(userRoleList);
         }
+        return true;
     }
 
     @Override
-    public void deleteDictItemByIds(IdParam idParam) {
-        List<Long> idList = idParam.getIdList();
-        if (ObjectUtils.isEmpty(idList)) {
+    public Boolean batchDelete(IdParam idParam) {
+        if (ObjectUtils.isEmpty(idParam) || ObjectUtils.isEmpty(idParam.getIdList())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "ID列表不能为空");
         }
-
+        List<Long> idList = idParam.getIdList();
         // 查询教师记录
         List<Teacher> teachers = teacherMapper.selectBatchIds(idList);
         if (ObjectUtils.isEmpty(teachers)) {
@@ -135,7 +135,8 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         }
 
         // 删除教师记录
-        this.removeBatchByIds(idList);
+        boolean b = this.removeBatchByIds(idList);
+        return b;
     }
 
     @Override
@@ -276,11 +277,11 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     }
 
     @Override
-    public void updateTeacher(Teacher teacher) {
+    public Boolean updateTeacher(Teacher teacher) {
         if (ObjectUtils.isEmpty(teacher) || ObjectUtils.isEmpty(teacher.getId())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
         }
-        this.updateById(teacher);
+        return this.updateById(teacher);
     }
 
     @Override

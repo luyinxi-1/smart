@@ -12,5 +12,48 @@
         <result column="operator" property="operator" />
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
+    <select id="getPage" resultType="com.upc.modular.auth.param.UserRoleListPageReturnParam">
+        SELECT
+        url.*,
+        r.role_name AS roleName,
+        -- 使用 COALESCE 函数从 teacher 表或 student 表中获取姓名。
+        -- JOIN 条件确保了对任意用户，t.name 和 s.name 两者中只有一个会有值。
+        COALESCE(t.name, s.name) AS username
+        FROM
+        user_role_list url
+        LEFT JOIN sys_tbuser u ON url.user_id = u.id
+        LEFT JOIN sys_tbrole r ON url.role_id = r.id
+        -- 当用户类型是管理员('0')或教师('2')时，关联 teacher 表
+        LEFT JOIN teacher t ON u.id = t.user_id AND u.user_type IN ('0', '2')
+        -- 当用户类型是学生('1')时，关联 student 表
+        LEFT JOIN student s ON u.id = s.user_id AND u.user_type = '1'
+
+        <where>
+            <if test="param.roleName != null and param.roleName != ''">
+                AND r.role_name LIKE CONCAT('%', #{param.roleName}, '%')
+            </if>
+            <if test="param.username != null and param.username != ''">
+                -- 对组合后的真实姓名进行模糊查询
+                AND COALESCE(t.name, s.name) LIKE CONCAT('%', #{param.username}, '%')
+            </if>
+            <if test="param.startTime != null">
+                AND url.add_datetime >= #{param.startTime}
+            </if>
+            <if test="param.endTime != null">
+                -- 注意: 在XML中要用 &lt;= 来表示小于等于
+                AND url.add_datetime &lt;= #{param.endTime}
+            </if>
+        </where>
+        ORDER BY
+        url.add_datetime
+        <choose>
+            <when test="param.isAsc == 1">
+                ASC
+            </when>
+            <otherwise>
+                DESC
+            </otherwise>
+        </choose>
+    </select>
 
 </mapper>
