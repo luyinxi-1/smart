@@ -29,8 +29,15 @@ public class UserLikesServiceImpl extends ServiceImpl<UserLikesMapper, UserLikes
         if (userLikes == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
-        if (userLikes.getType() == null || userLikes.getCreator() == null || userLikes.getCorrelationId() == null) {
+        if (userLikes.getType() == null || userLikes.getCorrelationId() == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+        if (userLikes.getCreator() == null) {
+            UserInfoToRedis userInfo = UserUtils.get();
+            if (userInfo == null) {
+                throw new BusinessException(BusinessErrorEnum.PLEASE_LOGIN);
+            }
+            userLikes.setCreator(userInfo.getId());
         }
         this.save(userLikes);
     }

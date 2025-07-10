@@ -1,7 +1,11 @@
 package com.upc.modular.textbook.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.textbook.entity.TextbookAuthority;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.textbook.param.TextbookAuthoritySearchParam;
+
+import java.util.List;
 
 /**
  * <p>
@@ -13,4 +17,11 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface ITextbookAuthorityService extends IService<TextbookAuthority> {
 
+    void deleteTextbookAuthorityByIds(List<Long> ids);
+
+    void insertTextbookAuthority(TextbookAuthority textbookAuthority);
+
+//    void updateTextbookAuthorityById(TextbookAuthority textbookAuthority);
+
+    Page<TextbookAuthority> getTextbookAuthorityPage(TextbookAuthoritySearchParam param);
 }
