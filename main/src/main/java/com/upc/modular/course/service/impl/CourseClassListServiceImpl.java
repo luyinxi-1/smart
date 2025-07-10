@@ -115,9 +115,7 @@ public class CourseClassListServiceImpl extends ServiceImpl<CourseClassListMappe
         // 3. 构建返回 DTO，顺便统计学生数
         return groups.stream().map(g -> {
             ClassInfoReturnParam dto = new ClassInfoReturnParam();
-            dto.setName(g.getName())
-                    .setGrade(g.getGrade())
-                    .setMajor(g.getMajor());
+            dto.setName(g.getName());
             // 用 GroupService里面的接口统计
             Map<String, Long> result = groupService.getUserTypeCountByClassId(g.getId());
             Long studentCount = result.get(1);

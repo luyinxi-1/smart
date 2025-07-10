@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageReturnParam;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageSearchParam;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchParam;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
@@ -63,9 +64,9 @@ public class TeachingQuestionBankController {
 
     @ApiOperation("分页查询题库信息")
     @PostMapping("selectQuestionBankPage")
-    public R<PageBaseReturnParam<TeachingQuestionBank>> selectQuestionBankPage(@RequestBody TeachingQuestionBankPageSearchParam param){
-        Page<TeachingQuestionBank> page = teachingQuestionBankService.selectQuestionPage(param);
-        PageBaseReturnParam<TeachingQuestionBank> p = PageBaseReturnParam.ok(page);
+    public R<PageBaseReturnParam<TeachingQuestionBankPageReturnParam>> selectQuestionBankPage(@RequestBody TeachingQuestionBankPageSearchParam param){
+        Page<TeachingQuestionBankPageReturnParam> page = teachingQuestionBankService.selectQuestionPage(param);
+        PageBaseReturnParam<TeachingQuestionBankPageReturnParam> p = PageBaseReturnParam.ok(page);
         return R.page(p);
     }
 

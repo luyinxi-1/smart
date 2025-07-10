@@ -2,9 +2,11 @@ package com.upc.modular.questionbank.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.questionbank.controller.param.QuestionsBanksListPageSearchParam;
 import com.upc.modular.questionbank.entity.QuestionsBanksList;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.upc.modular.questionbank.entity.TeachingQuestionBank;
@@ -87,5 +89,55 @@ public class QuestionsBanksListServiceImpl extends ServiceImpl<QuestionsBanksLis
         }
         this.removeByIds(idList);
 
+    }
+
+    @Override
+    public void updateQuestionsBanksList(QuestionsBanksList param) {
+        // 1. 校验要更新的记录本身是否存在
+        Long questionBankListId = param.getId();
+        if (questionBankListId == null) {
+            throw new RuntimeException("更新失败，未提供题目题库关联ID！");
+        }
+        // 使用 getById 查询，比 exists 更优，因为如果存在，后续可能需要用到旧数据
+        QuestionsBanksList oldQuestionBankList = this.getById(questionBankListId);
+        if (oldQuestionBankList == null) {
+            throw new RuntimeException("ID为 " + questionBankListId + " 的题目题库关联不存在，无法更新！");
+        }
+
+        // 2. 校验外键（题目ID）是否存在
+        Long questionId = param.getQuestionId();
+        if(ObjectUtils.isNotEmpty(questionId) && ObjectUtils.isNotNull(questionId)){
+            if (!questionId.equals(oldQuestionBankList.getQuestionId())) {
+                boolean isQuestionBankListExists = teachingQuestionMapper.exists(
+                        new LambdaQueryWrapper<TeachingQuestion>().eq(TeachingQuestion::getId, questionId)
+                );
+                if (!isQuestionBankListExists) {
+                    throw new RuntimeException("ID为 " + questionId + " 的题目不存在！");
+                }
+            }
+        }
+
+        // 3. 校验外键（教材目录ID）是否存在
+        Long bankId = param.getBankId();
+        if (ObjectUtils.isNotEmpty(bankId) && ObjectUtils.isNotNull(bankId)) {
+            if (!bankId.equals(oldQuestionBankList.getBankId())) {
+                boolean isQuestionBankListExists = teachingQuestionBankMapper.exists(
+                        new LambdaQueryWrapper<TeachingQuestionBank>().eq(TeachingQuestionBank::getId, bankId)
+                );
+                if (!isQuestionBankListExists) {
+                    throw new RuntimeException("ID为 " + bankId + " 的题库不存在！");
+                }
+            }
+        }
+
+        // 4. 所有校验通过，执行更新操作
+        // updateById 会根据 teachingQuestionbank 对象的ID去更新其他非空字段
+        this.updateById(param);
+    }
+
+    @Override
+    public Page<QuestionsBanksList> selectQuestionPageList(QuestionsBanksListPageSearchParam param) {
+        Page<QuestionsBanksList> page = new Page<>(param.getCurrent(), param.getSize());
+        return questionsBanksListMapper.selectQuestionPageList(page, param);
     }
 }

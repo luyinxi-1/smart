@@ -19,21 +19,23 @@
     </resultMap>
 
 
-    <select id="selectQuestionBank" resultMap="BaseResultMap">
+    <select id="selectQuestionBank" resultType="com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageMidReturnParam">
         SELECT
-        t.id,
+        t.id, -- 注意：我们需要id来做GROUP BY
         t.name,
         t.description,
         t.status,
-        t.textbook_id,
-        t.textbook_catalog_id,
-        t.max_attempts,
-        t.score_policy,
+        t.textbook_id AS textbookId, -- 使用别名直接映射到驼峰属性
+        t.textbook_catalog_id AS textbookCatalogId,
+        t.max_attempts AS maxAttempts,
+        t.score_policy AS scorePolicy,
         t.creator,
-        t.add_datetime,
-        t.operator,
-        t.operation_datetime
-        FROM teaching_question_bank t
+        t.add_datetime AS addDatetime,
+        COUNT(qbl.id) AS questionCount
+        FROM
+        teaching_question_bank t
+        LEFT JOIN
+        questions_banks_list qbl ON t.id = qbl.bank_id
         <where>
             <!-- 条件1: 根据题库名称模糊查询 -->
             <if test="param.name != null and param.name != ''">
@@ -64,7 +66,10 @@
                 AND t.score_policy = #{param.scorePolicy}
             </if>
         </where>
-        ORDER BY t.add_datetime
+        GROUP BY
+        t.id
+        ORDER BY
+        t.add_datetime
         <choose>
             <when test="param.isAsc != null and param.isAsc == 1">ASC</when>
             <otherwise>DESC</otherwise>

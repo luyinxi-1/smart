@@ -2,6 +2,7 @@ package com.upc.modular.questionbank.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageReturnParam;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageSearchParam;
 import com.upc.modular.questionbank.entity.TeachingQuestionBank;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -18,7 +19,7 @@ public interface ITeachingQuestionBankService extends IService<TeachingQuestionB
 
     Void deleteQuestionBankByIds(IdParam idParam);
 
-    Page<TeachingQuestionBank> selectQuestionPage(TeachingQuestionBankPageSearchParam param);
+    Page<TeachingQuestionBankPageReturnParam> selectQuestionPage(TeachingQuestionBankPageSearchParam param);
 
     void inserQuestionBank(TeachingQuestionBank teachingQuestionbank);
 

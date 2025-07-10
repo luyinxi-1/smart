@@ -17,12 +17,6 @@ public class ClassInfoReturnParam {
     @ApiModelProperty("年级")
     private Integer grade;
 
-    @ApiModelProperty("专业")
-    private Integer major;
-
-    @ApiModelProperty("学期")
-    private Integer semester;
-
     @ApiModelProperty("学生数量")
     private Long studentCount;
 }

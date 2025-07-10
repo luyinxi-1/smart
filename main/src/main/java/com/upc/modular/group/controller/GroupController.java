@@ -11,12 +11,16 @@ import com.upc.modular.group.service.IGroupService;
 import com.upc.modular.student.controller.param.pageStudent;
 import com.upc.modular.student.entity.Student;
 import com.upc.modular.student.service.IStudentService;
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Year;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * <p>
@@ -28,9 +32,23 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/group")
+@Api(tags = "班级管理模块")
 public class GroupController {
     @Autowired
     private IGroupService groupService;
+
+
+    @ApiOperation(value = "获取年级选项列表")
+    @GetMapping("/getGradeOptions")
+    public R<List<Integer>> getGradeOptions() {
+        int currentYear = Year.now().getValue();
+        List<Integer> yearList = IntStream.rangeClosed(currentYear - 10, currentYear + 10)
+                .boxed()
+                .sorted((a, b) -> b - a) // 降序排列
+                .collect(Collectors.toList());
+        return R.ok(yearList);
+    }
+
 
     @ApiOperation(value = "批量添加班级信息")
     @PostMapping("/insert")

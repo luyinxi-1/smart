@@ -1,6 +1,8 @@
 package com.upc.modular.questionbank.mapper;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageMidReturnParam;
+import com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageReturnParam;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageSearchParam;
 import com.upc.modular.questionbank.entity.TeachingQuestionBank;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
@@ -18,5 +20,5 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface TeachingQuestionBankMapper extends BaseMapper<TeachingQuestionBank> {
 
-    Page<TeachingQuestionBank> selectQuestionBank(Page<TeachingQuestionBank> page,@Param("param") TeachingQuestionBankPageSearchParam param);
+    Page<TeachingQuestionBankPageMidReturnParam> selectQuestionBank(Page<TeachingQuestionBankPageMidReturnParam> page, @Param("param") TeachingQuestionBankPageSearchParam param);
 }
