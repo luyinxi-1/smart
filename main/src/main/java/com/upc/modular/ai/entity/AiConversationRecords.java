@@ -39,9 +39,13 @@ public class AiConversationRecords implements Serializable {
     @TableField("content")
     private String content;
 
-    @ApiModelProperty("对话身份i")
+    @ApiModelProperty("对话身份")
     @TableField("role")
     private String role;
+
+    @ApiModelProperty("联网搜索列表")
+    @TableField("search")
+    private String search;
 
     @ApiModelProperty("深度思考内容")
     @TableField("content_think")
