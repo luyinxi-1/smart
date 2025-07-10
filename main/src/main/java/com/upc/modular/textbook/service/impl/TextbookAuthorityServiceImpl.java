@@ -1,10 +1,18 @@
 package com.upc.modular.textbook.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.exception.BusinessErrorEnum;
+import com.upc.exception.BusinessException;
 import com.upc.modular.textbook.entity.TextbookAuthority;
 import com.upc.modular.textbook.mapper.TextbookAuthorityMapper;
+import com.upc.modular.textbook.param.TextbookAuthoritySearchParam;
 import com.upc.modular.textbook.service.ITextbookAuthorityService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * <p>
@@ -16,5 +24,72 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class TextbookAuthorityServiceImpl extends ServiceImpl<TextbookAuthorityMapper, TextbookAuthority> implements ITextbookAuthorityService {
+
+    @Override
+    public void deleteTextbookAuthorityByIds(List<Long> ids) {
+
+        if (CollectionUtils.isEmpty(ids)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "ID列表不能为空");
+        }
+        this.removeBatchByIds(ids);
+    }
+
+    @Override
+    public void insertTextbookAuthority(TextbookAuthority textbookAuthority) {
+
+        if (textbookAuthority == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+        if (textbookAuthority.getTextbookId() == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材主表不能为空");
+        }
+        if (textbookAuthority.getAuthorityType() == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "必须要选择权限类型");
+        }
+        if (textbookAuthority.getAuthorityType() != 1 && textbookAuthority.getAuthorityType() != 2) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "必须要选择权限类型(1表示协作者，2表示可见机构)");
+        }
+        if (textbookAuthority.getAuthorityType() == 1 && textbookAuthority.getTeacherId() == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "协作者不能为空");
+        }
+        if (textbookAuthority.getAuthorityType() == 2 && textbookAuthority.getVisibleInstituteId() == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "机构不能为空");
+        }
+
+        this.save(textbookAuthority);
+    }
+
+//    @Override
+//    public void updateTextbookAuthorityById(TextbookAuthority textbookAuthority) {
+//        if (textbookAuthority == null) {
+//            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+//        }
+//
+//        this.updateById(textbookAuthority);
+//    }
+
+    @Override
+    public Page<TextbookAuthority> getTextbookAuthorityPage(TextbookAuthoritySearchParam param) {
+        if (param.getAuthorityType() == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "必须要选择查询的权限类型");
+        }
+        if (param.getTextbookId() == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "必须要选择查询的教材");
+        }
+        if (param.getAuthorityType() != 1 && param.getAuthorityType() != 2) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "必须要选择权限类型(1表示协作者，2表示可见机构)");
+        }
+
+        Page<TextbookAuthority> pageInfo = new Page<>(param.getCurrent(), param.getSize());
+
+        LambdaQueryWrapper<TextbookAuthority> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TextbookAuthority::getAuthorityType, param.getAuthorityType());
+        queryWrapper.eq(TextbookAuthority::getTextbookId, param.getTextbookId());
+
+        Page<TextbookAuthority> page = this.page(pageInfo, queryWrapper);
+
+        return page;
+    }
+
 
 }
