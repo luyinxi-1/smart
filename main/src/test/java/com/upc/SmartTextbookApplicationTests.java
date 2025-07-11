@@ -1,5 +1,6 @@
 package com.upc;
 
+import com.upc.modular.common.WordConversionService;
 import com.upc.modular.student.entity.Student;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,8 @@ class SmartTextbookApplicationTests {
 
     @Autowired
     private RedisTemplate redisTemplate;
+    @Autowired
+    private WordConversionService conversionService;
 
     @Test
     void test1() {
@@ -49,4 +52,18 @@ class SmartTextbookApplicationTests {
 
     }
 
+    @Test
+    void test2() {
+        System.out.println("--- Conversion Demo Runner is executing ---");
+
+        // --- 请修改为您自己的文件路径 ---
+        String inputPath = "C:\\Users\\yt\\Desktop\\test.docx";
+        String outputPath = "C:\\Users\\yt\\Desktop\\test.html";
+        // --------------------------------
+
+        // 调用服务执行转换
+        conversionService.convertWordToHtml(inputPath, outputPath);
+
+        System.out.println("--- Conversion Demo Runner has finished ---");
+    }
 }
