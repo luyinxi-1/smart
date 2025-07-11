@@ -1,6 +1,7 @@
 package com.upc.modular.auth.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -112,6 +113,28 @@ public class SysAuthorityServiceImpl extends ServiceImpl<SysAuthorityMapper, Sys
             nodeId = parentMap.get(nodeId);
         }
         return false;
+    }
+
+
+    public void saveSysAuthority(String accessUrl, String accessName, Long fatherId) {
+        SysAuthority sysAuthority = new SysAuthority();
+        sysAuthority.setAccessUrl(accessUrl);
+        sysAuthority.setAccessName(accessName);
+        sysAuthority.setFatherId(fatherId);
+
+        this.save(sysAuthority);
+    }
+
+    public Long findSysAuthorityIdByUrl(String accessUrl) {
+        QueryWrapper<SysAuthority> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("access_url", accessUrl);
+
+        List<SysAuthority> list = this.list(queryWrapper);
+        if (list.isEmpty()) {
+            return null;
+        }
+
+        return list.get(0).getId();
     }
 
 }
