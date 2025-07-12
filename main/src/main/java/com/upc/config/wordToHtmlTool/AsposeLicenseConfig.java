@@ -1,7 +1,7 @@
 package com.upc.config.wordToHtmlTool;
 
 import com.aspose.words.License;
-import javax.annotation.PostConstruct; // for Spring Boot 2.x
+import javax.annotation.PostConstruct;
 import org.springframework.context.annotation.Configuration;
 
 import java.io.InputStream;

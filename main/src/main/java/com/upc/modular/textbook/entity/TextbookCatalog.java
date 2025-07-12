@@ -7,8 +7,6 @@ import java.time.LocalDateTime;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 
 /**
@@ -43,13 +41,13 @@ public class TextbookCatalog implements Serializable {
     @TableField("content")
     private String content;
 
-    @ApiModelProperty("目录的级别（1章，2节）")
+    @ApiModelProperty("目录的级别（1 2 3 4四个级别）")
     @TableField("catalog_level")
     private Integer catalogLevel;
 
     @ApiModelProperty("当前目录父级目录的id")
-    @TableField("textbook_catalog_id")
-    private Long textbookCatalogId;
+    @TableField("father_catalog_id")
+    private Long fatherCatalogId;
 
     @ApiModelProperty("目录的排序（位置）")
     @TableField("sort")

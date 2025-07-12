@@ -1,10 +1,16 @@
 package com.upc.modular.textbook.controller;
 
 
+import com.upc.common.responseparam.R;
+import com.upc.modular.textbook.entity.TextbookCatalog;
+import com.upc.modular.textbook.param.TextbookCatalogDto;
+import com.upc.modular.textbook.service.ITextbookCatalogService;
 import io.swagger.annotations.Api;
-import org.springframework.web.bind.annotation.RequestMapping;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.web.bind.annotation.*;
 
-import org.springframework.web.bind.annotation.RestController;
+import javax.annotation.Resource;
+import java.util.List;
 
 /**
  * <p>
@@ -18,5 +24,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/textbook-catalog")
 @Api(tags = "教材目录")
 public class TextbookCatalogController {
+
+    @Resource
+    private ITextbookCatalogService textbookCatalogService;
+
+    @ApiOperation(value = "解析Html到数据库")
+    @PostMapping("/processAndSaveHtml")
+    public R processAndSaveHtml(@RequestParam String htmlContent, @RequestParam Long textbookId) {
+        textbookCatalogService.processAndSaveHtml(htmlContent, textbookId);
+        return R.commonReturn(200, "新增成功", "");
+    }
 
 }

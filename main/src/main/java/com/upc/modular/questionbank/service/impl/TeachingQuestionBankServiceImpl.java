@@ -10,7 +10,6 @@ import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageMidReturnParam;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageReturnParam;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageSearchParam;
-import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.upc.modular.questionbank.entity.TeachingQuestionBank;
 import com.upc.modular.questionbank.mapper.TeachingQuestionBankMapper;
 import com.upc.modular.questionbank.service.ITeachingQuestionBankService;

@@ -2,12 +2,9 @@ package com.upc.modular.textbook.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
-import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
-import com.upc.modular.teachingActivities.entity.DiscussionTopic;
-import com.upc.modular.teachingActivities.param.DiscussionTopicSearchParam;
 import com.upc.modular.textbook.entity.IdeologicalMaterial;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.IdeologicalMaterialMapper;
