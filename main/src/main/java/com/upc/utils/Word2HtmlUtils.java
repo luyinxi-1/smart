@@ -1,4 +1,4 @@
-package com.upc.modular.common;
+package com.upc.utils;
 
 import com.aspose.words.Document;
 import com.aspose.words.HtmlOfficeMathOutputMode;
