@@ -49,7 +49,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         TextbookCatalogDto currentCatalog = null;
 
         // 获取<body>下的所有直接子元素，这能保证遍历顺序和文档流一致
-        Elements bodyChildren = doc.select("h1, h2, h3, h4, p, table, ul, ol");
+        Elements bodyChildren = doc.select("body > div > *");
 
         for (Element element : bodyChildren) {
             String tagName = element.tagName().toLowerCase();

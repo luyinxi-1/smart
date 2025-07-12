@@ -35,10 +35,10 @@ public class WordConversionService {
             saveOptions.setOfficeMathOutputMode(HtmlOfficeMathOutputMode.IMAGE);
 
             // B. 将图片以Base64编码的形式内嵌到HTML文件中，生成单文件
-            saveOptions.setExportImagesAsBase64(true);
-//            saveOptions.setExportImagesAsBase64(false);
-//            saveOptions.setImagesFolder("D:\\Code\\img");               // 实际磁盘文件夹
-//            saveOptions.setImagesFolderAlias("D:\\Code\\img");          // HTML 内部引用路径
+            // saveOptions.setExportImagesAsBase64(true);
+            saveOptions.setExportImagesAsBase64(false);
+            saveOptions.setImagesFolder("D:\\workspace\\Files\\wordtohtml");               // 实际磁盘文件夹
+            saveOptions.setImagesFolderAlias("D:\\workspace\\Files\\wordtohtml");          // HTML 内部引用路径
 
             // C. 将字体以内嵌的形式保存，保证在不同电脑上显示效果一致
             saveOptions.setExportFontsAsBase64(true);
