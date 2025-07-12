@@ -130,6 +130,9 @@ public final class Word2HtmlUtils {
         opt.setOfficeMathOutputMode(HtmlOfficeMathOutputMode.IMAGE);
         opt.setExportImagesAsBase64(true);
         opt.setExportFontsAsBase64(true);
+//        opt.setExportImagesAsBase64(false);
+//        opt.setImagesFolder("D:\\Code\\img");               // 实际磁盘文件夹
+//        opt.setImagesFolderAlias("D:\\Code\\img");          // HTML 内部引用路径
         return opt;
     }
 
