@@ -43,6 +43,10 @@ public class LearningNotes implements Serializable {
     @TableField("catalogue_id")
     private Long catalogueId;
 
+    @ApiModelProperty("客户端生成的记录唯一ID(防重复同步)")
+    @TableField("client_uuid")
+    private String clientUuid;
+
     @ApiModelProperty("创建人")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;
