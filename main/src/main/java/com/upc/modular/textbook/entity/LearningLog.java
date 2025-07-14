@@ -39,6 +39,10 @@ public class LearningLog implements Serializable {
     @TableField("textbook_id")
     private Long textbookId;
 
+    @ApiModelProperty("客户端生成的记录唯一ID(防重复同步)")
+    @TableField("client_uuid")
+    private String clientUuid;
+
     @ApiModelProperty("目录章节id")
     @TableField("catalogue_id")
     private Long catalogueId;
