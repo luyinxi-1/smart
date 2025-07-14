@@ -66,7 +66,7 @@ public class SysUserController {
         return R.page(result);
     }
 
-    @ApiModelProperty("查询用户是否在该机构里")
+    @ApiOperation(value = "查询用户是否在该机构里")
     @PostMapping("/getUserIsInInstitution")
     public R<Boolean> getUserIsInInstitution(@RequestBody GetUserIsInInstitutionParam param) {
         Boolean result = sysUserService.getUserIsInInstitution(param);
