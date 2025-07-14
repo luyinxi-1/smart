@@ -66,8 +66,8 @@ class SmartTextbookApplicationTests {
         System.out.println("--- Conversion Demo Runner is executing ---");
 
         // --- 请修改为您自己的文件路径 ---
-        String inputPath = "C:\\Users\\HP\\Desktop\\bac.docx";
-        String outputPath = "C:\\Users\\HP\\Desktop\\bac.html";
+        String inputPath = "C:\\Users\\HP\\Desktop\\cab.docx";
+        String outputPath = "C:\\Users\\HP\\Desktop\\cab.html";
         // --------------------------------
 
         // 调用服务执行转换
