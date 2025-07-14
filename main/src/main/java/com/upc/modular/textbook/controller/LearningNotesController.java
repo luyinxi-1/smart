@@ -1,0 +1,65 @@
+package com.upc.modular.textbook.controller;
+
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.common.responseparam.PageBaseReturnParam;
+import com.upc.common.responseparam.R;
+import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.textbook.entity.LearningNotes;
+import com.upc.modular.textbook.param.LearningNotesPageReturnParam;
+import com.upc.modular.textbook.param.LearningNotesPageSearchParam;
+import com.upc.modular.textbook.service.ILearningLogService;
+import com.upc.modular.textbook.service.ILearningNotesService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.apache.ibatis.annotations.Delete;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * <p>
+ *  前端控制器
+ * </p>
+ *
+ * @author byh
+ * @since 2025-07-14
+ */
+@RestController
+@RequestMapping("/learning-notes")
+@Api(value = "教学笔记")
+public class LearningNotesController {
+    @Autowired
+    private ILearningNotesService learningNotesService;
+
+    @ApiOperation(value = "新增学习笔记")
+    @PostMapping("/insert")
+    public R<Boolean> insert(@RequestBody LearningNotes learningNotes) {
+        return R.ok(learningNotesService.insert(learningNotes));
+    }
+
+    @ApiOperation(value = "删除学习笔记")
+    @DeleteMapping("batchDelete")
+    public R<Boolean> batchDelete(@RequestBody IdParam idParam) {
+        return R.ok(learningNotesService.batchDelete(idParam));
+    }
+
+    @ApiOperation(value = "更新学习笔记")
+    @PutMapping("/updateNotes")
+    public R<Boolean> updateNotes(@RequestBody LearningNotes param) {
+        return R.ok(learningNotesService.updateNotes(param));
+    }
+
+    @ApiOperation(value = "查看笔记")
+    @PostMapping("/getOneNote")
+    public R<LearningNotes> getOneNote(@RequestParam("noteId") Long id) {
+        return R.ok(learningNotesService.getOneNote(id));
+    }
+
+    @ApiOperation(value = "分页查询学习笔记")
+    @PostMapping("/getPage")
+    public R<PageBaseReturnParam<LearningNotesPageReturnParam>> getPage(@RequestBody LearningNotesPageSearchParam param) {
+        Page<LearningNotesPageReturnParam> page = learningNotesService.getPage(param);
+        PageBaseReturnParam<LearningNotesPageReturnParam> result = PageBaseReturnParam.ok(page);
+        return R.page(result);
+    }
+}

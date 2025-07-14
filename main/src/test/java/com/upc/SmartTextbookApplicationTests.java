@@ -80,8 +80,8 @@ class SmartTextbookApplicationTests {
         System.out.println("--- Conversion Demo Runner is executing ---");
 
         // --- 请修改为您自己的文件路径 ---
-        String inputPath = "C:\\Users\\HP\\Desktop\\bac.docx";
-        String outputPath = "C:\\Users\\HP\\Desktop\\bac.html";
+        String inputPath = "C:\\Users\\HP\\Desktop\\详细设计说明书v6.0.docx";
+        String outputPath = "C:\\Users\\HP\\Desktop\\详细设计说明书v6.0.html";
         // --------------------------------
 
         // 调用服务执行转换
@@ -96,8 +96,8 @@ class SmartTextbookApplicationTests {
             System.out.println("--- HTML → Word 转换开始 ---");
 
             // --- 请替换为你自己的 HTML 路径 ---
-            String htmlPath = "C:\\Users\\HP\\Desktop\\bac.html";
-            String docxPath = "C:\\Users\\HP\\Desktop\\bac1.docx";
+            String htmlPath = "C:\\Users\\HP\\Desktop\\详细设计说明书v6.0.html";
+            String docxPath = "C:\\Users\\HP\\Desktop\\bac2.docx";
 
             // 读取 HTML 并构建 Word 文档
             Document doc = new Document(htmlPath);
@@ -157,7 +157,7 @@ class SmartTextbookApplicationTests {
     public void mergeHtmlFragmentsToWord() {
         try {
             LambdaQueryWrapper<TextbookCatalog> lambdaQueryWrapper = new LambdaQueryWrapper<>();
-            lambdaQueryWrapper.eq(TextbookCatalog::getTextbookId, 2L);
+            lambdaQueryWrapper.eq(TextbookCatalog::getTextbookId, 1L);
             lambdaQueryWrapper.orderByAsc(TextbookCatalog::getSort);
 
             List<TextbookCatalog> textbookCatalogs = textbookCatalogMapper.selectList(lambdaQueryWrapper);
@@ -184,11 +184,11 @@ class SmartTextbookApplicationTests {
             String tempHtmlPath = "C:\\Users\\HP\\Desktop\\temp_merged.html";
             Files.write(Paths.get(tempHtmlPath), mergedHtml.getBytes(StandardCharsets.UTF_8));
 
-            // 保存合并的 HTML 片段作为桌面上的独立文件
-            String tempHtmlFragmentsPath = "C:\\Users\\HP\\Desktop\\temp_html_fragments.html";
-            Files.write(Paths.get(tempHtmlFragmentsPath), mergedHtml.getBytes(StandardCharsets.UTF_8));
+//            // 保存合并的 HTML 片段作为桌面上的独立文件
+//            String tempHtmlFragmentsPath = "C:\\Users\\HP\\Desktop\\temp_html_fragments.html";
+//            Files.write(Paths.get(tempHtmlFragmentsPath), mergedHtml.getBytes(StandardCharsets.UTF_8));
 
-            System.out.println("临时 HTML 文件已保存: " + tempHtmlFragmentsPath);
+//            System.out.println("临时 HTML 文件已保存: " + tempHtmlFragmentsPath);
 
             // 导入 Aspose 文档并保存为 Word 到桌面
             String outputDocxPath = "C:\\Users\\HP\\Desktop\\bac2.docx";

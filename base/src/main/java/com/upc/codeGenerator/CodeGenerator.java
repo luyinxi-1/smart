@@ -16,7 +16,7 @@ public class CodeGenerator {
 
 //        表名
         String[] tables = {
-                "learning_log"
+                "learning_notes"
         };
 
         new CodeGeneratorConfig(author, moduleName, tables).generate();
