@@ -1,6 +1,7 @@
 package com.upc.modular.textbook.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
+import com.upc.common.utils.UserUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.textbook.entity.LearningLog;
@@ -24,6 +25,9 @@ public class LearningLogServiceImpl extends ServiceImpl<LearningLogMapper, Learn
     public Boolean insert(LearningLog learningLog) {
         if (ObjectUtils.isEmpty(learningLog) || ObjectUtils.isEmpty(learningLog.getTextbookId()) || ObjectUtils.isEmpty(learningLog.getCatalogueId())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参不能为空");
+        }
+        if (ObjectUtils.isEmpty(learningLog.getUserId())) {
+            learningLog.setUserId(UserUtils.get().getId());
         }
         return this.save(learningLog);
     }
