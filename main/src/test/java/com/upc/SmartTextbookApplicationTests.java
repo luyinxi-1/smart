@@ -1,11 +1,15 @@
 package com.upc;
 
+import com.aspose.words.Document;
+import com.aspose.words.SaveFormat;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.upc.modular.common.WordConversionPageService;
 import com.upc.modular.common.WordConversionService;
 import com.upc.modular.student.entity.Student;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Entities;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -13,9 +17,14 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -28,6 +37,8 @@ class SmartTextbookApplicationTests {
     private WordConversionService conversionService;
     @Autowired
     private WordConversionPageService conversionPageService;
+    @Autowired
+    private TextbookCatalogMapper textbookCatalogMapper;
 
     @Test
     void test1() {
@@ -77,6 +88,128 @@ class SmartTextbookApplicationTests {
         conversionService.convertWordToHtml(inputPath, outputPath);
 
         System.out.println("--- Conversion Demo Runner has finished ---");
+    }
+
+    @Test
+    void convertHtmlToWord() {
+        try {
+            System.out.println("--- HTML → Word 转换开始 ---");
+
+            // --- 请替换为你自己的 HTML 路径 ---
+            String htmlPath = "C:\\Users\\HP\\Desktop\\bac.html";
+            String docxPath = "C:\\Users\\HP\\Desktop\\bac1.docx";
+
+            // 读取 HTML 并构建 Word 文档
+            Document doc = new Document(htmlPath);
+
+            // 保存为 DOCX 格式
+            doc.save(docxPath, SaveFormat.DOCX);
+
+            System.out.println("✅ 转换完成！文件保存到：" + docxPath);
+        } catch (Exception e) {
+            System.err.println("❌ 转换失败！");
+            e.printStackTrace();
+        }
+    }
+//    @Test
+//    public void mergeHtmlFragmentsToWord() {
+//        try {
+//            LambdaQueryWrapper<TextbookCatalog> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+//            lambdaQueryWrapper.eq(TextbookCatalog::getTextbookId, 1L);
+//            lambdaQueryWrapper.orderByAsc(TextbookCatalog::getSort);
+//            List<TextbookCatalog> textbookCatalogs = textbookCatalogMapper.selectList(lambdaQueryWrapper);
+//            List<String> htmlFragments = textbookCatalogs.stream()
+//                    .sorted(Comparator.comparing(TextbookCatalog::getSort))
+//                    .flatMap(catalog -> Stream.of(catalog.getCatalogName(), catalog.getContent()))
+//                    .filter(Objects::nonNull)
+//                    .collect(Collectors.toList());
+//            String outputDocxPath = "C:\\Users\\HP\\Desktop\\recovered.docx";
+//            // 1. 拼接HTML结构
+//            StringBuilder htmlBuilder = new StringBuilder();
+//            htmlBuilder.append("<html><head><meta charset='UTF-8'></head><body>");
+//
+//            for (String fragment : htmlFragments) {
+//                htmlBuilder.append(fragment).append("\n");
+//            }
+//
+//            htmlBuilder.append("</body></html>");
+//
+//            // 2. 转义检查（防止 <body> 冲突）
+//            String mergedHtml = sanitizeHtml(htmlBuilder.toString());
+//
+//            // 3. 保存临时HTML文件（可选）
+//            String tempHtmlPath = "temp_merged.html";
+//            Files.write(Paths.get(tempHtmlPath), mergedHtml.getBytes(StandardCharsets.UTF_8));
+//
+//            // 4. 加载并保存为 Word 文档
+//            Document doc = new Document(tempHtmlPath);
+//            doc.save(outputDocxPath, SaveFormat.DOCX);
+//
+//            System.out.println("✅ 合并并生成 Word 成功: " + outputDocxPath);
+//
+//        } catch (Exception e) {
+//            System.err.println("❌ 合并 HTML 转 Word 失败！");
+//            e.printStackTrace();
+//        }
+//    }
+
+    @Test
+    public void mergeHtmlFragmentsToWord() {
+        try {
+            LambdaQueryWrapper<TextbookCatalog> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+            lambdaQueryWrapper.eq(TextbookCatalog::getTextbookId, 2L);
+            lambdaQueryWrapper.orderByAsc(TextbookCatalog::getSort);
+
+            List<TextbookCatalog> textbookCatalogs = textbookCatalogMapper.selectList(lambdaQueryWrapper);
+
+            // 拼接 HTML 片段（标题 + 正文）
+            List<String> htmlFragments = textbookCatalogs.stream()
+                    .flatMap(catalog -> Stream.of(catalog.getCatalogName(), catalog.getContent()))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            // 拼接 HTML 主体
+            StringBuilder htmlBuilder = new StringBuilder();
+            htmlBuilder.append("<html><head><meta charset='UTF-8'></head><body>");
+
+            for (String fragment : htmlFragments) {
+                htmlBuilder.append(fragment).append("\n");
+            }
+
+            htmlBuilder.append("</body></html>");
+
+            String mergedHtml = htmlBuilder.toString(); // 可选 sanitizeHtml(htmlBuilder.toString());
+
+            // 保存合并的 HTML 到桌面临时文件
+            String tempHtmlPath = "C:\\Users\\HP\\Desktop\\temp_merged.html";
+            Files.write(Paths.get(tempHtmlPath), mergedHtml.getBytes(StandardCharsets.UTF_8));
+
+            // 保存合并的 HTML 片段作为桌面上的独立文件
+            String tempHtmlFragmentsPath = "C:\\Users\\HP\\Desktop\\temp_html_fragments.html";
+            Files.write(Paths.get(tempHtmlFragmentsPath), mergedHtml.getBytes(StandardCharsets.UTF_8));
+
+            System.out.println("临时 HTML 文件已保存: " + tempHtmlFragmentsPath);
+
+            // 导入 Aspose 文档并保存为 Word 到桌面
+            String outputDocxPath = "C:\\Users\\HP\\Desktop\\bac2.docx";
+            Document doc = new Document(tempHtmlPath);
+            doc.save(outputDocxPath, SaveFormat.DOCX);
+
+            System.out.println("✅ 合并并生成 Word 成功: " + outputDocxPath);
+        } catch (Exception e) {
+            System.err.println("❌ 合并 HTML 转 Word 失败！");
+            e.printStackTrace();
+        }
+    }
+
+
+
+
+    private String sanitizeHtml(String html) {
+        // 使用 Jsoup 清洗可能嵌套的 body/head 等结构
+        org.jsoup.nodes.Document doc = Jsoup.parse(html);
+        doc.outputSettings(new org.jsoup.nodes.Document.OutputSettings().syntax(org.jsoup.nodes.Document.OutputSettings.Syntax.html).escapeMode(Entities.EscapeMode.xhtml));
+        return doc.html();
     }
 
 
