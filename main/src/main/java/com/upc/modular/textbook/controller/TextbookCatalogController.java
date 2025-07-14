@@ -36,4 +36,22 @@ public class TextbookCatalogController {
         return R.commonReturn(200, "新增成功", "");
     }
 
+    @ApiOperation(value = "插入教材章节内容")
+    @PostMapping("/insert")
+    public R<Boolean> insert(@RequestBody TextbookCatalog param) {
+        return R.ok(textbookCatalogService.insert(param));
+    }
+
+    @ApiOperation(value = "删除教材章节内容")
+    @PostMapping("/delete")
+    public R<Boolean> delete(@RequestParam Long id) {
+        return R.ok(textbookCatalogService.delete(id));
+    }
+
+    @ApiOperation(value = "更新教材章节内容")
+    @PutMapping("/update")
+    public R<Boolean> update(@RequestBody TextbookCatalog param) {
+        return R.ok(textbookCatalogService.updateTextbook(param));
+    }
+
 }

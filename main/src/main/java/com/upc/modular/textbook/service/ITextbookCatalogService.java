@@ -20,4 +20,10 @@ import java.util.List;
 public interface ITextbookCatalogService extends IService<TextbookCatalog> {
 
     void processAndSaveHtml(MultipartFile file, Long textbookId);
+
+    Boolean insert(TextbookCatalog param);
+
+    Boolean delete(Long id);
+
+    Boolean updateTextbook(TextbookCatalog param);
 }
