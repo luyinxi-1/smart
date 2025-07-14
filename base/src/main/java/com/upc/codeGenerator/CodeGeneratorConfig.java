@@ -67,14 +67,14 @@ public class CodeGeneratorConfig {
                 // 包配置
                 .packageConfig(builder -> {
                     // 设置父包名
-                    builder.parent("com.upc.modular.textbook")
+                    builder.parent("com.upc.modular.dataStatistics")
                             .controller("controller")
                             .entity("entity")
                             .service("service")
                             .serviceImpl("service.impl")
                             .mapper("mapper")
                             .pathInfo(Collections.singletonMap(OutputFile.mapperXml,
-                                    System.getProperty("user.dir") + "/" + moduleName + "/src/main/resources/mapper/textbook"))
+                                    System.getProperty("user.dir") + "/" + moduleName + "/src/main/resources/mapper/dataStatistics"))
                     ;
                 })
                 //生成策略配置
