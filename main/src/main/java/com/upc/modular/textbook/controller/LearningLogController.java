@@ -1,0 +1,34 @@
+package com.upc.modular.textbook.controller;
+
+
+import com.upc.common.responseparam.R;
+import com.upc.modular.textbook.entity.LearningLog;
+import com.upc.modular.textbook.service.ILearningLogService;
+import io.lettuce.core.output.BooleanListOutput;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * <p>
+ *  前端控制器
+ * </p>
+ *
+ * @author byh
+ * @since 2025-07-14
+ */
+@RestController
+@RequestMapping("/learning-log")
+@Api(tags = "学习日志")
+public class LearningLogController {
+
+    @Autowired
+    private ILearningLogService learningLogService;
+
+    @ApiOperation(value = "新增学习日志")
+    @PostMapping("/insert")
+    public R<Boolean> insert(@RequestBody LearningLog learningLog) {
+       return R.ok(learningLogService.insert(learningLog));
+    }
+}

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.textbook.mapper.LearningNotesMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.upc.modular.textbook.entity.LearningNotes">
+        <id column="id" property="id" />
+        <result column="content" property="content" />
+        <result column="textbook_id" property="textbookId" />
+        <result column="catalogue_id" property="catalogueId" />
+        <result column="creator" property="creator" />
+        <result column="add_datetime" property="addDatetime" />
+        <result column="operator" property="operator" />
+        <result column="operation_datetime" property="operationDatetime" />
+    </resultMap>
+    <select id="getPage" resultType="com.upc.modular.textbook.param.LearningNotesPageReturnParam">
+        SELECT
+        ln.*,
+        tb.textbook_name AS textbookName,
+        tc.catalog_name AS catalogName
+        FROM learning_notes ln
+        LEFT JOIN textbook tb ON ln.textbook_id = tb.id
+        LEFT JOIN textbook_catalog tc ON ln.catalogue_id = tc.id
+        <where>
+            <if test="param.textbookName != null and param.textbookName != ''">
+                AND tb.textbook_name LIKE CONCAT('%', #{param.textbookName}, '%')
+            </if>
+            <if test="param.catalogName != null and param.catalogName != ''">
+                AND tc.catalog_name LIKE CONCAT('%', #{param.catalogName}, '%')
+            </if>
+            <if test="param.startTime != null">
+                AND ln.add_datetime &gt;= #{param.startTime}
+            </if>
+            <if test="param.endTime != null">
+                AND ln.add_datetime &lt;= #{param.endTime}
+            </if>
+        </where>
+
+        <!-- 固定按创建时间排序 -->
+        ORDER BY ln.add_datetime
+        <choose>
+            <when test="param.isAsc == 1">
+                ASC
+            </when>
+            <otherwise>
+                DESC
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

@@ -15,8 +15,6 @@ import com.upc.modular.questionbank.mapper.TeachingQuestionBankMapper;
 import com.upc.modular.questionbank.mapper.TeachingQuestionMapper;
 import com.upc.modular.questionbank.service.IQuestionsBanksListService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.upc.modular.textbook.entity.Textbook;
-import com.upc.modular.textbook.entity.TextbookCatalog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

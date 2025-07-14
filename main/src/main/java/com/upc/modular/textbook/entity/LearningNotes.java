@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 
 /**
@@ -15,45 +17,33 @@ import lombok.experimental.Accessors;
  * </p>
  *
  * @author byh
- * @since 2025-07-08
+ * @since 2025-07-14
  */
 @Data
 @Accessors(chain = true)
-@TableName("textbook_catalog")
-@ApiModel(value = "TextbookCatalog对象", description = "")
-public class TextbookCatalog implements Serializable {
+@TableName("learning_notes")
+@ApiModel(value = "LearningNotes对象", description = "")
+public class LearningNotes implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty("主键，目录的唯一标识")
+    @ApiModelProperty("学习笔记表主键")
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
-    @ApiModelProperty("教材主表的id")
-    @TableField("textbook_id")
-    private Long textbookId;
-
-    @ApiModelProperty("目录的名称")
-    @TableField("catalog_name")
-    private String catalogName;
-
-    @ApiModelProperty("该目录下的正文内容")
+    @ApiModelProperty("笔记内容")
     @TableField("content")
     private String content;
 
-    @ApiModelProperty("目录的级别（1 2 3 4四个级别）")
-    @TableField("catalog_level")
-    private Integer catalogLevel;
+    @ApiModelProperty("关联的教材ID")
+    @TableField("textbook_id")
+    private Long textbookId;
 
-    @ApiModelProperty("当前目录父级目录的id")
-    @TableField("father_catalog_id")
-    private Long fatherCatalogId;
+    @ApiModelProperty("关联的目录ID")
+    @TableField("catalogue_id")
+    private Long catalogueId;
 
-    @ApiModelProperty("目录的排序（位置）")
-    @TableField("sort")
-    private Integer sort;
-
-    @ApiModelProperty("创建人（创建该目录记录的用户）")
+    @ApiModelProperty("创建人")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;
 
@@ -61,7 +51,7 @@ public class TextbookCatalog implements Serializable {
     @TableField(value = "add_datetime", fill = FieldFill.INSERT)
     private LocalDateTime addDatetime;
 
-    @ApiModelProperty("操作人（最近操作该目录记录的用户）")
+    @ApiModelProperty("操作人")
     @TableField(value = "operator", fill = FieldFill.UPDATE)
     private Long operator;
 

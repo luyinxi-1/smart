@@ -207,4 +207,15 @@ public class Knife4jConfig implements WebMvcConfigurer { // 实现 WebMvcConfigu
                 .paths(PathSelectors.any())
                 .build();
     }
+
+    @Bean
+    public Docket dataStatistics() {
+        return new Docket(DocumentationType.SWAGGER_2)
+                .apiInfo(apiInfo())
+                .groupName("数据统计")
+                .select()
+                .apis(RequestHandlerSelectors.basePackage("com.upc.modular.dataStatistics.controller"))
+                .paths(PathSelectors.any())
+                .build();
+    }
 }
