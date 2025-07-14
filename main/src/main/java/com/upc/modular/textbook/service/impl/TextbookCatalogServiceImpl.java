@@ -4,15 +4,19 @@ import com.upc.common.responseparam.R;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import com.upc.modular.textbook.param.TextbookCatalogDto;
+import com.upc.modular.textbook.param.WordRequest;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.upc.utils.Word2HtmlUtils;
 import org.springframework.stereotype.Service;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -128,13 +132,23 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
 
 
     @Override
-    public void processAndSaveHtml(String htmlContent, Long textbookId) {
-        // 1. 从HTML解析出带层级关系的对象列表
-        List<TextbookCatalogDto> catalogs = this.parseHtmlToCatalogs(htmlContent);
+    public void processAndSaveHtml(MultipartFile file, Long textbookId) {
+        try {
+            // 1. 将文件转换为HTML字符串
+            String htmlString = Word2HtmlUtils.toHtmlString(file);
 
-        // 2. 调用一个递归方法来保存这个列表
-        saveCatalogTree(catalogs, null, textbookId);
+            // 2. 从HTML解析出带层级关系的对象列表
+            List<TextbookCatalogDto> catalogs = this.parseHtmlToCatalogs(htmlString);
+
+            // 3. 调用递归方法保存这个列表
+            saveCatalogTree(catalogs, null, textbookId);
+        } catch (IOException e) {
+            throw new RuntimeException("文件转换失败", e);  // 可以根据需求抛出自定义异常
+        } catch (Exception e) {
+            throw new RuntimeException("处理HTML和保存目录时发生异常", e);  // 可以根据需求抛出自定义异常
+        }
     }
+
 
     /**
      * 递归或循环分层保存目录树

@@ -8,6 +8,7 @@ import com.upc.modular.textbook.service.ITextbookCatalogService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import java.util.List;
@@ -28,10 +29,10 @@ public class TextbookCatalogController {
     @Resource
     private ITextbookCatalogService textbookCatalogService;
 
-    @ApiOperation(value = "解析Html到数据库")
+    @ApiOperation(value = "解析docx文档到数据库")
     @PostMapping("/processAndSaveHtml")
-    public R processAndSaveHtml(@RequestParam String htmlContent, @RequestParam Long textbookId) {
-        textbookCatalogService.processAndSaveHtml(htmlContent, textbookId);
+    public R processAndSaveHtml(@RequestParam MultipartFile file, @RequestParam Long textbookId) {
+        textbookCatalogService.processAndSaveHtml(file, textbookId);
         return R.commonReturn(200, "新增成功", "");
     }
 

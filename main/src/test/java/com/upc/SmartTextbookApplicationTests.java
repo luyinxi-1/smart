@@ -1,13 +1,22 @@
 package com.upc;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.upc.modular.common.WordConversionService;
 import com.upc.modular.student.entity.Student;
+import com.upc.modular.textbook.entity.TextbookCatalog;
+import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 class SmartTextbookApplicationTests {
@@ -57,8 +66,8 @@ class SmartTextbookApplicationTests {
         System.out.println("--- Conversion Demo Runner is executing ---");
 
         // --- 请修改为您自己的文件路径 ---
-        String inputPath = "C:\\Users\\yt\\Desktop\\test1.docx";
-        String outputPath = "C:\\Users\\yt\\Desktop\\test1.html";
+        String inputPath = "C:\\Users\\HP\\Desktop\\bac.docx";
+        String outputPath = "C:\\Users\\HP\\Desktop\\bac.html";
         // --------------------------------
 
         // 调用服务执行转换
@@ -66,4 +75,6 @@ class SmartTextbookApplicationTests {
 
         System.out.println("--- Conversion Demo Runner has finished ---");
     }
+
+
 }
