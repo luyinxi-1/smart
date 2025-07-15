@@ -67,6 +67,10 @@ public class Textbook implements Serializable {
     @TableField("review_status")
     private String reviewStatus;
 
+    @ApiModelProperty("保存拆分教程内容时剩余的头部的H5代码")
+    @TableField(value = "h5_head_code")
+    private LocalDateTime h5HeadCode;
+
     @ApiModelProperty("创建人（创建该教材记录的用户）")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;
