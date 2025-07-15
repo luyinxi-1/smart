@@ -3,7 +3,7 @@
 <mapper namespace="com.upc.modular.discussion.mapper.UserLikesMapper">
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="BaseResultMap" type="com.upc.modular.teachingActivities.entity.UserLikes">
+    <resultMap id="BaseResultMap" type="com.upc.modular.teachingactivities.entity.UserLikes">
         <id column="id" property="id" />
         <result column="type" property="type" />
         <result column="correlation_id" property="correlationId" />

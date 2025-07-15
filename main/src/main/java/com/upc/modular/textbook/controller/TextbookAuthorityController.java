@@ -5,8 +5,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
-import com.upc.modular.teachingActivities.entity.DiscussionTopic;
-import com.upc.modular.teachingActivities.param.DiscussionTopicSearchParam;
 import com.upc.modular.textbook.entity.TextbookAuthority;
 import com.upc.modular.textbook.param.TextbookAuthoritySearchParam;
 import com.upc.modular.textbook.service.ITextbookAuthorityService;

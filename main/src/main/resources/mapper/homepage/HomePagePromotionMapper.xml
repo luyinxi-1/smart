@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.upc.modular.discussion.mapper.DiscussionTopicReplyMapper">
+<mapper namespace="com.upc.modular.homepage.mapper.HomePagePromotionMapper">
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="BaseResultMap" type="com.upc.modular.teachingactivities.entity.DiscussionTopicReply">
+    <resultMap id="BaseResultMap" type="com.upc.modular.homepage.entity.HomePagePromotion">
         <id column="id" property="id" />
-        <result column="reply_content" property="replyContent" />
-        <result column="type" property="type" />
-        <result column="topic_id" property="topicId" />
+        <result column="title" property="title" />
+        <result column="cover_image" property="coverImage" />
+        <result column="promotion_content" property="promotionContent" />
+        <result column="is_top" property="isTop" />
         <result column="creator" property="creator" />
         <result column="add_datetime" property="addDatetime" />
         <result column="operator" property="operator" />
