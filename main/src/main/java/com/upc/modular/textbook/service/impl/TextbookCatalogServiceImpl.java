@@ -1,6 +1,8 @@
 package com.upc.modular.textbook.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.aspose.words.SaveFormat;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper;
@@ -17,6 +19,7 @@ import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.textbook.service.ITextbookService;
 import com.upc.utils.Word2HtmlUtils;
+import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -27,11 +30,22 @@ import org.jsoup.select.Elements;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * <p>
@@ -50,6 +64,9 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
     private ITextbookService textbookService;
 
 
+
+    @Autowired
+    private TextbookCatalogMapper textbookCatalogMapper;
     /**
      * 将HTML内容解析为具有层级结构的TextbookCatalog对象列表
      * @param htmlContent 从Word转换来的HTML字符串
@@ -200,6 +217,97 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             throw new RuntimeException("处理HTML和保存目录时发生异常", e);  // 可以根据需求抛出自定义异常
         }
     }
+    @Override
+    public void exportTextbook(HttpServletResponse response, Long textbookId) {
+        if (ObjectUtils.isEmpty(textbookId)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参不能为空");
+        }
+        try {
+            Textbook textbook = textbookMapper.selectById(textbookId);
+            // 查询目录
+            LambdaQueryWrapper<TextbookCatalog> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+            lambdaQueryWrapper.eq(TextbookCatalog::getTextbookId, textbookId);
+            lambdaQueryWrapper.orderByAsc(TextbookCatalog::getSort);
+
+            List<TextbookCatalog> textbookCatalogs = textbookCatalogMapper.selectList(lambdaQueryWrapper);
+
+            // 构造 HTML 内容
+            List<String> htmlFragments = textbookCatalogs.stream()
+                    .flatMap(catalog -> Stream.of(catalog.getCatalogName(), catalog.getContent()))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            StringBuilder htmlBuilder = new StringBuilder();
+            htmlBuilder.append("<html><head><meta charset='UTF-8'></head><body>");
+            for (String fragment : htmlFragments) {
+                htmlBuilder.append(fragment).append("\n");
+            }
+            htmlBuilder.append("</body></html>");
+            String mergedHtml = htmlBuilder.toString();
+
+            // 将 HTML 转为 Word
+            try (ByteArrayOutputStream outStream = new ByteArrayOutputStream()) {
+                com.aspose.words.Document doc = new com.aspose.words.Document(new ByteArrayInputStream(mergedHtml.getBytes(StandardCharsets.UTF_8)));
+                doc.save(outStream, SaveFormat.DOCX);
+
+                // 设置响应头
+                response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
+                String fileName = textbook.getTextbookName() + ".docx";
+                String encodedFileName = URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
+
+                response.setHeader("Content-Disposition",
+                        "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
+
+                response.setContentLength(outStream.size());
+
+                // 写入响应流
+                OutputStream responseOutputStream = response.getOutputStream();
+                outStream.writeTo(responseOutputStream);
+                responseOutputStream.flush();
+            }
+        } catch (Exception e) {
+            System.err.println("❌ 导出 Word 出错！");
+            e.printStackTrace();
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "导出 Word 失败");
+        }
+    }
+
+    @Override
+    public void exportTextbookByString(HttpServletResponse response, String html) {
+        if (ObjectUtils.isEmpty(html)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "HTML内容不能为空");
+        }
+
+        try (ByteArrayOutputStream outStream = new ByteArrayOutputStream()) {
+            // 将 HTML 内容转为 Word 文档
+            com.aspose.words.Document doc = new com.aspose.words.Document(
+                    new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8))
+            );
+            doc.save(outStream, SaveFormat.DOCX);
+
+            // 设置响应头
+            response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
+            String fileName = "textbook.docx";
+            String encodedFileName = URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
+
+            response.setHeader("Content-Disposition",
+                    "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
+            response.setContentLength(outStream.size());
+
+            // 写入响应流
+            OutputStream responseOutputStream = response.getOutputStream();
+            outStream.writeTo(responseOutputStream);
+            responseOutputStream.flush();
+        } catch (Exception e) {
+            System.err.println("❌ HTML导出Word出错！");
+            e.printStackTrace();
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "HTML导出Word失败");
+        }
+    }
+
+
 
     /**
      * 递归或循环分层保存目录树

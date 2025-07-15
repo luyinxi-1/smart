@@ -20,4 +20,6 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface LearningNotesMapper extends BaseMapper<LearningNotes> {
     Page<LearningNotesPageReturnParam> getPage(@Param("page") Page<LearningNotesPageReturnParam> page, @Param("param") LearningNotesPageSearchParam param);
+
+    Page<LearningNotesPageReturnParam> getMyPage(@Param("page") Page<LearningNotesPageReturnParam> page, @Param("param") LearningNotesPageSearchParam param, @Param("id") Long id);
 }

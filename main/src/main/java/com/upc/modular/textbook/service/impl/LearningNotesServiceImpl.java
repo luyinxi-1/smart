@@ -2,6 +2,7 @@ package com.upc.modular.textbook.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.common.utils.UserUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
@@ -52,7 +53,7 @@ public class LearningNotesServiceImpl extends ServiceImpl<LearningNotesMapper, L
     }
 
     @Override
-    public Page<LearningNotesPageReturnParam> getPage(LearningNotesPageSearchParam param) {
+    public Page<LearningNotesPageReturnParam> getAllPage(LearningNotesPageSearchParam param) {
         Page<LearningNotesPageReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
         Page<LearningNotesPageReturnParam> resultPage = learningNotesMapper.getPage(page, param);
 
@@ -75,6 +76,25 @@ public class LearningNotesServiceImpl extends ServiceImpl<LearningNotesMapper, L
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参不能为空");
         }
         return learningNotesMapper.selectById(id);
+    }
+
+    @Override
+    public Page<LearningNotesPageReturnParam> getMyPage(LearningNotesPageSearchParam param) {
+        Page<LearningNotesPageReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
+        Long id = UserUtils.get().getId();
+        Page<LearningNotesPageReturnParam> resultPage = learningNotesMapper.getMyPage(page, param, id);
+
+        for (LearningNotesPageReturnParam record : resultPage.getRecords()) {
+            // 清洗章节名称
+            if (record.getCatalogName() != null) {
+                String rawHtml = record.getCatalogName();
+                String plainText = Jsoup.parse(rawHtml).text(); // 去除HTML标签
+//                plainText = extractMeaningfulCatalogName(plainText); // 可选：进一步提取章节核心内容
+                record.setCatalogName(plainText);
+            }
+        }
+
+        return resultPage;
     }
 
     private String extractMeaningfulCatalogName(String text) {

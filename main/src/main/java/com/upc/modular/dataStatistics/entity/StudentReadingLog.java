@@ -1,12 +1,13 @@
-package com.upc.modular.textbook.entity;
+package com.upc.modular.dataStatistics.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
-
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -16,36 +17,40 @@ import lombok.experimental.Accessors;
  * 
  * </p>
  *
- * @author byh
- * @since 2025-07-14
+ * @author la
+ * @since 2025-07-12
  */
-@Data
+@Getter
+@Setter
 @Accessors(chain = true)
-@TableName("learning_notes")
-@ApiModel(value = "LearningNotes对象", description = "")
-public class LearningNotes implements Serializable {
+@TableName("student_reading_log")
+@ApiModel(value = "StudentReadingLog对象", description = "")
+public class StudentReadingLog implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty("学习笔记表主键")
-    @TableId(value = "id", type = IdType.AUTO)
+    @TableId("id")
     private Long id;
 
-    @ApiModelProperty("笔记内容")
-    @TableField("content")
-    private String content;
+    @ApiModelProperty("学生id")
+    @TableField("student_id")
+    private Long studentId;
 
-    @ApiModelProperty("关联的教材ID")
+    @ApiModelProperty("教材id")
     @TableField("textbook_id")
     private Long textbookId;
 
-    @ApiModelProperty("笔记名称")
-    @TableField("note_id")
-    private String noteName;
+    @ApiModelProperty("阅读的章节id")
+    @TableField("textbook_catalog_id")
+    private Long textbookCatalogId;
 
-    @ApiModelProperty("关联的目录ID")
-    @TableField("catalogue_id")
-    private Long catalogueId;
+    @ApiModelProperty("阅读开始时间")
+    @TableField("start_time")
+    private LocalDateTime startTime;
+
+    @ApiModelProperty("本次阅读时长(分钟)")
+    @TableField("duration_minutes")
+    private Integer durationMinutes;
 
     @ApiModelProperty("客户端生成的记录唯一ID(防重复同步)")
     @TableField("client_uuid")

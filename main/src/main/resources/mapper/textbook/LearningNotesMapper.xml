@@ -47,5 +47,40 @@
             </otherwise>
         </choose>
     </select>
+    <select id="getMyPage" resultType="com.upc.modular.textbook.param.LearningNotesPageReturnParam">
+        SELECT
+        ln.*,
+        tb.textbook_name AS textbookName,
+        tc.catalog_name AS catalogName
+        FROM learning_notes ln
+        LEFT JOIN textbook tb ON ln.textbook_id = tb.id
+        LEFT JOIN textbook_catalog tc ON ln.catalogue_id = tc.id
+        <where>
+            <if test="param.textbookName != null and param.textbookName != ''">
+                AND tb.textbook_name LIKE CONCAT('%', #{param.textbookName}, '%')
+            </if>
+            <if test="param.catalogName != null and param.catalogName != ''">
+                AND tc.catalog_name LIKE CONCAT('%', #{param.catalogName}, '%')
+            </if>
+            <if test="param.startTime != null">
+                AND ln.add_datetime &gt;= #{param.startTime}
+            </if>
+            <if test="param.endTime != null">
+                AND ln.add_datetime &lt;= #{param.endTime}
+            </if>
+            <if test="id != null">
+                AND ln.creator = #{id}
+            </if>
+        </where>
+        ORDER BY ln.add_datetime
+        <choose>
+            <when test="param.isAsc == 1">
+                ASC
+            </when>
+            <otherwise>
+                DESC
+            </otherwise>
+        </choose>
+    </select>
 
 </mapper>
