@@ -3,6 +3,7 @@ package com.upc.modular.student.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.student.controller.param.GetStudentIsInInstitutionParam;
 import com.upc.modular.student.controller.param.vo.GenerateUserResultVoStudent;
 import com.upc.modular.student.controller.param.vo.ImportStudentReturnVo;
 import com.upc.modular.student.controller.param.dto.StudentGenerateDto;
@@ -38,4 +39,6 @@ public interface IStudentService extends IService<Student> {
     List<StudentReturnVo> getStudentNoUser();
 
     GenerateUserResultVoStudent generateStudentUsers(StudentGenerateDto dto);
+
+    Boolean getStudentIsInInstitution(GetStudentIsInInstitutionParam param);
 }

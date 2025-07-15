@@ -15,7 +15,6 @@
         <result column="email" property="email" />
         <result column="phone" property="phone" />
         <result column="class_id" property="classId" />
-        <result column="status" property="status" />
         <result column="creator" property="creator" />
         <result column="add_datetime" property="addDatetime" />
         <result column="operator" property="operator" />
@@ -54,5 +53,11 @@
             <when test="param.isAsc == 1">ASC</when>
             <otherwise>DESC</otherwise>
         </choose>
+    </select>
+    <select id="getInstitutionIdByStudentId" resultType="java.lang.Long" parameterType="java.lang.Long">
+        SELECT u.institution_id
+        FROM student s
+                 LEFT JOIN sys_tbuser u ON s.user_id = u.id
+        WHERE s.id = #{studentId}
     </select>
 </mapper>

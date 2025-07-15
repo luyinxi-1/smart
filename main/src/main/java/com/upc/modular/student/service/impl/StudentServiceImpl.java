@@ -21,6 +21,7 @@ import com.upc.modular.group.mapper.GroupMapper;
 import com.upc.modular.group.service.IUserClassListService;
 import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.institution.mapper.InstitutionMapper;
+import com.upc.modular.student.controller.param.GetStudentIsInInstitutionParam;
 import com.upc.modular.student.controller.param.dto.StudentGenerateDto;
 import com.upc.modular.student.controller.param.dto.StudentImportDto;
 import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
@@ -34,6 +35,7 @@ import com.upc.modular.student.service.IStudentService;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
+import com.upc.utils.InstitutionUtil;
 import com.upc.utils.MD5Utils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -268,6 +270,26 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         resultVo.setTotalProcessed(dto.getStudent().size());
         resultVo.setFailedStudents(failedStudents);
         return resultVo;
+    }
+
+    @Override
+    public Boolean getStudentIsInInstitution(GetStudentIsInInstitutionParam param) {
+        if (ObjectUtils.isEmpty(param) || ObjectUtils.isEmpty(param.getStudentId()) || ObjectUtils.isEmpty(param.getInstitutionId())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+
+        // 获取所有子机构（含自身）
+        List<Institution> institutions = institutionMapper.selectList(null);
+        List<Long> allSubInstitutionIds = InstitutionUtil.getAllSubInstitutionIds(param.getInstitutionId(), institutions);
+
+        // 查询教师对应的机构ID（通过teacher.user_id -> sys_tbuser.institution_id）
+        Long institutionId = studentMapper.getInstitutionIdByStudentId(param.getStudentId());
+
+        if (institutionId == null) {
+            return false;  // 学生没有绑定机构，直接false
+        }
+
+        return allSubInstitutionIds.contains(institutionId);
     }
 
 
