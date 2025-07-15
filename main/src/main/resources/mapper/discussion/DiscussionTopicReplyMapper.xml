@@ -3,7 +3,7 @@
 <mapper namespace="com.upc.modular.discussion.mapper.DiscussionTopicReplyMapper">
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="BaseResultMap" type="com.upc.modular.teachingActivities.entity.DiscussionTopicReply">
+    <resultMap id="BaseResultMap" type="com.upc.modular.teachingactivities.entity.DiscussionTopicReply">
         <id column="id" property="id" />
         <result column="reply_content" property="replyContent" />
         <result column="type" property="type" />
