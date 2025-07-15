@@ -197,7 +197,7 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
     @Override
     public SysTbuser getStudentUser(StudentReturnVo param) {
         if (ObjectUtils.isEmpty(param.getUserId())) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "该教师未绑定用户");
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "该学生未绑定用户");
         }
         MyLambdaQueryWrapper<SysTbuser> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
         lambdaQueryWrapper.eq(SysTbuser::getId, param.getUserId());

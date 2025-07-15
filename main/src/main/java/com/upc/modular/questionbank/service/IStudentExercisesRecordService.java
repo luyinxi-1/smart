@@ -1,5 +1,6 @@
 package com.upc.modular.questionbank.service;
 
+import com.upc.modular.questionbank.controller.param.SubmitAnswerRequest;
 import com.upc.modular.questionbank.entity.StudentExercisesRecord;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -13,4 +14,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IStudentExercisesRecordService extends IService<StudentExercisesRecord> {
 
+    Long submitAnswers(Long userId, SubmitAnswerRequest request);
 }

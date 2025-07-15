@@ -85,7 +85,7 @@ public class StudentController {
             return R.fail("文件格式不支持，请使用xlsx");
         }
     }
-    @ApiOperation("查询学生的用户信息")
+    @ApiOperation("根据用户ID查询学生的用户信息")
     @PostMapping("/getStudentUser")
     public R<SysTbuser> getStudentUser(@RequestBody StudentReturnVo param) {
         SysTbuser sysTbuser = studentService.getStudentUser(param);
