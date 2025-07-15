@@ -36,9 +36,6 @@ public class LearningNotesServiceImpl extends ServiceImpl<LearningNotesMapper, L
         if (ObjectUtils.isEmpty(UserUtils.get().getId())) {
             throw new BusinessException(BusinessErrorEnum.PLEASE_LOGIN, "用户未登录");
         }
-        if (ObjectUtils.isEmpty(learningNotes.getUserId())) {
-            learningNotes.setUserId(UserUtils.get().getId());
-        }
         return this.save(learningNotes);
     }
 

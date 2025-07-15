@@ -16,22 +16,22 @@ import lombok.experimental.Accessors;
  * 
  * </p>
  *
- * @author byh
- * @since 2025-07-14
+ * @author la
+ * @since 2025-07-15
  */
 @Data
 @Accessors(chain = true)
-@TableName("learning_notes")
-@ApiModel(value = "LearningNotes对象", description = "")
-public class LearningNotes implements Serializable {
+@TableName("learning_annotations_and_labels")
+@ApiModel(value = "LearningAnnotationsAndLabels对象", description = "")
+public class LearningAnnotationsAndLabels implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty("学习笔记表主键")
+    @ApiModelProperty("主键ID")
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
-    @ApiModelProperty("笔记内容")
+    @ApiModelProperty("批注和标注内容")
     @TableField("content")
     private String content;
 
@@ -39,19 +39,11 @@ public class LearningNotes implements Serializable {
     @TableField("textbook_id")
     private Long textbookId;
 
-    @ApiModelProperty("笔记名称")
-    @TableField("note_id")
-    private String noteName;
+    @ApiModelProperty("关联的教材目录正文ID")
+    @TableField("catalog_id")
+    private Long catalogId;
 
-    @ApiModelProperty("关联的目录ID")
-    @TableField("catalogue_id")
-    private Long catalogueId;
-
-    @ApiModelProperty("客户端生成的记录唯一ID(防重复同步)")
-    @TableField("client_uuid")
-    private String clientUuid;
-
-    @ApiModelProperty("创建人")
+    @ApiModelProperty("创建人ID")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;
 
@@ -59,7 +51,7 @@ public class LearningNotes implements Serializable {
     @TableField(value = "add_datetime", fill = FieldFill.INSERT)
     private LocalDateTime addDatetime;
 
-    @ApiModelProperty("操作人")
+    @ApiModelProperty("操作人ID")
     @TableField(value = "operator", fill = FieldFill.UPDATE)
     private Long operator;
 
