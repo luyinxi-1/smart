@@ -23,7 +23,9 @@ public interface ILearningNotesService extends IService<LearningNotes> {
 
     Boolean updateNotes(LearningNotes param);
 
-    Page<LearningNotesPageReturnParam> getPage(LearningNotesPageSearchParam param);
+    Page<LearningNotesPageReturnParam> getAllPage(LearningNotesPageSearchParam param);
 
     LearningNotes getOneNote(Long id);
+
+    Page<LearningNotesPageReturnParam> getMyPage(LearningNotesPageSearchParam param);
 }

@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/learning-notes")
-@Api(value = "教学笔记")
+@Api(tags = "教学笔记")
 public class LearningNotesController {
     @Autowired
     private ILearningNotesService learningNotesService;
@@ -55,10 +55,18 @@ public class LearningNotesController {
         return R.ok(learningNotesService.getOneNote(id));
     }
 
-    @ApiOperation(value = "分页查询学习笔记")
-    @PostMapping("/getPage")
-    public R<PageBaseReturnParam<LearningNotesPageReturnParam>> getPage(@RequestBody LearningNotesPageSearchParam param) {
-        Page<LearningNotesPageReturnParam> page = learningNotesService.getPage(param);
+    @ApiOperation(value = "分页查询学习笔记（全部）")
+    @PostMapping("/getAllPage")
+    public R<PageBaseReturnParam<LearningNotesPageReturnParam>> getAllPage(@RequestBody LearningNotesPageSearchParam param) {
+        Page<LearningNotesPageReturnParam> page = learningNotesService.getAllPage(param);
+        PageBaseReturnParam<LearningNotesPageReturnParam> result = PageBaseReturnParam.ok(page);
+        return R.page(result);
+    }
+
+    @ApiOperation(value = "分页查询学习笔记（个人）")
+    @PostMapping("/getAMyPage")
+    public R<PageBaseReturnParam<LearningNotesPageReturnParam>> getMyPage(@RequestBody LearningNotesPageSearchParam param) {
+        Page<LearningNotesPageReturnParam> page = learningNotesService.getMyPage(param);
         PageBaseReturnParam<LearningNotesPageReturnParam> result = PageBaseReturnParam.ok(page);
         return R.page(result);
     }

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
 /**
@@ -52,6 +53,12 @@ public class TextbookCatalogController {
     @PutMapping("/update")
     public R<Boolean> update(@RequestBody TextbookCatalog param) {
         return R.ok(textbookCatalogService.updateTextbook(param));
+    }
+
+    @ApiOperation(value = "导出教材")
+    @PostMapping("/exportTextbook")
+    public void exportTextbook(HttpServletResponse response, @RequestParam("textbookId") Long textbookId) {
+        textbookCatalogService.exportTextbook(response, textbookId);
     }
 
 }

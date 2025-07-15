@@ -7,6 +7,7 @@ import com.upc.modular.textbook.param.TextbookCatalogDto;
 import com.upc.modular.textbook.param.WordRequest;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
 /**
@@ -26,4 +27,6 @@ public interface ITextbookCatalogService extends IService<TextbookCatalog> {
     Boolean delete(Long id);
 
     Boolean updateTextbook(TextbookCatalog param);
+
+    void exportTextbook(HttpServletResponse response, Long textbookId);
 }

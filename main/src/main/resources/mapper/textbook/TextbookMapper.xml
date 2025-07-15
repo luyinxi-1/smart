@@ -45,10 +45,10 @@
             <if test="param.authorName != null and param.authorName != ''">
                 AND a.name LIKE CONCAT('%', #{param.authorName}, '%')
             </if>
-            <if test="param.releaseStatus != null and param.releaseStatus != ''">
+            <if test="param.releaseStatus != null">
                 AND t.release_status = #{param.releaseStatus}
             </if>
-            <if test="param.reviewStatus != null and param.reviewStatus != ''">
+            <if test="param.reviewStatus != null">
                 AND t.review_status = #{param.reviewStatus}
             </if>
             <if test="param.startTime != null">
@@ -58,14 +58,17 @@
                 AND t.add_datetime &lt;= #{param.endTime}
             </if>
         </where>
+
+        ORDER BY t.add_datetime
         <choose>
             <when test="param.isAsc == 1">
-                ORDER BY t.add_datetime ASC
+                ASC
             </when>
             <otherwise>
-                ORDER BY t.add_datetime DESC
+                DESC
             </otherwise>
         </choose>
+
     </select>
 
 
