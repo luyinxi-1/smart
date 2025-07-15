@@ -35,9 +35,9 @@ public class StudentExercisesRecord implements Serializable {
     @TableField("teaching_question_bank_id")
     private Long teachingQuestionBankId;
 
-    @ApiModelProperty("用户id")
-    @TableField("user_id")
-    private Long userId;
+    @ApiModelProperty("学生id")
+    @TableField("student_id")
+    private Long studentId;
 
     @ApiModelProperty("学生作答次数")
     @TableField("exercise_num")
@@ -45,7 +45,7 @@ public class StudentExercisesRecord implements Serializable {
 
     @ApiModelProperty("学生在该题库的作答成绩")
     @TableField("score")
-    private Float score;
+    private Double score;
 
     @ApiModelProperty("答卷状态(0：答题中；1：待批改；2：已完成 (所有题目都已评分，总分已计算))")
     @TableField("status")
