@@ -17,6 +17,8 @@ import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * <p>
  *  前端控制器
@@ -59,5 +61,11 @@ public class TextbookController {
         Page<TextbookPageReturnParam> page = textbookService.getPage(param);
         PageBaseReturnParam<TextbookPageReturnParam> result = PageBaseReturnParam.ok(page);
         return R.page(result);
+    }
+
+    @ApiOperation(value = "查询最新的教材")
+    @PostMapping("/getNewTextbook")
+    public R<List<Textbook>> getNewTextbook(@RequestParam("getNumber") int getNumber) {
+        return R.ok(textbookService.getNewTextbook(getNumber));
     }
 }

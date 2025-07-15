@@ -6,7 +6,7 @@ import com.upc.modular.textbook.entity.Textbook;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.textbook.param.TextbookPageReturnParam;
 import com.upc.modular.textbook.param.TextbookPageSearchParam;
-
+import java.util.List;
 /**
  * <p>
  *  服务类
@@ -24,4 +24,6 @@ public interface ITextbookService extends IService<Textbook> {
     void updateTextbook(Textbook textbook);
 
     Page<TextbookPageReturnParam> getPage(TextbookPageSearchParam param);
+
+    List<Textbook> getNewTextbook(int getNumber);
 }

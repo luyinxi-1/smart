@@ -76,4 +76,12 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         Page<TextbookPageReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
         return textbookMapper.selectTextbookPage(page, param);
     }
+
+    @Override
+    public List<Textbook> getNewTextbook(int getNumber) {
+        MyLambdaQueryWrapper<Textbook> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        lambdaQueryWrapper.orderByDesc(Textbook::getAddDatetime)
+                .last("LIMIT " + getNumber);
+        return textbookMapper.selectList(lambdaQueryWrapper);
+    }
 }
