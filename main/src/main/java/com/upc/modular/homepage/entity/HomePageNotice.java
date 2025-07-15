@@ -35,9 +35,13 @@ public class HomePageNotice implements Serializable {
     @TableField("title")
     private String title;
 
+    @ApiModelProperty("通知公告的封面图片")
+    @TableField("picture")
+    private String picture;
+
     @ApiModelProperty("通知公告类型")
     @TableField("type")
-    private Long type;
+    private Integer type;
 
     @ApiModelProperty("通知公告的内容")
     @TableField("content")
