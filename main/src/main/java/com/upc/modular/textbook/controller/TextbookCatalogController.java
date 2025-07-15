@@ -55,10 +55,16 @@ public class TextbookCatalogController {
         return R.ok(textbookCatalogService.updateTextbook(param));
     }
 
-    @ApiOperation(value = "导出教材")
-    @PostMapping("/exportTextbook")
+    @ApiOperation(value = "导出教材（id）")
+    @PostMapping("/exportTextbookById")
     public void exportTextbook(HttpServletResponse response, @RequestParam("textbookId") Long textbookId) {
         textbookCatalogService.exportTextbook(response, textbookId);
+    }
+
+    @ApiOperation(value = "导出教材（html）")
+    @PostMapping("/exportTextbookByString")
+    public void exportTextbookByString(HttpServletResponse response, @RequestParam("html") String html) {
+        textbookCatalogService.exportTextbookByString(response, html);
     }
 
 }

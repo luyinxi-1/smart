@@ -254,6 +254,40 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         }
     }
 
+    @Override
+    public void exportTextbookByString(HttpServletResponse response, String html) {
+        if (ObjectUtils.isEmpty(html)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "HTML内容不能为空");
+        }
+
+        try (ByteArrayOutputStream outStream = new ByteArrayOutputStream()) {
+            // 将 HTML 内容转为 Word 文档
+            com.aspose.words.Document doc = new com.aspose.words.Document(
+                    new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8))
+            );
+            doc.save(outStream, SaveFormat.DOCX);
+
+            // 设置响应头
+            response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
+            String fileName = "textbook.docx";
+            String encodedFileName = URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
+
+            response.setHeader("Content-Disposition",
+                    "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
+            response.setContentLength(outStream.size());
+
+            // 写入响应流
+            OutputStream responseOutputStream = response.getOutputStream();
+            outStream.writeTo(responseOutputStream);
+            responseOutputStream.flush();
+        } catch (Exception e) {
+            System.err.println("❌ HTML导出Word出错！");
+            e.printStackTrace();
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "HTML导出Word失败");
+        }
+    }
+
 
 
     /**
