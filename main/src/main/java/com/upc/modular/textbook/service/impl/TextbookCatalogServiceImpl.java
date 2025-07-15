@@ -7,11 +7,13 @@ import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import com.upc.modular.textbook.mapper.TextbookMapper;
 import com.upc.modular.textbook.param.TextbookCatalogDto;
+import com.upc.modular.textbook.service.ILearningAnnotationsAndLabelsService;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.textbook.service.ITextbookService;
@@ -34,9 +36,7 @@ import java.io.OutputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -59,6 +59,8 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
     private ITextbookService textbookService;
     @Autowired
     private TextbookCatalogMapper textbookCatalogMapper;
+    @Autowired
+    private ILearningAnnotationsAndLabelsService labelsService;
 
     @Override
     public void processAndSaveHtml(MultipartFile file, Long textbookId) {
@@ -203,6 +205,45 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             e.printStackTrace();
             throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "HTML导出Word失败");
         }
+    }
+
+    @Override
+    public List<TextbookCatalog> readTextbook(Long id) {
+        if (id == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+
+        // 1. 获取已按sort排好序的原始列表
+        LambdaQueryWrapper<TextbookCatalog> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TextbookCatalog::getTextbookId, id);
+        queryWrapper.orderBy(true, true, TextbookCatalog::getSort);
+        List<TextbookCatalog> textbookCatalogList = this.list(queryWrapper);
+
+        if (textbookCatalogList == null || textbookCatalogList.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 2. 获取需要应用的批注内容
+        List<LearningAnnotationsAndLabels> learningAnnotationsAndLabels = labelsService.selectLabels(id);
+        if (learningAnnotationsAndLabels == null || learningAnnotationsAndLabels.isEmpty()) {
+            return textbookCatalogList;
+        }
+
+        // 3. 创建一个仅用于快速查找的Map
+        Map<Long, TextbookCatalog> lookupMap = textbookCatalogList.stream()
+                .collect(Collectors.toMap(TextbookCatalog::getId, catalog -> catalog));
+
+        // 4. 遍历批注，通过lookupMap快速找到并更新原始列表中的对象
+        for (LearningAnnotationsAndLabels annotationsAndLabel : learningAnnotationsAndLabels) {
+            Long catalogIdToUpdate = annotationsAndLabel.getCatalogId();
+            TextbookCatalog catalogToUpdate = lookupMap.get(catalogIdToUpdate);
+
+            if (catalogToUpdate != null) {
+                catalogToUpdate.setContent(annotationsAndLabel.getContent());
+            }
+        }
+
+        return textbookCatalogList;
     }
 
 

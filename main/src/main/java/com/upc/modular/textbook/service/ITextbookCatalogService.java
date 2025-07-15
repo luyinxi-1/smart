@@ -31,4 +31,6 @@ public interface ITextbookCatalogService extends IService<TextbookCatalog> {
     void exportTextbook(HttpServletResponse response, Long textbookId);
 
     void exportTextbookByString(HttpServletResponse response, String html);
+
+    List<TextbookCatalog> readTextbook(Long id);
 }

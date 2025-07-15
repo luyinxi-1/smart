@@ -67,4 +67,11 @@ public class TextbookCatalogController {
         textbookCatalogService.exportTextbookByString(response, html);
     }
 
+    @ApiOperation(value = "查看教材")
+    @PostMapping("/readTextbook")
+    public R<List<TextbookCatalog>> readTextbook(@RequestParam Long id) {
+        List<TextbookCatalog> result = textbookCatalogService.readTextbook(id);
+        return R.ok(result);
+    }
+
 }
