@@ -6,6 +6,7 @@ import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.student.controller.param.GetStudentIsInInstitutionParam;
 import com.upc.modular.student.controller.param.dto.StudentGenerateDto;
 import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
 import com.upc.modular.student.controller.param.vo.GenerateUserResultVoStudent;
@@ -13,6 +14,7 @@ import com.upc.modular.student.controller.param.vo.ImportStudentReturnVo;
 import com.upc.modular.student.controller.param.vo.StudentReturnVo;
 import com.upc.modular.student.entity.Student;
 import com.upc.modular.student.service.IStudentService;
+import com.upc.modular.teacher.dto.GetTeacherIsInInstitutionParam;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,6 +103,13 @@ public class StudentController {
     @ApiOperation("批量生成学生用户并绑定")
     public R<GenerateUserResultVoStudent> generateTeacherUsers(@RequestBody StudentGenerateDto dto) {
         GenerateUserResultVoStudent result = studentService.generateStudentUsers(dto);
+        return R.ok(result);
+    }
+
+    @ApiOperation("查询学生是否在该机构下")
+    @PostMapping("/getStudentIsInInstitution")
+    public R<Boolean> getStudentIsInInstitution(@RequestBody GetStudentIsInInstitutionParam param) {
+        Boolean result = studentService.getStudentIsInInstitution(param);
         return R.ok(result);
     }
 

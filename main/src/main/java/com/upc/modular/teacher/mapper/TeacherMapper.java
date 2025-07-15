@@ -6,6 +6,7 @@ import com.upc.modular.teacher.entity.Teacher;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.upc.modular.teacher.vo.TeacherReturnVo;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * <p>
@@ -18,7 +19,7 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface TeacherMapper extends BaseMapper<Teacher> {
 
-    Page<TeacherReturnVo> selectTeacherWithInstitution(Page<TeacherReturnVo> page, TeacherPageSearchDto param);
+    Page<TeacherReturnVo> selectTeacherWithInstitution(@Param("page") Page<TeacherReturnVo> page, @Param("param") TeacherPageSearchDto param);
 
-    Long getInstitutionIdByTeacherId(Long teacherId);
+    Long getInstitutionIdByTeacherId(@Param("teacherId") Long teacherId);
 }
