@@ -47,6 +47,10 @@ public class StudentExercisesRecord implements Serializable {
     @TableField("score")
     private Float score;
 
+    @ApiModelProperty("答卷状态(0：答题中；1：待批改；2：已完成 (所有题目都已评分，总分已计算))")
+    @TableField("status")
+    private Integer status;
+
     @ApiModelProperty("创建者")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;

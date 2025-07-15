@@ -39,6 +39,10 @@ public class StudentExercisesContent implements Serializable {
     @TableField("teaching_question")
     private Long teachingQuestion;
 
+    @ApiModelProperty("答卷记录表id")
+    @TableField("record_id")
+    private Long recordId;
+
     @ApiModelProperty("学生的作答内容")
     @TableField("content")
     private String content;

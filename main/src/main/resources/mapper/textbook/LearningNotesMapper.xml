@@ -8,6 +8,7 @@
         <result column="content" property="content" />
         <result column="textbook_id" property="textbookId" />
         <result column="catalogue_id" property="catalogueId" />
+        <result column="client_uuid" property="clientUuid" />
         <result column="creator" property="creator" />
         <result column="add_datetime" property="addDatetime" />
         <result column="operator" property="operator" />
