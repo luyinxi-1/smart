@@ -12,6 +12,6 @@ import lombok.experimental.Accessors;
 public class HomePageNoticeReturnParam extends HomePageNotice {
 
     @ApiModelProperty("作者姓名")
-    private Integer authorName;
+    private String authorName;
 
 }

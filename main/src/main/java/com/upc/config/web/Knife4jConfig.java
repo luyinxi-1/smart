@@ -182,7 +182,7 @@ public class Knife4jConfig implements WebMvcConfigurer { // 实现 WebMvcConfigu
                 .apiInfo(apiInfo())
                 .groupName("教学活动")
                 .select()
-                .apis(RequestHandlerSelectors.basePackage("com.upc.modular.teachingActivities.controller"))
+                .apis(RequestHandlerSelectors.basePackage("com.upc.modular.teachingactivities.controller"))
                 .paths(PathSelectors.any())
                 .build();
     }
@@ -214,7 +214,18 @@ public class Knife4jConfig implements WebMvcConfigurer { // 实现 WebMvcConfigu
                 .apiInfo(apiInfo())
                 .groupName("数据统计")
                 .select()
-                .apis(RequestHandlerSelectors.basePackage("com.upc.modular.dataStatistics.controller"))
+                .apis(RequestHandlerSelectors.basePackage("com.upc.modular.datastatistics.controller"))
+                .paths(PathSelectors.any())
+                .build();
+    }
+
+    @Bean
+    public Docket homePage() {
+        return new Docket(DocumentationType.SWAGGER_2)
+                .apiInfo(apiInfo())
+                .groupName("首页管理")
+                .select()
+                .apis(RequestHandlerSelectors.basePackage("com.upc.modular.homepage.controller"))
                 .paths(PathSelectors.any())
                 .build();
     }
