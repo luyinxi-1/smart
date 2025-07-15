@@ -229,4 +229,15 @@ public class Knife4jConfig implements WebMvcConfigurer { // 实现 WebMvcConfigu
                 .paths(PathSelectors.any())
                 .build();
     }
+
+    @Bean
+    public Docket client() {
+        return new Docket(DocumentationType.SWAGGER_2)
+                .apiInfo(apiInfo())
+                .groupName("客户端")
+                .select()
+                .apis(RequestHandlerSelectors.basePackage("com.upc.modular.client.controller"))
+                .paths(PathSelectors.any())
+                .build();
+    }
 }

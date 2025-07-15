@@ -2,17 +2,6 @@ server:
   port: 8080
 
 spring:
-  application:
-    name: SmartTextBook
-  servlet:
-    multipart:
-      enabled: true
-      max-file-size: 100MB
-      max-request-size: 200MB
-  mvc:
-    pathmatch:
-      matching-strategy: ant_path_matcher # 确保使用 AntPathMatcher 进行路径匹配
-
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.kingbase8.Driver
@@ -43,6 +32,7 @@ spring:
       pool-prepared-statements: true
       max-pool-prepared-statement-per-connection-size: 20
       # ====== 结束 Druid 连接池配置 ======
+
   redis:
     database: 0
     host: 172.19.162.132

@@ -1,0 +1,34 @@
+server:
+  port: 12431
+spring:
+  datasource:
+    # sqlite数据源
+    # jdbc 连接基础配置
+    # 指定数据库文件地址,一个文件相当于一个数据库,目录必须存在,文件不存在时会自动新建;SQLite不需要配置账号与密码;
+    url: jdbc:sqlite:${db.path}
+    #url: jdbc:sqlite:${user.home}\test_pm.db # ${user.home} 表示用户的根目录，如 C:\Users\用户名
+    driver-class-name: org.sqlite.JDBC
+
+  redis:
+    database: 0
+    host: 172.19.162.132
+    password: c505123
+    port: 6379
+    timeout: 10000
+    lettuce:
+      pool:
+        max-active: 8
+        max-wait: -1
+        max-idle: 8
+        min-idle: 0
+
+  jackson:
+    default-property-inclusion: non_null # JSON处理时忽略非空字段
+mybatis-plus:
+  type-aliases-package: com.upc.entity # 别名扫描包
+logging:
+  level:
+    com.upc:
+
+files:
+  path: D:\workspace\Files

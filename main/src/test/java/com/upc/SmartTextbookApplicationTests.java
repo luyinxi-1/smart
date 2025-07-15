@@ -3,6 +3,9 @@ package com.upc;
 import com.aspose.words.Document;
 import com.aspose.words.SaveFormat;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.upc.modular.client.entity.User;
+import com.upc.modular.client.mapper.UserMapper;
+import com.upc.modular.client.service.IUserService;
 import com.upc.modular.common.WordConversionPageService;
 import com.upc.modular.common.WordConversionService;
 import com.upc.modular.student.entity.Student;
@@ -10,6 +13,7 @@ import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Entities;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,6 +34,16 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 class SmartTextbookApplicationTests {
+//    @BeforeAll
+//    public static void init() {
+////        System.out.println("当前 db.path：" + System.getProperty("db.path"));
+//        System.setProperty("db.path", "C:\\Users\\Administrator\\.SmartTextbook\\client.db");
+////        System.out.println("当前 db.path：" + System.getProperty("db.path"));
+//    }
+
+    @Autowired
+    private IUserService userService;
+
 
 //    @Autowired
 //    private RedisTemplate redisTemplate;
@@ -212,5 +226,9 @@ class SmartTextbookApplicationTests {
 //        return doc.html();
 //    }
 
+    @Test
+    public void test03() {
+        System.out.println(userService.list());
+    }
 
 }
