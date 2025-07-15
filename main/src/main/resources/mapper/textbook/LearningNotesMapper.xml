@@ -69,7 +69,7 @@
                 AND ln.add_datetime &lt;= #{param.endTime}
             </if>
             <if test="id != null">
-                AND ln.creator = #{id}
+                AND ln.user_id = #{id}
             </if>
         </where>
         ORDER BY ln.add_datetime
