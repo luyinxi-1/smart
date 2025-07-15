@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -134,7 +135,8 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
                     .collect(Collectors.toList());
 
             StringBuilder htmlBuilder = new StringBuilder();
-            htmlBuilder.append("<html><head><meta charset='UTF-8'></head><body>");
+            String h5HeadCode = textbook.getH5HeadCode();
+            htmlBuilder.append(h5HeadCode);
             for (String fragment : htmlFragments) {
                 htmlBuilder.append(fragment).append("\n");
             }
