@@ -10,6 +10,8 @@ import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * <p>
  *  前端控制器
@@ -36,5 +38,11 @@ public class LearningAnnotationsAndLabelsController {
     @PutMapping("/saveOrUpdateLabels")
     public R<Boolean> saveOrUpdateLabels(@RequestBody LearningAnnotationsAndLabels param) {
         return R.ok(learningAnnotationsAndLabelsService.saveOrUpdateLabels(param));
+    }
+
+    @ApiOperation(value = "查询批注和标注")
+    @PostMapping("/selectLabels")
+    public R<List<LearningAnnotationsAndLabels>> selectLabels(@RequestParam("textbokkId") Long textbookId) {
+        return R.ok(learningAnnotationsAndLabelsService.selectLabels(textbookId));
     }
 }

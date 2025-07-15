@@ -3,7 +3,7 @@ package com.upc.modular.textbook.service;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
 import com.baomidou.mybatisplus.extension.service.IService;
-
+import java.util.List;
 /**
  * <p>
  *  服务类
@@ -16,4 +16,6 @@ public interface ILearningAnnotationsAndLabelsService extends IService<LearningA
     Boolean batchDetele(IdParam idParam);
 
     Boolean saveOrUpdateLabels(LearningAnnotationsAndLabels param);
+
+    List<LearningAnnotationsAndLabels> selectLabels(Long textbookId);
 }

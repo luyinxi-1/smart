@@ -56,4 +56,15 @@ public class LearningAnnotationsAndLabelsServiceImpl extends ServiceImpl<Learnin
         result.setContent(param.getContent());
         return this.updateById(result);
     }
+
+    @Override
+    public List<LearningAnnotationsAndLabels> selectLabels(Long textbookId) {
+        if (ObjectUtils.isEmpty(textbookId) || ObjectUtils.isEmpty(UserUtils.get().getId())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参不能为空");
+        }
+        MyLambdaQueryWrapper<LearningAnnotationsAndLabels> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(LearningAnnotationsAndLabels::getTextbookId, textbookId);
+        lambdaQueryWrapper.eq(LearningAnnotationsAndLabels::getCreator, UserUtils.get().getId());
+        return learningAnnotationsAndLabelsMapper.selectList(lambdaQueryWrapper);
+    }
 }
