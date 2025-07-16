@@ -68,4 +68,10 @@ public class TextbookController {
     public R<List<Textbook>> getNewTextbook(@RequestParam("getNumber") int getNumber) {
         return R.ok(textbookService.getNewTextbook(getNumber));
     }
+
+    @ApiOperation(value = "查询单本教材详情")
+    @PostMapping("/getOneTextbookDetails")
+    public R<TextbookPageReturnParam> getOneTextbookDetails(@RequestParam("textbookId") Long textbookId) {
+        return R.ok(textbookService.getOneTextbookDetails(textbookId));
+    }
 }

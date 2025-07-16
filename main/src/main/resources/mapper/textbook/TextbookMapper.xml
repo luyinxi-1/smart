@@ -70,6 +70,30 @@
         </choose>
 
     </select>
-
-
+    <select id="getOneTextbookDetails" resultType="com.upc.modular.textbook.param.TextbookPageReturnParam"
+            parameterType="java.lang.Long">
+        SELECT
+        t.id,
+        t.textbook_name,
+        t.type,
+        t.textbook_publishing_house,
+        t.textbook_publishing_time,
+        t.textbook_version,
+        t.release_status,
+        t.review_status,
+        t.creator,
+        t.add_datetime,
+        t.operator,
+        t.operation_datetime,
+        a.name AS textbook_author_name,
+        d.dict_item_name AS type_name
+        FROM textbook t
+        LEFT JOIN teacher a ON t.textbook_author_id = a.id
+        LEFT JOIN sys_dict_item d ON t.type = d.id
+        <where>
+            <if test="textbookId != null">
+                AND t.id = #{param.textbookName}
+            </if>
+        </where>
+    </select>
 </mapper>

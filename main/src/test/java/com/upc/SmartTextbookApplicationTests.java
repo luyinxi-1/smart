@@ -41,8 +41,8 @@ class SmartTextbookApplicationTests {
 ////        System.out.println("当前 db.path：" + System.getProperty("db.path"));
 //    }
 
-    @Autowired
-    private IUserService userService;
+//    @Autowired
+//    private IUserService userService;
 
 
 //    @Autowired
@@ -225,10 +225,10 @@ class SmartTextbookApplicationTests {
 //        doc.outputSettings(new org.jsoup.nodes.Document.OutputSettings().syntax(org.jsoup.nodes.Document.OutputSettings.Syntax.html).escapeMode(Entities.EscapeMode.xhtml));
 //        return doc.html();
 //    }
-
-    @Test
-    public void test03() {
-        System.out.println(userService.list());
-    }
+//
+//    @Test
+//    public void test03() {
+//        System.out.println(userService.list());
+//    }
 
 }

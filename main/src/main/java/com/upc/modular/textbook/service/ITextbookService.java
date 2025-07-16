@@ -26,4 +26,6 @@ public interface ITextbookService extends IService<Textbook> {
     Page<TextbookPageReturnParam> getPage(TextbookPageSearchParam param);
 
     List<Textbook> getNewTextbook(int getNumber);
+
+    TextbookPageReturnParam getOneTextbookDetails(Long textbookId);
 }

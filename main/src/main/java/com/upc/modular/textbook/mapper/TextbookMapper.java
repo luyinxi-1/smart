@@ -20,4 +20,6 @@ import org.apache.ibatis.annotations.Param;
 public interface TextbookMapper extends BaseMapper<Textbook> {
 
     Page<TextbookPageReturnParam> selectTextbookPage(@Param("page") Page<TextbookPageReturnParam> page, @Param("param")TextbookPageSearchParam param);
+
+    TextbookPageReturnParam getOneTextbookDetails(Long textbookId);
 }

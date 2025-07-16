@@ -84,4 +84,9 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                 .last("LIMIT " + getNumber);
         return textbookMapper.selectList(lambdaQueryWrapper);
     }
+
+    @Override
+    public TextbookPageReturnParam getOneTextbookDetails(Long textbookId) {
+        return textbookMapper.getOneTextbookDetails(textbookId);
+    }
 }
