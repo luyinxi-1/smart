@@ -201,7 +201,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             outStream.writeTo(responseOutputStream);
             responseOutputStream.flush();
         } catch (Exception e) {
-            System.err.println("❌ HTML导出Word出错！");
+            System.err.println("HTML导出Word出错！");
             e.printStackTrace();
             throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "HTML导出Word失败");
         }

@@ -1,6 +1,8 @@
 package com.upc.modular.common;
 
 import com.aspose.words.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
@@ -13,6 +15,9 @@ import java.nio.file.Files;
  */
 @Component
 public class WordConversionPageService {
+
+    @Value("${files.path}")
+    private String basePath;
 
     /**
      * 按页转换 Word ⭢ HTML 并拼接输出为一个 HTML 文件
@@ -41,8 +46,8 @@ public class WordConversionPageService {
                 options.setExportImagesAsBase64(false);
                 options.setExportFontsAsBase64(true);
                 options.setOfficeMathOutputMode(HtmlOfficeMathOutputMode.IMAGE);
-                options.setImagesFolder("D:\\workspace\\Files\\wordtohtml");
-                options.setImagesFolderAlias("D:\\workspace\\Files\\wordtohtml");
+                options.setImagesFolder(basePath);
+                options.setImagesFolderAlias(basePath);
 
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 pageDoc.save(out, options);
@@ -61,10 +66,10 @@ public class WordConversionPageService {
             outFile.getParentFile().mkdirs();
             Files.write(outFile.toPath(), htmlBuilder.toString().getBytes(StandardCharsets.UTF_8));
 
-            System.out.println("✅ Paged HTML conversion completed!");
+            System.out.println("Paged HTML conversion completed!");
             System.out.println("Output saved at: " + outputHtmlPath);
         } catch (Exception e) {
-            System.err.println("❌ Conversion failed!");
+            System.err.println("Conversion failed!");
             e.printStackTrace();
         }
     }

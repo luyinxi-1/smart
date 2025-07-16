@@ -13,13 +13,13 @@ public class AsposeLicenseConfig {
     public void setLicense() {
         try {
             // 许可证文件名，确保它在 src/main/resources 目录下
-            String licenseFile = "Aspose.Words.Java.lic";
+            String licenseFile = "";
 
             // 从类路径加载许可证文件流
             InputStream licenseStream = AsposeLicenseConfig.class.getClassLoader().getResourceAsStream(licenseFile);
 
             if (licenseStream == null) {
-                System.err.println("!!! Cannot find license file " + licenseFile + ". Aspose.Words will run in evaluation mode.");
+                // System.err.println("!!! Cannot find license file " + licenseFile + ". Aspose.Words will run in evaluation mode.");
                 return;
             }
 

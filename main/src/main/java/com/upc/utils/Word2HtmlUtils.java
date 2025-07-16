@@ -4,6 +4,7 @@ import com.aspose.words.Document;
 import com.aspose.words.HtmlOfficeMathOutputMode;
 import com.aspose.words.HtmlSaveOptions;
 import com.aspose.words.SaveFormat;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
@@ -30,6 +31,9 @@ import java.util.Objects;
  * Aspose.Words 为商业依赖，请自行通过 Maven/Gradle 引入。
  */
 public final class Word2HtmlUtils {
+
+    @Value("${files.path}")
+    private static String basePath;
 
     private Word2HtmlUtils() {}
 
@@ -72,7 +76,7 @@ public final class Word2HtmlUtils {
             Document doc = new Document(in);
             HtmlSaveOptions opt = buildHtmlSaveOptions();
             doc.save(out, opt);
-            return new String(out.toByteArray(), StandardCharsets.UTF_8); // Java 8 兼容
+            return new String(out.toByteArray(), StandardCharsets.UTF_8);
         }
     }
 
@@ -131,8 +135,8 @@ public final class Word2HtmlUtils {
 //        opt.setExportImagesAsBase64(true);
 //        opt.setExportFontsAsBase64(true);
         opt.setExportImagesAsBase64(false);
-        opt.setImagesFolder("D:\\Code\\img");               // 实际磁盘文件夹
-        opt.setImagesFolderAlias("D:\\Code\\img");          // HTML 内部引用路径
+        opt.setImagesFolder(basePath);               // 实际磁盘文件夹
+        opt.setImagesFolderAlias(basePath);          // HTML 内部引用路径
         opt.setPrettyFormat(true);
         return opt;
     }
