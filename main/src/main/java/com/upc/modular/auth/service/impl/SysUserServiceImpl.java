@@ -139,5 +139,13 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
         return allSubInstitutionIds.contains(institutionId);
     }
 
+    @Override
+    public Boolean insert(SysTbuser sysTbuser) {
+        if (ObjectUtils.isEmpty(sysTbuser) || ObjectUtils.isEmpty(sysTbuser.getPassword()) || ObjectUtils.isEmpty(sysTbuser.getUsername())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+        return this.save(sysTbuser);
+    }
+
 
 }

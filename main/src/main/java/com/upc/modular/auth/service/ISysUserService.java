@@ -33,4 +33,6 @@ public interface ISysUserService extends IService<SysTbuser> {
     Page<SysTbuser> getPage(SysUserPageSearchParam param);
 
     Boolean getUserIsInInstitution(GetUserIsInInstitutionParam param);
+
+    Boolean insert(SysTbuser sysTbuser);
 }

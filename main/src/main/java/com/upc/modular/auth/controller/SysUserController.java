@@ -73,4 +73,11 @@ public class SysUserController {
         return R.ok(result);
     }
 
+    @ApiOperation(value = "新增用户")
+    @PostMapping("/insert")
+    public R<Boolean> insert(@RequestBody SysTbuser sysTbuser) {
+        return R.ok(sysUserService.insert(sysTbuser));
+    }
+
+
 }
