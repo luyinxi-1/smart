@@ -34,7 +34,7 @@ public class LearningAnnotationsAndLabelsController {
         return R.ok(learningAnnotationsAndLabelsService.batchDetele(idParam));
     }
 
-    @ApiOperation(value = "修改学习标注和批注")
+    @ApiOperation(value = "新增或修改学习标注和批注")
     @PutMapping("/saveOrUpdateLabels")
     public R<Boolean> saveOrUpdateLabels(@RequestBody LearningAnnotationsAndLabels param) {
         return R.ok(learningAnnotationsAndLabelsService.saveOrUpdateLabels(param));
