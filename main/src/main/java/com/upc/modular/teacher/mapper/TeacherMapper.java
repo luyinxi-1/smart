@@ -1,6 +1,8 @@
 package com.upc.modular.teacher.mapper;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.modular.teacher.dto.PendingReviewReturnVO;
+import com.upc.modular.teacher.dto.PendingReviewSearchParam;
 import com.upc.modular.teacher.dto.TeacherPageSearchDto;
 import com.upc.modular.teacher.entity.Teacher;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
@@ -22,4 +24,6 @@ public interface TeacherMapper extends BaseMapper<Teacher> {
     Page<TeacherReturnVo> selectTeacherWithInstitution(@Param("page") Page<TeacherReturnVo> page, @Param("param") TeacherPageSearchDto param);
 
     Long getInstitutionIdByTeacherId(@Param("teacherId") Long teacherId);
+
+    Page<PendingReviewReturnVO> selectPendingReviewPage(Page<PendingReviewReturnVO> page, @Param("param") PendingReviewSearchParam param);
 }

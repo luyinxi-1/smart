@@ -77,5 +77,39 @@
     </select>
 
 
+    <select id="selectPendingReviewPage" resultType="com.upc.modular.teacher.dto.PendingReviewReturnVO">
+        SELECT
+        ser.id AS recordId,
+        ser.teaching_question_bank_id AS bankId,
+        tqb.name AS bankName,
+        ser.student_id AS studentId,
+        s.name AS studentName,
+        ser.add_datetime AS submitTime,
+        ser.exercise_num AS exerciseNum
+        FROM
+        student_exercises_record ser
+        LEFT JOIN
+        teaching_question_bank tqb ON ser.teaching_question_bank_id = tqb.id
+        LEFT JOIN
+        student s ON ser.student_id = s.id
+        <where>
+            ser.status = 1
+            <if test="param.bankName != null and param.bankName != ''">
+                AND tqb.name LIKE CONCAT('%', #{param.bankName}, '%')
+            </if>
+            <if test="param.studentName != null and param.studentName != ''">
+                AND s.name LIKE CONCAT('%', #{param.studentName}, '%')
+            </if>
+            <if test="param.bankId != null">
+                AND ser.teaching_question_bank_id = #{param.bankId}
+            </if>
+        </where>
+        ORDER BY
+        ser.add_datetime
+        <choose>
+            <when test="param.isAsc == 1">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+    </select>
 
 </mapper>

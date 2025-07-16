@@ -4,12 +4,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
-import com.upc.modular.teacher.dto.GetTeacherIsInInstitutionParam;
-import com.upc.modular.teacher.dto.TeacherGenerateDto;
-import com.upc.modular.teacher.dto.TeacherInsertDto;
+import com.upc.modular.teacher.dto.*;
 import com.upc.modular.teacher.vo.GenerateUserResultVo;
 import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
-import com.upc.modular.teacher.dto.TeacherPageSearchDto;
 import com.upc.modular.teacher.entity.Teacher;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.teacher.vo.TeacherReturnVo;
@@ -44,4 +41,8 @@ public interface ITeacherService extends IService<Teacher> {
     Boolean updateTeacher(Teacher teacher);
 
     Boolean getTeacherIsInInstitution(GetTeacherIsInInstitutionParam param);
+
+    void gradeSubjectiveQuestion(GradeSubjectiveRequest request);
+
+    Page<PendingReviewReturnVO> selectPendingReviewPage(PendingReviewSearchParam param);
 }

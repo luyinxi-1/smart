@@ -13,9 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -46,6 +45,9 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
 
     @Autowired
     private StudentMapper studentMapper;
+
+    @Autowired
+    private StudentFinalGradeMapper studentFinalGradeMapper;
 
     @Override
     @Transactional // 保证整个提交和判卷过程是原子性的
@@ -142,6 +144,9 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
                 case 1: // --- 单选题 ---
                     if (correctAnswer.equalsIgnoreCase(studentAnswer)) {  //.equalsIgnoreCase() 是 Java 中 String 类的一个方法，用于比较两个字符串的内容是否相同，同时忽略大小写差异
                         score = fullScore;
+                        content.setResult("单选题正确");
+                    }else{
+                        content.setResult("单选题错误");
                     }
                     break;
 
@@ -159,20 +164,27 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
                     // 2. 判断是否完全正确
                     if (studentChoices.equals(correctChoices)) {
                         score = fullScore; // 完全一致，得满分
+                        content.setResult("多选题题全对");
                     }
                     // 3. 判断是否漏选（学生答案是正确答案的子集）
                     else if (!studentChoices.isEmpty() && correctChoices.containsAll(studentChoices)) {
                         // containAll(A) 检查 B 是否包含 A 的所有元素
                         // 这里我们判断 正确答案列表 是否包含 学生答案列表 的所有元素
                         score = (int) Math.ceil(fullScore / 2.0); // 漏选，得一半分,向上取整
+                        content.setResult("多选题漏选");
+                    }else{
+                        // 4. 其他情况（错选、多选）均为0分，score 默认就是0
+                        content.setResult("多选题错选或多选");
                     }
-                    // 4. 其他情况（错选、多选）均为0分，score 默认就是0
                     break;
 
                 case 3: // --- 判断题 ---
                     // 假设答案格式为 "true" / "false" 或 "1" / "0"
                     if (correctAnswer.equalsIgnoreCase(studentAnswer)) {
                         score = fullScore;
+                        content.setResult("判断题正确");
+                    }else{
+                        content.setResult("判断题错误");
                     }
                     break;
 
@@ -230,7 +242,76 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
 
             // --- 流程 4: 触发最终成绩策略计算 (可以调用另一个Service) ---
             // calculateFinalScoreService.calculate(userId, bankId);
+            this.calculateAndUpdateFinalGrade(recordId);
         }
         // 如果有主观题，答卷状态保持为1-待批改，等待教师判卷
+    }
+
+
+    @Override
+    @Transactional
+    public void calculateAndUpdateFinalGrade(Long recordId) {
+        // 1. 获取刚刚完成的这份答卷的完整信息
+        StudentExercisesRecord completedRecord = studentExercisesRecordMapper.selectById(recordId);
+        if (completedRecord == null || completedRecord.getStatus() != 2) {
+            // 如果答卷不存在或状态不是“已完成”，则不进行计算
+            return;
+        }
+        Long studentId = completedRecord.getStudentId();
+        Long bankId = completedRecord.getTeachingQuestionBankId();
+
+        // 2. 获取题库的成绩策略
+        TeachingQuestionBank bank = teachingQuestionBankMapper.selectById(bankId);
+        if (bank == null || bank.getScorePolicy() == null) {
+            return;
+        }
+
+        // 3. 查询该学生在该题库下所有“已完成”的答卷记录
+        LambdaQueryWrapper<StudentExercisesRecord> qw = new LambdaQueryWrapper<>();
+        qw.eq(StudentExercisesRecord::getStudentId, studentId)
+                .eq(StudentExercisesRecord::getTeachingQuestionBankId, bankId)
+                .eq(StudentExercisesRecord::getStatus, 2)
+                .isNotNull(StudentExercisesRecord::getScore);
+
+        List<StudentExercisesRecord> allCompletedRecords = studentExercisesRecordMapper.selectList(qw);
+        if (allCompletedRecords.isEmpty()) {
+            return;
+        }
+
+        // 4. 根据策略找出最终有效的答卷记录
+        Optional<StudentExercisesRecord> finalRecordOptional;
+        // 假设 0:最高分, 1:最后一次
+        if (bank.getScorePolicy() == 0) {
+            finalRecordOptional = allCompletedRecords.stream()
+                    .max(Comparator.comparing(StudentExercisesRecord::getScore));
+        } else {
+            finalRecordOptional = allCompletedRecords.stream()
+                    .max(Comparator.comparing(StudentExercisesRecord::getAddDatetime));
+        }
+
+        // 5. 更新或插入最终成绩表
+        if (finalRecordOptional.isPresent()) {
+            StudentExercisesRecord finalRecord = finalRecordOptional.get();
+
+            StudentFinalGrade finalGrade = new StudentFinalGrade();
+            finalGrade.setStudentId(studentId);
+            finalGrade.setBankId(bankId);
+            finalGrade.setFinalScore(finalRecord.getScore());
+            finalGrade.setRecordId(finalRecord.getId());
+            finalGrade.setUpdateTime(LocalDateTime.now());
+
+            // 采用 "UPSERT" 逻辑
+            LambdaQueryWrapper<StudentFinalGrade> queryFinalGrade = new LambdaQueryWrapper<>();
+            queryFinalGrade.eq(StudentFinalGrade::getStudentId, studentId)
+                    .eq(StudentFinalGrade::getBankId, bankId);
+
+            if (studentFinalGradeMapper.selectCount(queryFinalGrade) > 0) {
+                // 已存在，更新
+                studentFinalGradeMapper.update(finalGrade, queryFinalGrade);
+            } else {
+                // 不存在，插入
+                studentFinalGradeMapper.insert(finalGrade);
+            }
+        }
     }
 }

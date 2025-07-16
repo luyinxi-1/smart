@@ -41,8 +41,8 @@ public class QuestionsBanksList implements Serializable {
     private Long bankId;
 
     @ApiModelProperty("顺序")
-    @TableField("order")
-    private Integer order;
+    @TableField("sequence")
+    private Integer sequence;
 
     @ApiModelProperty("每道题目分值")
     @TableField("score")

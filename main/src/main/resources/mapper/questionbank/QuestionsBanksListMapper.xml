@@ -7,7 +7,7 @@
         <id column="id" property="id" />
         <result column="question_id" property="questionId" />
         <result column="bank_id" property="bankId" />
-        <result column="order" property="order" />
+        <result column="sequence" property="sequence" />
         <result column="score" property="score" />
     </resultMap>
 

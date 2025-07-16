@@ -16,7 +16,7 @@ public class CodeGenerator {
 
 //        表名
         String[] tables = {
-                "user"
+                "home_page_promotion","home_page_notice"
         };
 
         new CodeGeneratorConfig(author, moduleName, tables).generate();

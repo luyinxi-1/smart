@@ -15,4 +15,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 public interface IStudentExercisesRecordService extends IService<StudentExercisesRecord> {
 
     Long submitAnswers(Long userId, SubmitAnswerRequest request);
+
+    void calculateAndUpdateFinalGrade(Long recordId);
 }
