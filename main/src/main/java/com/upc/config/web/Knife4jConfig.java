@@ -240,4 +240,15 @@ public class Knife4jConfig implements WebMvcConfigurer { // 实现 WebMvcConfigu
                 .paths(PathSelectors.any())
                 .build();
     }
+
+    @Bean
+    public Docket Kg() {
+        return new Docket(DocumentationType.SWAGGER_2)
+                .apiInfo(apiInfo())
+                .groupName("知识图谱")
+                .select()
+                .apis(RequestHandlerSelectors.basePackage("com.upc.modular.knowledgegraph.controller"))
+                .paths(PathSelectors.any())
+                .build();
+    }
 }
