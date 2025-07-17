@@ -16,9 +16,9 @@ import java.util.List;
  */
 public interface IKgNodeService extends IService<KgNode> {
 
-    void updatekgNodeById(KgNode kgEdge);
+    void updateKgNodeById(KgNode kgEdge);
 
-    void deletekgEdgeById(Long id);
+    void deleteKgNodeById(Long id);
 
-    List<KgNode> getkgNodeByConditions(KgNodeSearchParam param);
+    List<KgNode> getKgNodeByConditions(KgNodeSearchParam param);
 }
