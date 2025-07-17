@@ -31,9 +31,15 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
+import com.upc.common.utils.FileManageUtil;
 
 @SpringBootTest
 class SmartTextbookApplicationTests {
+
+    @Test
+    void test01() {
+
+    }
 //    @BeforeAll
 //    public static void init() {
 ////        System.out.println("当前 db.path：" + System.getProperty("db.path"));
