@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.knowledgegraph.mapper.KgEdgeMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.upc.modular.knowledgegraph.entity.KgEdge">
+        <id column="id" property="id" />
+        <result column="source_node_id" property="sourceNodeId" />
+        <result column="target_node_id" property="targetNodeId" />
+        <result column="relation_type" property="relationType" />
+        <result column="properties" property="properties" />
+        <result column="creator" property="creator" />
+        <result column="add_datetime" property="addDatetime" />
+        <result column="operator" property="operator" />
+        <result column="operation_datetime" property="operationDatetime" />
+    </resultMap>
+
+</mapper>

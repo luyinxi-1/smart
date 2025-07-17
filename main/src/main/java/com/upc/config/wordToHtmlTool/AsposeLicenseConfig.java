@@ -13,7 +13,7 @@ public class AsposeLicenseConfig {
     public void setLicense() {
         try {
             // 许可证文件名，确保它在 src/main/resources 目录下
-            String licenseFile = "";
+            String licenseFile = "Aspose.Words.Java.lic";
 
             // 从类路径加载许可证文件流
             InputStream licenseStream = AsposeLicenseConfig.class.getClassLoader().getResourceAsStream(licenseFile);
