@@ -10,7 +10,7 @@
         <result column="description" property="description" />
         <result column="author_id" property="authorId" />
         <result column="file_path" property="filePath" />
-        <result column="qrcode_type" property="qrcodeType" />
+        <result column="qrcode_type" property="qrcodePath" />
         <result column="file_size" property="fileSize" />
         <result column="add_datetime" property="addDatetime" />
     </resultMap>
