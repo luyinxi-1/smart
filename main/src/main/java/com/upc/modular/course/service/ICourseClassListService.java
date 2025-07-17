@@ -3,6 +3,7 @@ package com.upc.modular.course.service;
 import com.upc.modular.course.controller.param.ClassInfoReturnParam;
 import com.upc.modular.course.entity.CourseClassList;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.course.entity.CourseTextbookList;
 
 import java.util.List;
 

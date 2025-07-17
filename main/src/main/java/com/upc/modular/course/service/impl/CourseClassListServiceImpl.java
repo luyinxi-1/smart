@@ -2,11 +2,13 @@ package com.upc.modular.course.service.impl;
 
 import com.alibaba.excel.util.CollectionUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.upc.common.utils.UserUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.course.controller.param.ClassInfoReturnParam;
 import com.upc.modular.course.entity.CourseClassList;
+import com.upc.modular.course.entity.CourseTextbookList;
 import com.upc.modular.course.mapper.CourseClassListMapper;
 import com.upc.modular.course.service.ICourseClassListService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;

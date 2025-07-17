@@ -5,6 +5,7 @@ import com.upc.common.responseparam.R;
 import com.upc.modular.datastatistics.controller.param.OfflineReadingLogParam;
 import com.upc.modular.datastatistics.controller.param.SyncReceiptDTO;
 import com.upc.modular.datastatistics.service.IStudentReadingLogService;
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,6 +26,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/student-reading-log")
+@Api(tags = "学生阅读记录")
 public class StudentReadingLogController {
     @Autowired
     IStudentReadingLogService studentReadingLogService;

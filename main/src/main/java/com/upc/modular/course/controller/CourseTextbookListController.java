@@ -1,9 +1,18 @@
 package com.upc.modular.course.controller;
 
 
-import org.springframework.web.bind.annotation.RequestMapping;
+import com.upc.common.responseparam.R;
+import com.upc.modular.course.controller.param.CourseTextbookListReturnParam;
+import com.upc.modular.course.controller.param.CourseTextbookListSearchParam;
+import com.upc.modular.course.entity.CourseTextbookList;
+import com.upc.modular.course.service.ICourseClassListService;
+import com.upc.modular.course.service.ICourseTextbookListService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 
-import org.springframework.web.bind.annotation.RestController;
+import java.util.List;
 
 /**
  * <p>
@@ -15,6 +24,32 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/course-textbook-list")
+@Api(tags = "课程教材关联")
 public class CourseTextbookListController {
+    @Autowired
+    private ICourseTextbookListService courseTextbookListService;
 
+    @ApiOperation(value = "新增课程教材关联")
+    @PostMapping("/insert")
+    public R<Boolean> insert(@RequestBody CourseTextbookList courseTextbookList) {
+        return R.ok(courseTextbookListService.insert(courseTextbookList));
+    }
+
+    @ApiOperation(value = "删除教材课程关联")
+    @DeleteMapping("/batchDelete")
+    public R<Boolean> batchDelete(@RequestParam("idList") List<Long> idList) {
+        return R.ok(courseTextbookListService.batchDelete(idList));
+    }
+
+    @ApiOperation(value = "更新教材课程关联")
+    @PutMapping("/updateCourseTextbook")
+    public R<Boolean> updateCourseTextbook(@RequestBody CourseTextbookList courseTextbookList) {
+        return R.ok(courseTextbookListService.updateCourseTextbook(courseTextbookList));
+    }
+
+    @ApiOperation(value = "查询教材课程绑定关系")
+    @PostMapping("/selectCourseTextbookList")
+    public R<List<CourseTextbookListReturnParam>> selectCourseTextbookList(@RequestBody CourseTextbookListSearchParam param) {
+        return R.ok(courseTextbookListService.selectCourseTextbookList(param));
+    }
 }
