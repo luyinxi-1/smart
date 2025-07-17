@@ -33,17 +33,17 @@ public class SysDictType implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
-    @ApiModelProperty("字典编码（唯一）")
-    @TableField("dict_type_code")
-    private String dictTypeCode;
+    @ApiModelProperty("字典类型")
+    @TableField("dict_type")
+    private String dictType;
 
     @ApiModelProperty("字典名称")
-    @TableField("dict_type_name")
-    private String dictTypeName;
+    @TableField("dict_type")
+    private String dictName;
 
-    @ApiModelProperty("字典类型说明")
-    @TableField("description")
-    private String description;
+    @ApiModelProperty("备注")
+    @TableField("remark")
+    private String remark;
 
     @ApiModelProperty("状态")
     @TableField("status")

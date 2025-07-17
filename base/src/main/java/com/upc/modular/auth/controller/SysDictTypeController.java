@@ -35,7 +35,7 @@ public class SysDictTypeController {
     @PostMapping("/insert")
     public R insert(@RequestBody SysDictType param) {
         if ("0".equals(dictTypeService.checkDictTypeUnique(param))) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "新增字典'" + param.getDictTypeName() + "'失败，字典类型已存在");
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "新增字典'" + param.getDictName() + "'失败，字典类型已存在");
         }
         boolean save = dictTypeService.save(param);
         if (save) {

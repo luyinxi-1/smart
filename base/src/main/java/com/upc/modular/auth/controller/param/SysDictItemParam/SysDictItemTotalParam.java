@@ -1,6 +1,6 @@
 package com.upc.modular.auth.controller.param.SysDictItemParam;
 
-import com.upc.modular.auth.entity.SysDictItem;
+import com.upc.modular.auth.entity.SysDictData;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
@@ -13,5 +13,5 @@ public class SysDictItemTotalParam {
     private Integer totalNum;
 
     @ApiModelProperty("字段数据列表")
-    private List<SysDictItem> sysDictDataList;
+    private List<SysDictData> sysDictDataList;
 }
