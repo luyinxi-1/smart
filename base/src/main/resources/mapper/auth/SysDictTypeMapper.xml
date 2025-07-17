@@ -5,9 +5,9 @@
     <!-- 通用查询映射结果 -->
     <resultMap id="BaseResultMap" type="com.upc.modular.auth.entity.SysDictType">
         <id column="id" property="id" />
-        <result column="dict_type_code" property="dictTypeCode" />
-        <result column="dict_type_name" property="dictTypeName" />
-        <result column="description" property="description" />
+        <result column="dict_type_code" property="dictType" />
+        <result column="dict_type_name" property="dictName" />
+        <result column="description" property="remark" />
         <result column="status" property="status" />
         <result column="creator" property="creator" />
         <result column="add_datetime" property="addDatetime" />
@@ -18,7 +18,7 @@
             resultType="com.upc.modular.auth.entity.SysDictType">
         SELECT *
         FROM sys_dict_type
-        WHERE dict_type_name = #{dictTypeName}
+        WHERE dict_name = #{dictTypeName}
         LIMIT 1
     </select>
 

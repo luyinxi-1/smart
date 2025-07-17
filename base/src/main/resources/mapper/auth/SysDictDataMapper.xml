@@ -3,7 +3,7 @@
 <mapper namespace="com.upc.modular.auth.mapper.SysDictItemMapper">
 
     <!-- 通用查询映射结果 -->
-    <resultMap id="BaseResultMap" type="com.upc.modular.auth.entity.SysDictItem">
+    <resultMap id="BaseResultMap" type="com.upc.modular.auth.entity.SysDictData">
         <id column="id" property="id" />
         <result column="dict_type_code" property="dictTypeCode" />
         <result column="dict_item_value" property="dictItemValue" />

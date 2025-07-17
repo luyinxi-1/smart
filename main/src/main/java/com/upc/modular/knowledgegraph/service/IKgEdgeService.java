@@ -2,6 +2,9 @@ package com.upc.modular.knowledgegraph.service;
 
 import com.upc.modular.knowledgegraph.entity.KgEdge;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.knowledgegraph.param.KgEdgeSearchParam;
+
+import java.util.List;
 
 /**
  * <p>
@@ -13,4 +16,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IKgEdgeService extends IService<KgEdge> {
 
+    void insertKgEdge(KgEdge kgEdge);
+
+    void deleteKgEdgeById(Long id);
+
+    List<KgEdge> getKgEdgeByConditions(KgEdgeSearchParam param);
 }

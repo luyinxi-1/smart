@@ -12,5 +12,21 @@
         <result column="operator" property="operator" />
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
+    <select id="selectCourseTextbookList"
+            resultType="com.upc.modular.course.controller.param.CourseTextbookListReturnParam"
+            parameterType="java.lang.Long">
+        SELECT
+        ctl.*,
+        t.textbook_name,
+        c.course_name
+        FROM course_textbook_list ctl
+        LEFT JOIN course c ON ctl.course_id = c.id
+        LEFT JOIN textbook t ON ctl.textbook_id = t.id
+        <where>
+            <if test="courseId != null">
+                AND ctl.course_id = #{courseId}
+            </if>
+        </where>
+    </select>
 
 </mapper>

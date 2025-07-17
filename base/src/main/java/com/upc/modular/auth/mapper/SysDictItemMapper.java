@@ -1,6 +1,6 @@
 package com.upc.modular.auth.mapper;
 
-import com.upc.modular.auth.entity.SysDictItem;
+import com.upc.modular.auth.entity.SysDictData;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -13,6 +13,6 @@ import org.apache.ibatis.annotations.Mapper;
  * @since 2025-06-26
  */
 @Mapper
-public interface SysDictItemMapper extends BaseMapper<SysDictItem> {
+public interface SysDictItemMapper extends BaseMapper<SysDictData> {
 
 }

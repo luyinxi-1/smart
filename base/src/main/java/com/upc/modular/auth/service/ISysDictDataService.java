@@ -4,9 +4,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.auth.controller.param.SysDictItemParam.SysDictItemPageSearchParam;
 import com.upc.modular.auth.controller.param.SysDictItemParam.SysDictItemSearchParam;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
-import com.upc.modular.auth.entity.SysDictItem;
+import com.upc.modular.auth.entity.SysDictData;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.upc.modular.auth.entity.SysDictType;
 
 import java.util.List;
 
@@ -18,13 +17,13 @@ import java.util.List;
  * @author byh
  * @since 2025-06-26
  */
-public interface ISysDictItemService extends IService<SysDictItem> {
+public interface ISysDictDataService extends IService<SysDictData> {
 
-    boolean insertDictItem(SysDictItem dictItem);
+    boolean insertDictItem(SysDictData dictItem);
 
     void deleteDictItemByIds(IdParam idParam);
 
-    Page<SysDictItem> getPage(SysDictItemPageSearchParam param);
+    Page<SysDictData> getPage(SysDictItemPageSearchParam param);
 
-    List<SysDictItem> selectDictDataByDictType(SysDictItemSearchParam param);
+    List<SysDictData> selectDictDataByDictType(SysDictItemSearchParam param);
 }

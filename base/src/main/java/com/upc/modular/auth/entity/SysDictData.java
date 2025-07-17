@@ -7,8 +7,6 @@ import java.time.LocalDateTime;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 
 /**
@@ -21,9 +19,9 @@ import lombok.experimental.Accessors;
  */
 @Data
 @Accessors(chain = true)
-@TableName("sys_dict_item")
+@TableName("sys_dict_data")
 @ApiModel(value = "SysDictItem对象", description = "")
-public class SysDictItem implements Serializable {
+public class SysDictData implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -31,25 +29,41 @@ public class SysDictItem implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
-    @ApiModelProperty("字典类型编码")
-    @TableField("dict_type_code")
-    private String dictTypeCode;
+    @ApiModelProperty("字典类型")
+    @TableField("dict_type")
+    private String dictType;
 
     @ApiModelProperty("字典项值")
-    @TableField("dict_item_value")
-    private String dictItemValue;
+    @TableField("dict_key")
+    private String dictKey;
 
-    @ApiModelProperty("字典项名称")
-    @TableField("dict_item_name")
-    private String dictItemName;
+    @ApiModelProperty("字典标签")
+    @TableField("name")
+    private String name;
 
     @ApiModelProperty("状态")
     @TableField("status")
     private Integer status;
 
-    @ApiModelProperty("顺序")
-    @TableField("item_order")
-    private Integer itemOrder;
+    @ApiModelProperty("是否默认（Y是 N否）")
+    @TableField("is_default")
+    private String isDefault;
+
+    @ApiModelProperty("字典排序")
+    @TableField("dict_sort")
+    private Integer dictSort;
+
+    @ApiModelProperty("图标")
+    @TableField("picture")
+    private String picture;
+
+    @ApiModelProperty("颜色")
+    @TableField("color")
+    private String color;
+
+    @ApiModelProperty("备注")
+    @TableField("remark")
+    private String remark;
 
     @ApiModelProperty("创建人")
     @TableField(value = "creator", fill = FieldFill.INSERT)
