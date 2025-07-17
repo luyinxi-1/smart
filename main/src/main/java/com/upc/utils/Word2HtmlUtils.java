@@ -5,6 +5,7 @@ import com.aspose.words.HtmlOfficeMathOutputMode;
 import com.aspose.words.HtmlSaveOptions;
 import com.aspose.words.SaveFormat;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
@@ -30,10 +31,14 @@ import java.util.Objects;
  * <p>
  * Aspose.Words 为商业依赖，请自行通过 Maven/Gradle 引入。
  */
+@Component
 public final class Word2HtmlUtils {
 
-    @Value("${files.path}")
     private static String basePath;
+    @Value("${files.path}")
+    public void setBasePath(String path) {
+        Word2HtmlUtils.basePath = path;
+    }
 
     private Word2HtmlUtils() {}
 
