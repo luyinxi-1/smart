@@ -26,7 +26,7 @@ import java.util.List;
 public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> implements IKgNodeService {
 
     @Override
-    public void updatekgNodeById(KgNode kgEdge) {
+    public void updateKgNodeById(KgNode kgEdge) {
         if (kgEdge == null || kgEdge.getId() == null || kgEdge.getId() == 0L) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
@@ -35,7 +35,7 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
     }
 
     @Override
-    public void deletekgEdgeById(Long id) {
+    public void deleteKgNodeById(Long id) {
         if(id == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, " ID不能为空");
         }
@@ -43,7 +43,7 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
     }
 
     @Override
-    public List<KgNode> getkgNodeByConditions(KgNodeSearchParam param) {
+    public List<KgNode> getKgNodeByConditions(KgNodeSearchParam param) {
         if ((param.getObjectId() != null && param.getObjectId() != 0L) && (param.getNodeType() == null || "".equals(param.getNodeType()))) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "根据业务表id查询时，节点类型不能为空");
         }

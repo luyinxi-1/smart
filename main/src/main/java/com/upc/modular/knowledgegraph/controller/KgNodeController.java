@@ -4,8 +4,6 @@ package com.upc.modular.knowledgegraph.controller;
 import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
-import com.upc.modular.institution.entity.Institution;
-import com.upc.modular.knowledgegraph.entity.KgEdge;
 import com.upc.modular.knowledgegraph.entity.KgNode;
 import com.upc.modular.knowledgegraph.param.KgNodeSearchParam;
 import com.upc.modular.knowledgegraph.service.IKgNodeService;
@@ -32,26 +30,26 @@ public class KgNodeController {
     @Resource
     private IKgNodeService kgNodeService;
 
-    @ApiOperation(value = "删除机构")
-    @PostMapping("/deletekgEdgeById")
-    public R deletekgEdgeById(@RequestParam Long id) {
-        kgNodeService.deletekgEdgeById(id);
+    @ApiOperation(value = "删除知识节点")
+    @PostMapping("/deleteKgNodeById")
+    public R deleteKgNodeById(@RequestParam Long id) {
+        kgNodeService.deleteKgNodeById(id);
         return R.commonReturn(200, "删除成功", "");
     }
 
     @ApiOperation(value = "创建知识节点")
-    @PostMapping("/insertkgEdge")
-    public R insertkgNode(@RequestBody KgNode kgEdge) {
-        if (kgEdge == null) {
+    @PostMapping("/insertKgEdge")
+    public R insertKgNode(@RequestBody KgNode kgNode) {
+        if (kgNode == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
-        kgNodeService.save(kgEdge);
+        kgNodeService.save(kgNode);
         return R.commonReturn(200, "新增成功", "");
     }
 
-    @ApiOperation(value = "查询机构信息")
-    @PostMapping("/getkgNodeById")
-    public R getkgNodeById(@RequestParam Long id) {
+    @ApiOperation(value = "查询节点信息")
+    @PostMapping("/getKgNodeById")
+    public R getKgNodeById(@RequestParam Long id) {
         if (id == null || id == 0L) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
@@ -60,17 +58,17 @@ public class KgNodeController {
     }
 
     @ApiOperation(value = "修改节点信息")
-    @PostMapping("/updatekgNodeById")
-    public R updatekgNodeById(@RequestBody KgNode kgEdge) {
-        kgNodeService.updatekgNodeById(kgEdge);
+    @PostMapping("/updateKgNodeById")
+    public R updateKgNodeById(@RequestBody KgNode kgEdge) {
+        kgNodeService.updateKgNodeById(kgEdge);
         return R.commonReturn(200, "修改成功", "");
     }
 
 
-    @ApiOperation(value = "按条件查询机构信息")
-    @PostMapping("/getkgNodeByConditions")
-    public R<List<KgNode>> getkgNodeByConditions(@RequestBody KgNodeSearchParam param) {
-        List<KgNode> result = kgNodeService.getkgNodeByConditions(param);
+    @ApiOperation(value = "按条件查询节点信息")
+    @PostMapping("/getKgNodeByConditions")
+    public R<List<KgNode>> getKgNodeByConditions(@RequestBody KgNodeSearchParam param) {
+        List<KgNode> result = kgNodeService.getKgNodeByConditions(param);
         return R.commonReturn(200, "查询成功", result);
     }
 
