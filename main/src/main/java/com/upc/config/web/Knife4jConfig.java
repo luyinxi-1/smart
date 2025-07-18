@@ -242,6 +242,17 @@ public class Knife4jConfig implements WebMvcConfigurer { // 实现 WebMvcConfigu
     }
 
     @Bean
+    public Docket materials() {
+        return new Docket(DocumentationType.SWAGGER_2)
+                .apiInfo(apiInfo())
+                .groupName("教学素材")
+                .select()
+                .apis(RequestHandlerSelectors.basePackage("com.upc.modular.materials.controller"))
+                .paths(PathSelectors.any())
+                .build();
+    }
+
+    @Bean
     public Docket Kg() {
         return new Docket(DocumentationType.SWAGGER_2)
                 .apiInfo(apiInfo())

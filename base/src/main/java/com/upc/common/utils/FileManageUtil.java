@@ -1,6 +1,7 @@
 package com.upc.common.utils;
 
 
+import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.upc.exception.BusinessException;
 import com.upc.exception.BusinessErrorEnum;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,31 +20,38 @@ import org.springframework.http.MediaType;
 
 public class FileManageUtil {
 
-    public static Boolean uploadFile(MultipartFile file, String pathIncludeFileName) throws IOException {
+    public static String uploadFile(MultipartFile file, Path parentPath) {
         // 验证文件类型
         String contentType = file.getContentType();
         if (!isValidFileType(contentType)) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "只能上传指定的文件类型");
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，只能上传指定的文件类型");
+        }
+        if (ObjectUtils.isEmpty(parentPath) || parentPath.isAbsolute() || parentPath.startsWith("/") || parentPath.startsWith("\\")) {
+            throw new RuntimeException("请指定正确的保存路径");
+        }
+        parentPath = parentPath.normalize();
+
+        if(!parentPath.toString().startsWith("upload"))
+            parentPath = Paths.get("upload").resolve(parentPath);
+
+        String originalFileName = file.getOriginalFilename();
+        if (ObjectUtils.isEmpty(originalFileName)) {
+            throw new RuntimeException("文件名获取失败");
         }
 
-        if(!pathIncludeFileName.startsWith("upload/"))
-            pathIncludeFileName = "upload/" + pathIncludeFileName;
+        String fileName = randomStr() + originalFileName.substring(originalFileName.lastIndexOf("."));
 
-        Path path = Paths.get(pathIncludeFileName);
-        String parentPath = path.getParent().toString(); // 获取路径部分
-        String fileName = path.getFileName().toString(); // 获取文件名部分
-
-        File Filefiled = new File(parentPath);
+        File Filefiled = new File(parentPath.toString());
         if (!Filefiled.exists()) {
-            if(!Filefiled.mkdirs()) throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "创建目录失败");
+            if(!Filefiled.mkdirs()) throw new RuntimeException("创建目录失败");
         }
         try {
             file.transferTo(new File(Filefiled.getAbsolutePath(), fileName));   // 将上传的文件保存到指定路径
         } catch (IOException e) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "文件保存失败");
+            throw new RuntimeException("文件保存失败");
         }
 
-        return true;
+        return parentPath.resolve(fileName).toString();
     }
 
     public static Boolean moveFile(String oldPath, String newPath) {
