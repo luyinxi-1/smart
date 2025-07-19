@@ -1,4 +1,4 @@
-package com.upc.modular.teacher.dto;
+package com.upc.modular.questionbank.controller.param;
 
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;

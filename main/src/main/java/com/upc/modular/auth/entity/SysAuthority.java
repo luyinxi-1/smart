@@ -41,6 +41,10 @@ public class SysAuthority implements Serializable {
     @TableField("access_name")
     private String accessName;
 
+    @ApiModelProperty("权限组id（一般只有父级权限即father_id字段为0的才配置权限组）")
+    @TableField("sys_authority_model_id")
+    private Long sysAuthorityModelId;
+
     @ApiModelProperty("创建时间")
     @TableField(value = "add_datetime", fill = FieldFill.INSERT)
     private LocalDateTime addDatetime;

@@ -3,6 +3,7 @@ package com.upc.modular.questionbank.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.upc.modular.questionbank.controller.param.AnswerDetailDTO;
 import com.upc.modular.questionbank.controller.param.SubmitAnswerRequest;
+import com.upc.modular.questionbank.mapper.TeachingQuestionBankMapper;
 import com.upc.modular.questionbank.entity.*;
 import com.upc.modular.questionbank.mapper.*;
 import com.upc.modular.questionbank.service.IStudentExercisesRecordService;
@@ -104,23 +105,38 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
 
     // 自动判卷的私有方法
     private void autoJudgement(Long recordId) {
-        // 1. 获取所有答题明细和题目信息
+        // 1. 获取答卷记录，我们需要从中得到 bankId
+        StudentExercisesRecord record = studentExercisesRecordMapper.selectById(recordId);
+        if (record == null) return;
+        Long currentBankId = record.getTeachingQuestionBankId();
+
+        // 2. 获取所有答题明细和题目信息
         List<StudentExercisesContent> contents = studentExercisesContentMapper.selectList(
                 new LambdaQueryWrapper<StudentExercisesContent>().eq(StudentExercisesContent::getRecordId, recordId)
         );
         if (contents.isEmpty()) return;
 
         List<Long> questionIds = contents.stream()
-                .map(StudentExercisesContent::getTeachingQuestion).collect(Collectors.toList());
+                .map(StudentExercisesContent::getTeachingQuestion)
+                .collect(Collectors.toList());
 
-        // 一次性查出所有题目信息
+        // 3.一次性查出所有题目信息
         Map<Long, TeachingQuestion> questionMap = teachingQuestionMapper.selectBatchIds(questionIds).stream()
                 .collect(Collectors.toMap(TeachingQuestion::getId, q -> q));
 
-        // 一次性查出所有题目的满分值
-        Map<Long, Float> questionScoreMap = questionsBanksListMapper.selectList(
-                new LambdaQueryWrapper<QuestionsBanksList>().in(QuestionsBanksList::getQuestionId, questionIds)
-        ).stream().collect(Collectors.toMap(QuestionsBanksList::getQuestionId, q -> q.getScore().floatValue()));
+        // 4. 一次性查出【当前这个题库下】所有题目的满分值
+        LambdaQueryWrapper<QuestionsBanksList> scoreQueryWrapper = new LambdaQueryWrapper<>();
+        scoreQueryWrapper
+                .eq(QuestionsBanksList::getBankId, currentBankId) // 限定题库ID
+                .in(QuestionsBanksList::getQuestionId, questionIds);
+
+        Map<Long, Double> questionScoreMap = questionsBanksListMapper.selectList(scoreQueryWrapper)
+                .stream()
+                .collect(Collectors.toMap(
+                        QuestionsBanksList::getQuestionId,
+                        QuestionsBanksList::getScore,
+                        (oldValue, newValue) -> newValue // 如果有重复，保留新的（理论上不应重复）
+                ));
 
         boolean hasSubjective = false; // 标记是否有主观题
 
@@ -132,8 +148,8 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
             }
 
             // 获取这道题的满分值
-            double fullScore = questionScoreMap.getOrDefault(question.getId(), 0f);
-            double score = 0f; // 本题最终得分，默认为0
+            double fullScore = questionScoreMap.getOrDefault(question.getId(), 0.0);
+            double score = 0d; // 本题最终得分，默认为0
 
             // 统一处理学生答案和标准答案，去除首尾空格，便于比较
             String studentAnswer = (content.getContent() != null) ? content.getContent().trim() : "";

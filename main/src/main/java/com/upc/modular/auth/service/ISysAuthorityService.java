@@ -22,4 +22,7 @@ public interface ISysAuthorityService extends IService<SysAuthority> {
     void deleteSysAuthorityByIds(List<Long> ids);
 
     R<List<SysAuthorityTreeReturnParam>> getSysAuthorityPage(SysAuthoritySearchParam param);
+
+    List<SysAuthority> getSysAuthorityByModelId(Long sysAuthorityModelId);
+
 }

@@ -7,16 +7,14 @@ import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.entity.SysAuthority;
+import com.upc.modular.auth.entity.SysAuthorityModel;
 import com.upc.modular.auth.param.SysAuthoritySearchParam;
 import com.upc.modular.auth.param.SysAuthorityTreeReturnParam;
 import com.upc.modular.auth.service.ISysAuthorityService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -57,6 +55,14 @@ public class SysAuthorityController {
     @PostMapping("/getSysAuthorityPage")
     public R<List<SysAuthorityTreeReturnParam>> getSysAuthorityPage(@RequestBody SysAuthoritySearchParam param) {
         return sysAuthorityService.getSysAuthorityPage(param);
+    }
+
+    @ApiOperation(value = "根据权限组id查询权限信息")
+    @PostMapping("/getSysAuthorityByModelId")
+    public R<List<SysAuthority>> getSysAuthorityByModelId(@RequestParam Long SysAuthorityModelId) {
+
+        List<SysAuthority> sysAuthorityList = sysAuthorityService.getSysAuthorityByModelId(SysAuthorityModelId);
+        return R.ok(sysAuthorityList);
     }
 
 }

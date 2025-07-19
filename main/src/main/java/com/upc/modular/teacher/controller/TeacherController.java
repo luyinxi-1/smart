@@ -6,6 +6,7 @@ import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.questionbank.controller.param.GradeSubjectiveRequest;
 import com.upc.modular.teacher.dto.*;
 import com.upc.modular.teacher.vo.GenerateUserResultVo;
 import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
@@ -106,19 +107,7 @@ public class TeacherController {
         return R.ok(result);
     }
 
-    @PostMapping("/gradeSubjective")
-    @ApiOperation("对单道问答题进行评分")
-    public R gradeSubjectiveQuestion(@RequestBody GradeSubjectiveRequest request) {
-        teacherService.gradeSubjectiveQuestion(request);
-        return R.commonReturn(200, "评分成功", null);
-    }
 
-    @ApiOperation("分页查询待批改作业列表")
-    @PostMapping("/pending-reviews/page")
-    public R<PageBaseReturnParam<PendingReviewReturnVO>> getPendingReviewPage(@RequestBody PendingReviewSearchParam param) {
-        Page<PendingReviewReturnVO> pageResult = teacherService.selectPendingReviewPage(param);
-        PageBaseReturnParam<PendingReviewReturnVO> p = PageBaseReturnParam.ok(pageResult);
-        return R.page(p);
-    }
+
 
 }
