@@ -34,10 +34,10 @@
         t.operator,
         t.operation_datetime,
         a.name AS textbook_author_name,
-        d.dict_item_name AS type_name
+        d.name AS type_name
         FROM textbook t
         LEFT JOIN teacher a ON t.textbook_author_id = a.id
-        LEFT JOIN sys_dict_item d ON t.type = d.id
+        LEFT JOIN sys_dict_data d ON t.type = d.id
         <where>
             <if test="param.textbookName != null and param.textbookName != ''">
                 AND t.textbook_name LIKE CONCAT('%', #{param.textbookName}, '%')
