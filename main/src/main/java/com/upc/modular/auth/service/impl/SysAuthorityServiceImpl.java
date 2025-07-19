@@ -55,6 +55,18 @@ public class SysAuthorityServiceImpl extends ServiceImpl<SysAuthorityMapper, Sys
         return R.ok(rootAuthorities);
     }
 
+    @Override
+    public List<SysAuthority> getSysAuthorityByModelId(Long sysAuthorityModelId) {
+        if (sysAuthorityModelId == null || sysAuthorityModelId == 0L) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+        List<SysAuthority> sysAuthorityList = this.list(
+                new LambdaQueryWrapper<SysAuthority>().eq(SysAuthority::getSysAuthorityModelId, sysAuthorityModelId)
+        );
+
+        return sysAuthorityList;
+    }
+
     public List<SysAuthorityTreeReturnParam> buildTree(List<SysAuthority> allAuthorities) {
         // 用来存储权限ID与对应树形节点的映射
         Map<Long, SysAuthorityTreeReturnParam> authorityMap = new HashMap<>();

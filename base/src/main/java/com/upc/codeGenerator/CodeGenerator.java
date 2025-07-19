@@ -16,7 +16,7 @@ public class CodeGenerator {
 
 //        表名
         String[] tables = {
-                "kg_node","kg_edge"
+                "sys_authority_model"
         };
 
         new CodeGeneratorConfig(author, moduleName, tables).generate();
