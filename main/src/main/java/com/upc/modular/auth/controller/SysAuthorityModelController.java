@@ -52,7 +52,7 @@ public class SysAuthorityModelController {
 
     @ApiOperation(value = "查询所有权限组")
     @PostMapping("/getSysAuthorityModelList")
-    public R<List<SysAuthorityModel>> getSysTbroleModelById() {
+    public R<List<SysAuthorityModel>> getSysAuthorityModelById() {
         List<SysAuthorityModel> authorityModelList = sysAuthorityModelService.list();
         return R.commonReturn(200, "查询成功", authorityModelList);
     }
@@ -67,7 +67,7 @@ public class SysAuthorityModelController {
         return R.commonReturn(200, "删除成功", "");
     }
 
-    @ApiOperation(value = "修改角色组信息")
+    @ApiOperation(value = "修改权限组信息")
     @PostMapping("/updateSysAuthorityModelById")
     public R updateSysAuthorityModelById(@RequestBody SysAuthorityModel sysAuthorityModel) {
         sysAuthorityModelService.updateById(sysAuthorityModel);
