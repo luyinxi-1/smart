@@ -96,6 +96,8 @@ public enum BusinessErrorEnum implements CommonError {
      */
     BUSINESS_ERROR(50003, "业务处理异常"); // 修正了 BUSINESS_ERROR 的定义，为其提供了 errCode 和 errMsg
 
+
+
     // 枚举的构造函数
     BusinessErrorEnum(int errCode, String errMsg) {
         this.errCode = errCode;

@@ -2,10 +2,13 @@ package com.upc.modular.questionbank.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
-import com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageReturnParam;
-import com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageSearchParam;
+import com.upc.modular.questionbank.controller.param.*;
 import com.upc.modular.questionbank.entity.TeachingQuestionBank;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.questionbank.controller.param.PendingReviewReturnVO;
+import com.upc.modular.questionbank.controller.param.PendingReviewSearchParam;
+
+import java.util.List;
 
 /**
  * <p>
@@ -24,4 +27,14 @@ public interface ITeachingQuestionBankService extends IService<TeachingQuestionB
     void inserQuestionBank(TeachingQuestionBank teachingQuestionbank);
 
     void updateQuestionBank(TeachingQuestionBank teachingQuestionbank);
+
+    List<QuestionBankWithStatusVO> getQuestionBanksWithStatusForTextbook(Long textbookId, Long currentTeacherId);
+
+    Page<GradingSituationReturnVO> getGradingSituationPage(GradingSituationSearchParam param);
+
+    List<StudentAnswerDetailVO> getStudentAnswerDetails(Long recordId);
+
+    Page<PendingReviewReturnVO> selectPendingReviewPage(PendingReviewSearchParam param);
+
+    void gradeSubjectiveQuestion(GradeSubjectiveRequest request);
 }

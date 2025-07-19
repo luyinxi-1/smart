@@ -6,7 +6,6 @@ import com.alibaba.excel.read.metadata.ReadSheet;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.upc.common.responseparam.R;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
@@ -16,14 +15,15 @@ import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.entity.UserRoleList;
 import com.upc.modular.auth.mapper.SysRoleMapper;
 import com.upc.modular.auth.mapper.SysUserMapper;
-import com.upc.modular.auth.mapper.UserRoleListMapper;
 import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.auth.service.IUserRoleListService;
 import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.institution.mapper.InstitutionMapper;
-import com.upc.modular.institution.service.IInstitutionService;
+import com.upc.modular.questionbank.controller.param.GradeSubjectiveRequest;
+import com.upc.modular.questionbank.entity.QuestionsBanksList;
 import com.upc.modular.questionbank.entity.StudentExercisesContent;
 import com.upc.modular.questionbank.entity.StudentExercisesRecord;
+import com.upc.modular.questionbank.mapper.QuestionsBanksListMapper;
 import com.upc.modular.questionbank.mapper.StudentExercisesContentMapper;
 import com.upc.modular.questionbank.mapper.StudentExercisesRecordMapper;
 import com.upc.modular.questionbank.service.IStudentExercisesRecordService;
@@ -80,14 +80,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     @Autowired
     private SysRoleMapper sysRoleMapper;
     
-    @Autowired
-    private StudentExercisesContentMapper studentExercisesContentMapper;
 
-    @Autowired
-    private StudentExercisesRecordMapper studentExercisesRecordMapper;
-
-    @Autowired
-    private IStudentExercisesRecordService studentExercisesRecordService;
 
     @Override
     @Transactional
@@ -318,51 +311,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         return allSubInstitutionIds.contains(institutionId);
     }
 
-    @Override
-    @Transactional
-    public void gradeSubjectiveQuestion(GradeSubjectiveRequest request) {
-        // 1. 校验
-        StudentExercisesContent content = studentExercisesContentMapper.selectById(request.getContentId());
-        if (content == null) { throw new RuntimeException("答题记录不存在！"); }
-        if (content.getScore() != null) { throw new RuntimeException("该题目已被评分！"); }
 
-        // 2. 更新单题分数
-        content.setScore(request.getScore());
-        studentExercisesContentMapper.updateById(content);
-
-        // 3. 检查整份答卷是否已全部批改完毕
-        Long recordId = content.getRecordId();
-        long pendingCount = studentExercisesContentMapper.selectCount(new LambdaQueryWrapper<StudentExercisesContent>()
-                .eq(StudentExercisesContent::getRecordId, recordId)
-                .isNull(StudentExercisesContent::getScore));
-
-        if (pendingCount == 0) {
-            // 所有题目都已评分，计算总分并更新答卷状态
-            // 重新获取所有明细来计算总分
-            double totalScore = studentExercisesContentMapper.selectList(
-                            new LambdaQueryWrapper<StudentExercisesContent>()
-                                    .eq(StudentExercisesContent::getRecordId, recordId)
-                    ).stream()
-                    .filter(c -> c.getScore() != null)
-                    .mapToDouble(StudentExercisesContent::getScore)
-                    .sum();
-
-            StudentExercisesRecord recordToUpdate = new StudentExercisesRecord();
-            recordToUpdate.setId(recordId);
-            recordToUpdate.setStatus(2); // 2-已完成
-            recordToUpdate.setScore(totalScore);
-            studentExercisesRecordMapper.updateById(recordToUpdate);
-
-            // 调用 IStudentExercisesRecordService 的方法 ---
-            studentExercisesRecordService.calculateAndUpdateFinalGrade(recordId);
-        }
-    }
-
-    @Override
-    public Page<PendingReviewReturnVO> selectPendingReviewPage(PendingReviewSearchParam param) {
-        Page<PendingReviewReturnVO> page = new Page<>(param.getCurrent(), param.getSize());
-        return teacherMapper.selectPendingReviewPage(page, param);
-    }
 
 
 }

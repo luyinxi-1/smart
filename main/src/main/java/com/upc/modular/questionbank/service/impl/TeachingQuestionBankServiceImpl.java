@@ -7,22 +7,32 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
-import com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageMidReturnParam;
-import com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageReturnParam;
-import com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageSearchParam;
+import com.upc.modular.questionbank.controller.param.*;
+import com.upc.modular.questionbank.entity.QuestionsBanksList;
+import com.upc.modular.questionbank.entity.StudentExercisesContent;
+import com.upc.modular.questionbank.entity.StudentExercisesRecord;
 import com.upc.modular.questionbank.entity.TeachingQuestionBank;
+import com.upc.modular.questionbank.mapper.QuestionsBanksListMapper;
+import com.upc.modular.questionbank.mapper.StudentExercisesContentMapper;
+import com.upc.modular.questionbank.mapper.StudentExercisesRecordMapper;
 import com.upc.modular.questionbank.mapper.TeachingQuestionBankMapper;
+import com.upc.modular.questionbank.service.IStudentExercisesRecordService;
 import com.upc.modular.questionbank.service.ITeachingQuestionBankService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.upc.modular.questionbank.controller.param.PendingReviewReturnVO;
+import com.upc.modular.questionbank.controller.param.PendingReviewSearchParam;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import com.upc.modular.textbook.mapper.TextbookMapper;
+import org.jsoup.Jsoup;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -42,13 +52,28 @@ import java.util.stream.Collectors;
 public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestionBankMapper, TeachingQuestionBank> implements ITeachingQuestionBankService {
 
     @Autowired
-    TeachingQuestionBankMapper teachingQuestionBankMapper;
+    private TeachingQuestionBankMapper teachingQuestionBankMapper;
+
     @Autowired
-    TextbookMapper textbookMapper;
+    private TextbookMapper textbookMapper;
+
     @Autowired
-    TextbookCatalogMapper textbookCatalogMapper;
+    private TextbookCatalogMapper textbookCatalogMapper;
+
     @Autowired
-    TeacherMapper teacherMapper;
+    private TeacherMapper teacherMapper;
+
+    @Autowired
+    private StudentExercisesContentMapper studentExercisesContentMapper;
+
+    @Autowired
+    private StudentExercisesRecordMapper studentExercisesRecordMapper;
+
+    @Autowired
+    private IStudentExercisesRecordService studentExercisesRecordService;
+
+    @Autowired
+    private QuestionsBanksListMapper questionsBanksListMapper;
 
     @Override
     public Void deleteQuestionBankByIds(IdParam idParam) {
@@ -203,5 +228,131 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
         // 4. 所有校验通过，执行更新操作
         // updateById 会根据 teachingQuestionbank 对象的ID去更新其他非空字段
         this.updateById(teachingQuestionbank);
+    }
+
+    @Override
+    public List<QuestionBankWithStatusVO> getQuestionBanksWithStatusForTextbook(Long textbookId, Long currentTeacherId) {
+        List<QuestionBankWithStatusVO> resultList = teachingQuestionBankMapper.selectQuestionBanksWithPendingStatus(textbookId, currentTeacherId);
+
+        if (resultList != null && !resultList.isEmpty()) {
+            for (QuestionBankWithStatusVO vo : resultList) {
+                // 使用 StringUtils.hasText() 比 != null 更健壮，能同时判断 null, "", " "
+                if (StringUtils.hasText(vo.getCatalogName())) {
+                    String rawHtml = vo.getCatalogName();
+                    // 使用 Jsoup 解析HTML并提取纯文本
+                    String plainText = Jsoup.parse(rawHtml).text();
+                    // 将处理后的纯文本名称设置回VO对象
+                    vo.setCatalogName(plainText);
+                }
+            }
+        }
+        return resultList;
+
+    }
+
+    @Override
+    public Page<GradingSituationReturnVO> getGradingSituationPage(GradingSituationSearchParam param) {
+        Page<GradingSituationReturnVO> page = new Page<>(param.getCurrent(), param.getSize());
+        return teachingQuestionBankMapper.selectGradingSituationPage(page, param);
+    }
+
+    @Override
+    public List<StudentAnswerDetailVO> getStudentAnswerDetails(Long recordId) {
+        List<StudentAnswerDetailVO> details = teachingQuestionBankMapper.selectStudentAnswerDetailsByRecordId(recordId);
+
+        for (StudentAnswerDetailVO detail : details) {
+            if (detail.getStudentScore() != null && detail.getMaxScore() != null) {
+                // 如果得分等于满分，则认为是正确的
+                detail.setIsCorrect(detail.getStudentScore().equals(detail.getMaxScore()));
+            } else if (detail.getQuestionType() == 5) { // 主观题
+                detail.setIsCorrect(null); // 主观题没有对错之分，设为null
+            } else {
+                detail.setIsCorrect(false); // 其他情况（如0分）视为错误
+            }
+        }
+
+        return details;
+    }
+
+    @Override
+    public Page<PendingReviewReturnVO> selectPendingReviewPage(PendingReviewSearchParam param) {
+        Page<PendingReviewReturnVO> page = new Page<>(param.getCurrent(), param.getSize());
+//        Long currentTeacherUserId = UserUtils.get().getId();
+        Long currentTeacherUserId = 16L;
+        Long teacherId = teacherMapper.selectOne(
+                new LambdaQueryWrapper<Teacher>()
+                        .eq(Teacher::getUserId,currentTeacherUserId)
+        ).getId();
+        param.setTeacherId(teacherId);
+        return teachingQuestionBankMapper.selectPendingReviewPage(page, param);
+    }
+
+    @Override
+    @Transactional
+    public void gradeSubjectiveQuestion(GradeSubjectiveRequest request) {
+        // --- 1. 基础校验 ---
+        StudentExercisesContent content = studentExercisesContentMapper.selectById(request.getContentId());
+        if (content == null) {
+            throw new BusinessException(BusinessErrorEnum.IS_EMPTY, ",答题记录不存在！!");
+        }
+        if (content.getScore() != null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, ",该题目已被评分，请勿重复操作！");
+        }
+        if (request.getScore() == null || request.getScore() < 0) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, ",评分分数不能为空或小于0！");
+        }
+
+        // 分数超限校验
+        // 从答题明细中获取 questionId 和 bankId
+        Long questionId = content.getTeachingQuestion(); // 假设已改为 questionId
+        Long bankId = content.getTeachingQuestionBankId();
+
+        // 查询这道题在这个题库里的满分值
+        LambdaQueryWrapper<QuestionsBanksList> qw = new LambdaQueryWrapper<>();
+        qw.eq(QuestionsBanksList::getBankId, bankId)
+                .eq(QuestionsBanksList::getQuestionId, questionId);
+
+        QuestionsBanksList questionBankInfo = questionsBanksListMapper.selectOne(qw);
+
+        if (questionBankInfo != null && questionBankInfo.getScore() != null) {
+            double maxScore = questionBankInfo.getScore();
+            if (request.getScore() > maxScore) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, ",评分失败：分数不能超过该题目的满分!");
+            }
+        } else {
+            // 如果在关联表中找不到这道题的分数信息，可以根据业务决定是报错还是忽略校验,这里我们选择报错，因为数据不完整
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, ",无法获取该题目的满分值信息，请检查题库配置。");
+        }
+
+        // 2. 更新单题分数
+        content.setScore(request.getScore());
+        studentExercisesContentMapper.updateById(content);
+
+        // 3. 检查整份答卷是否已全部批改完毕
+        Long recordId = content.getRecordId();
+        long pendingCount = studentExercisesContentMapper.selectCount(new LambdaQueryWrapper<StudentExercisesContent>()
+                .eq(StudentExercisesContent::getRecordId, recordId)
+                .isNull(StudentExercisesContent::getScore));
+
+        if (pendingCount == 0) {
+            // 所有题目都已评分，计算总分并更新答卷状态
+            // 重新获取所有明细来计算总分
+            double totalScore = studentExercisesContentMapper.selectList(
+                            new LambdaQueryWrapper<StudentExercisesContent>()
+                                    .eq(StudentExercisesContent::getRecordId, recordId)
+                    ).stream()
+                    .filter(c -> c.getScore() != null)
+                    .mapToDouble(StudentExercisesContent::getScore)
+                    .sum();
+
+            StudentExercisesRecord recordToUpdate = new StudentExercisesRecord();
+            recordToUpdate.setId(recordId);
+            recordToUpdate.setStatus(2); // 2-已完成
+            recordToUpdate.setScore(totalScore);
+            studentExercisesRecordMapper.updateById(recordToUpdate);
+
+            // 调用 IStudentExercisesRecordService 的方法 ---
+            studentExercisesRecordService.calculateAndUpdateFinalGrade(recordId);
+        }
     }
 }
