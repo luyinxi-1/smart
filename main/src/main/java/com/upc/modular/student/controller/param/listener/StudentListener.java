@@ -140,7 +140,7 @@ public void invoke(StudentImportDto dto, AnalysisContext context) {
         SysTbuser user = new SysTbuser()
         .setUsername(identityId)
         .setPassword(MD5Utils.md5(identityId))
-        .setUserType("1")
+        .setUserType(1)
         .setStatus(1)
         .setInstitutionId(institutionId)
         .setAddDatetime(LocalDateTime.now());

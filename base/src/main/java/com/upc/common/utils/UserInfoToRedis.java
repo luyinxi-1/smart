@@ -28,7 +28,7 @@ public class UserInfoToRedis {
 
     @ApiModelProperty("用户类型（0管理员、1学生、2教师）")
     @TableField("user_type")
-    private String userType;
+    private Integer userType;
 
     @ApiModelProperty("学工号")
     @TableField("identity_id")

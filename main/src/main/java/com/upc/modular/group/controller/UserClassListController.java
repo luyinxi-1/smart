@@ -5,12 +5,14 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.group.controller.param.GetMyClasssReturnParam;
 import com.upc.modular.group.controller.param.pageGroup;
 import com.upc.modular.group.controller.param.pageUserClassList;
 import com.upc.modular.group.entity.Group;
 import com.upc.modular.group.entity.UserClassList;
 import com.upc.modular.group.service.IGroupService;
 import com.upc.modular.group.service.IUserClassListService;
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +29,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/user-class-list")
+@Api(tags = "班级用户关联")
 public class UserClassListController {
     @Autowired
     private IUserClassListService userClassListService;
@@ -78,6 +81,12 @@ public class UserClassListController {
         Page<UserClassList> page = userClassListService.selectgetByidPage(dictType);
         PageBaseReturnParam<UserClassList> result = PageBaseReturnParam.ok(page);
         return R.page(result);
+    }
+
+    @ApiOperation(value = "查看我的班级")
+    @PostMapping("/getMyClass")
+    public R<GetMyClasssReturnParam> getMyClass() {
+        return R.ok(userClassListService.getMyClass());
     }
 
 

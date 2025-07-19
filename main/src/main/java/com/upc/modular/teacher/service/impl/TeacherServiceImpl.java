@@ -104,7 +104,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         SysTbuser user = new SysTbuser()
                 .setUsername(teacher.getIdentityId())
                 .setPassword(MD5Utils.sha256(teacher.getIdentityId()))
-                .setUserType("2") // 教师
+                .setUserType(2) // 教师
                 .setInstitutionId(teacher.getInstitutionId())
                 .setStatus(1); // 默认启用
 
@@ -253,7 +253,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
                 SysTbuser user = new SysTbuser()
                         .setUsername(identityId)
                         .setPassword(MD5Utils.sha256(identityId))
-                        .setUserType("2") // 教师
+                        .setUserType(2) // 教师
                         .setInstitutionId(dto.getInstitutionId())
                         .setStatus(1); // 默认启用
 

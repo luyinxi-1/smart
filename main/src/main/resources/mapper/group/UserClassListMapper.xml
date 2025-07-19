@@ -13,5 +13,20 @@
         <result column="operator" property="operator" />
         <result column="operation_time" property="operationTime" />
     </resultMap>
+    <select id="getMyClassStudent" resultType="com.upc.modular.group.controller.param.GetMyClasssReturnParam"
+            parameterType="java.lang.Long">
+        SELECT
+        g.*,
+        i.institution_name
+        FROM user_class_list ucl
+        LEFT JOIN `group` g ON ucl.class_id = g.id
+        LEFT JOIN institution i ON g.institution_id = i.id
+        <where>
+            <if test="id != null">
+                AND ucl.user_id = #{id}
+            </if>
+        </where>
+
+    </select>
 
 </mapper>

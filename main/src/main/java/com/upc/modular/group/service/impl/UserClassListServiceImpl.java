@@ -2,14 +2,18 @@ package com.upc.modular.group.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.common.utils.UserUtils;
+import com.upc.modular.group.controller.param.GetMyClasssReturnParam;
 import com.upc.modular.group.controller.param.pageUserClassList;
 import com.upc.modular.group.entity.Group;
 import com.upc.modular.group.entity.UserClassList;
 import com.upc.modular.group.mapper.UserClassListMapper;
 import com.upc.modular.group.service.IUserClassListService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -25,6 +29,9 @@ import java.util.List;
  */
 @Service
 public class UserClassListServiceImpl extends ServiceImpl<UserClassListMapper, UserClassList> implements IUserClassListService {
+
+    @Autowired
+    private UserClassListMapper userClassListMapper;
 
     @Override
     public boolean insertstudentlist(List<UserClassList> userClassLists) {
@@ -79,5 +86,19 @@ public class UserClassListServiceImpl extends ServiceImpl<UserClassListMapper, U
         queryWrapper.orderByDesc(UserClassList::getAddDatetime);
         // 5. 执行分页查询并返回结果
         return baseMapper.selectPage(page, queryWrapper);
+    }
+
+    @Override
+    public GetMyClasssReturnParam getMyClass() {
+        if (ObjectUtils.isEmpty(UserUtils.get().getId())) {
+            return null;
+        }
+        if (ObjectUtils.isEmpty(UserUtils.get().getUserType())) {
+            return null;
+        }
+        Long id = UserUtils.get().getId();
+
+        return userClassListMapper.getMyClassStudent(id);
+
     }
 }

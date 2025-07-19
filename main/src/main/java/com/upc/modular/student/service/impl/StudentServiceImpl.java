@@ -242,7 +242,7 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
                 SysTbuser user = new SysTbuser()
                         .setUsername(identityId)
                         .setPassword(MD5Utils.sha256(identityId))
-                        .setUserType("1") // 学生
+                        .setUserType(1) // 学生
                         .setInstitutionId(dto.getInstitutionId())
                         .setStatus(1); // 默认启用
 
