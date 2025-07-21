@@ -4,15 +4,18 @@ import com.alibaba.excel.util.CollectionUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.upc.common.utils.UserUtils;
+import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.course.controller.param.ClassInfoReturnParam;
+import com.upc.modular.course.controller.param.GetMyCourseReturnParam;
 import com.upc.modular.course.entity.CourseClassList;
 import com.upc.modular.course.entity.CourseTextbookList;
 import com.upc.modular.course.mapper.CourseClassListMapper;
 import com.upc.modular.course.service.ICourseClassListService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.course.service.ICourseService;
+import com.upc.modular.course.service.ICourseTextbookListService;
 import com.upc.modular.group.entity.Group;
 import com.upc.modular.group.service.IGroupService;
 import com.upc.modular.student.entity.Student;
@@ -20,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +49,9 @@ public class CourseClassListServiceImpl extends ServiceImpl<CourseClassListMappe
 
     @Autowired
     private CourseClassListMapper courseClassListMapper;
+    @Autowired
+    private ICourseTextbookListService courseTextbookListService;
+
     @Override
     public void associateClasses(Long courseId, List<Long> classIds) {
         // 校验 courseId 是否存在
@@ -124,5 +131,37 @@ public class CourseClassListServiceImpl extends ServiceImpl<CourseClassListMappe
             dto.setStudentCount(studentCount);
             return dto;
         }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<GetMyCourseReturnParam> getMyCourse() {
+        if (ObjectUtils.isEmpty(UserUtils.get().getId())) {
+            return null;
+        }
+        if (ObjectUtils.isEmpty(UserUtils.get().getUserType())) {
+            return null;
+        }
+        List<GetMyCourseReturnParam> resultList = new ArrayList<>();
+        Long id = UserUtils.get().getId();
+        if (UserUtils.get().getUserType() == 1) {
+            resultList = courseClassListMapper.getMyCourseTeacher(id);
+        }
+        if (UserUtils.get().getUserType() == 2) {
+            resultList = courseClassListMapper.getMyCourseStudent(id);
+        }
+        if (UserUtils.get().getUserType() == 0) {
+            resultList = courseClassListMapper.getMyCourseAdmin(id);
+        }
+        for (GetMyCourseReturnParam param : resultList) {
+            if (ObjectUtils.isEmpty(param.getId())) {
+                MyLambdaQueryWrapper<CourseTextbookList> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+                lambdaQueryWrapper.eq(CourseTextbookList::getCourseId, param.getId());
+                long count = courseTextbookListService.count(lambdaQueryWrapper);
+                param.setTextbookNumber(count);
+                List<ClassInfoReturnParam> classesByCourse = this.getClassesByCourse(param.getId());
+                param.setGroupList(classesByCourse);
+            }
+        }
+        return resultList;
     }
 }

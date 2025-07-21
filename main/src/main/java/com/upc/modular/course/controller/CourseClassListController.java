@@ -4,6 +4,7 @@ package com.upc.modular.course.controller;
 import com.upc.common.responseparam.R;
 import com.upc.modular.course.controller.param.ClassInfoReturnParam;
 import com.upc.modular.course.controller.param.CourseClassAssociateParam;
+import com.upc.modular.course.controller.param.GetMyCourseReturnParam;
 import com.upc.modular.course.service.ICourseClassListService;
 import com.upc.modular.course.service.ICourseService;
 import io.swagger.annotations.Api;
@@ -26,7 +27,7 @@ import java.util.List;
 @Api(tags = "课程-班级管理模块")
 public class CourseClassListController {
     @Autowired
-    ICourseClassListService courseClassListService;
+    private ICourseClassListService courseClassListService;
 
     @ApiOperation("给课程批量关联班级")
     @PostMapping("/associateClasses")
@@ -42,4 +43,9 @@ public class CourseClassListController {
         return R.ok(list);
     }
 
+    @ApiOperation("查看我的课程")
+    @PostMapping("/getMyCourse")
+    public R<List<GetMyCourseReturnParam>> getMyCourse() {
+        return R.ok(courseClassListService.getMyCourse());
+    }
 }

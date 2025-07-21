@@ -5,9 +5,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
-import com.upc.modular.course.controller.param.CourseDataExportSearchParam;
 import com.upc.modular.course.controller.param.CoursePageReturnParam;
 import com.upc.modular.course.controller.param.CoursePageSearchParam;
+import com.upc.modular.course.controller.param.GetMyCourseReturnParam;
 import com.upc.modular.course.entity.Course;
 import com.upc.modular.course.service.ICourseService;
 import io.swagger.annotations.Api;
@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletResponse;
+import java.util.List;
 
 /**
  * <p>
@@ -79,5 +80,4 @@ public class CourseController {
     public void exportLikeData(HttpServletResponse response, @RequestBody IdParam param){
         courseService.exportCourseData(response,param);
     }
-
 }

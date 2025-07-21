@@ -13,4 +13,55 @@
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
 
+    <select id="getMyCourseTeacher" resultType="com.upc.modular.course.controller.param.GetMyCourseReturnParam"
+            parameterType="java.lang.Long">
+        SELECT
+        c.*,
+        t.name AS teacherName
+        FROM
+        course c
+        LEFT JOIN
+        teacher t ON c.user_id = t.user_id
+        <where>
+            <if test="id != null">
+                AND c.user_id = #{id}
+            </if>
+        </where>
+        ORDER BY
+        c.add_datetime DESC
+    </select>
+    <select id="getMyCourseAdmin" resultType="com.upc.modular.course.controller.param.GetMyCourseReturnParam"
+            parameterType="java.lang.Long">
+        SELECT
+            c.*,
+            t.name AS teacherName
+        FROM
+            course c
+                LEFT JOIN
+            teacher t ON c.user_id = t.user_id
+        ORDER BY
+            c.add_datetime DESC
+    </select>
+    <select id="getMyCourseStudent" resultType="com.upc.modular.course.controller.param.GetMyCourseReturnParam"
+            parameterType="java.lang.Long">
+        SELECT DISTINCT
+        c.*,
+        t.name AS teacherName
+        FROM
+        course c
+        LEFT JOIN
+        course_class_list ccl ON c.id = ccl.course_id
+        LEFT JOIN
+        user_class_list ucl ON ccl.class_id = ucl.class_id
+        LEFT JOIN
+        teacher t ON c.user_id = t.user_id
+        <where>
+            <if test="id != null">
+                AND ucl.user_id = #{id}
+            </if>
+        </where>
+        ORDER BY
+        c.add_datetime DESC
+    </select>
+
 </mapper>

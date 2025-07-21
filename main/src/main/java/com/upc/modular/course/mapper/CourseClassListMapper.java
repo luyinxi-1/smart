@@ -1,8 +1,12 @@
 package com.upc.modular.course.mapper;
 
+import com.upc.modular.course.controller.param.GetMyCourseReturnParam;
 import com.upc.modular.course.entity.CourseClassList;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * <p>
@@ -14,5 +18,10 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface CourseClassListMapper extends BaseMapper<CourseClassList> {
+    List<GetMyCourseReturnParam> getMyCourseStudent(@Param("id") Long id);
+
+    List<GetMyCourseReturnParam> getMyCourseTeacher(@Param("id") Long id);
+
+    List<GetMyCourseReturnParam> getMyCourseAdmin(@Param("id") Long id);
 
 }

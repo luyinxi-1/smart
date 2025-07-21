@@ -28,5 +28,5 @@ public interface IUserClassListService extends IService<UserClassList> {
 
     Page<UserClassList> selectgetByidPage(pageUserClassList dictType);
 
-    GetMyClasssReturnParam getMyClass();
+    List<GetMyClasssReturnParam> getMyClass();
 }

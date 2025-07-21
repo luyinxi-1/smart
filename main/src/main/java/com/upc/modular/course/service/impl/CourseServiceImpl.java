@@ -4,18 +4,24 @@ import com.alibaba.excel.EasyExcel;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.common.utils.UserUtils;
+import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
-import com.upc.modular.course.controller.param.CourseDataExportParam;
-import com.upc.modular.course.controller.param.CourseDataExportSearchParam;
-import com.upc.modular.course.controller.param.CoursePageReturnParam;
-import com.upc.modular.course.controller.param.CoursePageSearchParam;
+import com.upc.modular.course.controller.param.*;
 import com.upc.modular.course.entity.Course;
+import com.upc.modular.course.entity.CourseClassList;
+import com.upc.modular.course.entity.CourseTextbookList;
+import com.upc.modular.course.mapper.CourseClassListMapper;
 import com.upc.modular.course.mapper.CourseMapper;
+import com.upc.modular.course.service.ICourseClassListService;
 import com.upc.modular.course.service.ICourseService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.springframework.beans.BeanUtils;
+import com.upc.modular.course.service.ICourseTextbookListService;
+import com.upc.modular.group.entity.Group;
+import com.upc.modular.group.service.IGroupService;
+import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -23,7 +29,9 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -39,6 +47,15 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
 
     @Autowired
     private CourseMapper courseMapper;
+
+    @Autowired
+    private ICourseTextbookListService courseTextbookListService;
+
+    @Autowired
+    private IGroupService groupService;
+
+    @Autowired
+    private CourseClassListMapper courseClassListMapper;
     @Override
     public Void deleteCourseByIds(IdParam idParam) {
         List<Long> idList = idParam.getIdList();
@@ -109,4 +126,35 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
             throw new RuntimeException("导出失败，请重试");
         }
     }
+
+
+
+    public List<ClassInfoReturnParam> getClassesByCourse(Long courseId) {
+        // 查当前课程所有关联的班级id
+        List<Long> classIds = courseClassListMapper.selectList(
+                        new LambdaQueryWrapper<CourseClassList>()
+                                .eq(CourseClassList::getCourseId, courseId))
+                .stream()
+                .map(CourseClassList::getClassId)
+                .collect(Collectors.toList());
+
+        if (classIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 批量拿班级详情
+        List<Group> groups = groupService.listByIds(classIds);
+
+        // 3. 构建返回 DTO，顺便统计学生数
+        return groups.stream().map(g -> {
+            ClassInfoReturnParam dto = new ClassInfoReturnParam();
+            dto.setName(g.getName());
+            // 用 GroupService里面的接口统计
+            Map<String, Long> result = groupService.getUserTypeCountByClassId(g.getId());
+            Long studentCount = result.get(1);
+            dto.setStudentCount(studentCount);
+            return dto;
+        }).collect(Collectors.toList());
+    }
 }
+

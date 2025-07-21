@@ -3,12 +3,10 @@ package com.upc.modular.group.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.utils.UserUtils;
 import com.upc.modular.group.controller.param.GetMyClasssReturnParam;
 import com.upc.modular.group.controller.param.pageUserClassList;
-import com.upc.modular.group.entity.Group;
 import com.upc.modular.group.entity.UserClassList;
 import com.upc.modular.group.mapper.UserClassListMapper;
 import com.upc.modular.group.service.IUserClassListService;
@@ -16,7 +14,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -89,7 +86,7 @@ public class UserClassListServiceImpl extends ServiceImpl<UserClassListMapper, U
     }
 
     @Override
-    public GetMyClasssReturnParam getMyClass() {
+    public List<GetMyClasssReturnParam> getMyClass() {
         if (ObjectUtils.isEmpty(UserUtils.get().getId())) {
             return null;
         }

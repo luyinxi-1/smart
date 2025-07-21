@@ -5,11 +5,12 @@ import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.course.controller.param.CourseDataExportSearchParam;
 import com.upc.modular.course.controller.param.CoursePageReturnParam;
 import com.upc.modular.course.controller.param.CoursePageSearchParam;
+import com.upc.modular.course.controller.param.GetMyCourseReturnParam;
 import com.upc.modular.course.entity.Course;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import javax.servlet.http.HttpServletResponse;
-
+import java.util.List;
 /**
  * <p>
  *  服务类
@@ -25,4 +26,6 @@ public interface ICourseService extends IService<Course> {
     Page<CoursePageReturnParam> getPage(CoursePageSearchParam param);
 
     void exportCourseData(HttpServletResponse response, IdParam param);
+
+
 }

@@ -85,7 +85,7 @@ public class UserClassListController {
 
     @ApiOperation(value = "查看我的班级")
     @PostMapping("/getMyClass")
-    public R<GetMyClasssReturnParam> getMyClass() {
+    public R<List<GetMyClasssReturnParam>> getMyClass() {
         return R.ok(userClassListService.getMyClass());
     }
 

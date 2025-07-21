@@ -16,4 +16,7 @@ public class GetMyClasssReturnParam extends Group {
     @ApiModelProperty("机构名称")
     private String institutionName;
 
+    @ApiModelProperty("教师姓名")
+    private String teacherName;
+
 }
