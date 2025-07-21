@@ -2,7 +2,7 @@ spring:
   application:
     name: SmartTextBook
   profiles:
-    active: server-upc
+    active: server-ql
   servlet:
     multipart:
       enabled: true
