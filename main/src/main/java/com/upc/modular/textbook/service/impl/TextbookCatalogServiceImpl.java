@@ -337,7 +337,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         }
 
         // 循环结束后，不要忘记添加最后一个正在处理的目录项
-        if (currentCatalog != null && !resultList.contains(currentCatalog)) {
+        if (currentCatalog != null) {
             resultList.add(currentCatalog);
         }
 

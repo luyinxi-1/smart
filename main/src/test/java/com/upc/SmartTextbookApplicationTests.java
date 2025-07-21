@@ -47,18 +47,18 @@ class SmartTextbookApplicationTests {
 ////        System.out.println("当前 db.path：" + System.getProperty("db.path"));
 //    }
 
-//    @Autowired
-//    private IUserService userService;
+    @Autowired
+    private IUserService userService;
 
 
-//    @Autowired
-//    private RedisTemplate redisTemplate;
-//    @Autowired
-//    private WordConversionService conversionService;
-//    @Autowired
-//    private WordConversionPageService conversionPageService;
-//    @Autowired
-//    private TextbookCatalogMapper textbookCatalogMapper;
+    @Autowired
+    private RedisTemplate redisTemplate;
+    @Autowired
+    private WordConversionService conversionService;
+    @Autowired
+    private WordConversionPageService conversionPageService;
+    @Autowired
+    private TextbookCatalogMapper textbookCatalogMapper;
 //
 //    @Test
 //    void test1() {
@@ -95,20 +95,20 @@ class SmartTextbookApplicationTests {
 //
 //    }
 //
-//    @Test
-//    void test2() {
-//        System.out.println("--- Conversion Demo Runner is executing ---");
-//
-//        // --- 请修改为您自己的文件路径 ---
-//        String inputPath = "C:\\Users\\HP\\Desktop\\详细设计说明书v6.0.docx";
-//        String outputPath = "C:\\Users\\HP\\Desktop\\详细设计说明书v6.0.html";
-//        // --------------------------------
-//
-//        // 调用服务执行转换
-//        conversionService.convertWordToHtml(inputPath, outputPath);
-//
-//        System.out.println("--- Conversion Demo Runner has finished ---");
-//    }
+    @Test
+    void test2() {
+        System.out.println("--- Conversion Demo Runner is executing ---");
+
+        // --- 请修改为您自己的文件路径 ---
+        String inputPath = "C:\\Users\\yt\\Desktop\\四方协议.docx";
+        String outputPath = "C:\\Users\\yt\\Desktop\\四方协议.html";
+        // --------------------------------
+
+        // 调用服务执行转换
+        conversionService.convertWordToHtml(inputPath, outputPath);
+
+        System.out.println("--- Conversion Demo Runner has finished ---");
+    }
 //
 //    @Test
 //    void convertHtmlToWord() {
