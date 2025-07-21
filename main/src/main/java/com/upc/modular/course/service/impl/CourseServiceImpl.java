@@ -48,14 +48,6 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
     @Autowired
     private CourseMapper courseMapper;
 
-    @Autowired
-    private ICourseTextbookListService courseTextbookListService;
-
-    @Autowired
-    private IGroupService groupService;
-
-    @Autowired
-    private CourseClassListMapper courseClassListMapper;
     @Override
     public Void deleteCourseByIds(IdParam idParam) {
         List<Long> idList = idParam.getIdList();
@@ -125,36 +117,6 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
             e.printStackTrace();
             throw new RuntimeException("导出失败，请重试");
         }
-    }
-
-
-
-    public List<ClassInfoReturnParam> getClassesByCourse(Long courseId) {
-        // 查当前课程所有关联的班级id
-        List<Long> classIds = courseClassListMapper.selectList(
-                        new LambdaQueryWrapper<CourseClassList>()
-                                .eq(CourseClassList::getCourseId, courseId))
-                .stream()
-                .map(CourseClassList::getClassId)
-                .collect(Collectors.toList());
-
-        if (classIds.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        // 批量拿班级详情
-        List<Group> groups = groupService.listByIds(classIds);
-
-        // 3. 构建返回 DTO，顺便统计学生数
-        return groups.stream().map(g -> {
-            ClassInfoReturnParam dto = new ClassInfoReturnParam();
-            dto.setName(g.getName());
-            // 用 GroupService里面的接口统计
-            Map<String, Long> result = groupService.getUserTypeCountByClassId(g.getId());
-            Long studentCount = result.get(1);
-            dto.setStudentCount(studentCount);
-            return dto;
-        }).collect(Collectors.toList());
     }
 }
 
