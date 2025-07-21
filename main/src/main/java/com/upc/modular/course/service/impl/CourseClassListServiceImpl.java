@@ -49,6 +49,7 @@ public class CourseClassListServiceImpl extends ServiceImpl<CourseClassListMappe
 
     @Autowired
     private CourseClassListMapper courseClassListMapper;
+
     @Autowired
     private ICourseTextbookListService courseTextbookListService;
 
