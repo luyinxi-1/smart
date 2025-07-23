@@ -2,6 +2,10 @@ package com.upc.modular.auth.service;
 
 import com.upc.modular.auth.entity.SysAuthorityModel;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.auth.param.AuthModelParam;
+import com.upc.modular.auth.param.AuthModelTreeNode;
+
+import java.util.List;
 
 /**
  * <p>
@@ -13,4 +17,11 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface ISysAuthorityModelService extends IService<SysAuthorityModel> {
 
+    void addModel(AuthModelParam authModelParam);
+
+    void deleteModelsByIdList(List<Integer> idList);
+
+    void updateModelById(AuthModelParam authModelParam);
+
+    List<AuthModelTreeNode> getModelPage(Long parentId);
 }

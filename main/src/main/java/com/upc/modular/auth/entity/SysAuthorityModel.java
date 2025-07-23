@@ -31,13 +31,41 @@ public class SysAuthorityModel implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
-    @ApiModelProperty("模块名称")
-    @TableField("model_name")
-    private String modelName;
+    @ApiModelProperty("权限模块码")
+    @TableField("auth_model_code")
+    private String authModelCode;
+
+    @ApiModelProperty("权限模块名称")
+    @TableField("auth_model_name")
+    private String authModelName;
+
+    @ApiModelProperty("上级模块id")
+    @TableField("parent_id")
+    private Long parentId;
+
+    @ApiModelProperty("顺序")
+    @TableField("seq")
+    private Integer seq;
+
+    @ApiModelProperty("状态")
+    @TableField("status")
+    private Integer status;
+
+    @ApiModelProperty("是否外链")
+    @TableField("have_url")
+    private Integer haveUrl;
+
+    @ApiModelProperty("外链")
+    @TableField("url")
+    private String url;
+
+    @ApiModelProperty("图片链接")
+    @TableField("pic_url")
+    private String picUrl;
 
     @ApiModelProperty("创建人")
     @TableField(value = "creator", fill = FieldFill.INSERT)
-    private Long creator;
+    private String creator;
 
     @ApiModelProperty("创建时间")
     @TableField(value = "add_datetime", fill = FieldFill.INSERT)
@@ -45,15 +73,11 @@ public class SysAuthorityModel implements Serializable {
 
     @ApiModelProperty("操作人")
     @TableField(value = "operator", fill = FieldFill.UPDATE)
-    private Long operator;
+    private String operator;
 
     @ApiModelProperty("操作时间")
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
     private LocalDateTime operationDatetime;
-
-    @ApiModelProperty("状态")
-    @TableField("status")
-    private Integer status;
 
 
 }

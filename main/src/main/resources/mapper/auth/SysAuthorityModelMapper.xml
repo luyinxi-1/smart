@@ -5,12 +5,18 @@
     <!-- 通用查询映射结果 -->
     <resultMap id="BaseResultMap" type="com.upc.modular.auth.entity.SysAuthorityModel">
         <id column="id" property="id" />
-        <result column="model_name" property="modelName" />
+        <result column="auth_model_code" property="authModelCode" />
+        <result column="auth_model_name" property="authModelName" />
+        <result column="parent_id" property="parentId" />
+        <result column="seq" property="seq" />
+        <result column="status" property="status" />
+        <result column="have_url" property="haveUrl" />
+        <result column="url" property="url" />
+        <result column="pic_url" property="picUrl" />
         <result column="creator" property="creator" />
         <result column="add_datetime" property="addDatetime" />
         <result column="operator" property="operator" />
         <result column="operation_datetime" property="operationDatetime" />
-        <result column="status" property="status" />
     </resultMap>
 
 </mapper>

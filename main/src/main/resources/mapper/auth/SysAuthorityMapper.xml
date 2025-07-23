@@ -5,11 +5,18 @@
     <!-- 通用查询映射结果 -->
     <resultMap id="BaseResultMap" type="com.upc.modular.auth.entity.SysAuthority">
         <id column="id" property="id" />
+        <result column="auth_code" property="authCode" />
+        <result column="auth_name" property="authName" />
+        <result column="auth_model_id" property="authModelId" />
+        <result column="seq" property="seq" />
+        <result column="status" property="status" />
+        <result column="auth_type" property="authType" />
+        <result column="url" property="url" />
         <result column="access_url" property="accessUrl" />
-        <result column="add_datetime" property="addDatetime" />
         <result column="creator" property="creator" />
+        <result column="add_datetime" property="addDatetime" />
         <result column="operator" property="operator" />
-        <result column="father_id" property="fatherId" />
+        <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
 
     <select id="getPermissionsByRoleId" resultType="com.upc.modular.auth.entity.SysAuthority">

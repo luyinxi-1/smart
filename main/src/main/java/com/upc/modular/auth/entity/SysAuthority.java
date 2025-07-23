@@ -25,37 +25,57 @@ public class SysAuthority implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty("主键")
+    @ApiModelProperty("id")
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
-    @ApiModelProperty("允许访问地址")
+    @ApiModelProperty("权限码")
+    @TableField("auth_code")
+    private String authCode;
+
+    @ApiModelProperty("权限名称")
+    @TableField("auth_name")
+    private String authName;
+
+    @ApiModelProperty("权限模块表id")
+    @TableField("auth_model_id")
+    private Long authModelId;
+
+    @ApiModelProperty("权限模块名称")
+    @TableField("auth_model_name")
+    private String authModelName;
+
+    @ApiModelProperty("顺序")
+    @TableField("seq")
+    private Integer seq;
+
+    @ApiModelProperty("状态")
+    @TableField("status")
+    private Integer status;
+
+    @ApiModelProperty("权限类型（0：菜单，1：按件，2：其他）")
+    @TableField("auth_type")
+    private Integer authType;
+
+    @ApiModelProperty("路由")
+    @TableField("url")
+    private String url;
+
+    @ApiModelProperty("可达路径")
     @TableField("access_url")
     private String accessUrl;
 
-    @ApiModelProperty("该权限的父节点，0表示根节点")
-    @TableField("father_id")
-    private Long fatherId;
-
-    @ApiModelProperty("放行路径名")
-    @TableField("access_name")
-    private String accessName;
-
-    @ApiModelProperty("权限组id（一般只有父级权限即father_id字段为0的才配置权限组）")
-    @TableField("sys_authority_model_id")
-    private Long sysAuthorityModelId;
+    @ApiModelProperty("创建人")
+    @TableField(value = "creator", fill = FieldFill.INSERT)
+    private String creator;
 
     @ApiModelProperty("创建时间")
     @TableField(value = "add_datetime", fill = FieldFill.INSERT)
     private LocalDateTime addDatetime;
 
-    @ApiModelProperty("创建人")
-    @TableField(value = "creator", fill = FieldFill.INSERT)
-    private Long creator;
-
     @ApiModelProperty("操作人")
     @TableField(value = "operator", fill = FieldFill.UPDATE)
-    private Long operator;
+    private String operator;
 
     @ApiModelProperty("操作时间")
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)

@@ -2,8 +2,11 @@ package com.upc.modular.auth.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.entity.SysAuthority;
+import com.upc.modular.auth.param.AuthParam;
+import com.upc.modular.auth.param.GetAuthPageParam;
 import com.upc.modular.auth.param.SysAuthoritySearchParam;
 import com.upc.modular.auth.param.SysAuthorityTreeReturnParam;
 
@@ -19,10 +22,17 @@ import java.util.List;
  */
 public interface ISysAuthorityService extends IService<SysAuthority> {
 
-    void deleteSysAuthorityByIds(List<Long> ids);
+//    void deleteSysAuthorityByIds(List<Long> ids);
+//
+//    R<List<SysAuthorityTreeReturnParam>> getSysAuthorityPage(SysAuthoritySearchParam param);
+//
+//    List<SysAuthority> getSysAuthorityByModelId(Long sysAuthorityModelId);
 
-    R<List<SysAuthorityTreeReturnParam>> getSysAuthorityPage(SysAuthoritySearchParam param);
+    void addAuth(AuthParam authParam);
 
-    List<SysAuthority> getSysAuthorityByModelId(Long sysAuthorityModelId);
+    void deleteAuths(List<Integer> idList);
 
+    PageBaseReturnParam<SysAuthority> getAuths(GetAuthPageParam getAuthPageParam);
+
+    void updateByAuthId(AuthParam authParam);
 }
