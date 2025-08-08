@@ -37,13 +37,13 @@ public class UserRoleListController {
     }
 
     @ApiOperation(value = "删除用户角色关联")
-    @DeleteMapping("/batchDelete")
+    @PostMapping("/batchDelete")
     public R<Boolean> batchDelete(@RequestBody IdParam idParam) {
         return R.ok(userRoleListService.batchDelete(idParam));
     }
 
     @ApiOperation(value = "更新用户角色关联")
-    @PutMapping("/update")
+    @PostMapping("/update")
     public R<Boolean> updateUserRoleList(@RequestBody UserRoleList userRoleList) {
         return R.ok(userRoleListService.updateUserRoleList(userRoleList));
     }

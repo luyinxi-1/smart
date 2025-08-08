@@ -38,13 +38,13 @@ public class LearningNotesController {
     }
 
     @ApiOperation(value = "删除学习笔记")
-    @DeleteMapping("batchDelete")
+    @PostMapping("batchDelete")
     public R<Boolean> batchDelete(@RequestBody IdParam idParam) {
         return R.ok(learningNotesService.batchDelete(idParam));
     }
 
     @ApiOperation(value = "更新学习笔记")
-    @PutMapping("/updateNotes")
+    @PostMapping("/updateNotes")
     public R<Boolean> updateNotes(@RequestBody LearningNotes param) {
         return R.ok(learningNotesService.updateNotes(param));
     }

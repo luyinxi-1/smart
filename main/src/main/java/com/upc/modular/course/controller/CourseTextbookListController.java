@@ -36,13 +36,13 @@ public class CourseTextbookListController {
     }
 
     @ApiOperation(value = "删除教材课程关联")
-    @DeleteMapping("/batchDelete")
+    @PostMapping("/batchDelete")
     public R<Boolean> batchDelete(@RequestParam("idList") List<Long> idList) {
         return R.ok(courseTextbookListService.batchDelete(idList));
     }
 
     @ApiOperation(value = "更新教材课程关联")
-    @PutMapping("/updateCourseTextbook")
+    @PostMapping("/updateCourseTextbook")
     public R<Boolean> updateCourseTextbook(@RequestBody CourseTextbookList courseTextbookList) {
         return R.ok(courseTextbookListService.updateCourseTextbook(courseTextbookList));
     }

@@ -45,7 +45,7 @@ public class SysDictTypeController {
     }
 
     @ApiOperation(value = "删除字典类型")
-    @DeleteMapping("/batchDelete")
+    @PostMapping("/batchDelete")
     public R batchDelete(@RequestBody IdParam idParam) {
         dictTypeService.deleteDictTypeByIds(idParam);
         return R.commonReturn(200, "删除成功", "");
@@ -59,7 +59,7 @@ public class SysDictTypeController {
     }
 
     @ApiOperation(value = "修改字典类型")
-    @PutMapping("/update")
+    @PostMapping("/update")
     public R update(@RequestBody SysDictType dict) {
         dictTypeService.updateDictType(dict);
         return R.commonReturn(200, "修改成功", "");

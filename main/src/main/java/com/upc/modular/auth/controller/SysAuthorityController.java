@@ -63,7 +63,7 @@ public class SysAuthorityController {
         return R.ok();
     }
 
-    @DeleteMapping("/deleteAuthsByAuthIdList")
+    @PostMapping("/deleteAuthsByAuthIdList")
     @ApiOperation("/删除权限")
     public R<String> deleteAuths(@RequestParam("idList")
                                  @NotEmpty(message = "数组不能为空")

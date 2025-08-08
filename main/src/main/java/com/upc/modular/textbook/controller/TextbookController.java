@@ -42,14 +42,14 @@ public class TextbookController {
     }
 
     @ApiOperation(value = "删除教材")
-    @DeleteMapping("/batchDelete")
+    @PostMapping("/batchDelete")
     public R batchDelete(@RequestBody IdParam idParam) {
         textbookService.deleteDictItemByIds(idParam);
         return R.commonReturn(200, "删除成功", "");
     }
 
     @ApiOperation(value = "修改教材")
-    @PutMapping("/update")
+    @PostMapping("/update")
     public R update(@RequestBody Textbook textbook) {
         textbookService.updateTextbook(textbook);
         return R.commonReturn(200, "修改成功", "");

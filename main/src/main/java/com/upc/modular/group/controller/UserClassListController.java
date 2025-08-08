@@ -46,7 +46,7 @@ public class UserClassListController {
 
 
     @ApiOperation(value = "根据ID批量删除班级用户信息")
-    @DeleteMapping("/batchDelete")
+    @PostMapping("/batchDelete")
     public R<String> batchDelete(@RequestBody IdParam idParam) {
         if (idParam == null || idParam.getIdList() == null || idParam.getIdList().isEmpty()) {
             return R.fail("要删除的ID列表不能为空。");
@@ -65,7 +65,7 @@ public class UserClassListController {
     }
 
     @ApiOperation(value = "更新班级信息")
-    @PutMapping("/update")
+    @PostMapping("/update")
     public R<String> update(@RequestBody UserClassList userClassList) {
         if (userClassList.getId() == null) {
             return R.fail("更新时班级用户信息时ID是必需的。");

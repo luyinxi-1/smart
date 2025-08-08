@@ -49,14 +49,14 @@ public class StudentController {
     }
 
     @ApiOperation(value = "删除学生")
-    @DeleteMapping("/batchDelete")
+    @PostMapping("/batchDelete")
     public R batchDelete(@RequestBody IdParam idParam) {
         studentService.deleteByIds(idParam);
         return R.commonReturn(200, "删除成功", "");
     }
 
     @ApiOperation(value = "修改学生")
-    @PutMapping("/update")
+    @PostMapping("/update")
     public R update(@RequestBody Student student) {
         studentService.updateById(student);
         return R.commonReturn(200, "修改成功", "");

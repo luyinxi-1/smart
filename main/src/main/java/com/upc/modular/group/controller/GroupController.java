@@ -62,7 +62,7 @@ public class GroupController {
 
 
     @ApiOperation(value = "根据ID批量删除班级信息")
-    @DeleteMapping("/batchDelete")
+    @PostMapping("/batchDelete")
     public R<String> batchDelete(@RequestBody IdParam idParam) {
         if (idParam == null || idParam.getIdList() == null || idParam.getIdList().isEmpty()) {
             return R.fail("要删除的ID列表不能为空。");
@@ -80,7 +80,7 @@ public class GroupController {
     }
 
     @ApiOperation(value = "更新班级信息")
-    @PutMapping("/update")
+    @PostMapping("/update")
     public R<String> update(@RequestBody Group group) {
         if (group.getId() == null) {
             return R.fail("更新时班级信息时ID是必需的。");

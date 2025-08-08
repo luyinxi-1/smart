@@ -35,13 +35,13 @@ public class DiscussionTopicReplyController {
     }
 
     @ApiOperation(value = "删除回复")
-    @DeleteMapping("/batchDelete")
+    @PostMapping("/batchDelete")
     public R<Boolean> batchDelete(@RequestBody IdParam idParam) {
         return R.ok(discussionTopicReplyService.deleteDictItemByIds(idParam));
     }
 
     @ApiOperation(value = "修改回复")
-    @PutMapping("/update")
+    @PostMapping("/update")
     public R<Boolean> update(@RequestBody DiscussionTopicReply reply) {
         return R.ok(discussionTopicReplyService.updateReply(reply));
     }

@@ -50,7 +50,7 @@ public class TextbookCatalogController {
     }
 
     @ApiOperation(value = "更新教材章节内容")
-    @PutMapping("/update")
+    @PostMapping("/update")
     public R<Boolean> update(@RequestBody TextbookCatalog param) {
         return R.ok(textbookCatalogService.updateTextbook(param));
     }

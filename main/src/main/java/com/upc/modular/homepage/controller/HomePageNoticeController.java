@@ -40,13 +40,13 @@ public class HomePageNoticeController {
     }
 
     @ApiOperation(value = "删除通知公告")
-    @DeleteMapping("/batchDelete")
+    @PostMapping("/batchDelete")
     public R<Boolean> batchDelete(@RequestParam("idList") List<Long> idList) {
         return R.ok(homePageNoticeService.batchDelete(idList));
     }
 
     @ApiOperation(value = "更新通知公告")
-    @PutMapping("/updateNotice")
+    @PostMapping("/updateNotice")
     public R<Boolean> updateNotice(@RequestBody HomePageNotice homePageNotice) {
         return R.ok(homePageNoticeService.updateNotice(homePageNotice));
     }

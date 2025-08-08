@@ -44,13 +44,13 @@ public class TeacherController {
     }
 
     @ApiOperation(value = "删除教师")
-    @DeleteMapping("/batchDelete")
+    @PostMapping("/batchDelete")
     public R<Boolean> batchDelete(@RequestBody IdParam idParam) {
         return R.ok(teacherService.batchDelete(idParam));
     }
 
     @ApiOperation(value = "修改教师")
-    @PutMapping("/update")
+    @PostMapping("/update")
     public R<Boolean> update(@RequestBody Teacher teacher) {
         return R.ok(teacherService.updateTeacher(teacher));
     }

@@ -40,7 +40,7 @@ public class SysLogController {
     }
 
     @ApiOperation(value = "删除系统日志")
-    @DeleteMapping("/batchDelete")
+    @PostMapping("/batchDelete")
     public R batchDelete(@RequestBody IdParam idParam) {
         boolean b = sysLogService.removeBatchByIds(idParam.getIdList());
         if (b) {

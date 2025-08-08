@@ -45,14 +45,14 @@ public class SysUserController {
     }
 
     @ApiOperation(value = "删除用户")
-    @DeleteMapping("/batchDelete")
+    @PostMapping("/batchDelete")
     public R batchDelete(@RequestBody IdParam idParam) {
         sysUserService.batchDelete(idParam.getIdList());
         return R.commonReturn(200, "删除成功", "");
     }
 
     @ApiOperation(value = "修改用户信息")
-    @PutMapping("/update")
+    @PostMapping("/update")
     public R update(@RequestBody SysTbuser param) {
         sysUserService.updateById(param);
         return R.commonReturn(200, "修改成功", "");

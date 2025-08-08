@@ -29,13 +29,13 @@ public class LearningAnnotationsAndLabelsController {
     private ILearningAnnotationsAndLabelsService learningAnnotationsAndLabelsService;
 
     @ApiOperation(value = "删除学习标注和批注")
-    @DeleteMapping("/batchDetele")
+    @PostMapping("/batchDetele")
     public R<Boolean> batchDetele(@RequestBody IdParam idParam) {
         return R.ok(learningAnnotationsAndLabelsService.batchDetele(idParam));
     }
 
     @ApiOperation(value = "新增或修改学习标注和批注")
-    @PutMapping("/saveOrUpdateLabels")
+    @PostMapping("/saveOrUpdateLabels")
     public R<Boolean> saveOrUpdateLabels(@RequestBody LearningAnnotationsAndLabels param) {
         return R.ok(learningAnnotationsAndLabelsService.saveOrUpdateLabels(param));
     }

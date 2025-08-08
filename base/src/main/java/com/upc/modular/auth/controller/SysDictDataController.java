@@ -41,14 +41,14 @@ public class SysDictDataController {
     }
 
     @ApiOperation(value = "删除字典类型")
-    @DeleteMapping("/batchDelete")
+    @PostMapping("/batchDelete")
     public R batchDelete(@RequestBody IdParam idParam) {
         sysDictItemService.deleteDictItemByIds(idParam);
         return R.commonReturn(200, "删除成功", "");
     }
 
     @ApiOperation(value = "修改字典类型")
-    @PutMapping("/update")
+    @PostMapping("/update")
     public R update(@RequestBody SysDictData dict) {
         sysDictItemService.updateById(dict);
         return R.commonReturn(200, "修改成功", "");

@@ -87,7 +87,7 @@ public class SysAuthorityModelController {
         return R.ok();
     }
 
-    @DeleteMapping("/deleteModelsByIdList")
+    @PostMapping("/deleteModelsByIdList")
     @ApiOperation("根据list删除权限模块，其下的权限会一起删除")
     public R<String> deleteModelsByIdList(@RequestParam("idList")
                                           @NotEmpty(message = "数组不能为空")
