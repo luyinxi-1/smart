@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.entity.SysTbrole;
 import com.upc.modular.auth.param.SysRoleSearchParam;
+import com.upc.modular.auth.param.tree.AuthNode;
 
 import java.util.List;
 
@@ -23,4 +24,9 @@ public interface ISysRoleService extends IService<SysTbrole> {
     void updateSysRoleById(SysTbrole sysTbrole);
 
     R<Page<SysTbrole>> getSysRolePage(SysRoleSearchParam param);
+
+    /**
+     * 获取角色的功能权限
+     */
+    List<AuthNode> getRoleAuths(Long roleId);
 }

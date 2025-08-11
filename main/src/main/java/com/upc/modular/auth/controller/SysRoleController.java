@@ -7,6 +7,7 @@ import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.entity.SysTbrole;
 import com.upc.modular.auth.param.SysRoleSearchParam;
+import com.upc.modular.auth.param.tree.AuthNode;
 import com.upc.modular.auth.service.ISysRoleService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -72,4 +73,9 @@ public class SysRoleController {
         return sysRoleService.getSysRolePage(param);
     }
 
+    @GetMapping("/getRoleAuthTree/{roleId}")
+    @ApiOperation("获取角色的权限树")
+    public R<List<AuthNode>> getRoleAuths(@PathVariable Long roleId) {
+        return R.ok(sysRoleService.getRoleAuths(roleId));
+    }
 }
