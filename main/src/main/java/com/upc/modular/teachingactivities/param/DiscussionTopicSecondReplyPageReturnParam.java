@@ -17,7 +17,13 @@ public class DiscussionTopicSecondReplyPageReturnParam extends DiscussionTopicRe
     @ApiModelProperty("回复人姓名")
     private String creatorName;
 
+    @ApiModelProperty("回复人身份")
+    private String creatorRole;
+
     @ApiModelProperty("是否为自身回复(0：不是，1：是)")
     private Integer isMine;
+
+    @ApiModelProperty("回复人头像")
+    private String userPicture;
 
 }

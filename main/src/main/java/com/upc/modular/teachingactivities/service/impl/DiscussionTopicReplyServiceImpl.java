@@ -10,6 +10,8 @@ import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.student.entity.Student;
 import com.upc.modular.student.mapper.StudentMapper;
 import com.upc.modular.teacher.entity.Teacher;
@@ -56,6 +58,9 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
 
     @Autowired
     private TeacherMapper teacherMapper;
+
+    @Autowired
+    private SysUserMapper sysTbUserMapper;
 
     @Override
     public Boolean insert(DiscussionTopicReply reply) {
@@ -214,6 +219,7 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
                 new LambdaQueryWrapper<DiscussionTopicReply>()
                         .eq(DiscussionTopicReply::getTopicId, param.getTopicId())
                         .eq(DiscussionTopicReply::getType, 1)
+                        .eq(DiscussionTopicReply::getIsShield, 0)
         );
         if (allReplies.isEmpty()) {
             return new Page<>(current, size);   // 空页
@@ -237,6 +243,7 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
 
         Map<Long, String> nameMap = new HashMap<>();
         Map<Long, String> roleMap = new HashMap<>();
+        Map<Long, String> pictureMap = new HashMap<>();
 
         if (!creatorIds.isEmpty()) {
             // 先从学生表查询
@@ -262,6 +269,15 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
                     roleMap.put(teacher.getUserId(), "教师");
                 });
             }
+            List<SysTbuser> users = sysTbUserMapper.selectList(
+                    new LambdaQueryWrapper<SysTbuser>().in(SysTbuser::getId, creatorIds)
+            );
+            // 将用户列表转换为 UserId -> UserPicture 的 Map
+            users.forEach(user -> {
+                if (user.getUserPicture() != null) {
+                    pictureMap.put(user.getId(), user.getUserPicture());
+                }
+            });
         }
         // VO 封装
         List<DiscussionTopicReplyPageReturnParam> voList = allReplies.stream().map(reply -> {
@@ -272,6 +288,7 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
             vo.setReplyNumber(replyCountMap.getOrDefault(reply.getId(), 0L).intValue());
             vo.setCreatorName(nameMap.getOrDefault(reply.getCreator(), "【匿名】"));
             vo.setCreatorRole(roleMap.getOrDefault(reply.getCreator(), "匿名")); // 设置角色
+            vo.setUserPicture(pictureMap.getOrDefault(reply.getCreator(), null)); // 设置头像，若无则使用默认值
             vo.setIsMine((loginUserId != null && Objects.equals(reply.getCreator(), loginUserId)) ? 1 : 0);
 
             return vo;
@@ -322,17 +339,18 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
         // BFS 拉取整条二级回复链
         Set<Long> frontierIds = new HashSet<>(Collections.singleton(param.getReplyId()));
         Map<Long, DiscussionTopicReply> chainReplyMap = new LinkedHashMap<>();  // 保留插入顺序
-        int depthGuard = 0, maxDepth = 6;   // 最多 6 层防炸（基本够用）
+        int depthGuard = 0, maxDepth = 50;   // 最多 6 层防炸（基本够用）
 
         while (!frontierIds.isEmpty() && depthGuard++ < maxDepth) {
             List<DiscussionTopicReply> layer = discussionTopicReplyMapper.selectList(
                     new LambdaQueryWrapper<DiscussionTopicReply>()
                             .eq(DiscussionTopicReply::getType, 2)
+                            .eq(DiscussionTopicReply::getIsShield, 0)
                             .in(DiscussionTopicReply::getTopicId, frontierIds)
             );
             frontierIds = new HashSet<>();
             for (DiscussionTopicReply r : layer) {
-                if (chainReplyMap.putIfAbsent(r.getId(), r) == null) {   // 新节点才继续往下
+                if (chainReplyMap.putIfAbsent(r.getId(), r) == null && r.getIsShield() != 1) {   // 新节点才继续往下
                     frontierIds.add(r.getId());
                 }
             }
@@ -353,19 +371,44 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
                         .in(UserLikes::getCorrelationId, replyIds)
         ).stream().collect(Collectors.groupingBy(UserLikes::getCorrelationId, Collectors.counting()));
 
-        // 姓名映射：学生 → 老师 → 匿名
-        Map<Long, String> nameMap = studentMapper.selectList(
-                new LambdaQueryWrapper<Student>().in(Student::getUserId, creatorIds)
-        ).stream().collect(Collectors.toMap(Student::getUserId, Student::getName));
+        Map<Long, String> nameMap = new HashMap<>();
+        Map<Long, String> roleMap = new HashMap<>();
+        Map<Long, String> pictureMap = new HashMap<>();
 
-        Set<Long> missingIds = creatorIds.stream()
-                .filter(uid -> !nameMap.containsKey(uid))
-                .collect(Collectors.toSet());
-        if (!missingIds.isEmpty()) {
-            Map<Long, String> teacherNameMap = teacherMapper.selectList(
-                    new LambdaQueryWrapper<Teacher>().in(Teacher::getUserId, missingIds)
-            ).stream().collect(Collectors.toMap(Teacher::getUserId, Teacher::getName));
-            nameMap.putAll(teacherNameMap);
+        // 姓名映射：学生 → 老师 → 匿名
+        if (!creatorIds.isEmpty()) {
+            // 先从学生表查询
+            List<Student> students = studentMapper.selectList(
+                    new LambdaQueryWrapper<Student>().in(Student::getUserId, creatorIds)
+            );
+            students.forEach(student -> {
+                nameMap.put(student.getUserId(), student.getName());
+                roleMap.put(student.getUserId(), "学生");
+            });
+
+            // 再用老师补全
+            Set<Long> missingIds = creatorIds.stream()
+                    .filter(uid -> !nameMap.containsKey(uid))
+                    .collect(Collectors.toSet());
+            if (!missingIds.isEmpty()) {
+                List<Teacher> teachers = teacherMapper.selectList(
+                        new LambdaQueryWrapper<Teacher>().in(Teacher::getUserId, missingIds)
+                );
+                teachers.forEach(teacher -> {
+                    nameMap.put(teacher.getUserId(), teacher.getName());
+                    roleMap.put(teacher.getUserId(), "教师");
+                });
+            }
+
+            List<SysTbuser> users = sysTbUserMapper.selectList(
+                    new LambdaQueryWrapper<SysTbuser>().in(SysTbuser::getId, creatorIds)
+            );
+            // 将用户列表转换为 UserId -> UserPicture 的 Map
+            users.forEach(user -> {
+                if (user.getUserPicture() != null) {
+                    pictureMap.put(user.getId(), user.getUserPicture());
+                }
+            });
         }
         Function<Long, String> safeName = uid -> nameMap.getOrDefault(uid, "【匿名】");
 
@@ -388,7 +431,9 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
             }
 
             vo.setCreatorName(safeName.apply(r.getCreator()));
+            vo.setCreatorRole(roleMap.getOrDefault(r.getCreator(), "匿名")); // 设置角色
             vo.setLikeNumber(likeCountMap.getOrDefault(r.getId(), 0L).intValue());
+            vo.setUserPicture(pictureMap.getOrDefault(r.getCreator(), null)); // 设置头像，若无则使用默认值
             vo.setIsMine(Objects.equals(r.getCreator(), loginUserId) ? 1 : 0);
             return vo;
         }).collect(Collectors.toList());
@@ -449,6 +494,7 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
         List<DiscussionTopicReply> childReplies = discussionTopicReplyMapper.selectList(
                 new LambdaQueryWrapper<DiscussionTopicReply>()
                         .eq(DiscussionTopicReply::getType, 2)
+                        .eq(DiscussionTopicReply::getIsShield, 0)
                         .eq(DiscussionTopicReply::getTopicId, myReply.getId())
                         .orderByAsc(DiscussionTopicReply::getAddDatetime)
         );
@@ -466,6 +512,10 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
                 UserLikes::getCorrelationId, Collectors.counting()
         ));
 
+        Map<Long, String> nameMap = new HashMap<>();
+        Map<Long, String> roleMap = new HashMap<>();
+        Map<Long, String> pictureMap = new HashMap<>();
+
         // 姓名映射：student → teacher → 匿名
         // 收集所有待查 creatorId
         Set<Long> creatorIds = new HashSet<>();
@@ -474,19 +524,40 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
         if (parentReply != null) creatorIds.add(parentReply.getCreator());
 
         // 先 student 表
-        Map<Long, String> nameMap = studentMapper.selectList(
-                new LambdaQueryWrapper<Student>().in(Student::getUserId, creatorIds)
-        ).stream().collect(Collectors.toMap(Student::getUserId, Student::getName));
+        if (!creatorIds.isEmpty()) {
+            // 先从学生表查询
+            List<Student> students = studentMapper.selectList(
+                    new LambdaQueryWrapper<Student>().in(Student::getUserId, creatorIds)
+            );
+            students.forEach(student -> {
+                nameMap.put(student.getUserId(), student.getName());
+                roleMap.put(student.getUserId(), "学生");
+            });
 
-        // 再 teacher 表补缺
-        Set<Long> missingIds = creatorIds.stream()
-                .filter(uid -> !nameMap.containsKey(uid))
-                .collect(Collectors.toSet());
-        if (!missingIds.isEmpty()) {
-            Map<Long, String> teacherNameMap = teacherMapper.selectList(
-                    new LambdaQueryWrapper<Teacher>().in(Teacher::getUserId, missingIds)
-            ).stream().collect(Collectors.toMap(Teacher::getUserId, Teacher::getName));
-            nameMap.putAll(teacherNameMap);
+            // 再用老师表补全
+            Set<Long> missingIds = creatorIds.stream()
+                    .filter(uid -> !nameMap.containsKey(uid))
+                    .collect(Collectors.toSet());
+            if (!missingIds.isEmpty()) {
+                Map<Long, String> teacherNameMap = teacherMapper.selectList(
+                        new LambdaQueryWrapper<Teacher>().in(Teacher::getUserId, missingIds)
+                ).stream().collect(Collectors.toMap(Teacher::getUserId, Teacher::getName));
+
+                // 填充老师的姓名和角色
+                teacherNameMap.forEach((userId, name) -> {
+                    nameMap.put(userId, name);
+                    roleMap.put(userId, "教师");
+                });
+            }
+            List<SysTbuser> users = sysTbUserMapper.selectList(
+                    new LambdaQueryWrapper<SysTbuser>().in(SysTbuser::getId, creatorIds)
+            );
+            // 将用户列表转换为 UserId -> UserPicture 的 Map
+            users.forEach(user -> {
+                if (user.getUserPicture() != null) {
+                    pictureMap.put(user.getId(), user.getUserPicture());
+                }
+            });
         }
 
         // 安全获取姓名函数
@@ -502,6 +573,7 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
                 .setCreatorName(safeName.apply(myReply.getCreator()))
                 .setAddDatetime(myReply.getAddDatetime())
                 .setLikeNumber(likeCountMap.getOrDefault(myReply.getId(), 0L).intValue())
+                .setUserPicture(pictureMap.getOrDefault(myReply.getCreator(), null)) // 设置头像，若无则使用默认值
         );
 
         // 子回复
@@ -510,7 +582,9 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
                         .setId(child.getId())
                         .setReplyContent(child.getReplyContent())
                         .setCreatorName(safeName.apply(child.getCreator()))
+                        .setCreatorRole(roleMap.getOrDefault(child.getCreator(), "匿名"))
                         .setAddDatetime(child.getAddDatetime())
+                        .setUserPicture(pictureMap.getOrDefault(myReply.getCreator(), null))
                         .setLikeNumber(likeCountMap.getOrDefault(child.getId(), 0L).intValue())
         ));
 
@@ -523,6 +597,8 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
         if (myReply.getType() == 2 && parentReply != null) {
             dto.setReplyContent(parentReply.getReplyContent())
                     .setReplyAuthor(safeName.apply(parentReply.getCreator()))
+                    .setReplyAuthorRole(roleMap.getOrDefault(parentReply.getCreator(), "匿名")) // 设置父回复作者的角色
+                    .setReplyAuthorPicture(pictureMap.getOrDefault(myReply.getCreator(), null))
                     .setReplyDateTime(parentReply.getAddDatetime());
         }
 

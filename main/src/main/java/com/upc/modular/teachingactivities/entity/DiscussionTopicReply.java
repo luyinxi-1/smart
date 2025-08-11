@@ -41,6 +41,10 @@ public class DiscussionTopicReply implements Serializable {
     @TableField("topic_id")
     private Long topicId;
 
+    @ApiModelProperty("是否被屏蔽（0代表否，1代表是）")
+    @TableField("is_shield")
+    private Integer isShield = 0;
+
     @ApiModelProperty("回复创建人")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;

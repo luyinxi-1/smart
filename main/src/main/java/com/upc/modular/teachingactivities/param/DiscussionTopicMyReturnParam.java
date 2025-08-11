@@ -20,6 +20,12 @@ public class DiscussionTopicMyReturnParam {
     @ApiModelProperty("回复发表者")
     private String replyAuthor;
 
+    @ApiModelProperty("回复发表者身份")
+    private String replyAuthorRole;
+
+    @ApiModelProperty
+    private String replyAuthorPicture;
+
     @ApiModelProperty("回复发表时间")
     private LocalDateTime replyDateTime;
 
