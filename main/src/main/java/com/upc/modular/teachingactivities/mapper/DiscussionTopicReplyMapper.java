@@ -16,4 +16,5 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface DiscussionTopicReplyMapper extends BaseMapper<DiscussionTopicReply> {
 
+    Long countTopicWithReplies(Long topicId);
 }
