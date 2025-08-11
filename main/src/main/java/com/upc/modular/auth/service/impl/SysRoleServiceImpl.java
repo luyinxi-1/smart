@@ -6,18 +6,18 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.responseparam.R;
+import com.upc.common.utils.UserUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.entity.RoleAuthorityList;
 import com.upc.modular.auth.entity.SysAuthority;
 import com.upc.modular.auth.entity.SysAuthorityModel;
 import com.upc.modular.auth.entity.SysTbrole;
-import com.upc.modular.auth.mapper.RoleAuthorityListMapper;
-import com.upc.modular.auth.mapper.SysAuthorityMapper;
-import com.upc.modular.auth.mapper.SysAuthorityModelMapper;
-import com.upc.modular.auth.mapper.SysRoleMapper;
+import com.upc.modular.auth.mapper.*;
 import com.upc.modular.auth.param.SysRoleSearchParam;
 import com.upc.modular.auth.param.tree.AuthNode;
+import com.upc.modular.auth.param.tree.FunctionAuthNode;
+import com.upc.modular.auth.param.tree.UserAuthTree;
 import com.upc.modular.auth.service.IRoleAuthorityListService;
 import com.upc.modular.auth.service.ISysRoleService;
 import com.upc.modular.auth.utils.MyBeanUtils;
@@ -49,6 +49,10 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysTbrole> im
     private SysAuthorityModelMapper sysAuthorityModelMapper;
     @Autowired
     private SysAuthorityMapper sysAuthorityMapper;
+    @Autowired
+    private SysRoleMapper sysRoleMapper;
+    @Autowired
+    private SysUserMapper sysUserMapper;
 
     @Override
     public void deleteSysRoleByIds(List<Long> ids) {
@@ -183,4 +187,67 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysTbrole> im
         }
         roleAuthorityListMapper.myDeleteBatch(deleteList);
     }
+
+    public UserAuthTree getUserAuthTree() {
+        UserAuthTree userAuthTree = new UserAuthTree();
+
+        // 1. 获取当前用户并查询其拥有的所有角色
+        Long userId = UserUtils.get().getId();
+        List<SysTbrole> userRoles = sysUserMapper.getRolesByUserId(userId);
+
+        // 如果用户没有任何角色，直接返回一个空的权限树
+        if (userRoles == null || userRoles.isEmpty()) {
+            userAuthTree.setFunctionAuthNode(new FunctionAuthNode().setId(0L));
+            return userAuthTree;
+        }
+
+        // 2. 从角色对象列表中提取出角色ID列表
+        List<Long> roleIdList = userRoles.stream()
+                .map(SysTbrole::getId)
+                .collect(Collectors.toList());
+
+        // 3. 根据角色ID列表，查询这些角色拥有的所有权限ID（去重）
+        List<Long> userAuthIdList = roleAuthorityListMapper.selectList(
+                        new LambdaQueryWrapper<RoleAuthorityList>()
+                                .in(RoleAuthorityList::getRoleId, roleIdList)
+                ).stream()
+                .map(RoleAuthorityList::getAuthorityId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 如果所有角色都没有分配任何权限，也返回空树
+        if (userAuthIdList.isEmpty()) {
+            userAuthTree.setFunctionAuthNode(new FunctionAuthNode().setId(0L));
+            return userAuthTree;
+        }
+
+        // 4. 【核心】根据用户拥有的权限ID，只查询出这些具体的权限信息
+        List<SysAuthority> userOwnedAuths = sysAuthorityMapper.selectList(
+                new LambdaQueryWrapper<SysAuthority>()
+                        .in(SysAuthority::getId, userAuthIdList)
+        );
+
+        // 5. 将过滤后的权限列表，按其父模块ID进行分组，以便后续组装
+        ConcurrentMap<Long, List<FunctionAuthNode>> authMap =
+                userOwnedAuths.stream()
+                        .map(item -> MyBeanUtils.copy(item, new FunctionAuthNode())
+                                .setType(item.getAuthType())
+                                .setParentId(item.getAuthModelId()))
+                        .collect(Collectors.groupingByConcurrent(FunctionAuthNode::getParentId));
+
+        // 6. 获取【所有】的权限模块，作为树的骨架。这可以确保即使用户在某模块下无任何权限，模块本身依然可见。
+        List<SysAuthorityModel> allAuthModels = sysAuthorityModelMapper.selectList(
+                new LambdaQueryWrapper<SysAuthorityModel>()
+                        .orderBy(true, true, SysAuthorityModel::getSeq)
+        );
+
+        // 7. 组装权限树（从虚拟根节点 0L 开始）
+        FunctionAuthNode rootNode = new FunctionAuthNode().setId(0L);
+        // 将所有模块 和 用户拥有的权限组装起来
+        rootNode.getChildrenNode(allAuthModels, authMap);
+
+        userAuthTree.setFunctionAuthNode(rootNode);
+        return userAuthTree;
+    }
+
 }

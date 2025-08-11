@@ -11,7 +11,9 @@ import com.upc.modular.auth.param.GetUserIsInInstitutionParam;
 import com.upc.modular.auth.param.ImportSysUserReturnParam;
 import com.upc.modular.auth.param.SysUserPageSearchParam;
 import com.upc.modular.auth.param.UserLoginParam;
+import com.upc.modular.auth.param.tree.UserAuthTree;
 import com.upc.modular.auth.service.ISysUserService;
+import com.upc.modular.auth.service.impl.SysRoleServiceImpl;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiModelProperty;
 import io.swagger.annotations.ApiOperation;
@@ -37,6 +39,8 @@ public class SysUserController {
 
     @Autowired
     private ISysUserService sysUserService;
+    @Autowired
+    private SysRoleServiceImpl sysRoleService;
 
     @PostMapping("/login")
     @ApiOperation("登录")
@@ -79,5 +83,9 @@ public class SysUserController {
         return R.ok(sysUserService.insert(sysTbuser));
     }
 
-
+    @GetMapping("/getUserAuthTree")
+    @ApiOperation("获取用户权限树")
+    public R<UserAuthTree> getUserAuthTree() {
+        return R.ok(sysRoleService.getUserAuthTree());
+    }
 }
