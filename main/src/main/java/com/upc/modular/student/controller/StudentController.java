@@ -1,19 +1,23 @@
 package com.upc.modular.student.controller;
 
 
+import com.alibaba.excel.EasyExcel;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.student.controller.param.GetStudentIsInInstitutionParam;
+import com.upc.modular.student.controller.param.dto.StudentExportDto;
 import com.upc.modular.student.controller.param.dto.StudentGenerateDto;
 import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
 import com.upc.modular.student.controller.param.vo.GenerateUserResultVoStudent;
 import com.upc.modular.student.controller.param.vo.ImportStudentReturnVo;
+import com.upc.modular.student.controller.param.vo.StudentExcelVo;
 import com.upc.modular.student.controller.param.vo.StudentReturnVo;
 import com.upc.modular.student.entity.Student;
 import com.upc.modular.student.service.IStudentService;
+import com.upc.modular.teacher.dto.BatchUpdateStatusDto;
 import com.upc.modular.teacher.dto.GetTeacherIsInInstitutionParam;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -21,6 +25,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -112,6 +120,29 @@ public class StudentController {
         Boolean result = studentService.getStudentIsInInstitution(param);
         return R.ok(result);
     }
+
+
+    @ApiOperation("批量修改学生的状态")
+    @PostMapping("/updateStudentAccountStatus")
+    public R updateStudentAccountStatus(@RequestBody BatchUpdateStatusDto dto) {
+        if (dto.getIds() == null || dto.getIds().isEmpty()) {
+            return R.fail("ID列表不能为空");
+        }
+        studentService.batchUpdateStatus(dto.getIds(), dto.getAccountStatus());
+        return R.ok();
+    }
+
+
+
+    @ApiOperation("导出学生信息")
+    @PostMapping("/exportStudentData")
+    public void exportStudentData(HttpServletResponse response, @RequestBody StudentExportDto param) {
+        studentService.exportStudentData(response, param);
+    }
+
+
+
+
 
 
 }
