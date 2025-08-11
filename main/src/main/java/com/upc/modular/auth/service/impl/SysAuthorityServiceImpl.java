@@ -1,13 +1,9 @@
 package com.upc.modular.auth.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.responseparam.PageBaseReturnParam;
-import com.upc.common.responseparam.R;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
@@ -17,15 +13,12 @@ import com.upc.modular.auth.mapper.RoleAuthorityListMapper;
 import com.upc.modular.auth.mapper.SysAuthorityMapper;
 import com.upc.modular.auth.param.AuthParam;
 import com.upc.modular.auth.param.GetAuthPageParam;
-import com.upc.modular.auth.param.SysAuthoritySearchParam;
-import com.upc.modular.auth.param.SysAuthorityTreeReturnParam;
 import com.upc.modular.auth.service.ISysAuthorityService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * <p>

@@ -20,7 +20,7 @@
     </resultMap>
 
     <select id="getPermissionsByRoleId" resultType="com.upc.modular.auth.entity.SysAuthority">
-        SELECT a.id, a.access_url, a.father_id
+        SELECT a.id, a.access_url
         FROM sys_authority a
                  JOIN role_authority_list ra ON a.id = ra.authority_id
         WHERE ra.role_id = #{roleId}

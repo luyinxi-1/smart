@@ -1,18 +1,11 @@
 package com.upc.modular.auth.controller;
 
 
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
-import com.upc.exception.BusinessErrorEnum;
-import com.upc.exception.BusinessException;
 import com.upc.modular.auth.entity.SysAuthority;
-import com.upc.modular.auth.entity.SysAuthorityModel;
 import com.upc.modular.auth.param.AuthParam;
 import com.upc.modular.auth.param.GetAuthPageParam;
-import com.upc.modular.auth.param.SysAuthoritySearchParam;
-import com.upc.modular.auth.param.SysAuthorityTreeReturnParam;
 import com.upc.modular.auth.service.ISysAuthorityService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
