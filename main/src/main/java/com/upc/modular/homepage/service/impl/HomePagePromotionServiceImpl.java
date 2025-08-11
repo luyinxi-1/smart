@@ -29,6 +29,8 @@ import java.util.List;
 @Service
 public class HomePagePromotionServiceImpl extends ServiceImpl<HomePagePromotionMapper, HomePagePromotion> implements IHomePagePromotionService {
 
+    @Autowired
+    private HomePagePromotionMapper homePagePromotionMapper;
     @Override
     public Boolean insert(HomePagePromotion homePagePromotion) {
         if (ObjectUtils.isEmpty(homePagePromotion)) {
@@ -55,16 +57,31 @@ public class HomePagePromotionServiceImpl extends ServiceImpl<HomePagePromotionM
 
     @Override
     public List<HomePagePromotion> getHomePagePromotion(HomePagePromotionListSearchParam param) {
-        return null;
+        MyLambdaQueryWrapper<HomePagePromotion> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        lambdaQueryWrapper
+                .select(HomePagePromotion::getId, HomePagePromotion::getTitle, HomePagePromotion::getCoverImage,
+                        HomePagePromotion::getIsTop, HomePagePromotion::getAddDatetime)
+                .orderByDesc(HomePagePromotion::getIsTop)
+                .orderByDesc(HomePagePromotion::getAddDatetime)
+                .last("LIMIT " + param.getListNumber());
+
+        return homePagePromotionMapper.selectList(lambdaQueryWrapper);
     }
 
     @Override
     public Page<HomePagePromotion> getHomePagePromotionPage(HomePagePromotionPageSearchParam param) {
-        return null;
+        Page<HomePagePromotion> page = new Page<>(param.getCurrent(), param.getSize());
+        MyLambdaQueryWrapper<HomePagePromotion> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        lambdaQueryWrapper
+                .select(HomePagePromotion::getId, HomePagePromotion::getTitle, HomePagePromotion::getCoverImage,
+                         HomePagePromotion::getIsTop, HomePagePromotion::getAddDatetime)
+                .orderByDesc(HomePagePromotion::getIsTop)
+                .orderByDesc(HomePagePromotion::getAddDatetime);
+        return this.page(page, lambdaQueryWrapper);
     }
 
     @Override
     public HomePagePromotionReturnParam getHomePagePromotionDetails(Long promotionId) {
-        return null;
+        return homePagePromotionMapper.getHomePageNoticeDetails(promotionId);
     }
 }

@@ -26,7 +26,7 @@
         LEFT JOIN student s ON u.id = s.user_id AND u.user_type = 1
 
         <where>
-            <if test="noticeId!= null">
+            <if test="noticeId != null">
                 AND hpn.id = #{noticeId}
             </if>
         </where>

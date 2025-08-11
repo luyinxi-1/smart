@@ -3,6 +3,7 @@ package com.upc.modular.teachingactivities.mapper;
 import com.upc.modular.teachingactivities.entity.DiscussionTopicReply;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * <p>
@@ -15,4 +16,5 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface DiscussionTopicReplyMapper extends BaseMapper<DiscussionTopicReply> {
 
+    Long countTopicWithReplies(Long topicId);
 }

@@ -19,7 +19,7 @@ public class GetAuthPageParam extends PageBaseSearchParam {
 
     @ApiModelProperty("权限模块名称")
     @TableField("auth_model_name")
-    private Long authModelName;
+    private String authModelName;
 
     @ApiModelProperty("权限名称")
     private String authName;

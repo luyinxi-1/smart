@@ -51,13 +51,13 @@ public class SysAuthorityController {
 
     @PostMapping("/addAuth")
     @ApiOperation("添加权限")
-    public R<String> addAuth(@RequestBody @Validated AuthParam authParam) {
+    public R<String> addAuth(@RequestBody AuthParam authParam) {
         sysAuthorityService.addAuth(authParam);
         return R.ok();
     }
 
     @PostMapping("/deleteAuthsByAuthIdList")
-    @ApiOperation("/删除权限")
+    @ApiOperation("删除权限")
     public R<String> deleteAuths(@RequestParam("idList")
                                  @NotEmpty(message = "数组不能为空")
                                  List<Integer> idList) {

@@ -37,6 +37,14 @@ public class SysTbrole implements Serializable {
     @TableField("status")
     private Integer status;
 
+    @ApiModelProperty("角色编码")
+    @TableField("role_code")
+    private Integer roleCode;
+
+    @ApiModelProperty("是否默认（0否，1是）")
+    @TableField("is_default")
+    private Integer isDefault;
+
     @ApiModelProperty("创建人")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;
