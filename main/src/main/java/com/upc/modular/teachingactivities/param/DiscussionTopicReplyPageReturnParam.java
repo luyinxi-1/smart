@@ -26,4 +26,7 @@ public class DiscussionTopicReplyPageReturnParam extends DiscussionTopicReply {
     @ApiModelProperty("回复人身份")
     private String creatorRole;
 
+    @ApiModelProperty("回复人头像")
+    private String userPicture;
+
 }

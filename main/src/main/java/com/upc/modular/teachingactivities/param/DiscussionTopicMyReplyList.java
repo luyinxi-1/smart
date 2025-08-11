@@ -19,10 +19,16 @@ public class DiscussionTopicMyReplyList {
     @ApiModelProperty("回复创建人")
     private String creatorName;
 
+    @ApiModelProperty("回复创建人身份")
+    private String creatorRole;
+
     @ApiModelProperty("回复时间")
     private LocalDateTime addDatetime;
 
     @ApiModelProperty("点赞数")
     private Integer likeNumber;
+
+    @ApiModelProperty("回复人头像")
+    private String userPicture;
 
 }
