@@ -2,6 +2,7 @@ package com.upc.modular.homepage.mapper;
 
 import com.upc.modular.homepage.entity.HomePagePromotion;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.upc.modular.homepage.param.HomePagePromotionReturnParam;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -15,4 +16,5 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface HomePagePromotionMapper extends BaseMapper<HomePagePromotion> {
 
+    HomePagePromotionReturnParam getHomePageNoticeDetails(Long promotionId);
 }
