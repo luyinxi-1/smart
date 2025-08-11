@@ -13,4 +13,12 @@
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
 
+    <delete id="myDeleteBatch">
+        delete
+        from role_authority_list
+        where (role_id, authority_id) in
+        <foreach collection="deleteList" open="(" separator="," close=")" item="item">
+            (#{item.roleId},#{item.authorityId})
+        </foreach>
+    </delete>
 </mapper>

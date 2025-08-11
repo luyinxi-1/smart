@@ -14,6 +14,7 @@ import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.constraints.NotEmpty;
 import java.util.List;
 
 /**
@@ -75,7 +76,17 @@ public class SysRoleController {
 
     @GetMapping("/getRoleAuthTree/{roleId}")
     @ApiOperation("获取角色的权限树")
-    public R<List<AuthNode>> getRoleAuths(@PathVariable Long roleId) {
-        return R.ok(sysRoleService.getRoleAuths(roleId));
+    public R<List<AuthNode>> getRoleAuthTree(@PathVariable Long roleId) {
+        return R.ok(sysRoleService.getRoleAuthTree(roleId));
+    }
+
+    @PostMapping("/updateRoleAuthTree/{roleId}")
+    @ApiOperation("更新角色的权限树")
+    public R<String> updateRoleAuthTree(@PathVariable Long roleId,
+                                        @RequestParam("idList")
+                                        @NotEmpty(message = "数组不能为空")
+                                                List<Long> idList) {
+        sysRoleService.updateRoleAuthTree(roleId, idList);
+        return R.ok();
     }
 }

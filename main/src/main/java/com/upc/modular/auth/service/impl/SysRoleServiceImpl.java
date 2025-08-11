@@ -87,7 +87,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysTbrole> im
 
 
     @Override
-    public List<AuthNode> getRoleAuths(Long roleId) { // 传入的roleId为将被分配权限的角色ID
+    public List<AuthNode> getRoleAuthTree(Long roleId) { // 传入的roleId为将被分配权限的角色ID
 
         /*
          * 1. 查询出传入的 roleId 所拥有的权限ID列表，用于后续标记“已拥有”状态。
@@ -145,5 +145,42 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysTbrole> im
         );
 
         return authNodes;
+    }
+
+
+    @Override
+    public void updateRoleAuthTree(Long roleId, List<Long> idList) {
+        // 查出数据库中对应的权限列表
+        List<Long> authIdList = roleAuthorityListMapper.selectList(
+                new LambdaQueryWrapper<RoleAuthorityList>()
+                        .select(RoleAuthorityList::getAuthorityId)
+                        .eq(RoleAuthorityList::getRoleId, roleId)
+        ).stream().map(RoleAuthorityList::getAuthorityId).collect(Collectors.toList());
+        // 找出新增的
+        List<RoleAuthorityList> insertList = new ArrayList<>();
+        idList.forEach(item->{
+            if (!authIdList.contains(item)) {
+                insertList.add(new RoleAuthorityList()
+                        .setRoleId(roleId)
+                        .setAuthorityId(item)
+                );
+            }
+        });
+        //找出删除的
+        List<RoleAuthorityList> deleteList = new ArrayList<>();
+        authIdList.forEach(item -> {
+            if (!idList.contains(item)) {
+                deleteList.add(new RoleAuthorityList()
+                        .setRoleId(roleId)
+                        .setAuthorityId(item)
+                );
+            }
+        });
+        roleAuthorityListService.saveBatch(insertList);
+        //如果是空的就不删除
+        if (org.springframework.util.CollectionUtils.isEmpty(deleteList)) {
+            return;
+        }
+        roleAuthorityListMapper.myDeleteBatch(deleteList);
     }
 }
