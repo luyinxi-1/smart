@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
+import com.upc.common.utils.UserInfoToRedis;
 import com.upc.common.utils.UserUtils;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
@@ -234,25 +235,34 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
                         .in(DiscussionTopicReply::getTopicId, replyIds)
         ).stream().collect(Collectors.groupingBy(DiscussionTopicReply::getTopicId, Collectors.counting()));
 
-        // 姓名映射：学生 → 老师 → 匿名
-        // 先 student
-        Map<Long, String> nameMap = studentMapper.selectList(
-                new LambdaQueryWrapper<Student>().in(Student::getUserId, creatorIds)
-        ).stream().collect(Collectors.toMap(Student::getUserId, Student::getName));
+        Map<Long, String> nameMap = new HashMap<>();
+        Map<Long, String> roleMap = new HashMap<>();
 
-        // 再 teacher 补缺
-        Set<Long> missingIds = creatorIds.stream()
-                .filter(uid -> !nameMap.containsKey(uid))
-                .collect(Collectors.toSet());
-        if (!missingIds.isEmpty()) {
-            Map<Long, String> teacherNameMap = teacherMapper.selectList(
-                    new LambdaQueryWrapper<Teacher>().in(Teacher::getUserId, missingIds)
-            ).stream().collect(Collectors.toMap(Teacher::getUserId, Teacher::getName));
-            nameMap.putAll(teacherNameMap);
+        if (!creatorIds.isEmpty()) {
+            // 先从学生表查询
+            List<Student> students = studentMapper.selectList(
+                    new LambdaQueryWrapper<Student>().in(Student::getUserId, creatorIds)
+            );
+            students.forEach(student -> {
+                nameMap.put(student.getUserId(), student.getName());
+                roleMap.put(student.getUserId(), "学生");
+            });
+
+            // 筛选出尚未匹配到姓名的ID，再从教师表查询
+            Set<Long> missingIds = creatorIds.stream()
+                    .filter(uid -> !nameMap.containsKey(uid))
+                    .collect(Collectors.toSet());
+
+            if (!missingIds.isEmpty()) {
+                List<Teacher> teachers = teacherMapper.selectList(
+                        new LambdaQueryWrapper<Teacher>().in(Teacher::getUserId, missingIds)
+                );
+                teachers.forEach(teacher -> {
+                    nameMap.put(teacher.getUserId(), teacher.getName());
+                    roleMap.put(teacher.getUserId(), "教师");
+                });
+            }
         }
-
-        Function<Long, String> safeName = uid -> nameMap.getOrDefault(uid, "【匿名】");
-
         // VO 封装
         List<DiscussionTopicReplyPageReturnParam> voList = allReplies.stream().map(reply -> {
             DiscussionTopicReplyPageReturnParam vo = new DiscussionTopicReplyPageReturnParam();
@@ -260,7 +270,8 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
 
             vo.setLikeNumber(likeCountMap.getOrDefault(reply.getId(), 0L).intValue());
             vo.setReplyNumber(replyCountMap.getOrDefault(reply.getId(), 0L).intValue());
-            vo.setCreatorName(safeName.apply(reply.getCreator()));
+            vo.setCreatorName(nameMap.getOrDefault(reply.getCreator(), "【匿名】"));
+            vo.setCreatorRole(roleMap.getOrDefault(reply.getCreator(), "匿名")); // 设置角色
             vo.setIsMine((loginUserId != null && Objects.equals(reply.getCreator(), loginUserId)) ? 1 : 0);
 
             return vo;
