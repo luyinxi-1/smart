@@ -1,5 +1,6 @@
 package com.upc.modular.teachingactivities.service;
 
+import com.upc.modular.teachingactivities.param.DiscussionTopicReturnParam;
 import com.upc.modular.teachingactivities.param.DiscussionTopicSearchParam;
 import com.upc.modular.teachingactivities.entity.DiscussionTopic;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -22,5 +23,5 @@ public interface IDiscussionTopicService extends IService<DiscussionTopic> {
 
     void updateDiscussionTopicById(DiscussionTopic discussionTopic);
 
-    List<DiscussionTopic> getDiscussionTopicList(DiscussionTopicSearchParam param);
+    List<DiscussionTopicReturnParam> getDiscussionTopicList(DiscussionTopicSearchParam param);
 }

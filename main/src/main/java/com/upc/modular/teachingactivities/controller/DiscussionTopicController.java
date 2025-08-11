@@ -4,6 +4,7 @@ package com.upc.modular.teachingactivities.controller;
 import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.teachingactivities.param.DiscussionTopicReturnParam;
 import com.upc.modular.teachingactivities.param.DiscussionTopicSearchParam;
 import com.upc.modular.teachingactivities.entity.DiscussionTopic;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
@@ -63,8 +64,8 @@ public class DiscussionTopicController {
 
     @ApiOperation(value = "按条件查询教学活动讨论话题")
     @PostMapping("/getDiscussionTopicList")
-    public R<List<DiscussionTopic>> getDiscussionTopicList(@RequestBody DiscussionTopicSearchParam param) {
-        List<DiscussionTopic> discussionTopicList = discussionTopicService.getDiscussionTopicList(param);
+    public R<List<DiscussionTopicReturnParam>> getDiscussionTopicList(@RequestBody DiscussionTopicSearchParam param) {
+        List<DiscussionTopicReturnParam> discussionTopicList = discussionTopicService.getDiscussionTopicList(param);
         return R.ok(discussionTopicList);
     }
 
