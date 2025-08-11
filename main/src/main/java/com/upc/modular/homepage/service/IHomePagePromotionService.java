@@ -1,7 +1,14 @@
 package com.upc.modular.homepage.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.modular.homepage.entity.HomePageNotice;
 import com.upc.modular.homepage.entity.HomePagePromotion;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.homepage.param.HomePagePromotionListSearchParam;
+import com.upc.modular.homepage.param.HomePagePromotionPageSearchParam;
+import com.upc.modular.homepage.param.HomePagePromotionReturnParam;
+
+import java.util.List;
 
 /**
  * <p>
@@ -13,4 +20,15 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IHomePagePromotionService extends IService<HomePagePromotion> {
 
+    Boolean insert(HomePagePromotion homePagePromotion);
+
+    Boolean batchDelete(List<Long> idList);
+
+    Boolean updatePromotion(HomePagePromotion homePagePromotion);
+
+    List<HomePagePromotion> getHomePagePromotion(HomePagePromotionListSearchParam param);
+
+    Page<HomePagePromotion> getHomePagePromotionPage(HomePagePromotionPageSearchParam param);
+
+    HomePagePromotionReturnParam getHomePagePromotionDetails(Long promotionId);
 }
