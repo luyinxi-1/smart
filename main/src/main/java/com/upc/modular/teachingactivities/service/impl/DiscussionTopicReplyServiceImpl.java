@@ -238,6 +238,7 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
         Map<Long, Long> replyCountMap = discussionTopicReplyMapper.selectList(
                 new LambdaQueryWrapper<DiscussionTopicReply>()
                         .eq(DiscussionTopicReply::getType, 2)
+                        .eq(DiscussionTopicReply::getIsShield, 0)
                         .in(DiscussionTopicReply::getTopicId, replyIds)
         ).stream().collect(Collectors.groupingBy(DiscussionTopicReply::getTopicId, Collectors.counting()));
 
@@ -644,5 +645,15 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
         }
         return null;
     }
+
+    public Integer getTopicReplyCount(Long topicId) {
+        if (ObjectUtils.isEmpty(topicId)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "topicIdId 不能为空");
+        }
+        Long total = discussionTopicReplyMapper.countTopicWithReplies(topicId);
+        return total.intValue();
+
+    }
+
 
 }
