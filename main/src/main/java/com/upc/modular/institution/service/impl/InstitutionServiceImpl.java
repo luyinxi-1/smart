@@ -51,6 +51,7 @@ public class InstitutionServiceImpl extends ServiceImpl<InstitutionMapper, Insti
         queryWrapper.like(StringUtils.isNotBlank(param.getInstitutionName()), Institution::getInstitutionName, param.getInstitutionName());
         queryWrapper.eq(param.getInstitutionGrade() != null, Institution::getInstitutionGrade, param.getInstitutionGrade());
         queryWrapper.eq(StringUtils.isNotBlank(param.getInstitutionCode()), Institution::getInstitutionCode, param.getInstitutionCode());
+        queryWrapper.orderBy(true, true, Institution::getSort);
         List<Institution> institutionList = this.list(queryWrapper);
 
         List<InstitutionDto> institutionDtos = institutionList.stream().map(item -> {
