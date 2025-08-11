@@ -28,7 +28,7 @@ public interface ISysRoleService extends IService<SysTbrole> {
     /**
      * 获取角色的功能权限
      */
-    List<AuthNode> getRoleAuths(Long roleId);
+    List<AuthNode> getRoleAuthTree(Long roleId);
 
     /**
      * 更新角色权限树

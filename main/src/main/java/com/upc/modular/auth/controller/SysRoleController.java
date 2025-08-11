@@ -76,8 +76,8 @@ public class SysRoleController {
 
     @GetMapping("/getRoleAuthTree/{roleId}")
     @ApiOperation("获取角色的权限树")
-    public R<List<AuthNode>> getRoleAuths(@PathVariable Long roleId) {
-        return R.ok(sysRoleService.getRoleAuths(roleId));
+    public R<List<AuthNode>> getRoleAuthTree(@PathVariable Long roleId) {
+        return R.ok(sysRoleService.getRoleAuthTree(roleId));
     }
 
     @PostMapping("/updateRoleAuthTree/{roleId}")

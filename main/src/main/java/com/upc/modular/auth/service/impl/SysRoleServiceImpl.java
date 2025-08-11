@@ -87,7 +87,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysTbrole> im
 
 
     @Override
-    public List<AuthNode> getRoleAuths(Long roleId) { // 传入的roleId为将被分配权限的角色ID
+    public List<AuthNode> getRoleAuthTree(Long roleId) { // 传入的roleId为将被分配权限的角色ID
 
         /*
          * 1. 查询出传入的 roleId 所拥有的权限ID列表，用于后续标记“已拥有”状态。
