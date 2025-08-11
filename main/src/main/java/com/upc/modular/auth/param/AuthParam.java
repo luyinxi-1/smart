@@ -44,7 +44,6 @@ public class AuthParam {
     private String url;
 
     @ApiModelProperty("可达路径")
-    @NotEmpty(message = "可达路径参数不能为空")
     private String accessUrl;
 
 }

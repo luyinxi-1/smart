@@ -1,6 +1,7 @@
 package com.upc.modular.auth.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.responseparam.PageBaseReturnParam;
@@ -74,18 +75,52 @@ public class SysAuthorityServiceImpl extends ServiceImpl<SysAuthorityMapper, Sys
 
     @Override
     public void addAuth(AuthParam authParam) {
-        List<SysAuthority> sysAuths = sysAuthorityMapper.selectList(
+        if (authParam == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, ":请求参数不能为空");
+        }
+        if (authParam.getAuthModelId() == null) {
+            throw new BusinessException(BusinessErrorEnum.IS_EMPTY, ":权限模块ID (authModelId)");
+        }
+        if (StringUtils.isBlank(authParam.getAuthModelName())) {
+            throw new BusinessException(BusinessErrorEnum.IS_EMPTY, ":权限模块名称 (authModelName)");
+        }
+        if (StringUtils.isBlank(authParam.getAuthName())) {
+            throw new BusinessException(BusinessErrorEnum.IS_EMPTY, ":权限名称 (authName)");
+        }
+        if (authParam.getSeq() == null) {
+            throw new BusinessException(BusinessErrorEnum.IS_EMPTY, ":顺序 (seq)");
+        }
+        if (authParam.getStatus() == null) {
+            throw new BusinessException(BusinessErrorEnum.IS_EMPTY, ":状态 (status)");
+        }
+        if (authParam.getAuthType() == null) {
+            throw new BusinessException(BusinessErrorEnum.IS_EMPTY, ":权限类型 (authType)");
+        }
+        if (StringUtils.isBlank(authParam.getUrl())) {
+            throw new BusinessException(BusinessErrorEnum.IS_EMPTY, ":路由 (url)");
+        }
+
+//        List<SysAuthority> sysAuths = sysAuthorityMapper.selectList(
+//                new MyLambdaQueryWrapper<SysAuthority>()
+//                        .eq(SysAuthority::getUrl, authParam.getUrl())
+//                        .eq(SysAuthority::getAuthModelId,authParam.getAuthModelId())
+//        );
+//        if (CollectionUtils.isNotEmpty(sysAuths)) {
+//            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, ":已存在url相同的权限点");
+//        }
+
+        // 检查权限点是否已存在。这里使用了 exists 方法，比 selectList 更高效，因为它只需要知道存不存在，而不需要返回具体数据
+        boolean isExist = sysAuthorityMapper.exists(
                 new MyLambdaQueryWrapper<SysAuthority>()
                         .eq(SysAuthority::getUrl, authParam.getUrl())
-                        .eq(SysAuthority::getAuthModelId,authParam.getAuthModelId())
+                        .eq(SysAuthority::getAuthModelId, authParam.getAuthModelId())
         );
-        if (CollectionUtils.isNotEmpty(sysAuths)) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, ":已存在url相同的权限点");
+        if (isExist) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "该模块下已存在相同URL的权限点");
         }
         SysAuthority sysAuth = new SysAuthority();
         BeanUtils.copyProperties(authParam, sysAuth);
         sysAuth.setId(null);
-        // 存authModelName;
         // 程序能运行到这部说明sysAuths一定为空，所以下面的get(0)一定报错
 //        sysAuth.setAuthModelName(sysAuths.get(0).getAuthModelName());
         sysAuthorityMapper.insert(sysAuth);
@@ -105,14 +140,16 @@ public class SysAuthorityServiceImpl extends ServiceImpl<SysAuthorityMapper, Sys
         Page<SysAuthority> authGetPage = new Page<>(getAuthPageParam.getCurrent(), getAuthPageParam.getSize());
         Page<SysAuthority> sysAuthPageReturn = sysAuthorityMapper.selectPage(authGetPage,
                 new MyLambdaQueryWrapper<SysAuthority>()
-                        .eq(SysAuthority::getAuthModelId, getAuthPageParam.getAuthModelId())
-                        .like(SysAuthority::getAuthModelName,getAuthPageParam.getAuthModelName())
-                        .like(SysAuthority::getAuthName, getAuthPageParam.getAuthName())
-                        .eq(SysAuthority::getSeq, getAuthPageParam.getSeq())
-                        .eq(SysAuthority::getStatus, getAuthPageParam.getStatus())
-                        .eq(SysAuthority::getAuthType, getAuthPageParam.getAuthType())
-                        .eq(SysAuthority::getUrl, getAuthPageParam.getUrl())
-                        .eq(SysAuthority::getAccessUrl,getAuthPageParam.getAccessUrl())
+                        // 对于 Long/Integer/Enum 等对象类型，判断是否为 null
+                        .eq(getAuthPageParam.getAuthModelId() != null, SysAuthority::getAuthModelId, getAuthPageParam.getAuthModelId())
+                        .eq(getAuthPageParam.getStatus() != null, SysAuthority::getStatus, getAuthPageParam.getStatus())
+                        .eq(getAuthPageParam.getAuthType() != null, SysAuthority::getAuthType, getAuthPageParam.getAuthType())
+                        // 对于 String 类型，使用 like 查询，判断是否 "isNotBlank" (非null、非空、非空白)
+                        .like(StringUtils.isNotBlank(getAuthPageParam.getAuthModelName()), SysAuthority::getAuthModelName, getAuthPageParam.getAuthModelName())
+                        .like(StringUtils.isNotBlank(getAuthPageParam.getAuthName()), SysAuthority::getAuthName, getAuthPageParam.getAuthName())
+                        .eq(StringUtils.isNotBlank(getAuthPageParam.getUrl()), SysAuthority::getUrl, getAuthPageParam.getUrl())
+                        .eq(StringUtils.isNotBlank(getAuthPageParam.getAccessUrl()), SysAuthority::getAccessUrl, getAuthPageParam.getAccessUrl())
+                        .orderByAsc(SysAuthority::getSeq)
         );
 //        PageBaseReturnParam<AuthParam> authParamPageBaseReturnParam = new PageBaseReturnParam<AuthParam>()
 //                .setPageNo(sysAuthPageReturn.getCurrent())
@@ -131,9 +168,16 @@ public class SysAuthorityServiceImpl extends ServiceImpl<SysAuthorityMapper, Sys
 
     @Override
     public void updateByAuthId(AuthParam authParam) {
-        if (authParam.getId() == null) {
+        Long authId = authParam.getId();
+        if (authId == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, ":更新时id不能为空");
         }
+
+        SysAuthority existingAuth = sysAuthorityMapper.selectById(authId);
+        if (existingAuth == null) {
+            throw new BusinessException(BusinessErrorEnum.IS_EMPTY, ",要更新的权限记录不存在，ID: " + authId);
+        }
+
         SysAuthority sysAuth = new SysAuthority();
         BeanUtils.copyProperties(authParam, sysAuth);
         sysAuthorityMapper.updateById(sysAuth);

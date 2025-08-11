@@ -57,8 +57,13 @@ public class SysAuthorityModelServiceImpl extends ServiceImpl<SysAuthorityModelM
 
     @Override
     public void updateModelById(AuthModelParam authModelParam) {
-        if (authModelParam.getId() == null) {
+        Long authModelId = authModelParam.getId();
+        if (authModelId == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, ":更新时id不能为空");
+        }
+        SysAuthorityModel existingAuthModel = sysAuthorityModelMapper.selectById(authModelId);
+        if (existingAuthModel == null) {
+            throw new BusinessException(BusinessErrorEnum.IS_EMPTY, ",要更新的权限记录不存在，ID: " + authModelId);
         }
         SysAuthorityModel sysAuthModel = new SysAuthorityModel();
         BeanUtils.copyProperties(authModelParam, sysAuthModel);
