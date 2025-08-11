@@ -238,6 +238,7 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
         Map<Long, Long> replyCountMap = discussionTopicReplyMapper.selectList(
                 new LambdaQueryWrapper<DiscussionTopicReply>()
                         .eq(DiscussionTopicReply::getType, 2)
+                        .eq(DiscussionTopicReply::getIsShield, 0)
                         .in(DiscussionTopicReply::getTopicId, replyIds)
         ).stream().collect(Collectors.groupingBy(DiscussionTopicReply::getTopicId, Collectors.counting()));
 
@@ -644,5 +645,35 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
         }
         return null;
     }
+
+    public Integer getTopicReplyCount(Long topicId) {
+        if (ObjectUtils.isEmpty(topicId)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "topicIdId 不能为空");
+        }
+        List<Long> firstLevelReplyIds = discussionTopicReplyMapper.selectList(
+                new LambdaQueryWrapper<DiscussionTopicReply>()
+                        .select(DiscussionTopicReply::getId) // 关键：只查询ID
+                        .eq(DiscussionTopicReply::getTopicId, topicId)
+                        .eq(DiscussionTopicReply::getType, 1)
+                        .eq(DiscussionTopicReply::getIsShield, 0)
+        ).stream().map(DiscussionTopicReply::getId).collect(Collectors.toList());
+
+        if (firstLevelReplyIds.isEmpty()) {
+            return 0;   // 空页
+        }
+
+        Long secondLevelCount = discussionTopicReplyMapper.selectCount(
+                new LambdaQueryWrapper<DiscussionTopicReply>()
+                        .eq(DiscussionTopicReply::getType, 2)
+                        .in(DiscussionTopicReply::getTopicId, firstLevelReplyIds)
+                        .eq(DiscussionTopicReply::getIsShield, 0)
+        );
+
+        // 4. 返回总数
+        return firstLevelReplyIds.size() + secondLevelCount.intValue();
+
+
+    }
+
 
 }

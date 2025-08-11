@@ -3,6 +3,7 @@ package com.upc.modular.teachingactivities.mapper;
 import com.upc.modular.teachingactivities.entity.DiscussionTopicReply;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * <p>
