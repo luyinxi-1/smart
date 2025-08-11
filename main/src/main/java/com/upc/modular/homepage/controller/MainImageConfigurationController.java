@@ -33,19 +33,19 @@ public class MainImageConfigurationController {
     @Autowired
     private IMainImageConfigurationService mainImageConfigurationService;
 
-    @ApiOperation(value = "新增教师")
+    @ApiOperation(value = "新增主图配置")
     @PostMapping("/insert")
     public R<Boolean> insert(@RequestBody MainImageConfiguration param) {
         return R.ok(mainImageConfigurationService.insert(param));
     }
 
-    @ApiOperation(value = "删除教师")
+    @ApiOperation(value = "删除主图配置")
     @PostMapping("/batchDelete")
     public R<Boolean> batchDelete(@RequestBody IdParam idParam) {
         return R.ok(mainImageConfigurationService.batchDelete(idParam));
     }
 
-    @ApiOperation(value = "修改教师")
+    @ApiOperation(value = "修改主图配置")
     @PostMapping("/update")
     public R<Boolean> update(@RequestBody MainImageConfiguration param) {
         return R.ok(mainImageConfigurationService.updateConfiguration(param));

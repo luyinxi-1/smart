@@ -56,7 +56,7 @@ public class MainImageConfigurationServiceImpl extends ServiceImpl<MainImageConf
     public List<MainImageConfiguration> selectALlConfiguration() {
         MyLambdaQueryWrapper<MainImageConfiguration> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
         lambdaQueryWrapper.orderByDesc(MainImageConfiguration::getIsTop)
-                .orderByDesc(MainImageConfiguration::getOrder);
+                .orderByDesc(MainImageConfiguration::getSortOrder);
         return mainImageConfigurationMapper.selectList(lambdaQueryWrapper);
 
     }

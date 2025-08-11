@@ -1,12 +1,12 @@
 package com.upc.modular.homepage.entity;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -19,8 +19,7 @@ import lombok.experimental.Accessors;
  * @author byh
  * @since 2025-08-11
  */
-@Getter
-@Setter
+@Data
 @Accessors(chain = true)
 @TableName("main_image_configuration")
 @ApiModel(value = "MainImageConfiguration对象", description = "")
@@ -29,7 +28,7 @@ public class MainImageConfiguration implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @ApiModelProperty("主图配置表id")
-    @TableField("id")
+    @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
     @ApiModelProperty("图片地址")
@@ -37,12 +36,12 @@ public class MainImageConfiguration implements Serializable {
     private String pictureUrl;
 
     @ApiModelProperty("排序")
-    @TableField("order")
-    private Integer order;
+    @TableField("sort_order")
+    private Integer sortOrder;
 
     @ApiModelProperty("是否置顶(1是 0不是)")
     @TableField("is_top")
-    private Integer isTop;
+    private Integer isTop = 0;
 
     @ApiModelProperty("创建者")
     @TableField(value = "creator", fill = FieldFill.INSERT)
