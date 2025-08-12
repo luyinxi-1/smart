@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
+import com.upc.config.web.interceptor.PermissionCheckInterceptor;
 import com.upc.config.web.interceptor.RequestInterceptor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -40,6 +41,11 @@ public class WebMVCConfig implements WebMvcConfigurer {
     @Bean
     public RequestInterceptor requestInterceptor() {
         return new RequestInterceptor();
+    }
+
+    @Bean
+    public PermissionCheckInterceptor permissionCheckInterceptor() {
+        return new PermissionCheckInterceptor();
     }
 
 
@@ -112,21 +118,19 @@ public class WebMVCConfig implements WebMvcConfigurer {
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-//        校验普通的token
+//      1.注册第一个拦截器：requestInterceptor，负责填充用户信息
         registry.addInterceptor(requestInterceptor())
 //    拦截路径
                 .addPathPatterns(ALL_PATH_PATTERN)
+                .order(0);
+//      2.注册第二个拦截器：PermissionCheckInterceptor，负责检查权限
+        registry.addInterceptor(permissionCheckInterceptor())
+//    拦截路径
+                .addPathPatterns(ALL_PATH_PATTERN)
 //    放行路径
-                .excludePathPatterns(EXCLUDE_PATH_PATTERNS)
+                .excludePathPatterns(EXCLUDE_PATH_PATTERNS) // 静态资源、swagger等
                 .excludePathPatterns(WEIXIN_PUBLISH_EXCLUDE_PATH_PATTERNS)
                 .order(1);
-//        拦截模块1
-//        registry.addInterceptor(systemApplicationInterceptor())
-//                .addPathPatterns(BACK_STAGE_INTERCEPT_PATTERNS)
-//                .excludePathPatterns(EXCLUDE_PATH_PATTERNS)
-//                .excludePathPatterns(WEIXIN_PUBLISH_EXCLUDE_PATH_PATTERNS)
-//                .excludePathPatterns(AUTH_PUBLIC_URL)
-//                .order(2);
 //        拦截模块2
 //        registry.addInterceptor(countyRequestInterceptor())
 //                .addPathPatterns(ALL_PATH_PATTERN)
