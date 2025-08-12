@@ -16,7 +16,7 @@ public class CodeGenerator {
 
 //        表名
         String[] tables = {
-                "main_image_configuration"
+                "textbook_classification"
         };
 
         new CodeGeneratorConfig(author, moduleName, tables).generate();
