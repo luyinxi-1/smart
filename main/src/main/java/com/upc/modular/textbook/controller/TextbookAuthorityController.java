@@ -69,4 +69,9 @@ public class TextbookAuthorityController {
         return R.ok(textbookAuthorityPage);
     }
 
+    @ApiOperation(value = "判断指定用户是否有权限访问该教材")
+    @PostMapping("/textbookAuthorityJudge")
+    public R textbookAuthorityJudge(@RequestParam Long TextBookId, @RequestParam Long UserId) {
+        return R.ok(textbookAuthorityService.textbookAuthorityJudge(TextBookId, UserId));
+    }
 }

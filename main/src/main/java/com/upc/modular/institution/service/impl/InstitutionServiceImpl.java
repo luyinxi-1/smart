@@ -115,4 +115,45 @@ public class InstitutionServiceImpl extends ServiceImpl<InstitutionMapper, Insti
         }
         return false;
     }
+
+    /**
+     * 如果institutionId这个机构是targetInstitutionId这个机构的同级或子类机构则返回true，反之返回false
+     * @param institutionId
+     * @param targetInstitutionId
+     * @return
+     */
+    public boolean judgeInclusion(Long institutionId, Long targetInstitutionId) {
+        // 1. 参数校验
+        if (institutionId == null || targetInstitutionId == null) {
+            return false;
+        }
+        // 2. 如果两个ID相同，则直接返回true
+        if (institutionId.equals(targetInstitutionId)) {
+            return true;
+        }
+        // 3. 循环向上追溯父节点
+        Long currentId = institutionId;
+        // 使用一个集合来防止因数据问题导致的无限循环（虽然您已有全局循环检测，但单个方法也应健壮）
+        Set<Long> visitedIds = new HashSet<>();
+        while (currentId != null && currentId != 0L) {
+            // 防止死循环
+            if (!visitedIds.add(currentId)) {
+                return false;
+            }
+            Institution currentInstitution = this.getById(currentId);
+            if (currentInstitution == null) {
+                // 如果在向上查找的过程中找不到某个机构实体，说明链路断裂
+                return false;
+            }
+            Long parentId = currentInstitution.getFatherInstitutionId();
+            // 4. 检查父ID是否是目标ID
+            if (targetInstitutionId.equals(parentId)) {
+                return true;
+            }
+            // 5. 更新当前ID为父ID，继续向上查找
+            currentId = parentId;
+        }
+        // 6. 如果循环结束仍未找到，说明不包含
+        return false;
+    }
 }

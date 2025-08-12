@@ -5,11 +5,17 @@ import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.service.ISysUserService;
+import com.upc.modular.institution.service.impl.InstitutionServiceImpl;
+import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookAuthority;
 import com.upc.modular.textbook.mapper.TextbookAuthorityMapper;
 import com.upc.modular.textbook.param.TextbookAuthoritySearchParam;
 import com.upc.modular.textbook.service.ITextbookAuthorityService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.upc.modular.textbook.service.ITextbookService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -89,6 +95,54 @@ public class TextbookAuthorityServiceImpl extends ServiceImpl<TextbookAuthorityM
         Page<TextbookAuthority> page = this.page(pageInfo, queryWrapper);
 
         return page;
+    }
+
+    @Autowired
+    private ISysUserService sysUserService;
+    @Autowired
+    private ITextbookService textbookService;
+    @Autowired
+    private InstitutionServiceImpl institutionService;
+
+    /**
+     * 判断指定用户是否有权限访问指定教材
+     * @param textBookId
+     * @param userId
+     * @return
+     */
+    @Override
+    public boolean textbookAuthorityJudge(Long textBookId, Long userId) {
+        if (textBookId == null || userId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+        SysTbuser tbuser = sysUserService.getById(userId);
+        if (tbuser == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "相关用户信息有误");
+        }
+        Long userInstitutionId = tbuser.getInstitutionId();
+
+        Textbook textbook = textbookService.getById(textBookId);
+        if (textbook == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "相关教材信息有误");
+        }
+
+        LambdaQueryWrapper<TextbookAuthority> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TextbookAuthority::getTextbookId, textbook.getId());
+        queryWrapper.eq(TextbookAuthority::getAuthorityType, 2);
+        List<TextbookAuthority> textbookAuthorities = this.list(queryWrapper);
+        if (textbookAuthorities.isEmpty()) {
+            return false;
+        }
+        for (TextbookAuthority textbookAuthority : textbookAuthorities) {
+            Long visibleInstituteId = textbookAuthority.getVisibleInstituteId();
+            boolean result = institutionService.judgeInclusion(userInstitutionId, visibleInstituteId);
+
+            if (result) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 
