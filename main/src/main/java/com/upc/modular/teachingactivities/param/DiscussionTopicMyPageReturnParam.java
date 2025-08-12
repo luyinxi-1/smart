@@ -27,4 +27,7 @@ public class DiscussionTopicMyPageReturnParam {
 
     @ApiModelProperty("回复数")
     private Integer replyNumber;
+
+    @ApiModelProperty("教材名称")
+    private String textbookName;
 }

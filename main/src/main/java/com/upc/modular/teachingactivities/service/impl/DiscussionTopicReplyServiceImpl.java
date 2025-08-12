@@ -2,6 +2,7 @@ package com.upc.modular.teachingactivities.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
 import com.upc.common.utils.UserInfoToRedis;
@@ -25,6 +26,8 @@ import com.upc.modular.teachingactivities.mapper.UserLikesMapper;
 import com.upc.modular.teachingactivities.param.*;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicReplyService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.upc.modular.textbook.entity.Textbook;
+import com.upc.modular.textbook.mapper.TextbookMapper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -61,6 +64,9 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
 
     @Autowired
     private SysUserMapper sysTbUserMapper;
+
+    @Autowired
+    private TextbookMapper textbookMapper;
 
     @Override
     public Boolean insert(DiscussionTopicReply reply) {
@@ -99,106 +105,142 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
         if (discussionTopicReplies.isEmpty()) {
             return new Page<>();
         }
+        // 查 topic 表，获取标题和教材信息
+        Map<Long, String> topicIdToTitleMap = new HashMap<>();
+        // 定义用于存储教材信息的Map
+        Map<Long, String> topicIdToTextbookNameMap = new HashMap<>();
 
-        // --此处需要手动设置分页
-        // 计算当前页的起始索引
-        int fromIndex = (int)((param.getCurrent() - 1) * param.getSize());
-        int toIndex = (int)Math.min(fromIndex + param.getSize(), discussionTopicReplies.size());
-
-        if (fromIndex >= discussionTopicReplies.size()) {
-            Page<DiscussionTopicMyPageReturnParam> emptyPage = new Page<>();
-            emptyPage.setRecords(Collections.emptyList());
-            emptyPage.setTotal(discussionTopicReplies.size());
-            emptyPage.setCurrent(param.getCurrent());
-            emptyPage.setSize(param.getSize());
-            return emptyPage;
-        }
-
-        List<DiscussionTopicReply> currentPageRecords = discussionTopicReplies.subList(fromIndex, toIndex);
-        // 构造 id -> reply 的 map
-        Map<Long, DiscussionTopicReply> replyMap = currentPageRecords.stream()
+        // 找出所有 topicId (为了后续查询topic和textbook)
+        Map<Long, Long> allReplyIdToTopicIdMap = new HashMap<>();
+        Set<Long> allTopicIds = new HashSet<>();
+        // 使用一个临时的Map来辅助解析，避免重复计算
+        Map<Long, DiscussionTopicReply> allReplyMap = discussionTopicReplies.stream()
                 .collect(Collectors.toMap(DiscussionTopicReply::getId, r -> r));
 
-        // 找出所有 topicId
-        Set<Long> allTopicIds = new HashSet<>();
-
-        // 存储每条回复最终指向的 topicId（用于绑定标题）
-        Map<Long, Long> replyIdToTopicIdMap = new HashMap<>();
-
-        for (DiscussionTopicReply reply : currentPageRecords) {
-            Long topicId = resolveTopicId(reply, replyMap);
+        for (DiscussionTopicReply reply : discussionTopicReplies) {
+            Long topicId = resolveTopicId(reply, allReplyMap); // 解析根话题ID
             if (topicId != null) {
                 allTopicIds.add(topicId);
-                replyIdToTopicIdMap.put(reply.getId(), topicId);
+                allReplyIdToTopicIdMap.put(reply.getId(), topicId);
             }
         }
 
-        // 查 topic 表，获取标题
-        Map<Long, String> topicIdToTitleMap;
         if (!allTopicIds.isEmpty()) {
             List<DiscussionTopic> topics = discussionTopicMapper.selectList(
                     new LambdaQueryWrapper<DiscussionTopic>().in(DiscussionTopic::getId, allTopicIds)
             );
-            topicIdToTitleMap = topics.stream().collect(Collectors.toMap(
-                    DiscussionTopic::getId, DiscussionTopic::getTopicTitle));
-        } else {
-            topicIdToTitleMap = new HashMap<>();
+
+            // 提取所有相关的 textbookId
+            Set<Long> textbookIds = topics.stream()
+                    .map(DiscussionTopic::getTextbookId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
+            Map<Long, String> textbookIdToNameMap = new HashMap<>();
+            if (!textbookIds.isEmpty()) {
+                List<Textbook> textbooks = textbookMapper.selectList(
+                        new LambdaQueryWrapper<Textbook>().in(Textbook::getId, textbookIds)
+                );
+                textbookIdToNameMap = textbooks.stream()
+                        .collect(Collectors.toMap(Textbook::getId, Textbook::getTextbookName));
+            }
+
+            // 构造 topicId -> title 和 topicId -> textbookName 的映射
+            for (DiscussionTopic topic : topics) {
+                topicIdToTitleMap.put(topic.getId(), topic.getTopicTitle());
+                if (topic.getTextbookId() != null) {
+                    String textbookName = textbookIdToNameMap.getOrDefault(topic.getTextbookId(), "【教材不存在】");
+                    topicIdToTextbookNameMap.put(topic.getId(), textbookName);
+                }
+            }
         }
 
-        // 获取点赞数
-        List<DiscussionTopicReply> allChildReplies = discussionTopicReplyMapper.selectList(
-                new LambdaQueryWrapper<DiscussionTopicReply>()
-                        .eq(DiscussionTopicReply::getType, 2)
-                        .in(DiscussionTopicReply::getTopicId, currentPageRecords.stream().map(DiscussionTopicReply::getId).collect(Collectors.toSet()))
-        );
+        // 进行过滤和封装
+        List<DiscussionTopicMyPageReturnParam> allResultList = discussionTopicReplies.stream()
+                .map(reply -> {
+                    DiscussionTopicMyPageReturnParam vo = new DiscussionTopicMyPageReturnParam();
+                    // 基本信息
+                    vo.setReplyId(reply.getId());
+                    vo.setReplyContent(reply.getReplyContent());
+                    vo.setAddDatetime(reply.getAddDatetime());
 
-        Map<Long, Long> replyCountMap = allChildReplies.stream()
-                .collect(Collectors.groupingBy(
-                        DiscussionTopicReply::getTopicId,
-                        Collectors.counting()
-                ));
+                    // 话题和教材信息
+                    Long resolvedTopicId = allReplyIdToTopicIdMap.get(reply.getId());
+                    String topicTitle = topicIdToTitleMap.getOrDefault(resolvedTopicId, "【话题不存在】");
+                    String textbookName = topicIdToTextbookNameMap.getOrDefault(resolvedTopicId, "【教材不存在】");
+                    vo.setTopicTitle(topicTitle);
+                    vo.setTextbookName(textbookName);
 
-        // 获取回复数
-        Set<Long> replyIds = currentPageRecords.stream()
-                .map(DiscussionTopicReply::getId)
+                    return vo;
+                })
+                .filter(vo -> {
+                    // 如果参数中有教材名称，则在这里进行过滤
+                    if (StringUtils.isNotEmpty(param.getTextbookName())) {
+                        // 如果教材名称不匹配，则过滤掉。注意处理null的情况。
+                        return param.getTextbookName().equals(vo.getTextbookName());
+                    }
+                    // 如果没有传教材名称，则不过滤
+                    return true;
+                })
+                .collect(Collectors.toList());
+
+
+        // -- 手动设置分页 (基于过滤后的列表) --
+        if (allResultList.isEmpty()) {
+            return new Page<>();
+        }
+
+        int total = allResultList.size();
+        int fromIndex = (int)((param.getCurrent() - 1) * param.getSize());
+        // 防止索引越界
+        if (fromIndex >= total) {
+            Page<DiscussionTopicMyPageReturnParam> emptyPage = new Page<>();
+            emptyPage.setRecords(Collections.emptyList());
+            emptyPage.setTotal(total);
+            emptyPage.setCurrent(param.getCurrent());
+            emptyPage.setSize(param.getSize());
+            return emptyPage;
+        }
+        int toIndex = Math.min(fromIndex + param.getSize().intValue(), total);
+
+        // 获取当前页的记录
+        List<DiscussionTopicMyPageReturnParam> currentPageResultList = allResultList.subList(fromIndex, toIndex);
+
+        // -- 只需要为当前页的记录查询点赞和回复数 --
+        Set<Long> currentPageReplyIds = currentPageResultList.stream()
+                .map(DiscussionTopicMyPageReturnParam::getReplyId)
                 .collect(Collectors.toSet());
 
-        List<UserLikes> replyLikes = userLikesMapper.selectList(
-                new LambdaQueryWrapper<UserLikes>()
-                        .eq(UserLikes::getType, 2) // 只查回复的点赞
-                        .in(UserLikes::getCorrelationId, replyIds)
-        );
+        if (!currentPageReplyIds.isEmpty()) {
+            // 获取点赞数
+            Map<Long, Long> likeCountMap = userLikesMapper.selectList(
+                    new LambdaQueryWrapper<UserLikes>()
+                            .eq(UserLikes::getType, 2)
+                            .in(UserLikes::getCorrelationId, currentPageReplyIds)
+            ).stream().collect(Collectors.groupingBy(UserLikes::getCorrelationId, Collectors.counting()));
 
-        Map<Long, Long> likeCountMap = replyLikes.stream()
-                .collect(Collectors.groupingBy(
-                        UserLikes::getCorrelationId,
-                        Collectors.counting()
-                ));
+            // 获取回复数
+            Map<Long, Long> replyCountMap = discussionTopicReplyMapper.selectList(
+                    new LambdaQueryWrapper<DiscussionTopicReply>()
+                            .eq(DiscussionTopicReply::getType, 2)
+                            .in(DiscussionTopicReply::getTopicId, currentPageReplyIds)
+            ).stream().collect(Collectors.groupingBy(DiscussionTopicReply::getTopicId, Collectors.counting()));
 
-        // 封装结果
-        List<DiscussionTopicMyPageReturnParam> resultList = currentPageRecords.stream().map(reply -> {
-            DiscussionTopicMyPageReturnParam vo = new DiscussionTopicMyPageReturnParam();
-            vo.setReplyId(reply.getId());
-            vo.setReplyContent(reply.getReplyContent());
-            vo.setAddDatetime(reply.getAddDatetime());
+            // 填充点赞和回复数
+            currentPageResultList.forEach(vo -> {
+                vo.setLikeNumber(likeCountMap.getOrDefault(vo.getReplyId(), 0L).intValue());
+                vo.setReplyNumber(replyCountMap.getOrDefault(vo.getReplyId(), 0L).intValue());
+            });
+        }
 
-            Long resolvedTopicId = replyIdToTopicIdMap.get(reply.getId());
-            String topicTitle = topicIdToTitleMap.getOrDefault(resolvedTopicId, "【话题不存在】");
-            vo.setTopicTitle(topicTitle);
-
-            vo.setLikeNumber(likeCountMap.getOrDefault(reply.getId(), 0L).intValue());
-            vo.setReplyNumber(replyCountMap.getOrDefault(reply.getId(), 0L).intValue());
-            return vo;
-        }).collect(Collectors.toList());
-
+        // 封装最终的分页结果
         Page<DiscussionTopicMyPageReturnParam> pageResult = new Page<>();
-        pageResult.setRecords(resultList);
-        pageResult.setTotal(discussionTopicReplies.size());
+        pageResult.setRecords(currentPageResultList);
+        pageResult.setTotal(total); // total是过滤后的总数
         pageResult.setCurrent(param.getCurrent());
         pageResult.setSize(param.getSize());
 
         return pageResult;
-
     }
 
     @Override
@@ -653,6 +695,15 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
         Long total = discussionTopicReplyMapper.countTopicWithReplies(topicId);
         return total.intValue();
 
+    }
+
+    private Page<DiscussionTopicMyPageReturnParam> emptyPage(DiscussionTopicMyPageSearchParam p, long total) {
+        Page<DiscussionTopicMyPageReturnParam> page = new Page<>();
+        page.setRecords(Collections.emptyList());
+        page.setTotal(total);
+        page.setCurrent(p.getCurrent());
+        page.setSize(p.getSize());
+        return page;
     }
 
 
