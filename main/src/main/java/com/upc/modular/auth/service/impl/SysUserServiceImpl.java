@@ -116,8 +116,10 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
             return this.page(page, lambdaQueryWrapper);
         }
         if (param.getUserType() == -1) {
-            lambdaQueryWrapper.eq(SysTbuser::getUserType, 1)
-                    .eq(SysTbuser::getUserType, 2)
+            lambdaQueryWrapper
+                    .and(w -> w.eq(SysTbuser::getUserType, 1)
+                            .or()
+                            .eq(SysTbuser::getUserType, 2))
                     .orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
             return this.page(page, lambdaQueryWrapper);
         }
