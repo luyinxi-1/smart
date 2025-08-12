@@ -35,7 +35,7 @@ public class Institution implements Serializable {
     @TableField("institution_name")
     private String institutionName;
 
-    @ApiModelProperty("父级机构id")
+    @ApiModelProperty("父级机构id（0或不填是根级）")
     @TableField("father_institution_id")
     private Long fatherInstitutionId;
 
@@ -43,7 +43,7 @@ public class Institution implements Serializable {
     @TableField("institution_code")
     private String institutionCode;
 
-    @ApiModelProperty("机构级别")
+    @ApiModelProperty("机构级别（4专业、3系、2学院、1最高）")
     @TableField("institution_grade")
     private Integer institutionGrade;
 
@@ -58,6 +58,10 @@ public class Institution implements Serializable {
     @ApiModelProperty("图标")
     @TableField("pic_url")
     private String picUrl;
+
+    @ApiModelProperty("状态")
+    @TableField("status")
+    private Integer status;
 
     @ApiModelProperty("创建者")
     @TableField(value = "creator", fill = FieldFill.INSERT)
