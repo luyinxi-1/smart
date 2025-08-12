@@ -3,7 +3,6 @@ package com.upc.config.web.interceptor;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.upc.common.utils.UserInfoToRedis;
 import com.upc.common.utils.UserUtils;
-import com.upc.context.LoginContextHolder;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.entity.SysAuthority;
@@ -32,17 +31,11 @@ import java.util.List;
 public class PermissionCheckInterceptor implements HandlerInterceptor {
 
     @Autowired
-    private RedisTemplate redisTemplate;
-    @Autowired
     private ISysLogService sysLogService;
-    @Autowired
-    private SysRoleMapper sysRoleMapper;
     @Autowired
     private SysUserMapper sysUserMapper;
     @Autowired
     private SysAuthorityMapper sysAuthorityMapper;
-    @Autowired
-    private SysAuthorityServiceImpl sysAuthorityService;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
