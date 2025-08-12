@@ -95,6 +95,8 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     public List<Textbook> getNewTextbook(int getNumber) {
         MyLambdaQueryWrapper<Textbook> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
         lambdaQueryWrapper.orderByDesc(Textbook::getAddDatetime)
+                .eq(Textbook::getReleaseStatus, 1)
+                .eq(Textbook::getReviewStatus, 1)
                 .last("LIMIT " + getNumber);
         return textbookMapper.selectList(lambdaQueryWrapper);
     }
