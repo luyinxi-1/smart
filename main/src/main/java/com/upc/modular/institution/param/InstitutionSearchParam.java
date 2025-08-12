@@ -23,4 +23,8 @@ public class InstitutionSearchParam {
     @TableField("institution_grade")
     private Integer institutionGrade;
 
+    @ApiModelProperty("状态")
+    @TableField("status")
+    private String status;
+
 }

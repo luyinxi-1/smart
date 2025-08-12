@@ -44,6 +44,7 @@ public class InstitutionController {
         if (institution == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
+        institution.setStatus(1);
         institutionService.save(institution);
         return R.commonReturn(200, "新增成功", "");
     }

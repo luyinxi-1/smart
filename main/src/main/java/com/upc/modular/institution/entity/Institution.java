@@ -59,6 +59,10 @@ public class Institution implements Serializable {
     @TableField("pic_url")
     private String picUrl;
 
+    @ApiModelProperty("状态")
+    @TableField("status")
+    private String status;
+
     @ApiModelProperty("创建者")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;
