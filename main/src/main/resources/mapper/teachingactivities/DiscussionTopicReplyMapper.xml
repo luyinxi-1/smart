@@ -37,4 +37,216 @@
                    AND r2.is_shield = 0
              ) t
     </select>
+    <select id="countRootReplies" resultType="java.lang.Long" parameterType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM discussion_topic_reply r
+        WHERE r.topic_id = #{topicId}
+          AND r.type = 1
+          AND r.is_shield = 0
+    </select>
+    <select id="selectReplyPageWithDescCount"
+            resultType="com.upc.modular.teachingactivities.param.DiscussionTopicReplyPageReturnParam">
+        WITH RECURSIVE roots AS (
+        SELECT
+        r.id                           AS id,
+        r.topic_id                     AS topicId,
+        r.creator                      AS creator,
+        r.add_datetime                 AS addDatetime,
+        r.reply_content                AS replyContent,
+        COALESCE(ul.cnt, 0)            AS likeNumber
+        FROM discussion_topic_reply r
+        LEFT JOIN (
+        SELECT correlation_id, COUNT(*) AS cnt
+        FROM user_likes
+        WHERE type = 2
+        GROUP BY correlation_id
+        ) ul ON ul.correlation_id = r.id
+        WHERE r.topic_id = #{topicId}
+        AND r.type = 1
+        AND r.is_shield = 0
+        ORDER BY
+        <choose>
+            <when test="order != null and order == 1">
+                likeNumber DESC, r.add_datetime DESC
+            </when>
+            <otherwise>
+                r.add_datetime DESC
+            </otherwise>
+        </choose>
+        LIMIT #{limit} OFFSET #{offset}
+        ),
+        tree AS (
+        SELECT id AS node_id, id AS root_id FROM roots
+        UNION ALL
+        SELECT c.id AS node_id, t.root_id
+        FROM discussion_topic_reply c
+        JOIN tree t ON c.topic_id = t.node_id
+        WHERE c.type = 2 AND c.is_shield = 0
+        ),
+        desc_count AS (
+        SELECT root_id, COUNT(*) - 1 AS replyNumber
+        FROM tree
+        GROUP BY root_id
+        )
+        SELECT
+        r.id,
+        r.topicId,
+        r.creator,
+        r.addDatetime,
+        r.replyContent,
+        r.likeNumber,
+        COALESCE(dc.replyNumber, 0)        AS replyNumber,
+        COALESCE(s.name, t.name, '【匿名】') AS creatorName,
+        CASE
+        WHEN s.user_id IS NOT NULL THEN '学生'
+        WHEN t.user_id IS NOT NULL THEN '教师'
+        ELSE '匿名'
+        END                                AS creatorRole,
+        u.user_picture                     AS userPicture,
+        CASE WHEN #{loginUserId} IS NOT NULL AND r.creator = #{loginUserId}
+        THEN 1 ELSE 0 END             AS isMine
+        FROM roots r
+        LEFT JOIN desc_count dc ON dc.root_id = r.id
+        LEFT JOIN sys_tbuser u  ON u.id      = r.creator
+        LEFT JOIN student   s   ON s.user_id = r.creator
+        LEFT JOIN teacher   t   ON t.user_id = r.creator
+        ORDER BY
+        <choose>
+            <when test="order != null and order == 1">
+                r.likeNumber DESC, r.addDatetime DESC
+            </when>
+            <otherwise>
+                r.addDatetime DESC
+            </otherwise>
+        </choose>
+    </select>
+    <select id="countMyReply" resultType="java.lang.Long">
+        WITH RECURSIVE
+        base AS (
+        SELECT r.id, r.topic_id, r.type, r.creator, r.add_datetime
+        FROM discussion_topic_reply r
+        WHERE r.creator = #{userId}
+        <if test="startTime != null and endTime != null">
+            AND r.add_datetime BETWEEN #{startTime} AND #{endTime}
+        </if>
+        ),
+        up AS (
+        SELECT b.id, b.topic_id, b.type FROM base b
+        UNION ALL
+        SELECT u.id, p.topic_id, p.type
+        FROM up u
+        JOIN discussion_topic_reply p ON p.id = u.topic_id
+        WHERE u.type = 2
+        ),
+        root_map AS (
+        SELECT id, MAX(CASE WHEN type = 1 THEN topic_id END) AS topic_id
+        FROM up
+        GROUP BY id
+        ),
+        joined AS (
+        SELECT b.id, rm.topic_id
+        FROM base b
+        JOIN root_map rm ON rm.id = b.id
+        LEFT JOIN discussion_topic dt ON dt.id = rm.topic_id
+        LEFT JOIN textbook tb ON tb.id = dt.textbook_id
+        <if test="textbookName != null and textbookName != ''">
+            WHERE tb.textbook_name = #{textbookName}
+        </if>
+        )
+        SELECT COUNT(1) FROM joined;
+    </select>
+    <select id="selectMyReplyPage"
+            resultType="com.upc.modular.teachingactivities.param.DiscussionTopicMyPageReturnParam">
+        WITH RECURSIVE
+        base AS (
+        SELECT r.id, r.topic_id, r.type, r.creator, r.add_datetime, r.reply_content
+        FROM discussion_topic_reply r
+        WHERE r.creator = #{userId}
+        <if test="startTime != null and endTime != null">
+            AND r.add_datetime BETWEEN #{startTime} AND #{endTime}
+        </if>
+        ),
+        -- 向上爬，直到 type=1，拿到根话题ID
+        up AS (
+        SELECT b.id, b.topic_id, b.type
+        FROM base b
+        UNION ALL
+        SELECT u.id, p.topic_id, p.type
+        FROM up u
+        JOIN discussion_topic_reply p ON p.id = u.topic_id
+        WHERE u.type = 2
+        ),
+        root_map AS (
+        SELECT id, MAX(CASE WHEN type = 1 THEN topic_id END) AS topic_id
+        FROM up
+        GROUP BY id
+        ),
+        joined AS (
+        SELECT
+        b.id,
+        b.add_datetime,
+        b.reply_content,
+        rm.topic_id                      AS root_topic_id,
+        dt.topic_title                   AS topic_title,
+        tb.textbook_name                 AS textbook_name
+        FROM base b
+        JOIN root_map rm             ON rm.id = b.id
+        LEFT JOIN discussion_topic dt ON dt.id = rm.topic_id
+        LEFT JOIN textbook tb        ON tb.id = dt.textbook_id
+        <if test="textbookName != null and textbookName != ''">
+            WHERE tb.textbook_name = #{textbookName}
+        </if>
+        ),
+        page AS (
+        SELECT
+        j.id,
+        j.add_datetime,
+        j.reply_content,
+        j.topic_title,
+        j.textbook_name,
+        COALESCE(ul.cnt, 0) AS like_number
+        FROM joined j
+        LEFT JOIN (
+        SELECT correlation_id, COUNT(*) AS cnt
+        FROM user_likes
+        WHERE type = 2
+        GROUP BY correlation_id
+        ) ul ON ul.correlation_id = j.id
+        ORDER BY
+        <choose>
+            <when test="isAsc != null and isAsc == 1">
+                j.add_datetime ASC
+            </when>
+            <otherwise>
+                j.add_datetime DESC
+            </otherwise>
+        </choose>
+        LIMIT #{size} OFFSET #{offset}
+        ),
+        -- 从“当前页”这批回复开始，向下递归统计整棵子树（type=2）
+        tree AS (
+        SELECT id AS node_id, id AS root_id FROM page
+        UNION ALL
+        SELECT c.id AS node_id, t.root_id
+        FROM discussion_topic_reply c
+        JOIN tree t ON c.topic_id = t.node_id
+        WHERE c.type = 2 AND c.is_shield = 0
+        ),
+        desc_count AS (
+        SELECT root_id, COUNT(*) - 1 AS reply_number
+        FROM tree
+        GROUP BY root_id
+        )
+        SELECT
+        p.id                 AS replyId,
+        p.reply_content      AS replyContent,
+        p.add_datetime       AS addDatetime,
+        p.topic_title        AS topicTitle,
+        p.textbook_name      AS textbookName,
+        p.like_number        AS likeNumber,
+        COALESCE(dc.reply_number, 0) AS replyNumber
+        FROM page p
+        LEFT JOIN desc_count dc ON dc.root_id = p.id;
+    </select>
+
 </mapper>
