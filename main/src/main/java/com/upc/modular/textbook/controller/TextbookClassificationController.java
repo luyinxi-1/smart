@@ -30,35 +30,35 @@ public class TextbookClassificationController {
     private ITextbookClassificationService textbookClassificationService;
 
     @PostMapping("/insertTextbookClassification")
-    @ApiOperation("新增产品分类")
+    @ApiOperation("新增教材分类")
     public R<Void> insertTextbookClassification(@RequestBody TextbookClassification param){
         textbookClassificationService.insertTextbookClassification(param);
         return R.ok();
     }
 
     @PostMapping("/removeTextbookClassification")
-    @ApiOperation("批量删除产品分类")
+    @ApiOperation("批量删除教材分类")
     public R<Void> removeTextbookClassification(@RequestParam List<Long> idList){
         textbookClassificationService.removeTextbookClassification(idList);
         return R.ok();
     }
 
     @PostMapping("/updateTextbookClassification")
-    @ApiOperation("更新产品分类")
+    @ApiOperation("更新教材分类")
     public R<Boolean> updateTextbookClassification(@RequestBody TextbookClassification param){
         boolean result = textbookClassificationService.updateTextbookClassification(param);
         return R.ok(result);
     }
 
     @PostMapping("/selectTextbookClassificationParentIdList")
-    @ApiOperation("获取产品分类的所有上级分类")
+    @ApiOperation("获取教材分类的所有上级分类")
     public R<List<TextbookClassification>> selectTextbookClassificationParentIdList(@RequestParam Integer classificationGrade){
         List<TextbookClassification> list = textbookClassificationService.selectTextbookClassificationParentIdList(classificationGrade);
         return R.ok(list);
     }
 
     @PostMapping("/selectTextbookClassificationDownList")
-    @ApiOperation("获取产品分类的下级分类")
+    @ApiOperation("获取教材分类的下级分类")
     public R<List<TextbookClassification>> selectTextbookClassificationDownList(@RequestParam Long id){
         List<TextbookClassification> list = textbookClassificationService.selectTextbookClassificationDownList(id);
         return R.ok(list);
@@ -73,14 +73,14 @@ public class TextbookClassificationController {
     }
 
     @PostMapping("/updateTextbookClassificationSortName")
-    @ApiOperation("更改产品分类排序(0向上，1向下)")
+    @ApiOperation("更改教材分类排序(0向上，1向下)")
     public R<Boolean> updateTextbookClassificationSortName(@RequestParam Long id, @RequestParam Integer param){
         boolean result = textbookClassificationService.updateTextbookClassificationSortName(id, param);
         return R.ok(result);
     }
 
     @PostMapping("/selectTopLevelTextbookClassification")
-    @ApiOperation("查询顶级产品分类")
+    @ApiOperation("查询顶级教材分类")
     public R<List<TextbookClassification>> selectTopLevelTextbookClassification(@RequestBody TopLevelTextbookClassificationSearchParam param){
         List<TextbookClassification> list = textbookClassificationService.selectTopLevelTextbookClassification(param);
         return R.ok(list);

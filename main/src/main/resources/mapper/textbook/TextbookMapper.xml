@@ -57,6 +57,17 @@
             <if test="param.endTime != null">
                 AND t.add_datetime &lt;= #{param.endTime}
             </if>
+            <choose>
+                <when test="classificationIds != null and classificationIds.size > 0">
+                    AND t.classification IN
+                    <foreach collection="classificationIds" item="cid" open="(" close=")" separator=",">
+                        #{cid}
+                    </foreach>
+                </when>
+                <otherwise>
+                    AND 1 = 0
+                </otherwise>
+            </choose>
         </where>
 
         ORDER BY t.add_datetime

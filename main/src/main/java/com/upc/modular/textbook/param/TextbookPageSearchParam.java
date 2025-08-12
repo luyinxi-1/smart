@@ -21,16 +21,19 @@ public class TextbookPageSearchParam extends PageBaseSearchParam {
     @ApiModelProperty("教材名称")
     private String textbookName;
 
-    @ApiModelProperty("教材发布状态（已发布/未发布）")
-    private String releaseStatus;
+    @ApiModelProperty("教材发布状态（1 已发布/ 0 未发布）")
+    private Integer releaseStatus;
 
-    @ApiModelProperty("教材审核状态（未提交审核；审核中；审核通过）")
-    private String reviewStatus;
+    @ApiModelProperty("教材审核状态（0 未提交审核；1 审核通过）")
+    private Integer reviewStatus;
 
     @ApiModelProperty("开始时间")
     private LocalDateTime startTime;
 
     @ApiModelProperty("结束时间")
     private LocalDateTime endTime;
+
+    @ApiModelProperty("教材分类id")
+    private Long classificationId;
 
 }
