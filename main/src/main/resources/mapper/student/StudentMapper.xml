@@ -4,33 +4,42 @@
 
     <!-- 通用查询映射结果 -->
     <resultMap id="BaseResultMap" type="com.upc.modular.student.entity.Student">
-        <id column="id" property="id" />
-        <result column="user_id" property="userId" />
-        <result column="identity_id" property="identityId" />
-        <result column="idcard" property="idcard" />
-        <result column="name" property="name" />
-        <result column="gender" property="gender" />
-        <result column="college" property="college" />
-        <result column="birthday" property="birthday" />
-        <result column="email" property="email" />
-        <result column="phone" property="phone" />
-        <result column="class_id" property="classId" />
-        <result column="creator" property="creator" />
-        <result column="add_datetime" property="addDatetime" />
-        <result column="operator" property="operator" />
-        <result column="operation_datetime" property="operationDatetime" />
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="identity_id" property="identityId"/>
+        <result column="idcard" property="idcard"/>
+        <result column="name" property="name"/>
+        <result column="gender" property="gender"/>
+        <result column="college" property="college"/>
+        <result column="birthday" property="birthday"/>
+        <result column="email" property="email"/>
+        <result column="phone" property="phone"/>
+        <result column="class_id" property="classId"/>
+        <result column="account_status" property="accountStatus"/>
+        <result column="position" property="position"/>
+        <result column="enrollment_data" property="enrollmentData"/>
+        <result column="planned_graduation_date" property="plannedGraduationDate"/>
+        <result column="remark" property="remark"/>
+        <result column="id_photo" property="idPhoto"/>
+        <result column="major" property="major"/>
+        <result column="creator" property="creator"/>
+        <result column="add_datetime" property="addDatetime"/>
+        <result column="operator" property="operator"/>
+        <result column="operation_datetime" property="operationDatetime"/>
     </resultMap>
-    <select id="selectStudentWithDetails" resultType="com.upc.modular.student.controller.param.vo.StudentReturnVo">
+
+    <!-- 分页或条件查询 -->
+    <select id="selectStudentWithDetails"
+            resultType="com.upc.modular.student.controller.param.vo.StudentReturnVo">
         SELECT
         s.*,
-        u.institution_id,
-        i.institution_name,
-        c.class_name
-        FROM
-        student s
+        u.institution_id AS institutionId,
+        i.institution_name AS institutionName,
+        g.name AS className
+        FROM student s
         LEFT JOIN sys_tbuser u ON s.user_id = u.id
         LEFT JOIN institution i ON u.institution_id = i.id
-        LEFT JOIN class c ON s.class_id = c.id
+        LEFT JOIN `group` g ON s.class_id = g.id
         <where>
             <if test="param.name != null and param.name != ''">
                 AND s.name LIKE CONCAT('%', #{param.name}, '%')
@@ -54,10 +63,47 @@
             <otherwise>DESC</otherwise>
         </choose>
     </select>
-    <select id="getInstitutionIdByStudentId" resultType="java.lang.Long" parameterType="java.lang.Long">
+
+    <!-- 根据学生ID查机构ID -->
+    <select id="getInstitutionIdByStudentId"
+            resultType="java.lang.Long"
+            parameterType="java.lang.Long">
         SELECT u.institution_id
         FROM student s
                  LEFT JOIN sys_tbuser u ON s.user_id = u.id
         WHERE s.id = #{studentId}
     </select>
+
+    <!-- 导出学生列表 -->
+    <select id="selectStudentExportList"
+            resultType="com.upc.modular.student.controller.param.vo.StudentReturnVo">
+        SELECT
+        s.*,
+        u.institution_id AS institutionId,
+        i.institution_name AS institutionName,
+        g.name AS className
+        FROM student s
+        LEFT JOIN sys_tbuser u ON s.user_id = u.id
+        LEFT JOIN institution i ON u.institution_id = i.id
+        LEFT JOIN `group` g ON s.class_id = g.id
+        <where>
+            <if test="name != null and name != ''">
+                AND s.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="identityId != null and identityId != ''">
+                AND s.identity_id LIKE CONCAT('%', #{identityId}, '%')
+            </if>
+            <if test="gender != null and gender != ''">
+                AND s.gender = #{gender}
+            </if>
+            <if test="college != null and college != ''">
+                AND s.college LIKE CONCAT('%', #{college}, '%')
+            </if>
+            <if test="classId != null">
+                AND s.class_id = #{classId}
+            </if>
+        </where>
+        ORDER BY s.add_datetime DESC
+    </select>
+
 </mapper>

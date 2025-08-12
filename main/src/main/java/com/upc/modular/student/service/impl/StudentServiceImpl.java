@@ -3,6 +3,10 @@ package com.upc.modular.student.service.impl;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.ExcelReader;
 import com.alibaba.excel.read.metadata.ReadSheet;
+import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -22,13 +26,16 @@ import com.upc.modular.group.service.IUserClassListService;
 import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.institution.mapper.InstitutionMapper;
 import com.upc.modular.student.controller.param.GetStudentIsInInstitutionParam;
+import com.upc.modular.student.controller.param.dto.StudentExportDto;
 import com.upc.modular.student.controller.param.dto.StudentGenerateDto;
 import com.upc.modular.student.controller.param.dto.StudentImportDto;
 import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
 import com.upc.modular.student.controller.param.listener.StudentListener;
 import com.upc.modular.student.controller.param.vo.GenerateUserResultVoStudent;
 import com.upc.modular.student.controller.param.vo.ImportStudentReturnVo;
+import com.upc.modular.student.controller.param.vo.StudentExcelVo;
 import com.upc.modular.student.controller.param.vo.StudentReturnVo;
+import com.upc.modular.student.converter.LocalDateTimeConverter;
 import com.upc.modular.student.entity.Student;
 import com.upc.modular.student.mapper.StudentMapper;
 import com.upc.modular.student.service.IStudentService;
@@ -40,13 +47,13 @@ import com.upc.utils.MD5Utils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.net.URLEncoder;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -291,6 +298,75 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
 
         return allSubInstitutionIds.contains(institutionId);
     }
+
+    @Override
+    public void batchUpdateStatus(List<Long> ids, Integer accountStatus) {
+        UpdateWrapper<Student> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.in("id", ids); // WHERE id IN (...)
+        updateWrapper.set("account_status", accountStatus); // SET account_status = ?
+        // 2. 调用 baseMapper 的 update 方法执行，无需在 XML 中写 SQL
+        this.baseMapper.update(null, updateWrapper);
+    }
+
+
+
+
+    public void exportStudentData(HttpServletResponse response, StudentExportDto param) {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding("utf-8");
+        try {
+            // 生成文件名并设置响应头，防止中文乱码
+            String fileName = URLEncoder.encode("学生信息表", "UTF-8").replaceAll("\\+", "%20");
+            response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+
+            // 1. 查询学生数据，调用已有Mapper方法，得到 StudentReturnVo 列表
+            List<StudentReturnVo> students = studentMapper.selectStudentExportList(param);
+
+            // 2. 将查询结果转换成导出VO列表，保证字段对应并包含Excel注解
+            List<com.upc.modular.student.controller.param.excel.StudentExportExcelVO> exportList = students.stream().map(s -> {
+                com.upc.modular.student.controller.param.excel.StudentExportExcelVO vo = new com.upc.modular.student.controller.param.excel.StudentExportExcelVO();
+                vo.setInstitutionName(s.getInstitutionName())
+                        .setInstitutionId(s.getInstitutionId())
+                        .setClassName(s.getClassName())
+                        .setId(s.getId())
+                        .setUserId(s.getUserId())
+                        .setIdentityId(s.getIdentityId())
+                        .setIdcard(s.getIdcard())
+                        .setName(s.getName())
+                        .setGender(s.getGender())
+                        .setCollege(s.getCollege())
+                        .setBirthday(s.getBirthday())
+                        .setEmail(s.getEmail())
+                        .setPhone(s.getPhone())
+                        .setClassId(s.getClassId())
+                        .setAccountStatus(s.getAccountStatus())
+                        .setPosition(s.getPosition())
+                        .setEnrollmentData(s.getEnrollmentData())
+                        .setPlannedGraduationDate(s.getPlannedGraduationDate())
+                        .setRemark(s.getRemark())
+                        .setIdPhoto(s.getIdPhoto())
+                        .setMajor(s.getMajor())
+                        .setCreator(s.getCreator())
+                        .setAddDatetime(s.getAddDatetime())
+                        .setOperator(s.getOperator())
+                        .setOperationDatetime(s.getOperationDatetime());
+                return vo;
+            }).collect(Collectors.toList());
+
+            // 3. 利用 EasyExcel 写出Excel，自动列宽并注册LocalDateTime转换器
+            EasyExcel.write(response.getOutputStream(), com.upc.modular.student.controller.param.excel.StudentExportExcelVO.class)
+                    .registerConverter(new LocalDateTimeConverter())
+                    .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy()) // 自动调整列宽
+                    .sheet("学生列表")
+                    .doWrite(exportList);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("导出失败，请重试");
+        }
+    }
+
+
 
 
 }
