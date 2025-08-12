@@ -88,190 +88,38 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
     @Override
     public Page<DiscussionTopicMyPageReturnParam> getMyReply(DiscussionTopicMyPageSearchParam param) {
         if (ObjectUtils.isEmpty(UserUtils.get().getId())) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户id为空");
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户ID不能为空");
         }
-        Long id = UserUtils.get().getId();
-        List<DiscussionTopicReply> discussionTopicReplies = discussionTopicReplyMapper.selectList(new MyLambdaQueryWrapper<DiscussionTopicReply>()
-                .eq(DiscussionTopicReply::getCreator, id)
-                .between(
-                        ObjectUtils.isNotEmpty(param.getStartTime()) && ObjectUtils.isNotEmpty(param.getEndTime()),
-                        DiscussionTopicReply::getAddDatetime,
-                        param.getStartTime(),
-                        param.getEndTime()
-                )
-                .orderBy(true, param.getIsAsc() == 1, DiscussionTopicReply::getAddDatetime)
+        Long userId = UserUtils.get().getId();
+
+        long current = Math.max(1, param.getCurrent());
+        long size    = Math.max(1, param.getSize());
+        long offset  = (current - 1) * size;
+
+        Long total = discussionTopicReplyMapper.countMyReply(
+                userId, param.getStartTime(), param.getEndTime(), param.getTextbookName()
         );
 
-        if (discussionTopicReplies.isEmpty()) {
-            return new Page<>();
-        }
-        // 查 topic 表，获取标题和教材信息
-        Map<Long, String> topicIdToTitleMap = new HashMap<>();
-        // 定义用于存储教材信息的Map
-        Map<Long, String> topicIdToTextbookNameMap = new HashMap<>();
-
-        // 找出所有 topicId (为了后续查询topic和textbook)
-        Map<Long, Long> allReplyIdToTopicIdMap = new HashMap<>();
-        Set<Long> allTopicIds = new HashSet<>();
-        // 使用一个临时的Map来辅助解析，避免重复计算
-        Map<Long, DiscussionTopicReply> allReplyMap = discussionTopicReplies.stream()
-                .collect(Collectors.toMap(DiscussionTopicReply::getId, r -> r));
-
-        for (DiscussionTopicReply reply : discussionTopicReplies) {
-            Long topicId = resolveTopicId(reply, allReplyMap); // 解析根话题ID
-            if (topicId != null) {
-                allTopicIds.add(topicId);
-                allReplyIdToTopicIdMap.put(reply.getId(), topicId);
-            }
+        Page<DiscussionTopicMyPageReturnParam> page = new Page<>(current, size, total == null ? 0 : total);
+        if (total == null || total == 0) {
+            page.setRecords(Collections.emptyList());
+            return page;
         }
 
-        if (!allTopicIds.isEmpty()) {
-            List<DiscussionTopic> topics = discussionTopicMapper.selectList(
-                    new LambdaQueryWrapper<DiscussionTopic>().in(DiscussionTopic::getId, allTopicIds)
-            );
-
-            // 提取所有相关的 textbookId
-            Set<Long> textbookIds = topics.stream()
-                    .map(DiscussionTopic::getTextbookId)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
-
-            Map<Long, String> textbookIdToNameMap = new HashMap<>();
-            if (!textbookIds.isEmpty()) {
-                List<Textbook> textbooks = textbookMapper.selectList(
-                        new LambdaQueryWrapper<Textbook>().in(Textbook::getId, textbookIds)
+        List<DiscussionTopicMyPageReturnParam> records =
+                discussionTopicReplyMapper.selectMyReplyPage(
+                        userId,
+                        param.getStartTime(),
+                        param.getEndTime(),
+                        param.getTextbookName(),
+                        param.getIsAsc(),
+                        size,
+                        offset
                 );
-                textbookIdToNameMap = textbooks.stream()
-                        .collect(Collectors.toMap(Textbook::getId, Textbook::getTextbookName));
-            }
-
-            // 构造 topicId -> title 和 topicId -> textbookName 的映射
-            for (DiscussionTopic topic : topics) {
-                topicIdToTitleMap.put(topic.getId(), topic.getTopicTitle());
-                if (topic.getTextbookId() != null) {
-                    String textbookName = textbookIdToNameMap.getOrDefault(topic.getTextbookId(), "【教材不存在】");
-                    topicIdToTextbookNameMap.put(topic.getId(), textbookName);
-                }
-            }
-        }
-
-        // 进行过滤和封装
-        List<DiscussionTopicMyPageReturnParam> allResultList = discussionTopicReplies.stream()
-                .map(reply -> {
-                    DiscussionTopicMyPageReturnParam vo = new DiscussionTopicMyPageReturnParam();
-                    // 基本信息
-                    vo.setReplyId(reply.getId());
-                    vo.setReplyContent(reply.getReplyContent());
-                    vo.setAddDatetime(reply.getAddDatetime());
-
-                    // 话题和教材信息
-                    Long resolvedTopicId = allReplyIdToTopicIdMap.get(reply.getId());
-                    String topicTitle = topicIdToTitleMap.getOrDefault(resolvedTopicId, "【话题不存在】");
-                    String textbookName = topicIdToTextbookNameMap.getOrDefault(resolvedTopicId, "【教材不存在】");
-                    vo.setTopicTitle(topicTitle);
-                    vo.setTextbookName(textbookName);
-
-                    return vo;
-                })
-                .filter(vo -> {
-                    // 如果参数中有教材名称，则在这里进行过滤
-                    if (StringUtils.isNotEmpty(param.getTextbookName())) {
-                        // 如果教材名称不匹配，则过滤掉。注意处理null的情况。
-                        return param.getTextbookName().equals(vo.getTextbookName());
-                    }
-                    // 如果没有传教材名称，则不过滤
-                    return true;
-                })
-                .collect(Collectors.toList());
-
-
-        // -- 手动设置分页 (基于过滤后的列表) --
-        if (allResultList.isEmpty()) {
-            return new Page<>();
-        }
-
-        int total = allResultList.size();
-        int fromIndex = (int)((param.getCurrent() - 1) * param.getSize());
-        // 防止索引越界
-        if (fromIndex >= total) {
-            Page<DiscussionTopicMyPageReturnParam> emptyPage = new Page<>();
-            emptyPage.setRecords(Collections.emptyList());
-            emptyPage.setTotal(total);
-            emptyPage.setCurrent(param.getCurrent());
-            emptyPage.setSize(param.getSize());
-            return emptyPage;
-        }
-        int toIndex = Math.min(fromIndex + param.getSize().intValue(), total);
-
-        // 获取当前页的记录
-        List<DiscussionTopicMyPageReturnParam> currentPageResultList = allResultList.subList(fromIndex, toIndex);
-
-        // -- 只需要为当前页的记录查询点赞和回复数 --
-        Set<Long> currentPageReplyIds = currentPageResultList.stream()
-                .map(DiscussionTopicMyPageReturnParam::getReplyId)
-                .collect(Collectors.toSet());
-
-        if (!currentPageReplyIds.isEmpty()) {
-            // 获取点赞数
-            Map<Long, Long> likeCountMap = userLikesMapper.selectList(
-                    new LambdaQueryWrapper<UserLikes>()
-                            .eq(UserLikes::getType, 2)
-                            .in(UserLikes::getCorrelationId, currentPageReplyIds)
-            ).stream().collect(Collectors.groupingBy(UserLikes::getCorrelationId, Collectors.counting()));
-
-            // 获取回复数
-            Map<Long, Long> replyCountMap = new HashMap<>();
-
-            // 任意节点 -> 所属根（当前页的每个回复ID）
-            Map<Long, Long> nodeToRoot = new HashMap<>();
-            currentPageReplyIds.forEach(id0 -> nodeToRoot.put(id0, id0));
-
-            // 当前要找子节点的这一层（初始为当前页的回复ID集合）
-            Set<Long> frontier = new HashSet<>(currentPageReplyIds);
-
-            while (!frontier.isEmpty()) {
-                // 只查必要字段，减少IO
-                List<DiscussionTopicReply> children = discussionTopicReplyMapper.selectList(
-                        new LambdaQueryWrapper<DiscussionTopicReply>()
-                                .select(DiscussionTopicReply::getId, DiscussionTopicReply::getTopicId)
-                                .eq(DiscussionTopicReply::getType, 2)
-                                .eq(DiscussionTopicReply::getIsShield, 0)   // 只统计未屏蔽
-                                .in(DiscussionTopicReply::getTopicId, frontier)
-                );
-                if (children.isEmpty()) break;
-
-                Set<Long> next = new HashSet<>();
-                for (DiscussionTopicReply c : children) {
-                    Long parentId = c.getTopicId();             // 你的模型里：二级及以下的 topic_id = 父回复ID
-                    Long rootId   = nodeToRoot.get(parentId);   // 找到这条孩子属于哪个根
-                    if (rootId == null) continue;               // 防御
-
-                    // 根的整棵子树计数 +1
-                    replyCountMap.merge(rootId, 1L, Long::sum);
-
-                    // 这条孩子以后也可能有孩子，挂到同一个根上，作为下一层frontier
-                    if (nodeToRoot.putIfAbsent(c.getId(), rootId) == null) {
-                        next.add(c.getId());
-                    }
-                }
-                frontier = next; // 下探到下一层
-            }
-            // 填充点赞和回复数
-            currentPageResultList.forEach(vo -> {
-                vo.setLikeNumber(likeCountMap.getOrDefault(vo.getReplyId(), 0L).intValue());
-                vo.setReplyNumber(replyCountMap.getOrDefault(vo.getReplyId(), 0L).intValue());
-            });
-        }
-
-        // 封装最终的分页结果
-        Page<DiscussionTopicMyPageReturnParam> pageResult = new Page<>();
-        pageResult.setRecords(currentPageResultList);
-        pageResult.setTotal(total); // total是过滤后的总数
-        pageResult.setCurrent(param.getCurrent());
-        pageResult.setSize(param.getSize());
-
-        return pageResult;
+        page.setRecords(records);
+        return page;
     }
+
 
     @Override
     public Page<DiscussionTopicReplyPageReturnParam> getReply(DiscussionTopicReplyPageSearchParam param) {
@@ -279,7 +127,10 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "话题ID不能为空");
         }
 
-        Long loginUserId = Optional.ofNullable(UserUtils.get()).map(u -> u.getId()).orElse(null);
+        if (ObjectUtils.isEmpty(UserUtils.get().getId())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户ID不能为空");
+        }
+        Long loginUserId = UserUtils.get().getId();
         long current = Math.max(1, param.getCurrent());
         long size    = Math.max(1, param.getSize());
         long offset  = (current - 1) * size;
@@ -436,6 +287,7 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
         resultPage.setRecords(pageRecords);
         return resultPage;
     }
+
 
 
     @Override
