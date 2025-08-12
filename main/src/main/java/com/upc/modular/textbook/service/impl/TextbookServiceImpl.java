@@ -10,14 +10,17 @@ import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.textbook.entity.Textbook;
+import com.upc.modular.textbook.entity.TextbookClassification;
 import com.upc.modular.textbook.mapper.TextbookMapper;
 import com.upc.modular.textbook.param.TextbookPageReturnParam;
 import com.upc.modular.textbook.param.TextbookPageSearchParam;
+import com.upc.modular.textbook.service.ITextbookClassificationService;
 import com.upc.modular.textbook.service.ITextbookService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -35,6 +38,8 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     private TextbookMapper textbookMapper;
     @Autowired
     private TeacherMapper teacherMapper;
+    @Autowired
+    private ITextbookClassificationService textbookClassificationService;
     @Override
     public void insert(Textbook textbook) {
         if (ObjectUtils.isEmpty(textbook)) {
@@ -74,7 +79,16 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     @Override
     public Page<TextbookPageReturnParam> getPage(TextbookPageSearchParam param) {
         Page<TextbookPageReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
-        return textbookMapper.selectTextbookPage(page, param);
+        List<Long> classificationIds = new ArrayList<>();
+        if (ObjectUtils.isEmpty(param.getClassificationId())) {
+            return textbookMapper.selectTextbookPage(page, param, classificationIds);
+        }
+        List<TextbookClassification> textbookClassifications = textbookClassificationService.selectTextbookClassificationDownList(param.getClassificationId());
+        for (TextbookClassification params : textbookClassifications) {
+            classificationIds.add(params.getId());
+        }
+        return textbookMapper.selectTextbookPage(page, param, classificationIds);
+
     }
 
     @Override

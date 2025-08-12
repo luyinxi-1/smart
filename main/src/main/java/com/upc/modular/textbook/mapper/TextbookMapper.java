@@ -8,6 +8,8 @@ import com.upc.modular.textbook.param.TextbookPageSearchParam;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * <p>
  *  Mapper 接口
@@ -19,7 +21,7 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface TextbookMapper extends BaseMapper<Textbook> {
 
-    Page<TextbookPageReturnParam> selectTextbookPage(@Param("page") Page<TextbookPageReturnParam> page, @Param("param")TextbookPageSearchParam param);
+    Page<TextbookPageReturnParam> selectTextbookPage(@Param("page") Page<TextbookPageReturnParam> page, @Param("param")TextbookPageSearchParam param, @Param("classificationIds") List<Long> classificationIds);
 
     TextbookPageReturnParam getOneTextbookDetails(Long textbookId);
 }

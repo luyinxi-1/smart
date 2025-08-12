@@ -33,4 +33,7 @@ public class TextbookPageSearchParam extends PageBaseSearchParam {
     @ApiModelProperty("结束时间")
     private LocalDateTime endTime;
 
+    @ApiModelProperty("教材分类id")
+    private Long classificationId;
+
 }

@@ -71,6 +71,10 @@ public class Textbook implements Serializable {
     @TableField(value = "h5_head_code")
     private String h5HeadCode;
 
+    @ApiModelProperty("教材分类")
+    @TableField(value = "classification")
+    private Long classification;
+
     @ApiModelProperty("创建人（创建该教材记录的用户）")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;
