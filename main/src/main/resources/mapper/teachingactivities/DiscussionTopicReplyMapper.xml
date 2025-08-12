@@ -37,4 +37,87 @@
                    AND r2.is_shield = 0
              ) t
     </select>
+    <select id="countRootReplies" resultType="java.lang.Long" parameterType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM discussion_topic_reply r
+        WHERE r.topic_id = #{topicId}
+          AND r.type = 1
+          AND r.is_shield = 0
+    </select>
+    <select id="selectReplyPageWithDescCount"
+            resultType="com.upc.modular.teachingactivities.param.DiscussionTopicReplyPageReturnParam">
+        WITH RECURSIVE roots AS (
+        SELECT
+        r.id                           AS id,
+        r.topic_id                     AS topicId,
+        r.creator                      AS creator,
+        r.add_datetime                 AS addDatetime,
+        r.reply_content                AS replyContent,
+        COALESCE(ul.cnt, 0)            AS likeNumber
+        FROM discussion_topic_reply r
+        LEFT JOIN (
+        SELECT correlation_id, COUNT(*) AS cnt
+        FROM user_likes
+        WHERE type = 2
+        GROUP BY correlation_id
+        ) ul ON ul.correlation_id = r.id
+        WHERE r.topic_id = #{topicId}
+        AND r.type = 1
+        AND r.is_shield = 0
+        ORDER BY
+        <choose>
+            <when test="order != null and order == 1">
+                likeNumber DESC, r.add_datetime DESC
+            </when>
+            <otherwise>
+                r.add_datetime DESC
+            </otherwise>
+        </choose>
+        LIMIT #{limit} OFFSET #{offset}
+        ),
+        tree AS (
+        SELECT id AS node_id, id AS root_id FROM roots
+        UNION ALL
+        SELECT c.id AS node_id, t.root_id
+        FROM discussion_topic_reply c
+        JOIN tree t ON c.topic_id = t.node_id
+        WHERE c.type = 2 AND c.is_shield = 0
+        ),
+        desc_count AS (
+        SELECT root_id, COUNT(*) - 1 AS replyNumber
+        FROM tree
+        GROUP BY root_id
+        )
+        SELECT
+        r.id,
+        r.topicId,
+        r.creator,
+        r.addDatetime,
+        r.replyContent,
+        r.likeNumber,
+        COALESCE(dc.replyNumber, 0)        AS replyNumber,
+        COALESCE(s.name, t.name, '【匿名】') AS creatorName,
+        CASE
+        WHEN s.user_id IS NOT NULL THEN '学生'
+        WHEN t.user_id IS NOT NULL THEN '教师'
+        ELSE '匿名'
+        END                                AS creatorRole,
+        u.user_picture                     AS userPicture,
+        CASE WHEN #{loginUserId} IS NOT NULL AND r.creator = #{loginUserId}
+        THEN 1 ELSE 0 END             AS isMine
+        FROM roots r
+        LEFT JOIN desc_count dc ON dc.root_id = r.id
+        LEFT JOIN sys_tbuser u  ON u.id      = r.creator
+        LEFT JOIN student   s   ON s.user_id = r.creator
+        LEFT JOIN teacher   t   ON t.user_id = r.creator
+        ORDER BY
+        <choose>
+            <when test="order != null and order == 1">
+                r.likeNumber DESC, r.addDatetime DESC
+            </when>
+            <otherwise>
+                r.addDatetime DESC
+            </otherwise>
+        </choose>
+    </select>
 </mapper>

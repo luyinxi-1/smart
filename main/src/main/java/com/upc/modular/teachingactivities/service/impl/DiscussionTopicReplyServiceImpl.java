@@ -245,121 +245,30 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
 
     @Override
     public Page<DiscussionTopicReplyPageReturnParam> getReply(DiscussionTopicReplyPageSearchParam param) {
-
-        // 参数校验
         if (param == null || param.getTopicId() == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "话题ID不能为空");
         }
 
-        Long loginUserId = UserUtils.get().getId();   // 允许为空
-
+        Long loginUserId = Optional.ofNullable(UserUtils.get()).map(u -> u.getId()).orElse(null);
         long current = Math.max(1, param.getCurrent());
         long size    = Math.max(1, param.getSize());
+        long offset  = (current - 1) * size;
 
-        // 拉取一级回复（type = 1）
-        List<DiscussionTopicReply> allReplies = discussionTopicReplyMapper.selectList(
-                new LambdaQueryWrapper<DiscussionTopicReply>()
-                        .eq(DiscussionTopicReply::getTopicId, param.getTopicId())
-                        .eq(DiscussionTopicReply::getType, 1)
-                        .eq(DiscussionTopicReply::getIsShield, 0)
-        );
-        if (allReplies.isEmpty()) {
-            return new Page<>(current, size);   // 空页
+        long total = discussionTopicReplyMapper.countRootReplies(param.getTopicId());
+        Page<DiscussionTopicReplyPageReturnParam> page = new Page<>(current, size, total);
+        if (total == 0) {
+            page.setRecords(Collections.emptyList());
+            return page;
         }
 
-        // 统计点赞 / 子回复数
-        Set<Long> replyIds   = allReplies.stream().map(DiscussionTopicReply::getId).collect(Collectors.toSet());
-        Set<Long> creatorIds = allReplies.stream().map(DiscussionTopicReply::getCreator).collect(Collectors.toSet());
-
-        Map<Long, Long> likeCountMap = userLikesMapper.selectList(
-                new LambdaQueryWrapper<UserLikes>()
-                        .eq(UserLikes::getType, 2)
-                        .in(UserLikes::getCorrelationId, replyIds)
-        ).stream().collect(Collectors.groupingBy(UserLikes::getCorrelationId, Collectors.counting()));
-
-        Map<Long, Long> replyCountMap = discussionTopicReplyMapper.selectList(
-                new LambdaQueryWrapper<DiscussionTopicReply>()
-                        .eq(DiscussionTopicReply::getType, 2)
-                        .eq(DiscussionTopicReply::getIsShield, 0)
-                        .in(DiscussionTopicReply::getTopicId, replyIds)
-        ).stream().collect(Collectors.groupingBy(DiscussionTopicReply::getTopicId, Collectors.counting()));
-
-        Map<Long, String> nameMap = new HashMap<>();
-        Map<Long, String> roleMap = new HashMap<>();
-        Map<Long, String> pictureMap = new HashMap<>();
-
-        if (!creatorIds.isEmpty()) {
-            // 先从学生表查询
-            List<Student> students = studentMapper.selectList(
-                    new LambdaQueryWrapper<Student>().in(Student::getUserId, creatorIds)
-            );
-            students.forEach(student -> {
-                nameMap.put(student.getUserId(), student.getName());
-                roleMap.put(student.getUserId(), "学生");
-            });
-
-            // 筛选出尚未匹配到姓名的ID，再从教师表查询
-            Set<Long> missingIds = creatorIds.stream()
-                    .filter(uid -> !nameMap.containsKey(uid))
-                    .collect(Collectors.toSet());
-
-            if (!missingIds.isEmpty()) {
-                List<Teacher> teachers = teacherMapper.selectList(
-                        new LambdaQueryWrapper<Teacher>().in(Teacher::getUserId, missingIds)
+        List<DiscussionTopicReplyPageReturnParam> records =
+                discussionTopicReplyMapper.selectReplyPageWithDescCount(
+                        param.getTopicId(), loginUserId, param.getOrder(), size, offset
                 );
-                teachers.forEach(teacher -> {
-                    nameMap.put(teacher.getUserId(), teacher.getName());
-                    roleMap.put(teacher.getUserId(), "教师");
-                });
-            }
-            List<SysTbuser> users = sysTbUserMapper.selectList(
-                    new LambdaQueryWrapper<SysTbuser>().in(SysTbuser::getId, creatorIds)
-            );
-            // 将用户列表转换为 UserId -> UserPicture 的 Map
-            users.forEach(user -> {
-                if (user.getUserPicture() != null) {
-                    pictureMap.put(user.getId(), user.getUserPicture());
-                }
-            });
-        }
-        // VO 封装
-        List<DiscussionTopicReplyPageReturnParam> voList = allReplies.stream().map(reply -> {
-            DiscussionTopicReplyPageReturnParam vo = new DiscussionTopicReplyPageReturnParam();
-            BeanUtils.copyProperties(reply, vo);
-
-            vo.setLikeNumber(likeCountMap.getOrDefault(reply.getId(), 0L).intValue());
-            vo.setReplyNumber(replyCountMap.getOrDefault(reply.getId(), 0L).intValue());
-            vo.setCreatorName(nameMap.getOrDefault(reply.getCreator(), "【匿名】"));
-            vo.setCreatorRole(roleMap.getOrDefault(reply.getCreator(), "匿名")); // 设置角色
-            vo.setUserPicture(pictureMap.getOrDefault(reply.getCreator(), null)); // 设置头像，若无则使用默认值
-            vo.setIsMine((loginUserId != null && Objects.equals(reply.getCreator(), loginUserId)) ? 1 : 0);
-
-            return vo;
-        }).collect(Collectors.toList());
-
-        // 排序
-        if (param.getOrder() != null && param.getOrder() == 1) {          // 1 = 按点赞数倒序
-            voList.sort(Comparator.comparingInt(DiscussionTopicReplyPageReturnParam::getLikeNumber).reversed());
-        } else {                                                          // 默认：时间倒序
-            voList.sort(Comparator.comparing(DiscussionTopicReplyPageReturnParam::getAddDatetime).reversed());
-        }
-
-        // 手动分页
-        int from = (int) ((current - 1) * size);
-        if (from >= voList.size()) {                                      // 越界直接空页
-            return new Page<>(current, size);
-        }
-        int to   = Math.min(from + (int) size, voList.size());
-        List<DiscussionTopicReplyPageReturnParam> pageRecords = voList.subList(from, to);
-
-        // 返回 Page
-        Page<DiscussionTopicReplyPageReturnParam> resultPage = new Page<>();
-        resultPage.setCurrent(current);
-        resultPage.setSize(size);
-        resultPage.setTotal(voList.size());
-        resultPage.setRecords(pageRecords);
-        return resultPage;
+        page.setRecords(records);
+        return page;
     }
+
 
 
 
