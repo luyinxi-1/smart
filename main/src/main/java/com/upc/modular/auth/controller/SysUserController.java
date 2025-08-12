@@ -4,6 +4,8 @@ package com.upc.modular.auth.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
+import com.upc.common.utils.UserInfoToRedis;
+import com.upc.common.utils.UserUtils;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysDictType;
 import com.upc.modular.auth.entity.SysTbuser;
@@ -87,5 +89,12 @@ public class SysUserController {
     @ApiOperation("获取用户权限树")
     public R<UserAuthTree> getUserAuthTree() {
         return R.ok(sysRoleService.getUserAuthTree());
+    }
+
+    @GetMapping("/getUserInfo")
+    @ApiOperation("获取当前用户信息")
+    public R getUserInfo() {
+        UserInfoToRedis userInfoToRedis = UserUtils.get();
+        return R.ok(userInfoToRedis);
     }
 }

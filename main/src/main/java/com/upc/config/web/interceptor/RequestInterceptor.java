@@ -40,22 +40,13 @@ public class RequestInterceptor implements HandlerInterceptor {
 
     @Autowired
     private RedisTemplate redisTemplate;
-    @Autowired
-    private ISysLogService sysLogService;
-    @Autowired
-    private SysRoleMapper sysRoleMapper;
-    @Autowired
-    private SysUserMapper sysUserMapper;
-    @Autowired
-    private SysAuthorityMapper sysAuthorityMapper;
-    @Autowired
-    private SysAuthorityServiceImpl sysAuthorityService;
 
     /**
      * preHandle方法是进行处理器拦截用的，该方法将在Controller处理之前进行调用
      */
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        // 0.如果之前的某个环节已经处理过，就直接通过
         if (LoginContextHolder.getIsLogined()) {
             return true;
         }
@@ -63,8 +54,8 @@ public class RequestInterceptor implements HandlerInterceptor {
         String token = request.getHeader("token");
         // 1.验证常规token
         if (StringUtils.isBlank(token)) {
-            throw new BusinessException(BusinessErrorEnum.PLEASE_LOGIN);
-            // return false;
+            // 因为对于白名单接口，没有 token 也是允许访问的。因为有下一个拦截器兜底。
+            return true;
         }
         // 2.检查token合法性和有效性——即使 token 不为空，也可能是伪造、无效、过期的
         // 当token过期redis中取不到数据会抛异常
@@ -72,19 +63,23 @@ public class RequestInterceptor implements HandlerInterceptor {
         try {
             ValueOperations<String, Map<String, Object>> operation = redisTemplate.opsForValue();
             Map<String, Object> map  = operation.get(token);
-            UserInfoToRedis userInfoToRedis = JSON.parseObject(JSON.toJSONString(map), UserInfoToRedis.class);
-            if (ObjectUtils.isEmpty(userInfoToRedis)) {
-                throw new BusinessException(BusinessErrorEnum.PLEASE_LOGIN);
+
+            // 即使 map 为空（token过期或无效），我们也不抛异常，让请求继续。
+            // 后续的权限拦截器会处理“需要保护但用户为空”的情况。
+            if (map != null) {
+                UserInfoToRedis userInfoToRedis = JSON.parseObject(JSON.toJSONString(map), UserInfoToRedis.class);
+                if (!ObjectUtils.isEmpty(userInfoToRedis)) {
+                    // 成功获取到用户信息，将其存入线程
+                    UserUtils.set(userInfoToRedis);
+                    LoginContextHolder.setLogined(true);
+                }
             }
-            UserUtils.set(userInfoToRedis);
-            LoginContextHolder.setLogined(true);
-            // 3.权限拦截
-             return hasPermission(request, userInfoToRedis);
-            // return true;
+
         } catch (IllegalArgumentException e) {
             log.error("Token校验失败：" + e.getMessage());
-            return false;
         }
+        // 3.此拦截器永远返回 true，它的职责只是填充上下文，不是拦截。
+        return true;
     }
 
 
@@ -97,66 +92,6 @@ public class RequestInterceptor implements HandlerInterceptor {
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
         UserUtils.clear();
         LoginContextHolder.clear();
-    }
-
-
-    /**
-     * 判断当前登录的（用户的）角色信息是否有权访问该地址
-     * @param request
-     * @param userInfo
-     * @return
-     */
-    private boolean hasPermission(HttpServletRequest request, UserInfoToRedis userInfo) {
-        String requestPath = request.getRequestURI();
-        // 查询当前登录用户的角色信息
-        List<SysTbrole> roles = sysUserMapper.getRolesByUserId(userInfo.getId());
-        if (roles.isEmpty()) {
-            throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
-        }
-        List<SysAuthority> SysAuthorities = new ArrayList<>();
-        // 一个用户可以绑定多个角色
-        for (SysTbrole role : roles) {
-            List<SysAuthority> sysAuthorityList = sysAuthorityMapper.getPermissionsByRoleId(role.getId());
-            SysAuthorities.addAll(sysAuthorityList);
-        }
-
-        if (SysAuthorities.isEmpty()) {
-            throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
-        }
-
-        boolean pathMatched = this.isPathMatchedInAuth(requestPath, SysAuthorities);
-
-        if (pathMatched) {
-            // 记录该访问到日志信息
-            if (userInfo.getId() != null && StringUtils.isNotBlank(requestPath)) {
-                SysLog sysLog = new SysLog();
-                sysLog.setUserId(userInfo.getId());
-                sysLog.setLogContent(requestPath);
-                if (sysLog != null) {
-                    sysLogService.save(sysLog);
-                }
-            }
-            return true;
-        } else {
-            throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
-        }
-
-    }
-
-    /**
-     * 判断路径是否匹配权限树中的某个节点
-     * @param requestPath 请求路径
-     * @return
-     */
-    private boolean isPathMatchedInAuth(String requestPath, List<SysAuthority> SysAuthorities) {
-        for (SysAuthority authority : SysAuthorities) {
-            String accessUrl = authority.getAccessUrl();
-            if (requestPath.equals(accessUrl)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
 }
