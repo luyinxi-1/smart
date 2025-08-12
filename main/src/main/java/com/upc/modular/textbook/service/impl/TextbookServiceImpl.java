@@ -46,10 +46,10 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
         }
         if (ObjectUtils.isEmpty(textbook.getReleaseStatus())) {
-            textbook.setReleaseStatus("未发布");
+            textbook.setReleaseStatus(0);
         }
         if (ObjectUtils.isEmpty(textbook.getReviewStatus())) {
-            textbook.setReviewStatus("未提交审核");
+            textbook.setReviewStatus(0);
         }
         if (ObjectUtils.isEmpty(textbook.getTextbookAuthorId())) {
             List<Teacher> teachers = teacherMapper.selectList(new MyLambdaQueryWrapper<Teacher>().eq(Teacher::getUserId, UserUtils.get().getId()));
