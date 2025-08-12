@@ -24,4 +24,6 @@ public interface ITextbookAuthorityService extends IService<TextbookAuthority> {
 //    void updateTextbookAuthorityById(TextbookAuthority textbookAuthority);
 
     Page<TextbookAuthority> getTextbookAuthorityPage(TextbookAuthoritySearchParam param);
+
+    boolean textbookAuthorityJudge(Long textBookId, Long userId);
 }
