@@ -5,6 +5,7 @@ import com.upc.common.responseparam.R;
 import com.upc.modular.course.controller.param.ClassInfoReturnParam;
 import com.upc.modular.course.controller.param.CourseClassAssociateParam;
 import com.upc.modular.course.controller.param.GetMyCourseReturnParam;
+import com.upc.modular.course.controller.param.GetMyCourseSearchParam;
 import com.upc.modular.course.service.ICourseClassListService;
 import com.upc.modular.course.service.ICourseService;
 import io.swagger.annotations.Api;
@@ -45,7 +46,7 @@ public class CourseClassListController {
 
     @ApiOperation("查看我的课程")
     @PostMapping("/getMyCourse")
-    public R<List<GetMyCourseReturnParam>> getMyCourse() {
-        return R.ok(courseClassListService.getMyCourse());
+    public R<List<GetMyCourseReturnParam>> getMyCourse(@RequestBody GetMyCourseSearchParam param) {
+        return R.ok(courseClassListService.getMyCourse(param));
     }
 }

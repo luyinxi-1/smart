@@ -9,6 +9,7 @@ import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.course.controller.param.ClassInfoReturnParam;
 import com.upc.modular.course.controller.param.GetMyCourseReturnParam;
+import com.upc.modular.course.controller.param.GetMyCourseSearchParam;
 import com.upc.modular.course.entity.CourseClassList;
 import com.upc.modular.course.entity.CourseTextbookList;
 import com.upc.modular.course.mapper.CourseClassListMapper;
@@ -18,7 +19,6 @@ import com.upc.modular.course.service.ICourseService;
 import com.upc.modular.course.service.ICourseTextbookListService;
 import com.upc.modular.group.entity.Group;
 import com.upc.modular.group.service.IGroupService;
-import com.upc.modular.student.entity.Student;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -135,7 +135,7 @@ public class CourseClassListServiceImpl extends ServiceImpl<CourseClassListMappe
     }
 
     @Override
-    public List<GetMyCourseReturnParam> getMyCourse() {
+    public List<GetMyCourseReturnParam> getMyCourse(GetMyCourseSearchParam param) {
         if (ObjectUtils.isEmpty(UserUtils.get().getId())) {
             return null;
         }
@@ -145,22 +145,22 @@ public class CourseClassListServiceImpl extends ServiceImpl<CourseClassListMappe
         List<GetMyCourseReturnParam> resultList = new ArrayList<>();
         Long id = UserUtils.get().getId();
         if (UserUtils.get().getUserType() == 1) {
-            resultList = courseClassListMapper.getMyCourseTeacher(id);
+            resultList = courseClassListMapper.getMyCourseTeacher(id, param);
         }
         if (UserUtils.get().getUserType() == 2) {
-            resultList = courseClassListMapper.getMyCourseStudent(id);
+            resultList = courseClassListMapper.getMyCourseStudent(id, param);
         }
         if (UserUtils.get().getUserType() == 0) {
-            resultList = courseClassListMapper.getMyCourseAdmin(id);
+            resultList = courseClassListMapper.getMyCourseAdmin(id, param);
         }
-        for (GetMyCourseReturnParam param : resultList) {
-            if (ObjectUtils.isEmpty(param.getId())) {
+        for (GetMyCourseReturnParam params : resultList) {
+            if (ObjectUtils.isEmpty(params.getId())) {
                 MyLambdaQueryWrapper<CourseTextbookList> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
-                lambdaQueryWrapper.eq(CourseTextbookList::getCourseId, param.getId());
+                lambdaQueryWrapper.eq(CourseTextbookList::getCourseId, params.getId());
                 long count = courseTextbookListService.count(lambdaQueryWrapper);
-                param.setTextbookNumber(count);
-                List<ClassInfoReturnParam> classesByCourse = this.getClassesByCourse(param.getId());
-                param.setGroupList(classesByCourse);
+                params.setTextbookNumber(count);
+                List<ClassInfoReturnParam> classesByCourse = this.getClassesByCourse(params.getId());
+                params.setGroupList(classesByCourse);
             }
         }
         return resultList;

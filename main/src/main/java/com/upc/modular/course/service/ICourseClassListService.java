@@ -2,6 +2,7 @@ package com.upc.modular.course.service;
 
 import com.upc.modular.course.controller.param.ClassInfoReturnParam;
 import com.upc.modular.course.controller.param.GetMyCourseReturnParam;
+import com.upc.modular.course.controller.param.GetMyCourseSearchParam;
 import com.upc.modular.course.entity.CourseClassList;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.course.entity.CourseTextbookList;
@@ -22,5 +23,5 @@ public interface ICourseClassListService extends IService<CourseClassList> {
 
     List<ClassInfoReturnParam> getClassesByCourse(Long courseId);
 
-    List<GetMyCourseReturnParam> getMyCourse();
+    List<GetMyCourseReturnParam> getMyCourse(GetMyCourseSearchParam param);
 }
