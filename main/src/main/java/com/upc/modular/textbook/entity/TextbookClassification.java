@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.*;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
+
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -62,6 +64,9 @@ public class TextbookClassification implements Serializable {
     @ApiModelProperty("操作时间")
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
     private LocalDateTime operationDatetime;
+
+    @TableField(exist = false)
+    private List<TextbookClassification> children;
 
 
 }

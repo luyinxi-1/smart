@@ -15,4 +15,7 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface TextbookClassificationMapper extends BaseMapper<TextbookClassification> {
 
+    Integer selectMaxSortNumber(TextbookClassification param);
+
+    boolean updateProductClassification(TextbookClassification param);
 }

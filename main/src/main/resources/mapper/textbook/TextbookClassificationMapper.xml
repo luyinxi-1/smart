@@ -14,5 +14,34 @@
         <result column="operator" property="operator" />
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
+    <update id="updateProductClassification"
+            parameterType="com.upc.modular.textbook.entity.TextbookClassification">
+        UPDATE textbook_classification
+        <set>
+            <if test="classification_name != null and classification_name != ''">
+                classification_name = #{classificationName},
+            </if>
+            <if test="sortNumber != null">
+                sort_number = #{sortNumber},
+            </if>
+            <if test="parentId != null">
+                parent_id = #{parentId},
+            </if>
+            <if test="classificationGrade != null">
+                classification_grade = #{classificationGrade},
+            </if>
+            <if test="operator != null and operator != ''">
+                operator = #{operator},
+            </if>
+            <if test="operationDatetime != null">
+                operation_datetime = #{operationDatetime},
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+    <select id="selectMaxSortNumber" resultType="java.lang.Integer"
+            parameterType="com.upc.modular.textbook.entity.TextbookClassification">
+        SELECT MAX(sort_number) FROM textbook_classification
+    </select>
 
 </mapper>
