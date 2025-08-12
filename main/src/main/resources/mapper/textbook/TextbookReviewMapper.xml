@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.textbook.mapper.TextbookReviewMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.upc.modular.textbook.entity.TextbookReview">
+        <id column="id" property="id" />
+        <result column="
+description_of_audit_results" property="
+descriptionOfAuditResults" />
+        <result column="add_datetime" property="addDatetime" />
+        <result column="audit_result" property="auditResult" />
+        <result column="creator" property="creator" />
+        <result column="operation_datetime" property="operationDatetime" />
+        <result column="operator" property="operator" />
+        <result column="reason_for_review" property="reasonForReview" />
+        <result column="submit_for_review_description" property="submitForReviewDescription" />
+        <result column="textbook_creator" property="textbookCreator" />
+        <result column="textbook_id" property="textbookId" />
+    </resultMap>
+
+</mapper>

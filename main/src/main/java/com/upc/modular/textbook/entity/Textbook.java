@@ -59,13 +59,13 @@ public class Textbook implements Serializable {
     @TableField("textbook_version")
     private String textbookVersion;
 
-    @ApiModelProperty("教材发布状态（已发布/未发布）")
+    @ApiModelProperty("教材发布状态（1 已发布/ 0 未发布）")
     @TableField("release_status")
-    private String releaseStatus;
+    private Integer releaseStatus;
 
-    @ApiModelProperty("教材审核状态（未提交审核；审核中；审核通过）")
+    @ApiModelProperty("教材审核状态（0 未提交审核；1 审核通过 2 审核中）")
     @TableField("review_status")
-    private String reviewStatus;
+    private Integer reviewStatus;
 
     @ApiModelProperty("保存拆分教程内容时剩余的头部的H5代码")
     @TableField(value = "h5_head_code")
