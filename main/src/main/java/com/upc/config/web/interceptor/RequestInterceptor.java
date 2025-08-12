@@ -5,16 +5,6 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.upc.common.utils.UserInfoToRedis;
 import com.upc.common.utils.UserUtils;
 import com.upc.context.LoginContextHolder;
-import com.upc.exception.BusinessErrorEnum;
-import com.upc.exception.BusinessException;
-import com.upc.modular.auth.entity.SysAuthority;
-import com.upc.modular.auth.entity.SysLog;
-import com.upc.modular.auth.entity.SysTbrole;
-import com.upc.modular.auth.mapper.SysAuthorityMapper;
-import com.upc.modular.auth.mapper.SysRoleMapper;
-import com.upc.modular.auth.mapper.SysUserMapper;
-import com.upc.modular.auth.service.ISysLogService;
-import com.upc.modular.auth.service.impl.SysAuthorityServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -24,9 +14,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 /**

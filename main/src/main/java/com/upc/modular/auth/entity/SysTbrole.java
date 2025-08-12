@@ -39,7 +39,7 @@ public class SysTbrole implements Serializable {
 
     @ApiModelProperty("角色编码")
     @TableField("role_code")
-    private Integer roleCode;
+    private String roleCode;
 
     @ApiModelProperty("是否默认（0否，1是）")
     @TableField("is_default")
