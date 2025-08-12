@@ -74,4 +74,10 @@ public class TextbookAuthorityController {
     public R textbookAuthorityJudge(@RequestParam Long TextBookId, @RequestParam Long UserId) {
         return R.ok(textbookAuthorityService.textbookAuthorityJudge(TextBookId, UserId));
     }
+
+    @ApiOperation(value = "判断指定用户是否能编辑该教材（判断是否是协作者）")
+    @PostMapping("/textbookAuthorityEditJudge")
+    public R textbookAuthorityEditJudge(@RequestParam Long TextBookId, @RequestParam Long UserId) {
+        return R.ok(textbookAuthorityService.textbookAuthorityEditJudge(TextBookId, UserId));
+    }
 }

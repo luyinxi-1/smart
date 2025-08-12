@@ -40,8 +40,8 @@ public class TextbookAuthority implements Serializable {
     private Integer authorityType;
 
     @ApiModelProperty("共同协作者（教师id），仅在权限类型为协作者时有效")
-    @TableField("teacher_id")
-    private Long teacherId;
+    @TableField("user_id")
+    private Long userId;
 
     @ApiModelProperty("可见机构id，仅在权限类型为可见机构时有效")
     @TableField("visible_institute_id")
