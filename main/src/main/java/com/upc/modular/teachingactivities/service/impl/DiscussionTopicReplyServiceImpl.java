@@ -220,12 +220,42 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
             ).stream().collect(Collectors.groupingBy(UserLikes::getCorrelationId, Collectors.counting()));
 
             // 获取回复数
-            Map<Long, Long> replyCountMap = discussionTopicReplyMapper.selectList(
-                    new LambdaQueryWrapper<DiscussionTopicReply>()
-                            .eq(DiscussionTopicReply::getType, 2)
-                            .in(DiscussionTopicReply::getTopicId, currentPageReplyIds)
-            ).stream().collect(Collectors.groupingBy(DiscussionTopicReply::getTopicId, Collectors.counting()));
+            Map<Long, Long> replyCountMap = new HashMap<>();
 
+            // 任意节点 -> 所属根（当前页的每个回复ID）
+            Map<Long, Long> nodeToRoot = new HashMap<>();
+            currentPageReplyIds.forEach(id0 -> nodeToRoot.put(id0, id0));
+
+            // 当前要找子节点的这一层（初始为当前页的回复ID集合）
+            Set<Long> frontier = new HashSet<>(currentPageReplyIds);
+
+            while (!frontier.isEmpty()) {
+                // 只查必要字段，减少IO
+                List<DiscussionTopicReply> children = discussionTopicReplyMapper.selectList(
+                        new LambdaQueryWrapper<DiscussionTopicReply>()
+                                .select(DiscussionTopicReply::getId, DiscussionTopicReply::getTopicId)
+                                .eq(DiscussionTopicReply::getType, 2)
+                                .eq(DiscussionTopicReply::getIsShield, 0)   // 只统计未屏蔽
+                                .in(DiscussionTopicReply::getTopicId, frontier)
+                );
+                if (children.isEmpty()) break;
+
+                Set<Long> next = new HashSet<>();
+                for (DiscussionTopicReply c : children) {
+                    Long parentId = c.getTopicId();             // 你的模型里：二级及以下的 topic_id = 父回复ID
+                    Long rootId   = nodeToRoot.get(parentId);   // 找到这条孩子属于哪个根
+                    if (rootId == null) continue;               // 防御
+
+                    // 根的整棵子树计数 +1
+                    replyCountMap.merge(rootId, 1L, Long::sum);
+
+                    // 这条孩子以后也可能有孩子，挂到同一个根上，作为下一层frontier
+                    if (nodeToRoot.putIfAbsent(c.getId(), rootId) == null) {
+                        next.add(c.getId());
+                    }
+                }
+                frontier = next; // 下探到下一层
+            }
             // 填充点赞和回复数
             currentPageResultList.forEach(vo -> {
                 vo.setLikeNumber(likeCountMap.getOrDefault(vo.getReplyId(), 0L).intValue());
@@ -291,7 +321,7 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
         // BFS 拉取整条二级回复链
         Set<Long> frontierIds = new HashSet<>(Collections.singleton(param.getReplyId()));
         Map<Long, DiscussionTopicReply> chainReplyMap = new LinkedHashMap<>();  // 保留插入顺序
-        int depthGuard = 0, maxDepth = 50;   // 最多 6 层防炸（基本够用）
+        int depthGuard = 0, maxDepth = 50;   // 最多 50 层防炸（基本够用）
 
         while (!frontierIds.isEmpty() && depthGuard++ < maxDepth) {
             List<DiscussionTopicReply> layer = discussionTopicReplyMapper.selectList(

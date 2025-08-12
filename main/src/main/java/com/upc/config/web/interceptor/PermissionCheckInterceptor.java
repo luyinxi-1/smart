@@ -57,6 +57,7 @@ public class PermissionCheckInterceptor implements HandlerInterceptor {
 
         // 3. 调用权限检查方法，并返回检查结果。
         return hasPermission(request, userInfoToRedis);
+//        return true;
     }
 
     @Override
