@@ -25,6 +25,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -109,12 +110,16 @@ public class RequestInterceptor implements HandlerInterceptor {
         String requestPath = request.getRequestURI();
         // 查询当前登录用户的角色信息
         List<SysTbrole> roles = sysUserMapper.getRolesByUserId(userInfo.getId());
-        if (roles.isEmpty() || roles.get(0) == null) {
+        if (roles.isEmpty()) {
             throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
         }
-        SysTbrole sysTbrole = roles.get(0);
+        List<SysAuthority> SysAuthorities = new ArrayList<>();
+        // 一个用户可以绑定多个角色
+        for (SysTbrole role : roles) {
+            List<SysAuthority> sysAuthorityList = sysAuthorityMapper.getPermissionsByRoleId(role.getId());
+            SysAuthorities.addAll(sysAuthorityList);
+        }
 
-        List<SysAuthority> SysAuthorities = sysAuthorityMapper.getPermissionsByRoleId(sysTbrole.getId());
         if (SysAuthorities.isEmpty()) {
             throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
         }
