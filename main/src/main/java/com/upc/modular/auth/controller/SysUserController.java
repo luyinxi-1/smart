@@ -50,6 +50,12 @@ public class SysUserController {
         return R.ok(sysUserService.login(userLogin, request));
     }
 
+    @PostMapping("/updatePassword")
+    @ApiOperation("修改密码")
+    public R updatePassword(@RequestParam String oldPassword, String newPassword) {
+        return sysUserService.updatePassword(oldPassword, newPassword);
+    }
+
     @ApiOperation(value = "删除用户")
     @PostMapping("/batchDelete")
     public R batchDelete(@RequestBody IdParam idParam) {
