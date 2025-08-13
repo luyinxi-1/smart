@@ -144,6 +144,7 @@ public void invoke(StudentImportDto dto, AnalysisContext context) {
         .setStatus(1)
         .setInstitutionId(institutionId)
         .setAddDatetime(LocalDateTime.now());
+        user.setNickname(student.getName());
         userInsertList.add(user);
 
         insertTotal++;
