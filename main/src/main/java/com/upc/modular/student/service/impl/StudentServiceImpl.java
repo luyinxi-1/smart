@@ -289,7 +289,7 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         List<Institution> institutions = institutionMapper.selectList(null);
         List<Long> allSubInstitutionIds = InstitutionUtil.getAllSubInstitutionIds(param.getInstitutionId(), institutions);
 
-        // 查询教师对应的机构ID（通过teacher.user_id -> sys_tbuser.institution_id）
+        // 查询学生对应的机构ID（通过teacher.user_id -> sys_tbuser.institution_id）
         Long institutionId = studentMapper.getInstitutionIdByStudentId(param.getStudentId());
 
         if (institutionId == null) {

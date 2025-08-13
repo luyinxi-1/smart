@@ -150,9 +150,6 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
             institution.setInstitutionName(group.getName()); // 机构名称 = 班级名称
             institution.setFatherInstitutionId(group.getInstitutionId()); // 父级ID = 班级所属组织ID
             institution.setIntroduction(group.getRemark()); // 介绍 = 班级备注
-            // 使用UUID生成机构编码
-            String token = UUID.randomUUID().toString().replace("-", "_");
-            institution.setInstitutionCode(token);
 
             // 3. 保存组织信息到 institution 表
             institutionService.save(institution);
