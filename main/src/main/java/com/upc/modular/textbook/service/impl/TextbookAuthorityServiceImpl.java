@@ -55,7 +55,7 @@ public class TextbookAuthorityServiceImpl extends ServiceImpl<TextbookAuthorityM
         if (textbookAuthority.getAuthorityType() != 1 && textbookAuthority.getAuthorityType() != 2) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "必须要选择权限类型(1表示协作者，2表示可见机构)");
         }
-        if (textbookAuthority.getAuthorityType() == 1 && textbookAuthority.getTeacherId() == null) {
+        if (textbookAuthority.getAuthorityType() == 1 && textbookAuthority.getUserId() == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "协作者不能为空");
         }
         if (textbookAuthority.getAuthorityType() == 2 && textbookAuthority.getVisibleInstituteId() == null) {
@@ -138,6 +138,42 @@ public class TextbookAuthorityServiceImpl extends ServiceImpl<TextbookAuthorityM
             boolean result = institutionService.judgeInclusion(userInstitutionId, visibleInstituteId);
 
             if (result) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean textbookAuthorityEditJudge(Long textBookId, Long userId) {
+        if (textBookId == null || userId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+        SysTbuser tbuser = sysUserService.getById(userId);
+        if (tbuser == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "相关用户信息有误");
+        }
+
+
+        Textbook textbook = textbookService.getById(textBookId);
+        if (textbook == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "相关教材信息有误");
+        }
+
+        LambdaQueryWrapper<TextbookAuthority> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TextbookAuthority::getTextbookId, textbook.getId());
+        queryWrapper.eq(TextbookAuthority::getAuthorityType, 1);
+        List<TextbookAuthority> textbookAuthorities = this.list(queryWrapper);
+        if (textbookAuthorities.isEmpty()) {
+            return false;
+        }
+        if (textbook.getTextbookAuthorId() == userId) {
+            // 作者本人
+            return true;
+        }
+        for (TextbookAuthority textbookAuthority : textbookAuthorities) {
+            if (textbookAuthority.getUserId() == userId) {
                 return true;
             }
         }

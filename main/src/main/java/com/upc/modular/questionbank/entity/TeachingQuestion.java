@@ -70,4 +70,8 @@ public class TeachingQuestion implements Serializable {
     @ApiModelProperty("所属学科")
     @TableField("subject")
     private String subject;
+
+    @ApiModelProperty("题目分类")
+    @TableField("teaching_question_classification_id")
+    private String teachingQuestionClassificationId;
 }

@@ -11,6 +11,7 @@
         <result column="status" property="status" />
         <result column="answer" property="answer" />
         <result column="subject" property="subject" />
+        <result column="teaching_question_classification_id" property="teachingQuestionClassificationId" />
         <result column="creator" property="creator" />
         <result column="add_datetime" property="addDatetime" />
         <result column="operator" property="operator" />

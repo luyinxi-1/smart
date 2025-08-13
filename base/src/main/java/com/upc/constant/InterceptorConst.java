@@ -39,6 +39,7 @@ public class InterceptorConst {
     public static final String[] WEIXIN_PUBLISH_EXCLUDE_PATH_PATTERNS = {
 //            自定义的放行路径
             "/sys-user/getUserAuthTree",
-            "/textbook-authority/textbookAuthorityJudge"
+            "/textbook-authority/textbookAuthorityJudge",
+            "/textbook-authority/textbookAuthorityEditJudge"
     };
 }
