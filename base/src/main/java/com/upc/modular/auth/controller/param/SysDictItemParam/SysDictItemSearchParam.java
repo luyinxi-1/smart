@@ -9,11 +9,10 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class SysDictItemSearchParam {
 
-    @ApiModelProperty("字典项名称")
-    @TableField("dict_item_name")
-    private String dictItemName;
+    @ApiModelProperty("字典标签")
+    private String name;
 
-    @ApiModelProperty("字典唯一编码")
-    private String dictTypeCode;
+    @ApiModelProperty("字典类型")
+    private String dictType;
 
 }
