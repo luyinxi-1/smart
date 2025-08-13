@@ -116,7 +116,9 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
         Page<SysTbuser> page = new Page<>(param.getCurrent(), param.getSize());
         MyLambdaQueryWrapper<SysTbuser> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
         if (ObjectUtils.isEmpty(param.getUserType())) {
-            lambdaQueryWrapper.orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
+            lambdaQueryWrapper
+                    .like(ObjectUtils.isNotEmpty(param.getNickname()), SysTbuser::getNickname, param.getNickname())
+                    .orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
             return this.page(page, lambdaQueryWrapper);
         }
         if (param.getUserType() == -1) {
@@ -124,6 +126,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
                     .and(w -> w.eq(SysTbuser::getUserType, 1)
                             .or()
                             .eq(SysTbuser::getUserType, 2))
+                    .like(ObjectUtils.isNotEmpty(param.getNickname()), SysTbuser::getNickname, param.getNickname())
                     .orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
             return this.page(page, lambdaQueryWrapper);
         }

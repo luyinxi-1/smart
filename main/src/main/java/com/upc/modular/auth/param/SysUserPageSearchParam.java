@@ -10,6 +10,8 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class SysUserPageSearchParam extends PageBaseSearchParam {
     @ApiModelProperty("用户类型")
-    @TableField("user_type")
     private Integer userType;
+
+    @ApiModelProperty("用户昵称")
+    private String nickname;
 }

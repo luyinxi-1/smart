@@ -150,7 +150,8 @@ public class TeacherListener extends AnalysisEventListener<TeacherImportDto> {
             SysTbuser user = new SysTbuser()
                     .setUsername(teacher.getIdentityId())
                     .setPassword(MD5Utils.sha256(teacher.getIdentityId()))
-                    .setUserType(2) // 教师
+                    .setUserType(2) //
+                    .setNickname(teacher.getName())
                     .setStatus(1); // 默认启用
             if (ObjectUtils.isNotEmpty(teacherImportDto.getInstitutionName()) && ObjectUtils.isNotEmpty(institutionMap.get(teacherImportDto.getInstitutionName()))) {
                 user.setInstitutionId(institutionMap.get(teacherImportDto.getInstitutionName()));
