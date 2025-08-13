@@ -15,16 +15,12 @@ public class InstitutionSearchParam {
     @TableField("institution_name")
     private String institutionName;
 
-    @ApiModelProperty("机构编码")
-    @TableField("institution_code")
-    private String institutionCode;
-
     @ApiModelProperty("机构级别")
     @TableField("institution_grade")
     private Integer institutionGrade;
 
     @ApiModelProperty("状态")
     @TableField("status")
-    private String status;
+    private Integer status;
 
 }
