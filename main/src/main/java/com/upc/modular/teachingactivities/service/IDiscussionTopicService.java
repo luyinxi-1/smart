@@ -4,6 +4,8 @@ import com.upc.modular.teachingactivities.param.DiscussionTopicReturnParam;
 import com.upc.modular.teachingactivities.param.DiscussionTopicSearchParam;
 import com.upc.modular.teachingactivities.entity.DiscussionTopic;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.teachingactivities.param.MyJoinDiscussionTopicDiscussionTopicReturnParam;
+import com.upc.modular.teachingactivities.param.MyJoinDiscussionTopicSearchParam;
 
 import java.util.List;
 
@@ -24,4 +26,6 @@ public interface IDiscussionTopicService extends IService<DiscussionTopic> {
     void updateDiscussionTopicById(DiscussionTopic discussionTopic);
 
     List<DiscussionTopicReturnParam> getDiscussionTopicList(DiscussionTopicSearchParam param);
+
+    List<MyJoinDiscussionTopicDiscussionTopicReturnParam> selectMyJoinDiscussionTopic(MyJoinDiscussionTopicSearchParam param);
 }

@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -39,7 +40,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     @Autowired
     private TeacherMapper teacherMapper;
     @Autowired
-    private ITextbookClassificationService textbookClassificationService;
+    private TextbookClassificationServiceImpl textbookClassificationService;
     @Override
     public void insert(Textbook textbook) {
         if (ObjectUtils.isEmpty(textbook)) {
@@ -79,14 +80,10 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     @Override
     public Page<TextbookPageReturnParam> getPage(TextbookPageSearchParam param) {
         Page<TextbookPageReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
-        List<Long> classificationIds = new ArrayList<>();
         if (ObjectUtils.isEmpty(param.getClassificationId())) {
-            return textbookMapper.selectTextbookPage(page, param, classificationIds);
+            return textbookMapper.selectTextbookPage(page, param, Collections.emptyList());
         }
-        List<TextbookClassification> textbookClassifications = textbookClassificationService.selectTextbookClassificationDownList(param.getClassificationId());
-        for (TextbookClassification params : textbookClassifications) {
-            classificationIds.add(params.getId());
-        }
+        List<Long> classificationIds = textbookClassificationService.selectTextbookClassificationSubtreeIdList(param.getClassificationId());
         return textbookMapper.selectTextbookPage(page, param, classificationIds);
 
     }

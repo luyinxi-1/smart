@@ -2,24 +2,35 @@ package com.upc.modular.teachingactivities.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.upc.common.utils.UserUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.teachingactivities.param.DiscussionTopicReturnParam;
 import com.upc.modular.teachingactivities.param.DiscussionTopicSearchParam;
 import com.upc.modular.teachingactivities.entity.DiscussionTopic;
 import com.upc.modular.teachingactivities.mapper.DiscussionTopicMapper;
+import com.upc.modular.teachingactivities.param.MyJoinDiscussionTopicDiscussionTopicReturnParam;
+import com.upc.modular.teachingactivities.param.MyJoinDiscussionTopicSearchParam;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
+import com.upc.modular.textbook.entity.TextbookClassification;
+import com.upc.modular.textbook.mapper.TextbookMapper;
+import com.upc.modular.textbook.service.ITextbookAuthorityService;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
+import com.upc.modular.textbook.service.ITextbookClassificationService;
 import com.upc.modular.textbook.service.ITextbookService;
+import com.upc.modular.textbook.service.impl.TextbookClassificationServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -68,6 +79,10 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
     private ITextbookCatalogService textbookCatalogService;
     @Autowired
     private DiscussionTopicReplyServiceImpl discussionTopicReplyService;
+    @Autowired
+    private TextbookClassificationServiceImpl textbookClassificationService;
+    @Autowired
+    private ITextbookAuthorityService textbookAuthorityService;
 
     @Override
     public List<DiscussionTopicReturnParam> getDiscussionTopicList(DiscussionTopicSearchParam param) {
@@ -105,6 +120,26 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
 
 
         return returnList;
+    }
+
+    @Override
+    public List<MyJoinDiscussionTopicDiscussionTopicReturnParam> selectMyJoinDiscussionTopic(MyJoinDiscussionTopicSearchParam param) {
+        Long userId = UserUtils.get().getId();
+        if (ObjectUtils.isEmpty(param.getClassificationId())) {
+            param.setClassificationId(0L);
+        }
+        List<Long> classificationIdList = textbookClassificationService.selectTextbookClassificationSubtreeIdList(param.getClassificationId());
+
+        List<Long> idList = textbookService.list(
+                        new LambdaQueryWrapper<Textbook>().select(Textbook::getId)
+                                .like(ObjectUtils.isNotEmpty(param.getTextbookName()), Textbook::getTextbookName, param.getTextbookName())
+                                .in(ObjectUtils.isNotEmpty(classificationIdList), Textbook::getClassification, classificationIdList)
+                ).stream()
+                .map(Textbook::getId)
+                .filter(Objects::nonNull)
+                .filter(id -> textbookAuthorityService.textbookAuthorityJudge(id, userId))
+                .collect(Collectors.toList());
+        return null;
     }
 
 

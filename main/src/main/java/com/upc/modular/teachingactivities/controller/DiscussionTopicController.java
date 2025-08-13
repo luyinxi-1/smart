@@ -7,6 +7,8 @@ import com.upc.exception.BusinessException;
 import com.upc.modular.teachingactivities.param.DiscussionTopicReturnParam;
 import com.upc.modular.teachingactivities.param.DiscussionTopicSearchParam;
 import com.upc.modular.teachingactivities.entity.DiscussionTopic;
+import com.upc.modular.teachingactivities.param.MyJoinDiscussionTopicDiscussionTopicReturnParam;
+import com.upc.modular.teachingactivities.param.MyJoinDiscussionTopicSearchParam;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -67,6 +69,13 @@ public class DiscussionTopicController {
     public R<List<DiscussionTopicReturnParam>> getDiscussionTopicList(@RequestBody DiscussionTopicSearchParam param) {
         List<DiscussionTopicReturnParam> discussionTopicList = discussionTopicService.getDiscussionTopicList(param);
         return R.ok(discussionTopicList);
+    }
+
+    @ApiOperation(value = "查看我能参与的教学活动")
+    @PostMapping("/selectMyJoinDiscussionTopic")
+    public R<List<MyJoinDiscussionTopicDiscussionTopicReturnParam>> selectMyJoinDiscussionTopic(@RequestBody MyJoinDiscussionTopicSearchParam param) {
+        List<MyJoinDiscussionTopicDiscussionTopicReturnParam> resultList = discussionTopicService.selectMyJoinDiscussionTopic(param);
+        return R.ok(resultList);
     }
 
 }
