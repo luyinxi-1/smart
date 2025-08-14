@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.responseparam.R;
+import com.upc.common.utils.UserInfoToRedis;
 import com.upc.common.utils.UserUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
@@ -191,8 +192,15 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysTbrole> im
     public UserAuthTree getUserAuthTree() {
         UserAuthTree userAuthTree = new UserAuthTree();
 
+        // 0. **！！该接口在第二个拦截中放行了，一定要在业务上确认用户的登录信息！！**
+        UserInfoToRedis userInfoToRedis = UserUtils.get();
+        if (userInfoToRedis == null) {
+            throw new BusinessException(BusinessErrorEnum.PLEASE_LOGIN);
+        }
+
+
         // 1. 获取当前用户并查询其拥有的所有角色
-        Long userId = UserUtils.get().getId();
+        Long userId = userInfoToRedis.getId();
         List<SysTbrole> userRoles = sysUserMapper.getRolesByUserId(userId);
 
         // 如果用户没有任何角色，直接返回一个空的权限树

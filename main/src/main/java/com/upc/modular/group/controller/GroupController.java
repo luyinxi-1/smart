@@ -37,17 +37,17 @@ public class GroupController {
     @Autowired
     private IGroupService groupService;
 
-
-    @ApiOperation(value = "获取年级选项列表")
-    @GetMapping("/getGradeOptions")
-    public R<List<Integer>> getGradeOptions() {
-        int currentYear = Year.now().getValue();
-        List<Integer> yearList = IntStream.rangeClosed(currentYear - 10, currentYear + 10)
-                .boxed()
-                .sorted((a, b) -> b - a) // 降序排列
-                .collect(Collectors.toList());
-        return R.ok(yearList);
-    }
+// 前端自己生成 不需要了
+//    @ApiOperation(value = "获取年级选项列表")
+//    @GetMapping("/getGradeOptions")
+//    public R<List<Integer>> getGradeOptions() {
+//        int currentYear = Year.now().getValue();
+//        List<Integer> yearList = IntStream.rangeClosed(currentYear - 10, currentYear + 10)
+//                .boxed()
+//                .sorted((a, b) -> b - a) // 降序排列
+//                .collect(Collectors.toList());
+//        return R.ok(yearList);
+//    }
 
 
     @ApiOperation(value = "批量添加班级信息")
