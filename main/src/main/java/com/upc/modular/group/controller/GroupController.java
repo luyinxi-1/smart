@@ -37,7 +37,7 @@ public class GroupController {
     @Autowired
     private IGroupService groupService;
 
-//
+// 前端自己生成 不需要了
 //    @ApiOperation(value = "获取年级选项列表")
 //    @GetMapping("/getGradeOptions")
 //    public R<List<Integer>> getGradeOptions() {
