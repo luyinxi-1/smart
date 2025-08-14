@@ -14,28 +14,25 @@
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
     <select id="countTopicWithReplies" resultType="java.lang.Long" parameterType="java.lang.Long">
+        WITH RECURSIVE reply_tree AS (
+            -- 第一层：话题下的直接回复（type=1）
+            SELECT r1.id, r1.topic_id, r1.type
+            FROM discussion_topic_reply r1
+            WHERE r1.type = 1
+              AND r1.topic_id = #{topicId}
+              AND r1.is_shield = 0
+
+            UNION ALL
+
+            -- 递归向下：所有子层（type=2，topic_id 指向父回复 id）
+            SELECT r2.id, r2.topic_id, r2.type
+            FROM discussion_topic_reply r2
+                     JOIN reply_tree p ON r2.topic_id = p.id
+            WHERE r2.type = 2
+              AND r2.is_shield = 0
+        )
         SELECT COUNT(*) AS total
-        FROM (
-                 -- 一级回复
-                 SELECT r1.id
-                 FROM discussion_topic_reply r1
-                 WHERE r1.type = 1
-                   AND r1.topic_id = #{topicId}
-                   AND r1.is_shield = 0
-
-                 UNION ALL
-
-                 -- 二级回复：join 找到属于该话题的一级
-                 SELECT r2.id
-                 FROM discussion_topic_reply r2
-                          JOIN discussion_topic_reply r1
-                               ON r2.topic_id = r1.id   -- 这里的 topic_id 是父回复ID
-                 WHERE r1.type = 1
-                   AND r1.topic_id = #{topicId}
-                   AND r1.is_shield = 0
-                   AND r2.type = 2
-                   AND r2.is_shield = 0
-             ) t
+        FROM reply_tree
     </select>
     <select id="countRootReplies" resultType="java.lang.Long" parameterType="java.lang.Long">
         SELECT COUNT(1)

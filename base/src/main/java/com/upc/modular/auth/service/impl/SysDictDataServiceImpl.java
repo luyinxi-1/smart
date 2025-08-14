@@ -70,18 +70,17 @@ public class SysDictDataServiceImpl extends ServiceImpl<SysDictItemMapper, SysDi
         MyLambdaQueryWrapper<SysDictData> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
 
         lambdaQueryWrapper
-                .eq(SysDictData::getDictType, param.getDictTypeCode())
-                .like(ObjectUtils.isNotEmpty(param.getDictItemName()), SysDictData::getName, param.getDictItemName())
-                .eq(ObjectUtils.isNotEmpty(param.getStatus()), SysDictData::getStatus, param.getStatus())
-                .orderByAsc(SysDictData::getDictSort);  // 按 item_order 升序排列
+                .eq(SysDictData::getDictType, param.getDictType())
+                .like(ObjectUtils.isNotEmpty(param.getName()), SysDictData::getName, param.getName())
+                .eq(ObjectUtils.isNotEmpty(param.getStatus()), SysDictData::getStatus, param.getStatus());
         return this.page(page, lambdaQueryWrapper);
     }
 
     @Override
     public List<SysDictData> selectDictDataByDictType(SysDictItemSearchParam param) {
         MyLambdaQueryWrapper<SysDictData> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
-        lambdaQueryWrapper.eq(SysDictData::getDictType, param.getDictTypeCode())
-                .like(ObjectUtils.isNotEmpty(param.getDictItemName()), SysDictData::getName, param.getDictItemName());
+        lambdaQueryWrapper.eq(ObjectUtils.isNotEmpty(param.getDictType()), SysDictData::getDictType, param.getDictType())
+                .like(ObjectUtils.isNotEmpty(param.getName()), SysDictData::getName, param.getName());
         return sysDictItemMapper.selectList(lambdaQueryWrapper);
     }
 }

@@ -38,7 +38,7 @@ public class SysDictType implements Serializable {
     private String dictType;
 
     @ApiModelProperty("字典名称")
-    @TableField("dict_type")
+    @TableField("dict_name")
     private String dictName;
 
     @ApiModelProperty("备注")

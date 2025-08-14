@@ -15,5 +15,70 @@
         <result column="operator" property="operator" />
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
+    <select id="selectWithDetailsByTextbookIds"
+            resultType="com.upc.modular.teachingactivities.param.MyJoinDiscussionTopicDiscussionTopicReturnParam">
+        WITH RECURSIVE ReplyTree (id, root_topic_id) AS (
+        SELECT
+        r1.id,
+        r1.topic_id AS root_topic_id
+        FROM
+        discussion_topic_reply r1
+        WHERE
+        r1.type = 1
+        AND r1.is_shield = 0
+
+        UNION ALL
+
+        SELECT
+        r2.id,
+        p.root_topic_id -- 将根话题ID向下传递
+        FROM
+        discussion_topic_reply r2
+        JOIN
+        ReplyTree p ON r2.topic_id = p.id
+        WHERE
+        r2.type = 2
+        AND r2.is_shield = 0
+        ),
+        ReplyCounts AS (
+        SELECT
+        root_topic_id,
+        COUNT(*) AS replyCount
+        FROM ReplyTree
+        GROUP BY root_topic_id
+        )
+        SELECT
+        dt.id, dt.topic_title, dt.topic_content, dt.type, dt.textbook_id,
+        dt.textbook_catalog_id, dt.creator, dt.add_datetime, dt.operator, dt.operation_datetime,
+        COALESCE(rc.replyCount, 0) AS replyCount,
+        tb.textbook_name AS textbookName,
+        tc.catalog_name AS textbookCatalogName,
+        CASE WHEN u.user_type IN (0, 1) THEN t.name ELSE s.name END AS creatorName,
+        CASE
+        WHEN u.user_type IN (0,1) THEN '教师'
+        WHEN u.user_type IS NULL THEN NULL
+        ELSE '学生'
+        END AS creatorRole
+        FROM
+        discussion_topic dt
+        LEFT JOIN
+        textbook tb ON dt.textbook_id = tb.id
+        LEFT JOIN
+        textbook_catalog tc ON dt.textbook_catalog_id = tc.id
+        LEFT JOIN
+        ReplyCounts rc ON dt.id = rc.root_topic_id -- 与计数结果关联
+        LEFT JOIN
+        sys_tbuser u ON dt.creator = u.id
+        LEFT JOIN
+        teacher t ON u.id = t.user_id AND u.user_type IN (0, 1)
+        LEFT JOIN
+        student s ON u.id = s.user_id AND u.user_type NOT IN (0, 1)
+        WHERE
+        dt.textbook_id IN
+        <foreach item="item" collection="textbookIdList" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
 
 </mapper>

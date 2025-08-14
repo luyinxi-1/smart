@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.questionbank.mapper.TeachingQuestionClassificationMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.upc.modular.questionbank.entity.TeachingQuestionClassification">
+        <id column="id" property="id" />
+        <result column="teaching_question_classification_name" property="teachingQuestionClassificationName" />
+        <result column="sort_number" property="sortNumber" />
+        <result column="parent_id" property="parentId" />
+        <result column="classification_grade" property="classificationGrade" />
+        <result column="creator" property="creator" />
+        <result column="add_datetime" property="addDatetime" />
+        <result column="operator" property="operator" />
+        <result column="operation_datetime" property="operationDatetime" />
+    </resultMap>
+
+    <select id="selectMaxSortNumber" resultType="java.lang.Integer" parameterType="com.upc.modular.questionbank.entity.TeachingQuestionClassification">
+        SELECT MAX(sort_number) FROM teaching_question_classification
+    </select>
+
+    <update id="updateTeachingQuestionClassification" parameterType="com.upc.modular.questionbank.entity.TeachingQuestionClassification">
+        UPDATE teaching_question_classification
+        <set>
+            <if test="teachingQuestionClassificationName != null and teachingQuestionClassificationName != ''">
+                teaching_question_classification_name = #{teachingQuestionClassificationName},
+            </if>
+            <if test="sortNumber != null">
+                sort_number = #{sortNumber},
+            </if>
+            <if test="parentId != null">
+                parent_id = #{parentId},
+            </if>
+            <if test="classificationGrade != null">
+                classification_grade = #{classificationGrade},
+            </if>
+            <if test="operator != null and operator != ''">
+                operator = #{operator},
+            </if>
+            <if test="operationDatetime != null">
+                operation_datetime = #{operationDatetime},
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+</mapper>

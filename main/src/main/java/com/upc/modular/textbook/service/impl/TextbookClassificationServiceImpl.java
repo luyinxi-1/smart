@@ -17,10 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -217,4 +214,46 @@ public class TextbookClassificationServiceImpl extends ServiceImpl<TextbookClass
         }
         return records.get(0); // 返回查询到的相邻记录
     }
+
+
+    public List<Long> selectTextbookClassificationSubtreeIdList(Long rootId) {
+        if (rootId == null) return Collections.emptyList();
+
+        // 只查必要字段，减少反序列化 & 传输
+        List<TextbookClassification> all = textbookClassificationMapper.selectList(
+                new MyLambdaQueryWrapper<TextbookClassification>()
+                        .select(TextbookClassification::getId, TextbookClassification::getParentId)
+        );
+
+        // parent_id -> [child_id...]
+        Map<Long, List<Long>> childrenMap = all.stream()
+                .collect(Collectors.groupingBy(
+                        TextbookClassification::getParentId,
+                        Collectors.mapping(TextbookClassification::getId, Collectors.toList())
+                ));
+
+        List<Long> result = new ArrayList<>();
+        Deque<Long> stack = new ArrayDeque<>();
+        Set<Long> seen = new HashSet<>();
+
+        // 根也要
+        result.add(rootId);
+        seen.add(rootId);
+        stack.push(rootId);
+
+        // DFS（你喜欢BFS也行，换成队列即可）
+        while (!stack.isEmpty()) {
+            Long cur = stack.pop();
+            List<Long> kids = childrenMap.getOrDefault(cur, Collections.emptyList());
+            for (Long kid : kids) {
+                if (kid != null && seen.add(kid)) {
+                    result.add(kid);
+                    stack.push(kid);
+                }
+            }
+        }
+        return result;  // [rootId, ...所有子孙...]
+    }
+
+
 }

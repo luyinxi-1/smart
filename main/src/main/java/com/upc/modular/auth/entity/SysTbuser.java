@@ -37,6 +37,10 @@ public class SysTbuser implements Serializable {
     @TableField("username")
     private String username;
 
+    @ApiModelProperty("昵称")
+    @TableField("nickname")
+    private String nickname;
+
     @ApiModelProperty("密码")
     @TableField("password")
     private String password;

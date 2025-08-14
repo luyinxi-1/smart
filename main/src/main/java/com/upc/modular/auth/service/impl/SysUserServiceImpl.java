@@ -4,10 +4,14 @@ import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.ExcelReader;
 import com.alibaba.excel.read.metadata.ReadSheet;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.upc.common.responseparam.R;
+import com.upc.common.utils.UserInfoToRedis;
+import com.upc.common.utils.UserUtils;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
@@ -112,7 +116,9 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
         Page<SysTbuser> page = new Page<>(param.getCurrent(), param.getSize());
         MyLambdaQueryWrapper<SysTbuser> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
         if (ObjectUtils.isEmpty(param.getUserType())) {
-            lambdaQueryWrapper.orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
+            lambdaQueryWrapper
+                    .like(ObjectUtils.isNotEmpty(param.getNickname()), SysTbuser::getNickname, param.getNickname())
+                    .orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
             return this.page(page, lambdaQueryWrapper);
         }
         if (param.getUserType() == -1) {
@@ -120,6 +126,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
                     .and(w -> w.eq(SysTbuser::getUserType, 1)
                             .or()
                             .eq(SysTbuser::getUserType, 2))
+                    .like(ObjectUtils.isNotEmpty(param.getNickname()), SysTbuser::getNickname, param.getNickname())
                     .orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
             return this.page(page, lambdaQueryWrapper);
         }
@@ -157,6 +164,39 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
         }
         return this.save(sysTbuser);
+    }
+
+    @Override
+    public R updatePassword(String oldPassword, String newPassword) {
+        if (StringUtils.isBlank(oldPassword) || StringUtils.isBlank(newPassword)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+        if (oldPassword.equals(newPassword)) {
+            return R.ok("新旧密码不能重复");
+        }
+
+        UserInfoToRedis userInfoToRedis = UserUtils.get();
+        SysTbuser tbuser = this.getById(userInfoToRedis.getId());
+
+        if (userInfoToRedis == null || tbuser ==  null) {
+            throw new BusinessException(BusinessErrorEnum.USER_NO);
+        }
+
+        if (!oldPassword.equals(tbuser.getPassword())) {
+            return R.ok("旧密码输入错误");
+        }
+
+        LambdaUpdateWrapper<SysTbuser> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(SysTbuser::getId, userInfoToRedis.getId());
+        updateWrapper.set(SysTbuser::getPassword, newPassword);
+        boolean update = this.update(updateWrapper);
+
+
+        if (update) {
+            return R.ok("修改成功");
+        } else {
+            throw new BusinessException(BusinessErrorEnum.MYSQL_ERR);
+        }
     }
 
 
