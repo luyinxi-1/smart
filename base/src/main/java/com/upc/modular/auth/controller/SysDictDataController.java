@@ -63,7 +63,7 @@ public class SysDictDataController {
     }
 
     @ApiOperation(value = "根据字典数据类型获取字典数据")
-    @GetMapping("/selectDictDataByDictType")
+    @PostMapping("/selectDictDataByDictType")
     public R selectDictDataByDictType(@RequestBody SysDictItemSearchParam param) {
         List<SysDictData> list = sysDictItemService.selectDictDataByDictType(param);
         SysDictItemTotalParam result = new SysDictItemTotalParam();
