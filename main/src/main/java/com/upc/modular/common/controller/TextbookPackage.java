@@ -44,14 +44,14 @@ public class TextbookPackage {
     private TextbookCatalogMapper textbookCatalogMapper;
     // 要压缩的文件路径
     private static String fileToZipPath = "C:\\Users\\luyinxi\\OneDrive\\Desktop\\test.txt";
-    // go语言的指定工作区
+    // go语言的指定工作区——写死或写到配置文件
     private static String GoBuildWorkspace = "D:\\build_workspace";
-    // 目标位置
+    // 目标位置——前端传参
     private static String targetPath = "C:\\Users\\luyinxi\\OneDrive\\Desktop\\";
 
     @ApiOperation(value = "教材打包")
     @PostMapping("/do")
-    public R TextbookPackage(@RequestParam String targetDeviceID,Long textbookId) {
+    public R TextbookPackage(@RequestParam String targetDeviceID, Long textbookId) {
         // 2. 要压缩的文件路径
         Path fileToZip = Paths.get(fileToZipPath);
 
