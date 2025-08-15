@@ -16,4 +16,49 @@
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
 
+    <select id="selectStudentExercisesRecordPage" resultMap="BaseResultMap">
+        SELECT
+        ser.id,
+        ser.teaching_question_bank_id,
+        ser.student_id,
+        ser.exercise_num,
+        ser.score,
+        ser.status,
+        ser.creator,
+        ser.add_datetime,
+        ser.operator,
+        ser.operation_datetime
+        FROM student_exercises_record ser
+        <where>
+            <if test="param.id != null">
+                AND ser.id = #{param.id}
+            </if>
+            <!-- 条件1: 根据题库ID精确查询 -->
+            <if test="param.teachingQuestionBankId != null">
+                AND ser.teaching_question_bank_id = #{param.teachingQuestionBankId}
+            </if>
+            <!-- 条件2: 根据学生ID精确查询 -->
+            <if test="param.studentId != null">
+                AND ser.student_id = #{param.studentId}
+            </if>
+            <!-- 条件3: 根据作答次数精确查询 -->
+            <if test="param.exerciseNum != null">
+                AND ser.exercise_num = #{param.exerciseNum}
+            </if>
+            <!-- 条件4: 根据得分精确查询 -->
+            <if test="param.score != null">
+                AND ser.score = #{param.score}
+            </if>
+            <!-- 条件5: 根据答卷状态精确查询 -->
+            <if test="param.status != null">
+                AND ser.status = #{param.status}
+            </if>
+        </where>
+        <!-- 默认按创建时间排序 -->
+        ORDER BY ser.add_datetime
+        <choose>
+            <when test="param.isAsc == 1">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+    </select>
 </mapper>

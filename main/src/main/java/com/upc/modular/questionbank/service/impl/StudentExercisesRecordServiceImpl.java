@@ -1,7 +1,13 @@
 package com.upc.modular.questionbank.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.exception.BusinessErrorEnum;
+import com.upc.exception.BusinessException;
+import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.questionbank.controller.param.AnswerDetailDTO;
+import com.upc.modular.questionbank.controller.param.StudentExercisesRecordPageSearchParam;
 import com.upc.modular.questionbank.controller.param.SubmitAnswerRequest;
 import com.upc.modular.questionbank.mapper.TeachingQuestionBankMapper;
 import com.upc.modular.questionbank.entity.*;
@@ -329,5 +335,115 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
                 studentFinalGradeMapper.insert(finalGrade);
             }
         }
+    }
+
+    @Override
+    public Void deleteStudentExercisesRecordByIds(IdParam idParam) {
+        List<Long> idList = idParam.getIdList();
+        if (ObjectUtils.isEmpty(idList)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "ID列表不能为空");
+        }
+
+        // 批量查询
+        List<StudentExercisesRecord> found = studentExercisesRecordMapper.selectBatchIds(idList);
+        // 如果数量不一致，则说明有遗漏
+        if (found.size() != idList.size()) {
+            // 找出那些不存在的 ID
+            List<Long> foundIds = found.stream()
+                    .map(StudentExercisesRecord::getId)
+                    .collect(Collectors.toList());
+            List<Long> missing = idList.stream()
+                    .filter(id -> !foundIds.contains(id))
+                    .collect(Collectors.toList());
+            throw new BusinessException(
+                    BusinessErrorEnum.PARAMETER_VALIDATION_ERROR,
+                    "未找到对应的学生做题记录 ID：" + missing
+            );
+        }
+        this.removeByIds(idList);
+
+        return null;
+    }
+
+    @Override
+    public void updateStudentExercisesRecord(StudentExercisesRecord param) {
+        Long studentExercisesRecordId = param.getId();
+        if (studentExercisesRecordId == null) {
+            throw new RuntimeException("更新失败，未提供学生做题记录ID！");
+        }
+
+        StudentExercisesRecord oldstudentExercisesRecord = this.getById(studentExercisesRecordId);
+        if (oldstudentExercisesRecord == null) {
+            throw new RuntimeException("ID为 " + studentExercisesRecordId + " 的学生做题记录不存在，无法更新！");
+        }
+
+        Long studentId = param.getStudentId();
+        if (studentId != null) {
+            if (!studentId.equals(oldstudentExercisesRecord.getStudentId())) {
+                boolean isStudentExists = studentMapper.exists(
+                        new LambdaQueryWrapper<Student>().eq(Student::getId, studentId)
+                );
+                if (!isStudentExists) {
+                    throw new BusinessException(BusinessErrorEnum.FOREIGN_KEY_NOT_FOUND, "ID为 " + studentId + " 的学生不存在！");
+                }
+            }
+        }
+
+        Long teachingQuestionBankId = param.getTeachingQuestionBankId();
+        if (teachingQuestionBankId != null) {
+            if (!teachingQuestionBankId.equals(oldstudentExercisesRecord.getTeachingQuestionBankId())) {
+                boolean isQuestionBankExists = teachingQuestionBankMapper.exists(
+                        new LambdaQueryWrapper<TeachingQuestionBank>().eq(TeachingQuestionBank::getId, teachingQuestionBankId)
+                );
+                if (!isQuestionBankExists) {
+                    throw new BusinessException(BusinessErrorEnum.FOREIGN_KEY_NOT_FOUND, "ID为 " + teachingQuestionBankId + " 的题目所属题库不存在！");
+                }
+            }
+        }
+
+        this.updateById(param);
+    }
+
+    @Override
+    public Page<StudentExercisesRecord> selectStudentExercisesRecordPage(StudentExercisesRecordPageSearchParam param) {
+        Page<StudentExercisesRecord> page = new Page<>(param.getCurrent(), param.getSize());
+        return studentExercisesRecordMapper.selectStudentExercisesRecordPage(page, param);
+    }
+
+    @Override
+    public void inserStudentExercisesRecord(StudentExercisesRecord param) {
+        // 参数非空校验
+        if (ObjectUtils.isEmpty(param)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "学生做题记录参数不能为空");
+        }
+
+        // 获取外键ID，并进行空值校验
+        Long studentId = param.getStudentId();
+        Long teachingQuestionBankId = param.getTeachingQuestionBankId();
+
+        if (studentId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "学生ID不能为空");
+        }
+        if (teachingQuestionBankId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "题目所属题库ID不能为空");
+        }
+
+        // 校验 studentId
+        LambdaQueryWrapper<Student> studentQueryWrapper = new LambdaQueryWrapper<>();
+        studentQueryWrapper.eq(Student::getId, studentId);
+        boolean isStudentExists = studentMapper.exists(studentQueryWrapper);
+        if (!isStudentExists) {
+            throw new BusinessException(BusinessErrorEnum.FOREIGN_KEY_NOT_FOUND, "ID为 " + studentId + " 的学生不存在！");
+        }
+
+        // 校验 teachingQuestionBankId
+        LambdaQueryWrapper<TeachingQuestionBank> questionBankQueryWrapper = new LambdaQueryWrapper<>();
+        questionBankQueryWrapper.eq(TeachingQuestionBank::getId, teachingQuestionBankId);
+        boolean isQuestionBankExists = teachingQuestionBankMapper.exists(questionBankQueryWrapper);
+        if (!isQuestionBankExists) {
+            throw new BusinessException(BusinessErrorEnum.FOREIGN_KEY_NOT_FOUND, "ID为 " + teachingQuestionBankId + " 的题目所属题库不存在！");
+        }
+
+        this.save(param);
     }
 }
