@@ -71,7 +71,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         }
         try {
             // 1. 将文件转换为HTML字符串
-            String htmlString = Word2HtmlUtils.toHtmlString(file);
+            String htmlString = Word2HtmlUtils.toHtmlString(file, textbookId);
 
             // 1.5 将第一个标题之前的Html内容取出来
             String preHtmlString = extractAllHtmlBeforeFirstHeading(htmlString);
