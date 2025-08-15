@@ -1,11 +1,19 @@
 package com.upc.modular.common.controller;
 
+import com.aspose.words.Document;
+import com.aspose.words.SaveFormat;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.upc.common.responseparam.R;
+import com.upc.modular.textbook.entity.TextbookCatalog;
+import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Entities;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -17,7 +25,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @Author: xth
@@ -28,16 +40,18 @@ import java.util.List;
 @Api(tags = "教材打包")
 public class TextbookPackage {
 
+    @Autowired
+    private TextbookCatalogMapper textbookCatalogMapper;
     // 要压缩的文件路径
-    private static String fileToZipPath = "C:\\Users\\yt\\Desktop\\test.txt";
+    private static String fileToZipPath = "C:\\Users\\luyinxi\\OneDrive\\Desktop\\test.txt";
     // go语言的指定工作区
-    private static String GoBuildWorkspace = "D:\\Psoftware\\GoBuildWorkspace";
+    private static String GoBuildWorkspace = "D:\\build_workspace";
     // 目标位置
-    private static String targetPath = "C:\\Users\\yt\\Desktop\\packageDemo\\";
+    private static String targetPath = "C:\\Users\\luyinxi\\OneDrive\\Desktop\\";
 
     @ApiOperation(value = "教材打包")
     @PostMapping("/do")
-    public R TextbookPackage(@RequestParam String targetDeviceID) {
+    public R TextbookPackage(@RequestParam String targetDeviceID,Long textbookId) {
         // 2. 要压缩的文件路径
         Path fileToZip = Paths.get(fileToZipPath);
 
@@ -59,6 +73,54 @@ public class TextbookPackage {
         return R.ok();
     }
 
+    public void mergeHtmlFragmentsToWord() {
+        try {
+            LambdaQueryWrapper<TextbookCatalog> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+            lambdaQueryWrapper.eq(TextbookCatalog::getTextbookId, 2L);
+            lambdaQueryWrapper.orderByAsc(TextbookCatalog::getSort);
+            List<TextbookCatalog> textbookCatalogs = textbookCatalogMapper.selectList(lambdaQueryWrapper);
+            List<String> htmlFragments = textbookCatalogs.stream()
+                    .sorted(Comparator.comparing(TextbookCatalog::getSort))
+                    .flatMap(catalog -> Stream.of(catalog.getCatalogName(), catalog.getContent()))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            String outputDocxPath = "C:\\Users\\luyinxi\\OneDrive\\Desktop\\recovered.docx";
+            // 1. 拼接HTML结构
+            StringBuilder htmlBuilder = new StringBuilder();
+            htmlBuilder.append("<html><head><meta charset='UTF-8'></head><body>");
+
+            for (String fragment : htmlFragments) {
+                htmlBuilder.append(fragment).append("\n");
+            }
+
+            htmlBuilder.append("</body></html>");
+
+            // 2. 转义检查（防止 <body> 冲突）
+            String mergedHtml = sanitizeHtml(htmlBuilder.toString());
+
+            // 3. 保存临时HTML文件（可选）
+            String tempHtmlPath = "temp_merged.html";
+            Files.write(Paths.get(tempHtmlPath), mergedHtml.getBytes(StandardCharsets.UTF_8));
+
+//            // 4. 加载并保存为 Word 文档
+//            Document doc = new Document(tempHtmlPath);
+//            doc.save(outputDocxPath, SaveFormat.DOCX);
+
+            System.out.println("✅ 合并并生成 Word 成功: " + outputDocxPath);
+
+        } catch (Exception e) {
+            System.err.println("❌ 合并 HTML 转 Word 失败！");
+            e.printStackTrace();
+        }
+    }
+
+
+    private String sanitizeHtml(String html) {
+        // 使用 Jsoup 清洗可能嵌套的 body/head 等结构
+        org.jsoup.nodes.Document doc = Jsoup.parse(html);
+        doc.outputSettings(new org.jsoup.nodes.Document.OutputSettings().syntax(org.jsoup.nodes.Document.OutputSettings.Syntax.html).escapeMode(Entities.EscapeMode.xhtml));
+        return doc.html();
+    }
     /**
      * 完整的打包和编译流程
      */

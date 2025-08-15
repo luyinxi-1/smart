@@ -57,8 +57,8 @@ class SmartTextbookApplicationTests {
 //    private WordConversionService conversionService;
 //    @Autowired
 //    private WordConversionPageService conversionPageService;
-//    @Autowired
-//    private TextbookCatalogMapper textbookCatalogMapper;
+    @Autowired
+    private TextbookCatalogMapper textbookCatalogMapper;
 //
 //    @Test
 //    void test1() {
@@ -251,5 +251,6 @@ class SmartTextbookApplicationTests {
 //    public void test03() {
 //        System.out.println(userService.list());
 //    }
+
 
 }
