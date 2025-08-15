@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * <p>
@@ -206,6 +207,24 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
         } else {
             throw new BusinessException(BusinessErrorEnum.MYSQL_ERR);
         }
+    }
+
+    @Override
+    public R resetPassword(Long userId) {
+        if (userId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+
+        // 生成一个随机八位数密码
+        String newPassword = String.valueOf(ThreadLocalRandom.current().nextInt(10000000, 100000000));
+        String secretPassword = AesCbcCompatUtil.encryptZeroBase64(newPassword);
+
+        LambdaUpdateWrapper<SysTbuser> updateWrapper = new LambdaUpdateWrapper();
+        updateWrapper.eq(SysTbuser::getId, userId);
+        updateWrapper.set(SysTbuser::getPassword, secretPassword);
+        this.update(updateWrapper);
+
+        return R.ok("新密码是：" + newPassword);
     }
 
 

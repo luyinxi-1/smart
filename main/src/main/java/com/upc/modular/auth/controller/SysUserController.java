@@ -50,9 +50,15 @@ public class SysUserController {
         return R.ok(sysUserService.login(userLogin, request));
     }
 
+    @PostMapping("/resetPassword")
+    @ApiOperation("重置密码")
+    public R resetPassword(@RequestParam Long userId) {
+        return sysUserService.resetPassword(userId);
+    }
+
     @PostMapping("/updatePassword")
     @ApiOperation("修改密码")
-    public R updatePassword(@RequestParam String oldPassword, String newPassword) {
+    public R updatePassword(@RequestParam String oldPassword,@RequestParam String newPassword) {
         return sysUserService.updatePassword(oldPassword, newPassword);
     }
 
