@@ -58,7 +58,7 @@ public class TeachingMaterials implements Serializable {
 
     @ApiModelProperty("文件大小")
     @TableField("file_size")
-    private Integer fileSize;
+    private Double fileSize;
 
     @ApiModelProperty("上传时间")
     @TableField(value = "add_datetime", fill = FieldFill.INSERT)

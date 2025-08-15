@@ -54,8 +54,9 @@ public class CommonController {
         }
 
         try {
+            System.out.println(dir.getAbsolutePath());
             //将临时图片转存
-            file.transferTo(new File(basePath + fileName));
+            file.transferTo(new File(dir.getAbsolutePath(),fileName));
         } catch (IOException e) {
             e.printStackTrace();
         }
