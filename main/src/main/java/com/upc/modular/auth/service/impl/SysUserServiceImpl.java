@@ -25,6 +25,7 @@ import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.auth.service.IUserRoleListService;
 import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.institution.mapper.InstitutionMapper;
+import com.upc.utils.AesCbcCompatUtil;
 import com.upc.utils.InstitutionUtil;
 import com.upc.utils.MD5Utils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -164,8 +165,12 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
         if (ObjectUtils.isEmpty(sysTbuser) || ObjectUtils.isEmpty(sysTbuser.getUsername())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
         }
+        SysTbuser sysTbuser1 = sysUserMapper.selectOne(new LambdaQueryWrapper<SysTbuser>().eq(SysTbuser::getUsername, sysTbuser.getUsername()));
+        if (ObjectUtils.isNotEmpty(sysTbuser1)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户名已存在");
+        }
         if (ObjectUtils.isEmpty(sysTbuser.getPassword())) {
-            sysTbuser.setPassword(MD5Utils.sha256("Aa123456+"));
+            sysTbuser.setPassword(AesCbcCompatUtil.encryptZeroBase64("Aa123456+"));
         }
         return this.save(sysTbuser);
     }

@@ -21,6 +21,7 @@ import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.institution.mapper.InstitutionMapper;
 import com.upc.modular.institution.service.IInstitutionService;
 import com.upc.modular.teacher.dto.TeacherImportErrorDto;
+import com.upc.utils.AesCbcCompatUtil;
 import com.upc.utils.AgeQuantifyUtils;
 import com.upc.utils.MD5Utils;
 import com.upc.utils.TypeConversionUtils;
@@ -149,7 +150,7 @@ public class TeacherListener extends AnalysisEventListener<TeacherImportDto> {
         } else {
             SysTbuser user = new SysTbuser()
                     .setUsername(teacher.getIdentityId())
-                    .setPassword(MD5Utils.sha256(teacher.getIdentityId()))
+                    .setPassword(AesCbcCompatUtil.encryptZeroBase64(teacher.getIdentityId()))
                     .setUserType(2) //
                     .setNickname(teacher.getName())
                     .setStatus(1); // 默认启用
