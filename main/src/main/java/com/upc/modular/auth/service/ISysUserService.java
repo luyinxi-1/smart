@@ -5,10 +5,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.param.GetUserIsInInstitutionParam;
-import com.upc.modular.auth.param.ImportSysUserReturnParam;
 import com.upc.modular.auth.param.SysUserPageSearchParam;
 import com.upc.modular.auth.param.UserLoginParam;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -38,4 +36,6 @@ public interface ISysUserService extends IService<SysTbuser> {
     Boolean insert(SysTbuser sysTbuser);
 
     R updatePassword(String oldPassword, String newPassword);
+
+    R resetPassword(Long userId);
 }

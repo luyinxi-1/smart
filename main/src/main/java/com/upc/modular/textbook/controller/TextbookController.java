@@ -10,6 +10,8 @@ import com.upc.modular.teacher.vo.TeacherReturnVo;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.param.TextbookPageReturnParam;
 import com.upc.modular.textbook.param.TextbookPageSearchParam;
+import com.upc.modular.textbook.param.UserFavoritesPageSearch;
+import com.upc.modular.textbook.param.UserFavoritesVO;
 import com.upc.modular.textbook.service.ITextbookService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiModelProperty;
@@ -73,5 +75,13 @@ public class TextbookController {
     @PostMapping("/getOneTextbookDetails")
     public R<TextbookPageReturnParam> getOneTextbookDetails(@RequestParam("textbookId") Long textbookId) {
         return R.ok(textbookService.getOneTextbookDetails(textbookId));
+    }
+
+    @ApiOperation(value = "分页查询教材中心")
+    @PostMapping("/getpageTextbookCenter")
+    public R<PageBaseReturnParam<Textbook>> getpageTextbookCenter(@RequestBody UserFavoritesPageSearch param) {
+        Page<Textbook> page = textbookService.getpageTextbookCenter(param);
+        PageBaseReturnParam<Textbook> result = PageBaseReturnParam.ok(page);
+        return R.page(result);
     }
 }

@@ -4,6 +4,7 @@ package com.upc.modular.textbook.controller;
 import com.upc.common.responseparam.R;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.param.TextbookCatalogDto;
+import com.upc.modular.textbook.param.TextbookCatalogInsertParam;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -39,8 +40,8 @@ public class TextbookCatalogController {
 
     @ApiOperation(value = "插入教材章节内容")
     @PostMapping("/insert")
-    public R<Boolean> insert(@RequestBody TextbookCatalog param) {
-        return R.ok(textbookCatalogService.insert(param));
+    public R<Boolean> insert(@RequestBody List<TextbookCatalogInsertParam> params) {
+        return R.ok(textbookCatalogService.insert(params));
     }
 
     @ApiOperation(value = "删除教材章节内容")
@@ -51,7 +52,7 @@ public class TextbookCatalogController {
 
     @ApiOperation(value = "更新教材章节内容")
     @PostMapping("/update")
-    public R<Boolean> update(@RequestBody TextbookCatalog param) {
+    public R<Boolean> update(@RequestBody List<TextbookCatalog> param) {
         return R.ok(textbookCatalogService.updateTextbook(param));
     }
 

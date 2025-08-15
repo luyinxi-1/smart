@@ -6,6 +6,8 @@ import com.upc.modular.textbook.entity.Textbook;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.textbook.param.TextbookPageReturnParam;
 import com.upc.modular.textbook.param.TextbookPageSearchParam;
+import com.upc.modular.textbook.param.UserFavoritesPageSearch;
+
 import java.util.List;
 /**
  * <p>
@@ -28,4 +30,6 @@ public interface ITextbookService extends IService<Textbook> {
     List<Textbook> getNewTextbook(int getNumber);
 
     TextbookPageReturnParam getOneTextbookDetails(Long textbookId);
+
+    Page<Textbook> getpageTextbookCenter(UserFavoritesPageSearch param);
 }
