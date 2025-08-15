@@ -26,6 +26,7 @@ import com.upc.modular.auth.service.IUserRoleListService;
 import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.institution.mapper.InstitutionMapper;
 import com.upc.utils.InstitutionUtil;
+import com.upc.utils.MD5Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -160,8 +161,11 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
 
     @Override
     public Boolean insert(SysTbuser sysTbuser) {
-        if (ObjectUtils.isEmpty(sysTbuser) || ObjectUtils.isEmpty(sysTbuser.getPassword()) || ObjectUtils.isEmpty(sysTbuser.getUsername())) {
+        if (ObjectUtils.isEmpty(sysTbuser) || ObjectUtils.isEmpty(sysTbuser.getUsername())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+        if (ObjectUtils.isEmpty(sysTbuser.getPassword())) {
+            sysTbuser.setPassword(MD5Utils.sha256("Aa123456+"));
         }
         return this.save(sysTbuser);
     }
