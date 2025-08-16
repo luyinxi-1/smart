@@ -9,10 +9,7 @@ import com.upc.common.utils.UserUtils;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysDictType;
 import com.upc.modular.auth.entity.SysTbuser;
-import com.upc.modular.auth.param.GetUserIsInInstitutionParam;
-import com.upc.modular.auth.param.ImportSysUserReturnParam;
-import com.upc.modular.auth.param.SysUserPageSearchParam;
-import com.upc.modular.auth.param.UserLoginParam;
+import com.upc.modular.auth.param.*;
 import com.upc.modular.auth.param.tree.UserAuthTree;
 import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.auth.service.impl.SysRoleServiceImpl;
@@ -58,8 +55,8 @@ public class SysUserController {
 
     @PostMapping("/updatePassword")
     @ApiOperation("修改密码")
-    public R updatePassword(@RequestParam String oldPassword,@RequestParam String newPassword) {
-        return sysUserService.updatePassword(oldPassword, newPassword);
+    public R updatePassword(@RequestBody UpdatePasswordParam param) {
+        return sysUserService.updatePassword(param);
     }
 
     @ApiOperation(value = "删除用户")

@@ -6,7 +6,9 @@ import com.upc.common.responseparam.R;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.param.GetUserIsInInstitutionParam;
 import com.upc.modular.auth.param.SysUserPageSearchParam;
+import com.upc.modular.auth.param.UpdatePasswordParam;
 import com.upc.modular.auth.param.UserLoginParam;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -35,7 +37,7 @@ public interface ISysUserService extends IService<SysTbuser> {
 
     Boolean insert(SysTbuser sysTbuser);
 
-    R updatePassword(String oldPassword, String newPassword);
+    R updatePassword(@RequestBody UpdatePasswordParam param);
 
     R resetPassword(Long userId);
 }
