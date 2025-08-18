@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.entity.SysTbrole;
 import com.upc.modular.auth.entity.UserRoleList;
 import com.upc.modular.auth.param.UserRoleListPageReturnParam;
 import com.upc.modular.auth.param.UserRoleListPageSearchParam;
@@ -13,6 +14,8 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * <p>
@@ -54,5 +57,13 @@ public class UserRoleListController {
         Page<UserRoleListPageReturnParam> page = userRoleListService.getPage(param);
         PageBaseReturnParam<UserRoleListPageReturnParam> result = PageBaseReturnParam.ok(page);
         return R.page(result);
+    }
+
+    @ApiOperation(value = "获取用户绑定角色")
+    @PostMapping("/getUserRoleList")
+    public R<List<Long>> getUserRoleList(@RequestParam Long userId) {
+        List<Long> result = userRoleListService.getUserRoleList(userId);
+
+        return R.ok(result);
     }
 }
