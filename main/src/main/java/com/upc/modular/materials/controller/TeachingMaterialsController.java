@@ -41,7 +41,5 @@ public class TeachingMaterialsController {
         } catch (Exception e) {
             return R.fail("上传失败，请联系管理员");
         }
-
     }
-
 }
