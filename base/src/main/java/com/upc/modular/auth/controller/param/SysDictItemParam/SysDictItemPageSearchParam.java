@@ -36,4 +36,7 @@ public class SysDictItemPageSearchParam extends PageBaseSearchParam {
     @ApiModelProperty("备注")
     private String remark;
 
+    @ApiModelProperty(value = "父级ID，查询顶级节点时传0或不传")
+    private Long parentId;
+
 }
