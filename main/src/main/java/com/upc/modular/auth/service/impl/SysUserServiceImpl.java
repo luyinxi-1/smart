@@ -31,6 +31,7 @@ import com.upc.utils.MD5Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
@@ -177,28 +178,36 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
     }
 
     @Override
-    public R updatePassword(String oldPassword, String newPassword) {
-        if (StringUtils.isBlank(oldPassword) || StringUtils.isBlank(newPassword)) {
+    public R updatePassword(UpdatePasswordParam param) {
+        if (StringUtils.isBlank(param.getOldPassword()) || StringUtils.isBlank(param.getNewPassword())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
         }
-        if (oldPassword.equals(newPassword)) {
+        if (param.getOldPassword().equals(param.getNewPassword())) {
             return R.ok("新旧密码不能重复");
         }
 
-        UserInfoToRedis userInfoToRedis = UserUtils.get();
-        SysTbuser tbuser = this.getById(userInfoToRedis.getId());
+        SysTbuser tbuser;
+        Long targetId;
+        if (param.getId() == null || param.getId() == 0L) {
+            UserInfoToRedis userInfoToRedis = UserUtils.get();
+            tbuser = this.getById(userInfoToRedis.getId());
 
-        if (userInfoToRedis == null || tbuser ==  null) {
-            throw new BusinessException(BusinessErrorEnum.USER_NO);
+            if (userInfoToRedis == null || tbuser ==  null) {
+                throw new BusinessException(BusinessErrorEnum.USER_NO);
+            }
+            targetId = userInfoToRedis.getId();
+        } else {
+            tbuser = this.getById(param.getId());
+            targetId = tbuser.getId();
         }
 
-        if (!oldPassword.equals(tbuser.getPassword())) {
+        if (!param.getOldPassword().equals(tbuser.getPassword())) {
             return R.ok("旧密码输入错误");
         }
 
         LambdaUpdateWrapper<SysTbuser> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.eq(SysTbuser::getId, userInfoToRedis.getId());
-        updateWrapper.set(SysTbuser::getPassword, newPassword);
+        updateWrapper.eq(SysTbuser::getId, targetId);
+        updateWrapper.set(SysTbuser::getPassword, param.getNewPassword());
         boolean update = this.update(updateWrapper);
 
 

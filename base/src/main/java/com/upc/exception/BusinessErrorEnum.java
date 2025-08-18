@@ -9,6 +9,10 @@ public enum BusinessErrorEnum implements CommonError {
      */
     PARAMETER_VALIDATION_ERROR(10001, "参数不合法"),
     /**
+     * 外键不存在
+     */
+    FOREIGN_KEY_NOT_FOUND(10004, "关联数据不存在"),
+    /**
      * 未知错误
      */
     UNKNOWN_ERROR(10002, "未知错误"),
