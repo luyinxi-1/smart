@@ -14,6 +14,7 @@ import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import com.upc.modular.textbook.mapper.TextbookMapper;
 import com.upc.modular.textbook.param.TextbookCatalogDto;
 import com.upc.modular.textbook.param.TextbookCatalogInsertParam;
+import com.upc.modular.textbook.param.TextbookTree;
 import com.upc.modular.textbook.service.ILearningAnnotationsAndLabelsService;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -463,6 +464,43 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
 
         return textbookCatalogList;
     }
+
+    @Override
+    public List<TextbookTree> getTextbookCatalogTree(Long textbookId) {
+        List<TextbookCatalog> catalogList = textbookCatalogMapper.selectList(
+                new LambdaQueryWrapper<TextbookCatalog>()
+                        .eq(TextbookCatalog::getTextbookId, textbookId)
+                        .orderByAsc(TextbookCatalog::getSort)
+        );
+
+        Map<Long, TextbookTree> nodeMap = new HashMap<>();
+        for (TextbookCatalog record : catalogList) {
+            String plainText = null;
+            if (record.getCatalogName() != null) {
+                plainText = Jsoup.parse(record.getCatalogName()).text();
+            }
+            TextbookTree node = new TextbookTree()
+                    .setTextbookId(record.getTextbookId())
+                    .setCatalogName(plainText)
+                    .setCatalogLevel(record.getCatalogLevel())
+                    .setFatherCatalogId(record.getFatherCatalogId())
+                    .setSort(record.getSort())
+                    .setChildren(new ArrayList<>());
+            nodeMap.put(record.getId(), node);
+        }
+
+        List<TextbookTree> roots = new ArrayList<>();
+        for (TextbookCatalog record : catalogList) {
+            TextbookTree node = nodeMap.get(record.getId());
+            if (record.getFatherCatalogId() == null || !nodeMap.containsKey(record.getFatherCatalogId())) {
+                roots.add(node);
+            } else {
+                nodeMap.get(record.getFatherCatalogId()).getChildren().add(node);
+            }
+        }
+        return roots;
+    }
+
 
 
     /**
