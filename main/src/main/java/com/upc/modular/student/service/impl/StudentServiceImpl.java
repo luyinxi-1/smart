@@ -1,11 +1,7 @@
 package com.upc.modular.student.service.impl;
 
 import com.alibaba.excel.EasyExcel;
-import com.alibaba.excel.ExcelReader;
-import com.alibaba.excel.read.metadata.ReadSheet;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -14,8 +10,10 @@ import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.auth.entity.SysTbrole;
 import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.mapper.SysLogMapper;
 import com.upc.modular.auth.mapper.SysRoleMapper;
 import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.auth.service.ISysUserService;
@@ -26,6 +24,7 @@ import com.upc.modular.group.service.IUserClassListService;
 import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.institution.mapper.InstitutionMapper;
 import com.upc.modular.student.controller.param.GetStudentIsInInstitutionParam;
+import com.upc.modular.student.controller.param.StudentUserResultParam;
 import com.upc.modular.student.controller.param.dto.StudentExportDto;
 import com.upc.modular.student.controller.param.dto.StudentGenerateDto;
 import com.upc.modular.student.controller.param.dto.StudentImportDto;
@@ -33,21 +32,17 @@ import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
 import com.upc.modular.student.controller.param.listener.StudentListener;
 import com.upc.modular.student.controller.param.vo.GenerateUserResultVoStudent;
 import com.upc.modular.student.controller.param.vo.ImportStudentReturnVo;
-import com.upc.modular.student.controller.param.vo.StudentExcelVo;
 import com.upc.modular.student.controller.param.vo.StudentReturnVo;
 import com.upc.modular.student.converter.LocalDateTimeConverter;
 import com.upc.modular.student.entity.Student;
 import com.upc.modular.student.mapper.StudentMapper;
 import com.upc.modular.student.service.IStudentService;
-import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.mapper.TeacherMapper;
-import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
 import com.upc.utils.InstitutionUtil;
 import com.upc.utils.MD5Utils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
@@ -89,6 +84,9 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
 
     @Autowired
     private SysRoleMapper sysRoleMapper;
+
+    @Autowired
+    private SysLogMapper sysLogMapper;
     @Override
     public void insertstudent(Student student) {
         if (ObjectUtils.isEmpty(student.getIdentityId())) {
@@ -367,7 +365,7 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
     }
 
     @Override
-    public List<Student> getStudent(IdParam idParam) {
+    public List<StudentUserResultParam> getStudent(IdParam idParam) {
         MyLambdaQueryWrapper<Student> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
         List<Long> idList = idParam.getIdList();
 
@@ -378,7 +376,22 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
                 lambdaQueryWrapper.in(Student::getUserId, idList);
             }
         }
-        return studentMapper.selectList(lambdaQueryWrapper);
+        List<Student> students = studentMapper.selectList(lambdaQueryWrapper);
+        List<StudentUserResultParam> resultParam = new ArrayList<>();
+        for(Student student : students) {
+            StudentUserResultParam param = new StudentUserResultParam();
+            BeanUtils.copyProperties(student, param);
+            SysLog sysLog = sysLogMapper.selectOne(
+                    new MyLambdaQueryWrapper<SysLog>()
+                            .eq(SysLog::getUserId, student.getUserId())
+                            .eq(SysLog::getLogContent, "/sys-user/login")
+                            .orderByDesc(SysLog::getAddDatetime)
+                            .last("LIMIT 1")
+            );
+            param.setLastLoginTime(sysLog.getAddDatetime());
+            resultParam.add(param);
+        }
+        return resultParam;
     }
 
 
