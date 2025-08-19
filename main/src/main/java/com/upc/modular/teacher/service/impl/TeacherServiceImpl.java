@@ -3,30 +3,25 @@ package com.upc.modular.teacher.service.impl;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.ExcelReader;
 import com.alibaba.excel.read.metadata.ReadSheet;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.auth.entity.SysTbrole;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.entity.UserRoleList;
+import com.upc.modular.auth.mapper.SysLogMapper;
 import com.upc.modular.auth.mapper.SysRoleMapper;
 import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.auth.service.IUserRoleListService;
 import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.institution.mapper.InstitutionMapper;
-import com.upc.modular.questionbank.controller.param.GradeSubjectiveRequest;
-import com.upc.modular.questionbank.entity.QuestionsBanksList;
-import com.upc.modular.questionbank.entity.StudentExercisesContent;
-import com.upc.modular.questionbank.entity.StudentExercisesRecord;
-import com.upc.modular.questionbank.mapper.QuestionsBanksListMapper;
-import com.upc.modular.questionbank.mapper.StudentExercisesContentMapper;
-import com.upc.modular.questionbank.mapper.StudentExercisesRecordMapper;
-import com.upc.modular.questionbank.service.IStudentExercisesRecordService;
+import com.upc.modular.student.controller.param.StudentUserResultParam;
+import com.upc.modular.student.entity.Student;
 import com.upc.modular.teacher.dto.*;
 import com.upc.modular.teacher.vo.GenerateUserResultVo;
 import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
@@ -36,8 +31,10 @@ import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.teacher.service.ITeacherService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.teacher.vo.TeacherReturnVo;
+import com.upc.modular.teacher.vo.TeacherUserReturnParam;
 import com.upc.utils.InstitutionUtil;
 import com.upc.utils.MD5Utils;
+import org.apache.poi.ss.formula.functions.T;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -79,6 +76,9 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
 
     @Autowired
     private SysRoleMapper sysRoleMapper;
+
+    @Autowired
+    private SysLogMapper sysLogMapper;
     
 
 
@@ -312,12 +312,36 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     }
 
     @Override
-    public Teacher getUserTeacher(Long userId) {
-        if (ObjectUtils.isEmpty(userId)) {
+    public List<TeacherUserReturnParam> getUserTeacher(IdParam idParam) {
+        if (ObjectUtils.isEmpty(idParam) || ObjectUtils.isEmpty(idParam.getIdList())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
         }
-        List<Teacher> teachers = teacherMapper.selectList(new MyLambdaQueryWrapper<Teacher>().eq(Teacher::getUserId, userId));
-        return teachers.get(0);
+        MyLambdaQueryWrapper<Teacher> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        List<Long> idList = idParam.getIdList();
+
+        if (idList != null && !idList.isEmpty()) {
+            if (idList.size() == 1) {
+                lambdaQueryWrapper.eq(Teacher::getUserId, idList.get(0));
+            } else {
+                lambdaQueryWrapper.in(Teacher::getUserId, idList);
+            }
+        }
+        List<Teacher> teachers = teacherMapper.selectList(lambdaQueryWrapper);
+        List<TeacherUserReturnParam> resultParam = new ArrayList<>();
+        for(Teacher teacher : teachers) {
+            TeacherUserReturnParam param = new TeacherUserReturnParam();
+            BeanUtils.copyProperties(teacher, param);
+            SysLog sysLog = sysLogMapper.selectOne(
+                    new MyLambdaQueryWrapper<SysLog>()
+                            .eq(SysLog::getUserId, teacher.getUserId())
+                            .eq(SysLog::getLogContent, "/sys-user/login")
+                            .orderByDesc(SysLog::getAddDatetime)
+                            .last("LIMIT 1")
+            );
+            param.setLastLoginTime(sysLog.getAddDatetime());
+            resultParam.add(param);
+        }
+        return resultParam;
     }
 
 
