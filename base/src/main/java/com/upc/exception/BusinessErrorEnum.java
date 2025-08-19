@@ -87,6 +87,10 @@ public enum BusinessErrorEnum implements CommonError {
      */
     NO_EXIT(40003,"不存在"), // 修正了 NO_EXIT 的 errMsg
     /**
+     * 文件不存在
+     */
+    FILE_NOT_EXIST(40004, "文件不存在"),
+    /**
      * 删除失败，存在绑定关系
      */
     BINDING_ERR(50001,"删除失败，存在绑定关系"),
