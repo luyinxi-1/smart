@@ -86,6 +86,13 @@ public class TeacherController {
         return R.ok(sysTbuser);
     }
 
+    @ApiOperation("根据用户id获取教师信息")
+    @PostMapping("/getUserTeacher")
+    public R<Teacher> getUserTeacher(@RequestParam Long userId) {
+        Teacher teacher = teacherService.getUserTeacher(userId);
+        return R.ok(teacher);
+    }
+
     @ApiOperation("查询未绑定用户的教师")
     @GetMapping("/getTeacherNoUser")
     public R<List<TeacherReturnVo>> getTeacherNoUser() {

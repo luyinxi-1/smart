@@ -100,6 +100,14 @@ public class StudentController {
         return R.ok(sysTbuser);
     }
 
+
+    @ApiOperation("根据用户ID查询学生的学生信息")
+    @PostMapping("/getStudent")
+    public R<List<Student>> getStudentUser(@RequestBody IdParam idParam) {
+        List<Student> sysTbuser = studentService.getStudent(idParam);
+        return R.ok(sysTbuser);
+    }
+
     @ApiOperation("查询未绑定用户的学生")
     @PostMapping("/getStudentNoUser")
     public R<List<StudentReturnVo>> getStudentNoUser() {

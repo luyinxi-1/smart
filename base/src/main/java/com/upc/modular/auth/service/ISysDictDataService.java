@@ -26,4 +26,6 @@ public interface ISysDictDataService extends IService<SysDictData> {
     Page<SysDictData> getPage(SysDictItemPageSearchParam param);
 
     List<SysDictData> selectDictDataByDictType(SysDictItemSearchParam param);
+
+    Boolean updateDictData(SysDictData dict);
 }

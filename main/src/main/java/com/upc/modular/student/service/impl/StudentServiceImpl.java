@@ -366,6 +366,20 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         }
     }
 
+    @Override
+    public List<Student> getStudent(IdParam idParam) {
+        MyLambdaQueryWrapper<Student> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        List<Long> idList = idParam.getIdList();
+
+        if (idList != null && !idList.isEmpty()) {
+            if (idList.size() == 1) {
+                lambdaQueryWrapper.eq(Student::getUserId, idList.get(0));
+            } else {
+                lambdaQueryWrapper.in(Student::getUserId, idList);
+            }
+        }
+        return studentMapper.selectList(lambdaQueryWrapper);
+    }
 
 
 

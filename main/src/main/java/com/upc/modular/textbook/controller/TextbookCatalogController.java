@@ -5,6 +5,7 @@ import com.upc.common.responseparam.R;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.param.TextbookCatalogDto;
 import com.upc.modular.textbook.param.TextbookCatalogInsertParam;
+import com.upc.modular.textbook.param.TextbookTree;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -70,8 +71,15 @@ public class TextbookCatalogController {
 
     @ApiOperation(value = "查看教材")
     @PostMapping("/readTextbook")
-    public R<List<TextbookCatalog>> readTextbook(@RequestParam Long id) {
-        List<TextbookCatalog> result = textbookCatalogService.readTextbook(id);
+    public R<List<TextbookCatalog>> readTextbook(@RequestParam("textbookId") Long textbookId) {
+        List<TextbookCatalog> result = textbookCatalogService.readTextbook(textbookId);
+        return R.ok(result);
+    }
+
+    @ApiOperation(value = "返回教材目录树")
+    @PostMapping("/getTextbookCatalogTree")
+    public R<List<TextbookTree>> getTextbookCatalogTree(@RequestParam("textbookId") Long textbookId) {
+        List<TextbookTree> result = textbookCatalogService.getTextbookCatalogTree(textbookId);
         return R.ok(result);
     }
 

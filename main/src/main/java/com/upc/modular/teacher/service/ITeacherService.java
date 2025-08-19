@@ -43,6 +43,5 @@ public interface ITeacherService extends IService<Teacher> {
     Boolean getTeacherIsInInstitution(GetTeacherIsInInstitutionParam param);
 
 
-
-
+    Teacher getUserTeacher(Long userId);
 }

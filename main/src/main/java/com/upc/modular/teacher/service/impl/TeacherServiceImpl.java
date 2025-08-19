@@ -311,7 +311,14 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         return allSubInstitutionIds.contains(institutionId);
     }
 
-
+    @Override
+    public Teacher getUserTeacher(Long userId) {
+        if (ObjectUtils.isEmpty(userId)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+        List<Teacher> teachers = teacherMapper.selectList(new MyLambdaQueryWrapper<Teacher>().eq(Teacher::getUserId, userId));
+        return teachers.get(0);
+    }
 
 
 }
