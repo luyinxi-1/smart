@@ -56,4 +56,6 @@ public interface IStudentService extends IService<Student> {
 
 
     void exportStudentData(HttpServletResponse response, StudentExportDto param);
+
+    List<Student> getStudent(IdParam idParam);
 }

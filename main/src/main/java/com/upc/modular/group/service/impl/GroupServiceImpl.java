@@ -84,6 +84,16 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
             institutionService.updateById(institutionToUpdate);
         }
 
+        if (group.getDefaultClassroom() == null) {
+            group.setDefaultClassroom(oldGroup.getDefaultClassroom());
+        }
+        if (group.getAdmissionDate() == null) {
+            group.setAdmissionDate(oldGroup.getAdmissionDate());
+        }
+        if (group.getGraduationDate() == null) {
+            group.setGraduationDate(oldGroup.getGraduationDate());
+        }
+
         // 4. 更新班级表
         return this.updateById(group);
     }

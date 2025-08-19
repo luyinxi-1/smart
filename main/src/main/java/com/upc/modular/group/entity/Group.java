@@ -55,6 +55,18 @@ public class Group implements Serializable {
     @TableField("institution_id")
     private Long institutionId;
 
+    @ApiModelProperty("默认教室")
+    @TableField("default_classroom")
+    private String defaultClassroom;
+
+    @ApiModelProperty("入学日期")
+    @TableField("admission_date")
+    private LocalDateTime admissionDate;
+
+    @ApiModelProperty("毕业日期")
+    @TableField("graduation_date")
+    private LocalDateTime graduationDate;
+
     @ApiModelProperty("创建人")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;
