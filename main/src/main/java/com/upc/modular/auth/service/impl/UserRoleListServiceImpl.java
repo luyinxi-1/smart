@@ -11,6 +11,7 @@ import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbrole;
 import com.upc.modular.auth.entity.UserRoleList;
 import com.upc.modular.auth.mapper.UserRoleListMapper;
+import com.upc.modular.auth.param.UserRoleListInsertParam;
 import com.upc.modular.auth.param.UserRoleListPageReturnParam;
 import com.upc.modular.auth.param.UserRoleListPageSearchParam;
 import com.upc.modular.auth.service.IUserRoleListService;
@@ -34,12 +35,20 @@ public class UserRoleListServiceImpl extends ServiceImpl<UserRoleListMapper, Use
     @Autowired
     private UserRoleListMapper userRoleListMapper;
     @Override
-    public Boolean insert(UserRoleList userRoleList) {
-        if (ObjectUtils.isEmpty(userRoleList) || ObjectUtils.isEmpty(userRoleList.getUserId()) || ObjectUtils.isEmpty(userRoleList.getRoleId())) {
+    public Boolean insert(UserRoleListInsertParam param) {
+        if (ObjectUtils.isEmpty(param) || ObjectUtils.isEmpty(param.getUserId()) || ObjectUtils.isEmpty(param.getRoleId())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
         }
-        return this.save(userRoleList);
+        this.removeById(param.getUserId());
+        for (Long id : param.getRoleId()) {
+            UserRoleList userRoleList = new UserRoleList();
+            userRoleList.setRoleId(id);
+            userRoleList.setUserId(param.getUserId());
+            this.save(userRoleList);
+        }
+        return true;
     }
+
 
     @Override
     public Boolean batchDelete(IdParam idParam) {
