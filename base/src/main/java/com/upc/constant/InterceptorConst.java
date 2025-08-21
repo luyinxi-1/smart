@@ -40,6 +40,7 @@ public class InterceptorConst {
 //            自定义的放行路径
             "/sys-user/getUserAuthTree",
             "/textbook-authority/textbookAuthorityJudge",
-            "/textbook-authority/textbookAuthorityEditJudge"
+            "/textbook-authority/textbookAuthorityEditJudge",
+            "/sys-user/resetStudentPassword"
     };
 }

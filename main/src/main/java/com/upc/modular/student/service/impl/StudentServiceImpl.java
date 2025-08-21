@@ -410,10 +410,7 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         }
         MyLambdaQueryWrapper<Student> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
         lambdaQueryWrapper.eq(Student::getIdentityId, identityId);
-
-        // 直接使用 this.getOne() 而不是 studentService.getOne()
         Student student = this.getOne(lambdaQueryWrapper);
-
         return sysUserService.resetPassword(student.getUserId());
     }
 
