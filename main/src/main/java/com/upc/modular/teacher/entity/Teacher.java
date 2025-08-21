@@ -93,7 +93,7 @@ public class Teacher implements Serializable {
 
     @ApiModelProperty("状态")
     @TableField("status")
-    private Integer status;
+    private Integer status = 1;
 
     @ApiModelProperty("创建者")
     @TableField(value = "creator", fill = FieldFill.INSERT)

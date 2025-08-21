@@ -9,13 +9,11 @@ import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
-import com.upc.modular.auth.entity.SysLog;
-import com.upc.modular.auth.entity.SysTbrole;
-import com.upc.modular.auth.entity.SysTbuser;
-import com.upc.modular.auth.entity.UserRoleList;
+import com.upc.modular.auth.entity.*;
 import com.upc.modular.auth.mapper.SysLogMapper;
 import com.upc.modular.auth.mapper.SysRoleMapper;
 import com.upc.modular.auth.mapper.SysUserMapper;
+import com.upc.modular.auth.service.ISysDictDataService;
 import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.auth.service.IUserRoleListService;
 import com.upc.modular.institution.entity.Institution;
@@ -29,6 +27,7 @@ import com.upc.modular.teacher.listener.TeacherListener;
 import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.teacher.service.ITeacherService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.upc.utils.AesCbcCompatUtil;
 import com.upc.utils.InstitutionUtil;
 import com.upc.utils.MD5Utils;
 import org.apache.poi.ss.formula.functions.T;
@@ -78,6 +77,9 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
 
     @Autowired
     private SysLogMapper sysLogMapper;
+
+    @Autowired
+    private ISysDictDataService sysDictDataService;
     
 
 
@@ -95,7 +97,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         }
         SysTbuser user = new SysTbuser()
                 .setUsername(teacher.getIdentityId())
-                .setPassword(MD5Utils.sha256(teacher.getIdentityId()))
+                .setPassword(AesCbcCompatUtil.encryptZeroBase64(teacher.getIdentityId()))
                 .setUserType(2) // 教师
                 .setInstitutionId(teacher.getInstitutionId())
                 .setStatus(1); // 默认启用
@@ -404,6 +406,8 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
                 if (interParam.getEducationalBackground() == 2) {
                     endParam.setEducationalBackground("博士");
                 }
+                SysDictData teacherStatus = sysDictDataService.getOne(new MyLambdaQueryWrapper<SysDictData>().eq(SysDictData::getDictType, "teacherStatus").eq(SysDictData::getDictKey, interParam.getStatus()));
+                endParam.setStatus(teacherStatus.getName());
                 index = index + 1;
                 exportList.add(endParam);
             }

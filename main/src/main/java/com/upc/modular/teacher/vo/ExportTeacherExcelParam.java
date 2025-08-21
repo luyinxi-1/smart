@@ -73,4 +73,8 @@ public class ExportTeacherExcelParam {
     @ApiModelProperty("教学年限")
     @ExcelProperty("教学年限")
     private String teachingYears;
+
+    @ApiModelProperty("状态")
+    @ExcelProperty("状态")
+    private String status;
 }
