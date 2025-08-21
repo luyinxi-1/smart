@@ -15,8 +15,10 @@ import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.auth.entity.SysTbrole;
 import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.mapper.SysLogMapper;
 import com.upc.modular.auth.mapper.SysRoleMapper;
 import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.auth.service.ISysUserService;
@@ -70,8 +72,6 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
 
     @Autowired
     private StudentMapper studentMapper;
-
-
     @Autowired
     private ISysUserService sysUserService;
     @Autowired
@@ -92,9 +92,6 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
 
     @Autowired
     private SysRoleMapper sysRoleMapper;
-//    @Autowired
-//    private IStudentService studentService;
-
     @Override
     public void insertstudent(Student student) {
         if (ObjectUtils.isEmpty(student.getIdentityId())) {
@@ -387,15 +384,6 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         return studentMapper.selectList(lambdaQueryWrapper);
     }
 
-    @Override
-    public R resetStudentPassword(String identityId) {
-        if (ObjectUtils.isEmpty(identityId) ) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
-        }
-        MyLambdaQueryWrapper<Student> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
-        lambdaQueryWrapper.eq(Student::getIdentityId, identityId);
-        Student student = this.getOne(lambdaQueryWrapper);
-       return sysUserService.resetPassword(student.getUserId());
-    }
+
 
 }

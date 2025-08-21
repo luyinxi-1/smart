@@ -7,6 +7,7 @@ import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbrole;
 import com.upc.modular.auth.entity.UserRoleList;
+import com.upc.modular.auth.param.UserRoleListInsertParam;
 import com.upc.modular.auth.param.UserRoleListPageReturnParam;
 import com.upc.modular.auth.param.UserRoleListPageSearchParam;
 import com.upc.modular.auth.service.IUserRoleListService;
@@ -35,8 +36,8 @@ public class UserRoleListController {
 
     @ApiOperation(value = "新增用户角色关联")
     @PostMapping("/insert")
-    public R<Boolean> insert(@RequestBody UserRoleList userRoleList) {
-        return R.ok(userRoleListService.insert(userRoleList));
+    public R<Boolean> insert(@RequestBody UserRoleListInsertParam param) {
+        return R.ok(userRoleListService.insert(param));
     }
 
     @ApiOperation(value = "删除用户角色关联")

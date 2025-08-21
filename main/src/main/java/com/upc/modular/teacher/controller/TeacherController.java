@@ -6,13 +6,13 @@ import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
-import com.upc.modular.questionbank.controller.param.GradeSubjectiveRequest;
 import com.upc.modular.teacher.dto.*;
 import com.upc.modular.teacher.vo.GenerateUserResultVo;
 import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.service.ITeacherService;
 import com.upc.modular.teacher.vo.TeacherReturnVo;
+import com.upc.modular.teacher.vo.TeacherUserReturnParam;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,8 +88,8 @@ public class TeacherController {
 
     @ApiOperation("根据用户id获取教师信息")
     @PostMapping("/getUserTeacher")
-    public R<Teacher> getUserTeacher(@RequestParam Long userId) {
-        Teacher teacher = teacherService.getUserTeacher(userId);
+    public R<List<TeacherUserReturnParam>> getUserTeacher(@RequestBody IdParam idParam) {
+        List<TeacherUserReturnParam> teacher = teacherService.getUserTeacher(idParam);
         return R.ok(teacher);
     }
 

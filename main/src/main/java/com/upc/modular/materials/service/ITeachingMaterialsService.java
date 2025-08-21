@@ -1,12 +1,14 @@
 package com.upc.modular.materials.service;
 
-import com.upc.modular.materials.entity.TeachingMaterials;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.materials.entity.TeachingMaterials;
 import org.springframework.web.multipart.MultipartFile;
+
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * <p>
- *  服务类
+ * 服务类
  * </p>
  *
  * @author mjh
@@ -15,4 +17,6 @@ import org.springframework.web.multipart.MultipartFile;
 public interface ITeachingMaterialsService extends IService<TeachingMaterials> {
 
     String insertMaterials(MultipartFile multipartFile, TeachingMaterials teachingMaterials);
+
+    void downloadMaterials(Long fileId, String fileName, HttpServletResponse response);
 }

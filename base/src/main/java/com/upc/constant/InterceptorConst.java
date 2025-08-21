@@ -11,7 +11,7 @@ public class InterceptorConst {
      */
     public static final String[] EXCLUDE_PATH_PATTERNS = {
             "/", "/csrf", "/upload/public/**", "/doc.html", "/doc.html/**", "/sys-user/login", "/download/**", "/webjars/**",
-            "/swagger-resources/**", "/v2/**", "/swagger-ui.html/**", "/error/**"
+            "/swagger-resources/**", "/v2/**", "/swagger-ui.html/**", "/error/**", "/sys-log/**"
     };
 
     /**
