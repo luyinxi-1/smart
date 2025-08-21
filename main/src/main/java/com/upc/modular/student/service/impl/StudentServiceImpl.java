@@ -516,7 +516,6 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
                 return "未知状态";
         }
     }
-}
 
     @Override
     public List<StudentUserResultParam> getStudent(IdParam idParam) {
