@@ -12,6 +12,7 @@ import com.upc.modular.teacher.vo.TeacherReturnVo;
 import com.upc.modular.teacher.vo.TeacherUserReturnParam;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
 /**
@@ -42,4 +43,8 @@ public interface ITeacherService extends IService<Teacher> {
 
     Boolean getTeacherIsInInstitution(GetTeacherIsInInstitutionParam param);
     List<TeacherUserReturnParam> getUserTeacher(IdParam idParam);
+
+    Boolean updateBatchTeacher(updateBatchTeacherParam param);
+
+    void exportTeacher(HttpServletResponse response, exportTeacherSearchParam param);
 }

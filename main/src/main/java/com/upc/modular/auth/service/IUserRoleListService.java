@@ -30,4 +30,6 @@ public interface IUserRoleListService extends IService<UserRoleList> {
     Page<UserRoleListPageReturnParam> getPage(UserRoleListPageSearchParam param);
 
     List<Long> getUserRoleList(Long userId);
+
+    void insertDefaultRole(Long id, Integer userType);
 }

@@ -51,6 +51,10 @@ public class HomePageNotice implements Serializable {
     @TableField("is_top")
     private Integer isTop;
 
+    @ApiModelProperty("是否发布(0是未发布 1是发布)")
+    @TableField("status")
+    private Integer status;
+
     @ApiModelProperty("通知公告创建人")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;

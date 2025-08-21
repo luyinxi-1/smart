@@ -1,14 +1,13 @@
 package com.upc.modular.teacher.dto;
 
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.upc.common.requestparam.PageBaseSearchParam;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
 @Data
 @Accessors(chain = true)
-public class TeacherPageSearchDto extends PageBaseSearchParam {
+public class exportTeacherSearchParam {
 
     @ApiModelProperty("工号")
     private String identityId;
@@ -39,5 +38,4 @@ public class TeacherPageSearchDto extends PageBaseSearchParam {
 
     @ApiModelProperty("状态")
     private Integer status;
-
 }

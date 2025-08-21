@@ -23,15 +23,12 @@ import com.upc.modular.institution.mapper.InstitutionMapper;
 import com.upc.modular.student.controller.param.StudentUserResultParam;
 import com.upc.modular.student.entity.Student;
 import com.upc.modular.teacher.dto.*;
-import com.upc.modular.teacher.vo.GenerateUserResultVo;
-import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
+import com.upc.modular.teacher.vo.*;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.listener.TeacherListener;
 import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.teacher.service.ITeacherService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.upc.modular.teacher.vo.TeacherReturnVo;
-import com.upc.modular.teacher.vo.TeacherUserReturnParam;
 import com.upc.utils.InstitutionUtil;
 import com.upc.utils.MD5Utils;
 import org.apache.poi.ss.formula.functions.T;
@@ -41,7 +38,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -107,7 +106,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         newTeacher.setUserId(user.getId());
         this.save(newTeacher);
         MyLambdaQueryWrapper<SysTbrole> sysTbroleMyLambdaQueryWrapper = new MyLambdaQueryWrapper<>();
-        sysTbroleMyLambdaQueryWrapper.eq(SysTbrole::getRoleName, "普通教师");
+        sysTbroleMyLambdaQueryWrapper.eq(SysTbrole::getRoleCode, "teacher");
         List<SysTbrole> sysTbroles = sysRoleMapper.selectList(sysTbroleMyLambdaQueryWrapper);
         if (ObjectUtils.isNotEmpty(sysTbroles)) {
             Long id = sysTbroles.get(0).getId();
@@ -159,7 +158,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         ImportTeacherReturnVo importTeacherReturnParam = new ImportTeacherReturnVo();
 
         MyLambdaQueryWrapper<SysTbrole> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
-        lambdaQueryWrapper.eq(SysTbrole::getRoleName, "普通教师");
+        lambdaQueryWrapper.eq(SysTbrole::getRoleCode, "teacher");
         List<SysTbrole> sysTbroles = sysRoleMapper.selectList(lambdaQueryWrapper);
         Long id = 0L;
         if (ObjectUtils.isNotEmpty(sysTbroles)) {
@@ -343,6 +342,82 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         }
         return resultParam;
     }
+
+    @Override
+    public Boolean updateBatchTeacher(updateBatchTeacherParam param) {
+        if (ObjectUtils.isEmpty(param)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+        for (Teacher teacher : param.getTeachers()) {
+            this.updateById(teacher);
+        }
+        return true;
+    }
+
+    @Override
+    public void exportTeacher(HttpServletResponse response, exportTeacherSearchParam param) {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding("utf-8");
+
+        try {
+            String fileName = URLEncoder.encode("教师列表", "UTF-8").replaceAll("\\+", "%20");
+            response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+
+            List<Teacher> teacherReturnParams = this.list(new MyLambdaQueryWrapper<Teacher>()
+                    .like(ObjectUtils.isNotEmpty(param.getName()), Teacher::getName, param.getName())
+                    .eq(ObjectUtils.isNotEmpty(param.getGender()), Teacher::getGender, param.getGender())
+                    .like(ObjectUtils.isNotEmpty(param.getNationality()), Teacher::getNationality, param.getNationality())
+                    .eq(ObjectUtils.isNotEmpty(param.getEducationalBackground()), Teacher::getEducationalBackground, param.getEducationalBackground())
+                    .eq(ObjectUtils.isNotEmpty(param.getIsPartyNumber()), Teacher::getIsPartyNumber, param.getIsPartyNumber())
+                    .like(ObjectUtils.isNotEmpty(param.getPosition()), Teacher::getPosition, param.getPosition())
+                    .like(ObjectUtils.isNotEmpty(param.getProfessionalTitle()), Teacher::getProfessionalTitle, param.getProfessionalTitle())
+                    .like(ObjectUtils.isNotEmpty(param.getIdcard()), Teacher::getIdcard, param.getIdcard())
+                    .like(ObjectUtils.isNotEmpty(param.getIdentityId()), Teacher::getIdentityId, param.getIdentityId())
+                    .eq(ObjectUtils.isNotEmpty(param.getStatus()), Teacher::getStatus, param.getStatus())
+            );
+            List<ExportTeacherExcelParam> exportList = new ArrayList<>();
+            int index = 1;
+            for (Teacher interParam : teacherReturnParams) {
+                ExportTeacherExcelParam endParam = new ExportTeacherExcelParam();
+                endParam.setName(interParam.getName())
+                        .setIdcard(interParam.getIdcard())
+                        .setGender(interParam.getGender())
+                        .setBirthday(interParam.getBirthday())
+                        .setEmail(interParam.getEmail())
+                        .setIdentityId(interParam.getIdentityId())
+                        .setIntroduction(interParam.getIntroduction())
+                        .setPhone(interParam.getPhone())
+                        .setPosition(interParam.getPosition())
+                        .setProfessionalTitle(interParam.getProfessionalTitle())
+                        .setTeachingYears(interParam.getTeachingYears());
+                if (interParam.getIsPartyNumber() == 1) {
+                    endParam.setIsPartyNumber("是");
+                } else {
+                    endParam.setIsPartyNumber("否");
+                }
+                if (interParam.getEducationalBackground() == 0) {
+                    endParam.setEducationalBackground("本科");
+                }
+                if (interParam.getEducationalBackground() == 1) {
+                    endParam.setEducationalBackground("硕士");
+                }
+                if (interParam.getEducationalBackground() == 2) {
+                    endParam.setEducationalBackground("博士");
+                }
+                index = index + 1;
+                exportList.add(endParam);
+            }
+
+            // 写入数据到 Excel 表中
+            EasyExcel.write(response.getOutputStream(), ExportTeacherExcelParam.class)
+                    .sheet("工作统计列表")
+                    .doWrite(exportList);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("导出失败，请重试");
+        }
+    }
+
 
 
 }

@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
 /**
@@ -112,6 +113,18 @@ public class TeacherController {
     public R<Boolean> getTeacherIsInInstitution(@RequestBody GetTeacherIsInInstitutionParam param) {
         Boolean result = teacherService.getTeacherIsInInstitution(param);
         return R.ok(result);
+    }
+
+    @ApiOperation(value = "批量更新教师状态")
+    @PostMapping("/updateBatchTeacher")
+    public R<Boolean> updateBatchTeacher(@RequestBody updateBatchTeacherParam param) {
+        Boolean result = teacherService.updateBatchTeacher(param);
+        return R.ok(result);
+    }
+    @ApiOperation("导出教师")
+    @PostMapping("/exportTeacher")
+    public void exportTeacher(HttpServletResponse response, @RequestBody exportTeacherSearchParam param){
+        teacherService.exportTeacher(response, param);
     }
 
 

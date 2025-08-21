@@ -66,6 +66,7 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
                 .select(HomePageNotice::getId, HomePageNotice::getTitle, HomePageNotice::getPicture,
                         HomePageNotice::getType, HomePageNotice::getIsTop, HomePageNotice::getAddDatetime)
                 .eq(ObjectUtils.isNotEmpty(param.getType()), HomePageNotice::getType, param.getType())
+                .eq(HomePageNotice::getStatus, 1)
                 .orderByDesc(HomePageNotice::getIsTop)
                 .orderByDesc(HomePageNotice::getAddDatetime)
                 .last("LIMIT " + param.getListNumber());
@@ -81,6 +82,7 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
                 .select(HomePageNotice::getId, HomePageNotice::getTitle, HomePageNotice::getPicture,
                         HomePageNotice::getType, HomePageNotice::getIsTop, HomePageNotice::getAddDatetime)
                 .eq(ObjectUtils.isNotEmpty(param.getType()), HomePageNotice::getType, param.getType())
+                .eq(HomePageNotice::getStatus, 1)
                 .orderByDesc(HomePageNotice::getIsTop)
                 .orderByDesc(HomePageNotice::getAddDatetime);
         return this.page(page, lambdaQueryWrapper);
