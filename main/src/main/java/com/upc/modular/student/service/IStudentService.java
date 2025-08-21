@@ -1,6 +1,7 @@
 package com.upc.modular.student.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.student.controller.param.GetStudentIsInInstitutionParam;
@@ -49,7 +50,16 @@ public interface IStudentService extends IService<Student> {
 
 
     void batchUpdateStatus(List<Long> ids, Integer accountStatus);
+
+
+
+
+
+
+
     void exportStudentData(HttpServletResponse response, StudentExportDto param);
 
     List<StudentUserResultParam> getStudent(IdParam idParam);
+
+    R resetStudentPassword(String identityId);
 }

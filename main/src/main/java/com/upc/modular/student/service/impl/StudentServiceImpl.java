@@ -1,11 +1,16 @@
 package com.upc.modular.student.service.impl;
 
 import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.ExcelReader;
+import com.alibaba.excel.read.metadata.ReadSheet;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.upc.common.responseparam.R;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
@@ -32,17 +37,21 @@ import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
 import com.upc.modular.student.controller.param.listener.StudentListener;
 import com.upc.modular.student.controller.param.vo.GenerateUserResultVoStudent;
 import com.upc.modular.student.controller.param.vo.ImportStudentReturnVo;
+import com.upc.modular.student.controller.param.vo.StudentExcelVo;
 import com.upc.modular.student.controller.param.vo.StudentReturnVo;
 import com.upc.modular.student.converter.LocalDateTimeConverter;
 import com.upc.modular.student.entity.Student;
 import com.upc.modular.student.mapper.StudentMapper;
 import com.upc.modular.student.service.IStudentService;
+import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.mapper.TeacherMapper;
+import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
 import com.upc.utils.InstitutionUtil;
 import com.upc.utils.MD5Utils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
@@ -65,6 +74,9 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
     @Autowired
     private StudentMapper studentMapper;
     @Autowired
+    private SysLogMapper sysLogMapper;
+
+    @Autowired
     private ISysUserService sysUserService;
     @Autowired
     private SysUserMapper sysUserMapper;
@@ -84,9 +96,6 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
 
     @Autowired
     private SysRoleMapper sysRoleMapper;
-
-    @Autowired
-    private SysLogMapper sysLogMapper;
     @Override
     public void insertstudent(Student student) {
         if (ObjectUtils.isEmpty(student.getIdentityId())) {
@@ -394,6 +403,16 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         return resultParam;
     }
 
+    @Override
+    public R resetStudentPassword(String identityId) {
+        if (ObjectUtils.isEmpty(identityId)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+        MyLambdaQueryWrapper<Student> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(Student::getIdentityId, identityId);
+        Student student = this.getOne(lambdaQueryWrapper);
+        return sysUserService.resetPassword(student.getUserId());
+    }
 
 
 }
