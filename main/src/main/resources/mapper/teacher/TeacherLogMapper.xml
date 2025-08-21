@@ -12,4 +12,39 @@
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
 
+    <select id="selectTeacherLogPage"
+            resultMap="BaseResultMap">
+        SELECT
+        t.id,
+        t.teacher_id,
+        t.user_id,
+        t.change_content,
+        t.operation_path,
+        t.operation_datetime,
+        FROM teacher_log t
+        <where>
+            <if test="param.changeContent != null and param.changeContent != ''">
+                AND t.change_content LIKE CONCAT('%', #{param.changeContent}, '%')
+            </if>
+            <if test="param.teacherId != null">
+                AND t.teacher_id = #{param.teacherId}
+            </if>
+            <if test="param.userId != null">
+                AND t.user_id = #{param.userId}
+            </if>
+            <!-- 条件4: 根据状态精确查询 -->
+            <if test="param.status != null">
+                AND t.status = #{param.status}
+            </if>
+            <!-- 条件4: 根据题目所属学科模糊查询 -->
+            <if test="param.operationPath != null and param.operationPath != ''">
+                AND t.operation_path LIKE CONCAT('%', #{param.operationPath}, '%')
+            </if>
+        </where>
+        ORDER BY t.add_datetime
+        <choose>
+            <when test="param.isAsc == 1">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+    </select>
 </mapper>
