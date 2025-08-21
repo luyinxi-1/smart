@@ -10,6 +10,7 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.upc.common.responseparam.R;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
@@ -69,6 +70,8 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
 
     @Autowired
     private StudentMapper studentMapper;
+
+
     @Autowired
     private ISysUserService sysUserService;
     @Autowired
@@ -89,6 +92,9 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
 
     @Autowired
     private SysRoleMapper sysRoleMapper;
+//    @Autowired
+//    private IStudentService studentService;
+
     @Override
     public void insertstudent(Student student) {
         if (ObjectUtils.isEmpty(student.getIdentityId())) {
@@ -381,6 +387,15 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         return studentMapper.selectList(lambdaQueryWrapper);
     }
 
-
+    @Override
+    public R resetStudentPassword(String identityId) {
+        if (ObjectUtils.isEmpty(identityId) ) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+        MyLambdaQueryWrapper<Student> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(Student::getIdentityId, identityId);
+        Student student = this.getOne(lambdaQueryWrapper);
+       return sysUserService.resetPassword(student.getUserId());
+    }
 
 }

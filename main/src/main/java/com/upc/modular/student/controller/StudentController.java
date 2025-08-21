@@ -140,16 +140,17 @@ public class StudentController {
         return R.ok();
     }
 
-
-
     @ApiOperation("导出学生信息")
     @PostMapping("/exportStudentData")
     public void exportStudentData(HttpServletResponse response, @RequestBody StudentExportDto param) {
         studentService.exportStudentData(response, param);
     }
 
-
-
+    @ApiOperation("重置学生密码")
+    @PostMapping("/resetStudentPassword")
+    public R resetStudentPassword(@RequestParam String identityId) {
+        return studentService.resetStudentPassword(identityId);
+    }
 
 
 
