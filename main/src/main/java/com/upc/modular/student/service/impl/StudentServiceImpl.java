@@ -29,6 +29,7 @@ import com.upc.modular.group.service.IUserClassListService;
 import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.institution.mapper.InstitutionMapper;
 import com.upc.modular.student.controller.param.GetStudentIsInInstitutionParam;
+import com.upc.modular.student.controller.param.StudentUserResultParam;
 import com.upc.modular.student.controller.param.dto.StudentExportDto;
 import com.upc.modular.student.controller.param.dto.StudentGenerateDto;
 import com.upc.modular.student.controller.param.dto.StudentImportDto;
@@ -72,6 +73,9 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
 
     @Autowired
     private StudentMapper studentMapper;
+    @Autowired
+    private SysLogMapper sysLogMapper;
+
     @Autowired
     private ISysUserService sysUserService;
     @Autowired
@@ -370,7 +374,7 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
     }
 
     @Override
-    public List<Student> getStudent(IdParam idParam) {
+    public List<StudentUserResultParam> getStudent(IdParam idParam) {
         MyLambdaQueryWrapper<Student> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
         List<Long> idList = idParam.getIdList();
 
@@ -381,9 +385,37 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
                 lambdaQueryWrapper.in(Student::getUserId, idList);
             }
         }
-        return studentMapper.selectList(lambdaQueryWrapper);
+        List<Student> students = studentMapper.selectList(lambdaQueryWrapper);
+        List<StudentUserResultParam> resultParam = new ArrayList<>();
+        for(Student student : students) {
+            StudentUserResultParam param = new StudentUserResultParam();
+            BeanUtils.copyProperties(student, param);
+            SysLog sysLog = sysLogMapper.selectOne(
+                    new MyLambdaQueryWrapper<SysLog>()
+                            .eq(SysLog::getUserId, student.getUserId())
+                            .eq(SysLog::getLogContent, "/sys-user/login")
+                            .orderByDesc(SysLog::getAddDatetime)
+                            .last("LIMIT 1")
+            );
+            param.setLastLoginTime(sysLog.getAddDatetime());
+            resultParam.add(param);
+        }
+        return resultParam;
     }
 
+    @Override
+    public R resetStudentPassword(String identityId) {
+        if (ObjectUtils.isEmpty(identityId)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+        MyLambdaQueryWrapper<Student> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(Student::getIdentityId, identityId);
+
+        // 直接使用 this.getOne() 而不是 studentService.getOne()
+        Student student = this.getOne(lambdaQueryWrapper);
+
+        return sysUserService.resetPassword(student.getUserId());
+    }
 
 
 }
