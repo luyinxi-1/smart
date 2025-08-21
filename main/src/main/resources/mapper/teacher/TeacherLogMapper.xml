@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.teacher.mapper.TeacherLogMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.upc.modular.teacher.entity.TeacherLog">
+        <id column="id" property="id" />
+        <result column="teacher_id" property="teacherId" />
+        <result column="user_id" property="userId" />
+        <result column="change_content" property="changeContent" />
+        <result column="operation_path" property="operationPath" />
+        <result column="operation_datetime" property="operationDatetime" />
+    </resultMap>
+
+</mapper>

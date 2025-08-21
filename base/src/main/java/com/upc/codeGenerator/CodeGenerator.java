@@ -9,14 +9,14 @@ public class CodeGenerator {
 
     public static void main(String[] args) {
 //        作者信息
-        String author = "fwx";
+        String author = "byh";
 
 //        模块名
         String moduleName = "main";
 
 //        表名
         String[] tables = {
-                "user_favorites"
+                "teacher_log"
         };
 
         new CodeGeneratorConfig(author, moduleName, tables).generate();
