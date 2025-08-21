@@ -433,61 +433,90 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
 
 
 
-
+    @Override
     public void exportStudentData(HttpServletResponse response, StudentExportDto param) {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setCharacterEncoding("utf-8");
         try {
-            // 生成文件名并设置响应头，防止中文乱码
+            // 文件名设置
             String fileName = URLEncoder.encode("学生信息表", "UTF-8").replaceAll("\\+", "%20");
             response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
 
-            // 1. 查询学生数据，调用已有Mapper方法，得到 StudentReturnVo 列表
+            // 1. 查询学生数据
             List<StudentReturnVo> students = studentMapper.selectStudentExportList(param);
 
-            // 2. 将查询结果转换成导出VO列表，保证字段对应并包含Excel注解
+            // 2. 将查询结果转换成导出VO列表 (此部分逻辑已更新)
             List<com.upc.modular.student.controller.param.excel.StudentExportExcelVO> exportList = students.stream().map(s -> {
                 com.upc.modular.student.controller.param.excel.StudentExportExcelVO vo = new com.upc.modular.student.controller.param.excel.StudentExportExcelVO();
-                vo.setInstitutionName(s.getInstitutionName())
-                        .setInstitutionId(s.getInstitutionId())
-                        .setClassName(s.getClassName())
-                        .setId(s.getId())
-                        .setUserId(s.getUserId())
-                        .setIdentityId(s.getIdentityId())
-                        .setIdcard(s.getIdcard())
-                        .setName(s.getName())
-                        .setGender(s.getGender())
-                        .setCollege(s.getCollege())
-                        .setBirthday(s.getBirthday())
-                        .setEmail(s.getEmail())
-                        .setPhone(s.getPhone())
-                        .setClassId(s.getClassId())
-                        .setAccountStatus(s.getAccountStatus())
-                        .setPosition(s.getPosition())
-                        .setEnrollmentData(s.getEnrollmentData())
-                        .setPlannedGraduationDate(s.getPlannedGraduationDate())
-                        .setRemark(s.getRemark())
-                        .setIdPhoto(s.getIdPhoto())
-                        .setMajor(s.getMajor())
-                        .setCreator(s.getCreator())
-                        .setAddDatetime(s.getAddDatetime())
-                        .setOperator(s.getOperator())
-                        .setOperationDatetime(s.getOperationDatetime());
+
+                // --- 按新的VO进行字段映射 ---
+                vo.setIdentityId(s.getIdentityId());
+                vo.setName(s.getName());
+                vo.setGender(s.getGender());
+                vo.setCollege(s.getCollege());
+                vo.setClassName(s.getClassName());
+                vo.setMajor(s.getMajor());
+                vo.setIdcard(s.getIdcard());
+                vo.setBirthday(s.getBirthday());
+                vo.setEmail(s.getEmail());
+                vo.setPhone(s.getPhone());
+
+                // 【核心修改】调用转换方法来设置账号状态
+                vo.setAccountStatus(convertStudentStatus(s.getAccountStatus()));
+
+                vo.setPosition(s.getPosition());
+                vo.setEnrollmentData(s.getEnrollmentData());
+                vo.setPlannedGraduationDate(s.getPlannedGraduationDate());
+                vo.setRemark(s.getRemark());
+                vo.setIdPhoto(s.getIdPhoto());
+                vo.setInstitutionName(s.getInstitutionName());
+                vo.setUserId(s.getUserId());
+
+                // --- 已移除字段的 set 方法已被删除 ---
+
                 return vo;
             }).collect(Collectors.toList());
 
-            // 3. 利用 EasyExcel 写出Excel，自动列宽并注册LocalDateTime转换器
+            // 3. 利用 EasyExcel 写出Excel
             EasyExcel.write(response.getOutputStream(), com.upc.modular.student.controller.param.excel.StudentExportExcelVO.class)
                     .registerConverter(new LocalDateTimeConverter())
-                    .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy()) // 自动调整列宽
+                    .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
                     .sheet("学生列表")
                     .doWrite(exportList);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("导出学生信息失败", e); // 建议使用日志记录异常
+            // 重置response, 告诉浏览器请求出错了
+            response.reset();
+            response.setContentType("application/json");
+            response.setCharacterEncoding("utf-8");
+            // 这里可以返回一个JSON错误信息，但通常在Controller层通过全局异常处理器完成
             throw new RuntimeException("导出失败，请重试");
         }
     }
+
+    /**
+     * 【新增】私有辅助方法：转换学生状态
+     * @param status 状态码
+     * @return 状态描述文本
+     */
+    private String convertStudentStatus(Integer status) {
+        if (status == null) {
+            return "未知";
+        }
+        // TODO: 请根据您项目中的字典 (studentStatus) 定义来调整这里的映射关系
+        switch (status) {
+            case 1:
+                return "正常";
+            case 0:
+                return "禁用";
+            case 2:
+                return "锁定";
+            default:
+                return "未知状态";
+        }
+    }
+}
 
     @Override
     public List<StudentUserResultParam> getStudent(IdParam idParam) {
