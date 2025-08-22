@@ -68,17 +68,17 @@ public StudentListener(StudentServiceImpl studentService,
         Map<String, Long> classMap,
         Map<String, Long> institutionMap,
         Long studentRoleId) {
-        this.studentService = studentService;
-        this.sysUserService = sysUserService;
-        this.userRoleListService = userRoleListService;
-        this.userClassListService = userClassListService;
-        this.existStudentMap = existStudentMap;
-        this.classMap = classMap;
-        this.institutionMap = institutionMap;
-        this.studentRoleId = studentRoleId;
+                this.studentService = studentService;
+                this.sysUserService = sysUserService;
+                this.userRoleListService = userRoleListService;
+                this.userClassListService = userClassListService;
+                this.existStudentMap = existStudentMap;
+                this.classMap = classMap;
+                this.institutionMap = institutionMap;
+                this.studentRoleId = studentRoleId;
         }
 
-@Override
+        @Override
 public void invoke(StudentImportDto dto, AnalysisContext context) {
         try {
         int rowIndex = context.readRowHolder().getRowIndex() + 1;

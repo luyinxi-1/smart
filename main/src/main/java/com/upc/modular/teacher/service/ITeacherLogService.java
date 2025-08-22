@@ -1,5 +1,7 @@
 package com.upc.modular.teacher.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.modular.teacher.dto.TeacherLogPageSearchParam;
 import com.upc.modular.teacher.entity.TeacherLog;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -13,4 +15,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface ITeacherLogService extends IService<TeacherLog> {
 
+    void inserTeacherLog(TeacherLog param);
+
+    Page<TeacherLog> selectTeacherLogPage(TeacherLogPageSearchParam param);
 }
