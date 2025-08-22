@@ -10,12 +10,19 @@ import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.service.ISysUserService;
+import com.upc.modular.institution.service.IInstitutionService;
+import com.upc.modular.institution.service.impl.InstitutionServiceImpl;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.textbook.entity.Textbook;
+import com.upc.modular.textbook.entity.TextbookAuthority;
 import com.upc.modular.textbook.entity.TextbookClassification;
 import com.upc.modular.textbook.entity.UserFavorites;
+import com.upc.modular.textbook.mapper.TextbookAuthorityMapper;
 import com.upc.modular.textbook.mapper.TextbookMapper;
+import com.upc.modular.textbook.param.TextbookAuthoritySearchParam;
 import com.upc.modular.textbook.param.TextbookPageReturnParam;
 import com.upc.modular.textbook.param.TextbookPageSearchParam;
 import com.upc.modular.textbook.param.UserFavoritesPageSearch;
@@ -27,7 +34,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -46,6 +55,19 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     private TeacherMapper teacherMapper;
     @Autowired
     private TextbookClassificationServiceImpl textbookClassificationService;
+    @Autowired
+    private TextbookAuthorityMapper textbookAuthorityMapper;
+
+
+    @Autowired
+    private ISysUserService sysUserService;
+
+    @Autowired
+    private InstitutionServiceImpl institutionService;
+
+
+
+
     @Override
     public void insert(Textbook textbook) {
         if (ObjectUtils.isEmpty(textbook)) {
@@ -108,35 +130,120 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         return textbookMapper.getOneTextbookDetails(textbookId);
     }
 
+
+    /**
+     * 这是从 TextbookAuthorityServiceImpl 复制过来的权限判断逻辑
+     * @param textBookId 教材ID
+     * @param userId 用户ID
+     * @return boolean 是否有权限
+     */
+    private boolean hasPermission(Long textBookId, Long userId) {
+        // 这部分逻辑与您的 textbookAuthorityJudge 完全相同
+        SysTbuser tbuser = sysUserService.getById(userId);
+        if (tbuser == null || tbuser.getInstitutionId() == null) {
+            // 如果用户或其机构信息不存在，视为无权限
+            return false;
+        }
+        Long userInstitutionId = tbuser.getInstitutionId();
+
+        // 查询该教材所有“机构可见”的权限记录
+        LambdaQueryWrapper<TextbookAuthority> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TextbookAuthority::getTextbookId, textBookId);
+        queryWrapper.eq(TextbookAuthority::getAuthorityType, 2);
+        // 注意：这里我们使用注入的 textbookAuthorityMapper 来查询
+        List<TextbookAuthority> textbookAuthorities = textbookAuthorityMapper.selectList(queryWrapper);
+
+        if (textbookAuthorities.isEmpty()) {
+            return false;
+        }
+
+        // 遍历所有可见机构设置，判断用户所属机构是否被包含
+        for (TextbookAuthority textbookAuthority : textbookAuthorities) {
+            Long visibleInstituteId = textbookAuthority.getVisibleInstituteId();
+            if (visibleInstituteId != null) {
+                boolean result = institutionService.judgeInclusion(userInstitutionId, visibleInstituteId);
+                if (result) {
+                    return true; // 只要有一个满足条件，就代表有权限
+                }
+            }
+        }
+        return false;
+    }
+
     @Override
     public Page<Textbook> getpageTextbookCenter(UserFavoritesPageSearch param) {
         UserInfoToRedis userInfoToRedis = UserUtils.get();
         if (ObjectUtils.isEmpty(userInfoToRedis)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户未登录");
         }
-
         Long currentUserId = userInfoToRedis.getId();
 
-        Page<Textbook> page = new Page<>(param.getCurrent(), param.getSize());
+        List<Textbook> allTextbooks = this.list(); // 从数据库加载所有教材到内存
+        List<Textbook> authorizedTextbooks = new ArrayList<>();
+        for (Textbook textbook : allTextbooks) {
+            // 调用您指定的权限判断接口
 
-        LambdaQueryWrapper<Textbook> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.and(wq -> wq.eq(Textbook::getTextbookAuthorId, currentUserId)
-                .or()
-                .inSql(Textbook::getId, "SELECT textbook_id FROM textbook_authority WHERE user_id = " + currentUserId + " AND authority_type = 1"));
-        if (param.getClassification() != null) {
-            queryWrapper.eq(Textbook::getClassification, param.getClassification());
-        }
-        if (StringUtils.isNotBlank(param.getTextbookName())) {
-            queryWrapper.like(Textbook::getTextbookName, param.getTextbookName().trim());
-        }
+            boolean hasAuthority = this.hasPermission(textbook.getId(), currentUserId);
+            // 作者本人默认拥有权限
+            boolean isAuthor = currentUserId.equals(textbook.getTextbookAuthorId());
 
+            if (hasAuthority || isAuthor) {
+                authorizedTextbooks.add(textbook);
+            }
+        }
+        List<Textbook> filteredTextbooks;
+        final Long classification = param.getClassification();
+        final String textbookName = param.getTextbookName();
+
+        final boolean isClassificationEmpty = (classification == null);
+        final boolean isTextbookNameEmpty = (textbookName == null || textbookName.trim().isEmpty());
+        filteredTextbooks = authorizedTextbooks.stream()
+                .filter(textbook -> {
+                    // 情况一：两个查询条件都为空，不过滤，全部返回
+                    if (isClassificationEmpty && isTextbookNameEmpty) {
+                        return true;
+                    }
+                    // 情况二：分类不为空，名称为空
+                    if (!isClassificationEmpty && isTextbookNameEmpty) {
+                        return classification.equals(textbook.getClassification());
+                    }
+                    // 情况三：分类为空，名称不为空
+                    if (isClassificationEmpty && !isTextbookNameEmpty) {
+                        // contains 实现模糊查询
+                        return textbook.getTextbookName() != null && textbook.getTextbookName().contains(textbookName.trim());
+                    }
+                    // 情况四：两个查询条件都不为空，必须同时满足
+                    if (!isClassificationEmpty && !isTextbookNameEmpty) {
+                        boolean classificationMatch = classification.equals(textbook.getClassification());
+                        boolean nameMatch = textbook.getTextbookName() != null && textbook.getTextbookName().contains(textbookName.trim());
+                        return classificationMatch && nameMatch;
+                    }
+                    return false;
+                })
+                .collect(Collectors.toList());
         if (param.getIsAsc() != null && param.getIsAsc() == 1) {
-            queryWrapper.orderByAsc(Textbook::getAddDatetime);
+            filteredTextbooks.sort(Comparator.comparing(Textbook::getAddDatetime)); // 升序
         } else {
-            // Default to descending order by creation date.
-            queryWrapper.orderByDesc(Textbook::getAddDatetime);
+            filteredTextbooks.sort(Comparator.comparing(Textbook::getAddDatetime).reversed()); // 降序
         }
-        return this.page(page, queryWrapper);
+        long total = filteredTextbooks.size();
+        long current = param.getCurrent();
+        long size = param.getSize();
 
+        long fromIndex = (current - 1) * size;
+        if (fromIndex >= total) {
+            Page<Textbook> resultPage = new Page<>(current, size, 0);
+            resultPage.setRecords(new ArrayList<>());
+            return resultPage;
+        }
+        long toIndex = Math.min(fromIndex + size, total);
+
+        List<Textbook> pageRecords = filteredTextbooks.subList((int)fromIndex, (int)toIndex);
+
+        // ==================== 步骤 6: 封装并返回Page对象 ====================
+        Page<Textbook> resultPage = new Page<>(current, size, total);
+        resultPage.setRecords(pageRecords);
+
+        return resultPage;
     }
 }
