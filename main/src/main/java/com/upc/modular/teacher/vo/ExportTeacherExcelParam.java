@@ -77,4 +77,8 @@ public class ExportTeacherExcelParam {
     @ApiModelProperty("状态")
     @ExcelProperty("状态")
     private String status;
+
+    @ApiModelProperty("机构名称")
+    @ExcelProperty("机构名")
+    private String institutionName;
 }

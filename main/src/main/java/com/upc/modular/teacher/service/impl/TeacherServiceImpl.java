@@ -3,6 +3,7 @@ package com.upc.modular.teacher.service.impl;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.ExcelReader;
 import com.alibaba.excel.read.metadata.ReadSheet;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
@@ -18,7 +19,6 @@ import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.auth.service.IUserRoleListService;
 import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.institution.mapper.InstitutionMapper;
-import com.upc.modular.student.controller.param.StudentUserResultParam;
 import com.upc.modular.student.entity.Student;
 import com.upc.modular.teacher.dto.*;
 import com.upc.modular.teacher.vo.*;
@@ -30,7 +30,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.utils.AesCbcCompatUtil;
 import com.upc.utils.InstitutionUtil;
 import com.upc.utils.MD5Utils;
-import org.apache.poi.ss.formula.functions.T;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -40,10 +39,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -285,11 +281,23 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     }
 
     @Override
-    public Boolean updateTeacher(Teacher teacher) {
+    public Boolean updateTeacher(TeacherUpdateDto teacher) {
         if (ObjectUtils.isEmpty(teacher) || ObjectUtils.isEmpty(teacher.getId())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
         }
-        return this.updateById(teacher);
+        Teacher teacher1 = new Teacher();
+        BeanUtils.copyProperties(teacher, teacher1);
+        this.updateById(teacher1);
+        Long userId = 0L;
+        if (ObjectUtils.isNotEmpty(teacher.getUserId())) {
+            userId = teacher.getUserId();
+        } else {
+            userId = teacherMapper.selectById(teacher1).getUserId();
+        }
+        SysTbuser sysTbuser = sysUserMapper.selectOne(new MyLambdaQueryWrapper<SysTbuser>().eq(SysTbuser::getId, userId));
+        sysTbuser.setInstitutionId(teacher.getInstitutionId());
+        sysUserMapper.updateById(sysTbuser);
+        return true;
     }
 
     @Override
@@ -347,17 +355,17 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
 
     @Override
     public Boolean updateBatchTeacher(updateBatchTeacherParam param) {
-        if (ObjectUtils.isEmpty(param)) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
-        }
-        for (Teacher teacher : param.getTeachers()) {
-            this.updateById(teacher);
-        }
+        UpdateWrapper<Teacher> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.in("id", param.getIds()); // WHERE id IN (...)
+        updateWrapper.set("account_status", param.getAccountStatus()); // SET account_status = ?
+        // 2. 调用 baseMapper 的 update 方法执行，无需在 XML 中写 SQL
+        this.baseMapper.update(null, updateWrapper);
         return true;
     }
 
     @Override
     public void exportTeacher(HttpServletResponse response, exportTeacherSearchParam param) {
+        // 1. 设置HTTP响应头，用于文件下载
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setCharacterEncoding("utf-8");
 
@@ -365,7 +373,8 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
             String fileName = URLEncoder.encode("教师列表", "UTF-8").replaceAll("\\+", "%20");
             response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
 
-            List<Teacher> teacherReturnParams = this.list(new MyLambdaQueryWrapper<Teacher>()
+            // 2. [第1次查询]: 根据条件查询主要的教师列表
+            List<Teacher> teachers = this.list(new MyLambdaQueryWrapper<Teacher>()
                     .like(ObjectUtils.isNotEmpty(param.getName()), Teacher::getName, param.getName())
                     .eq(ObjectUtils.isNotEmpty(param.getGender()), Teacher::getGender, param.getGender())
                     .like(ObjectUtils.isNotEmpty(param.getNationality()), Teacher::getNationality, param.getNationality())
@@ -377,49 +386,102 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
                     .like(ObjectUtils.isNotEmpty(param.getIdentityId()), Teacher::getIdentityId, param.getIdentityId())
                     .eq(ObjectUtils.isNotEmpty(param.getStatus()), Teacher::getStatus, param.getStatus())
             );
-            List<ExportTeacherExcelParam> exportList = new ArrayList<>();
-            int index = 1;
-            for (Teacher interParam : teacherReturnParams) {
-                ExportTeacherExcelParam endParam = new ExportTeacherExcelParam();
-                endParam.setName(interParam.getName())
-                        .setIdcard(interParam.getIdcard())
-                        .setGender(interParam.getGender())
-                        .setBirthday(interParam.getBirthday())
-                        .setEmail(interParam.getEmail())
-                        .setIdentityId(interParam.getIdentityId())
-                        .setIntroduction(interParam.getIntroduction())
-                        .setPhone(interParam.getPhone())
-                        .setPosition(interParam.getPosition())
-                        .setProfessionalTitle(interParam.getProfessionalTitle())
-                        .setTeachingYears(interParam.getTeachingYears());
-                if (interParam.getIsPartyNumber() == 1) {
-                    endParam.setIsPartyNumber("是");
-                } else {
-                    endParam.setIsPartyNumber("否");
-                }
-                if (interParam.getEducationalBackground() == 0) {
-                    endParam.setEducationalBackground("本科");
-                }
-                if (interParam.getEducationalBackground() == 1) {
-                    endParam.setEducationalBackground("硕士");
-                }
-                if (interParam.getEducationalBackground() == 2) {
-                    endParam.setEducationalBackground("博士");
-                }
-                SysDictData teacherStatus = sysDictDataService.getOne(new MyLambdaQueryWrapper<SysDictData>().eq(SysDictData::getDictType, "teacherStatus").eq(SysDictData::getDictKey, interParam.getStatus()));
-                endParam.setStatus(teacherStatus.getName());
-                index = index + 1;
-                exportList.add(endParam);
+
+            if (teachers.isEmpty()) {
+                // 如果没有数据，可以直接返回或导出一个空文件
+                EasyExcel.write(response.getOutputStream(), ExportTeacherExcelParam.class).sheet("教师列表").doWrite(Collections.emptyList());
+                return;
             }
 
-            // 写入数据到 Excel 表中
+            // 3. [批量预查询]: 准备一次性获取所有需要的关联数据
+            // 3.1 提取所有教师关联的 userId
+            List<Long> userIds = teachers.stream().map(Teacher::getUserId).filter(Objects::nonNull).distinct().collect(Collectors.toList());
+
+            // 3.2 [第2次查询]: 一次性查询所有相关的用户信息，并存入Map以便快速查找
+            Map<Long, SysTbuser> userMap = sysUserMapper.selectBatchIds(userIds).stream()
+                    .collect(Collectors.toMap(SysTbuser::getId, user -> user));
+
+            // 3.3 提取所有用户关联的 institutionId
+            List<Long> institutionIds = userMap.values().stream().map(SysTbuser::getInstitutionId).filter(Objects::nonNull).distinct().collect(Collectors.toList());
+
+            // 3.4 [第3次查询]: 一次性查询所有相关的机构信息，并存入Map
+            Map<Long, String> institutionMap = institutionMapper.selectBatchIds(institutionIds).stream()
+                    .collect(Collectors.toMap(Institution::getId, Institution::getInstitutionName));
+
+            // 4. [数据转换]: 在内存中进行数据组装，不再查询数据库
+            List<ExportTeacherExcelParam> exportList = new ArrayList<>();
+            for (Teacher teacher : teachers) {
+                ExportTeacherExcelParam exportParam = convertToExportParam(teacher, userMap, institutionMap);
+                exportList.add(exportParam);
+            }
+
+            // 5. 写入数据到 Excel 表中
             EasyExcel.write(response.getOutputStream(), ExportTeacherExcelParam.class)
-                    .sheet("工作统计列表")
+                    .sheet("教师列表")
                     .doWrite(exportList);
+
         } catch (IOException e) {
             e.printStackTrace();
-            throw new RuntimeException("导出失败，请重试");
+            // 实际项目中建议使用日志框架记录错误
+            throw new RuntimeException("导出教师列表失败，请重试");
         }
+    }
+
+    /**
+     * 将Teacher实体转换为用于Excel导出的DTO对象
+     * @param teacher 教师实体
+     * @param userMap 用户ID到用户实体的映射
+     * @param institutionMap 机构ID到机构名称的映射
+     * @return 转换后的Excel参数对象
+     */
+    private ExportTeacherExcelParam convertToExportParam(Teacher teacher, Map<Long, SysTbuser> userMap, Map<Long, String> institutionMap) {
+        ExportTeacherExcelParam endParam = new ExportTeacherExcelParam();
+
+        // 基本信息直接复制
+        endParam.setName(teacher.getName())
+                .setIdcard(teacher.getIdcard())
+                .setGender(teacher.getGender())
+                .setBirthday(teacher.getBirthday())
+                .setEmail(teacher.getEmail())
+                .setIdentityId(teacher.getIdentityId())
+                .setIntroduction(teacher.getIntroduction())
+                .setPhone(teacher.getPhone())
+                .setPosition(teacher.getPosition())
+                .setProfessionalTitle(teacher.getProfessionalTitle())
+                .setTeachingYears(teacher.getTeachingYears());
+
+        // 从预查询的Map中获取机构名称
+        SysTbuser user = userMap.get(teacher.getUserId());
+        if (user != null) {
+            String institutionName = institutionMap.get(user.getInstitutionId());
+            endParam.setInstitutionName(institutionName);
+        }
+
+        // 使用更简洁的方式处理枚举值或状态值的转换
+        endParam.setIsPartyNumber(teacher.getIsPartyNumber() != null && teacher.getIsPartyNumber() == 1 ? "是" : "否");
+
+        if (teacher.getEducationalBackground() != null) {
+            switch (teacher.getEducationalBackground()) {
+                case 0: endParam.setEducationalBackground("本科"); break;
+                case 1: endParam.setEducationalBackground("硕士"); break;
+                case 2: endParam.setEducationalBackground("博士"); break;
+                default: endParam.setEducationalBackground("未知");
+            }
+        }
+
+        // 注意：关于教师状态（status）的转换，如果它也来自数据库字典表，
+        // 同样建议使用批量预查询的方式，而不是在循环中调用sysDictDataService.getOne()。
+        // 这里暂时简化为硬编码，实际项目中应采用与机构名类似的方式进行优化。
+        if (teacher.getStatus() != null) {
+            // 假设 0-在职, 1-离职 (根据你的业务调整)
+            switch(teacher.getStatus()) {
+                case 0: endParam.setStatus("在职"); break;
+                case 1: endParam.setStatus("离职"); break;
+                default: endParam.setStatus("未知");
+            }
+        }
+
+        return endParam;
     }
 
 

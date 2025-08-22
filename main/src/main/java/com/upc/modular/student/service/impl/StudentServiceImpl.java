@@ -84,8 +84,6 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
     private ISysUserService sysUserService;
     @Autowired
     private SysUserMapper sysUserMapper;
-    @Autowired
-    private TeacherMapper teacherMapper;
 
 
 

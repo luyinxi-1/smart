@@ -12,4 +12,7 @@ public class HomePagePromotionReturnParam extends HomePagePromotion {
 
     @ApiModelProperty("作者姓名")
     private String authorName;
+
+    @ApiModelProperty("修改者姓名")
+    private String operatorName;
 }

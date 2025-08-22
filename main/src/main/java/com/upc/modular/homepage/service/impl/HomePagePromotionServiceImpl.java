@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
-import com.upc.modular.homepage.entity.HomePageNotice;
 import com.upc.modular.homepage.entity.HomePagePromotion;
 import com.upc.modular.homepage.mapper.HomePagePromotionMapper;
 import com.upc.modular.homepage.param.HomePagePromotionListSearchParam;
@@ -56,28 +55,14 @@ public class HomePagePromotionServiceImpl extends ServiceImpl<HomePagePromotionM
     }
 
     @Override
-    public List<HomePagePromotion> getHomePagePromotion(HomePagePromotionListSearchParam param) {
-        MyLambdaQueryWrapper<HomePagePromotion> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
-        lambdaQueryWrapper
-                .select(HomePagePromotion::getId, HomePagePromotion::getTitle, HomePagePromotion::getCoverImage,
-                        HomePagePromotion::getIsTop, HomePagePromotion::getAddDatetime)
-                .orderByDesc(HomePagePromotion::getIsTop)
-                .orderByDesc(HomePagePromotion::getAddDatetime)
-                .last("LIMIT " + param.getListNumber());
-
-        return homePagePromotionMapper.selectList(lambdaQueryWrapper);
+    public List<HomePagePromotionReturnParam> getHomePagePromotion(HomePagePromotionListSearchParam param) {
+        return homePagePromotionMapper.selectPromotionListWithNames(param);
     }
 
     @Override
-    public Page<HomePagePromotion> getHomePagePromotionPage(HomePagePromotionPageSearchParam param) {
-        Page<HomePagePromotion> page = new Page<>(param.getCurrent(), param.getSize());
-        MyLambdaQueryWrapper<HomePagePromotion> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
-        lambdaQueryWrapper
-                .select(HomePagePromotion::getId, HomePagePromotion::getTitle, HomePagePromotion::getCoverImage,
-                         HomePagePromotion::getIsTop, HomePagePromotion::getAddDatetime)
-                .orderByDesc(HomePagePromotion::getIsTop)
-                .orderByDesc(HomePagePromotion::getAddDatetime);
-        return this.page(page, lambdaQueryWrapper);
+    public Page<HomePagePromotionReturnParam> getHomePagePromotionPage(HomePagePromotionPageSearchParam param) {
+        Page<HomePagePromotionReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
+        return homePagePromotionMapper.selectPromotionPageWithNames(page, param);
     }
 
     @Override

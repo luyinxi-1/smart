@@ -52,7 +52,7 @@ public class TeacherController {
 
     @ApiOperation(value = "修改教师")
     @PostMapping("/update")
-    public R<Boolean> update(@RequestBody Teacher teacher) {
+    public R<Boolean> update(@RequestBody TeacherUpdateDto teacher) {
         return R.ok(teacherService.updateTeacher(teacher));
     }
 

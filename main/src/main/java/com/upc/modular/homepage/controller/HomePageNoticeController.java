@@ -53,15 +53,15 @@ public class HomePageNoticeController {
 
     @ApiOperation(value = "首页通知公告展示")
     @PostMapping("/getHomePageNotice")
-    public R<List<HomePageNotice>> getHomePageNotice(@RequestBody HomePageNoticeListSearchParam param) {
+    public R<List<HomePageNoticeReturnParam>> getHomePageNotice(@RequestBody HomePageNoticeListSearchParam param) {
         return R.ok(homePageNoticeService.getHomePageNotice(param));
     }
 
     @ApiOperation(value = "首页通知公告查看更多")
     @PostMapping("/getHomePageNoticePage")
-    public R<PageBaseReturnParam<HomePageNotice>> getHomePageNoticePage(@RequestBody HomePageNoticePageSearchParam param) {
-        Page<HomePageNotice> page = homePageNoticeService.getHomePageNoticePage(param);
-        PageBaseReturnParam<HomePageNotice> result = PageBaseReturnParam.ok(page);
+    public R<PageBaseReturnParam<HomePageNoticeReturnParam>> getHomePageNoticePage(@RequestBody HomePageNoticePageSearchParam param) {
+        Page<HomePageNoticeReturnParam> page = homePageNoticeService.getHomePageNoticePage(param);
+        PageBaseReturnParam<HomePageNoticeReturnParam> result = PageBaseReturnParam.ok(page);
         return R.page(result);
     }
 
