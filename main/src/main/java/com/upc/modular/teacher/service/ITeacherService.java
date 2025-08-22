@@ -39,7 +39,7 @@ public interface ITeacherService extends IService<Teacher> {
 
     GenerateUserResultVo generateTeacherUsers(TeacherGenerateDto dto);
 
-    Boolean updateTeacher(Teacher teacher);
+    Boolean updateTeacher(TeacherUpdateDto teacher);
 
     Boolean getTeacherIsInInstitution(GetTeacherIsInInstitutionParam param);
     List<TeacherUserReturnParam> getUserTeacher(IdParam idParam);

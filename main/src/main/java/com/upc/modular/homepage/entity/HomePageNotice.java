@@ -55,6 +55,14 @@ public class HomePageNotice implements Serializable {
     @TableField("status")
     private Integer status;
 
+    @ApiModelProperty("公示截止日期")
+    @TableField("deadline")
+    private LocalDateTime deadline;
+
+    @ApiModelProperty("副标题")
+    @TableField("subtitle")
+    private String subtitle;
+
     @ApiModelProperty("通知公告创建人")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;

@@ -17,5 +17,5 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface HomePageNoticeMapper extends BaseMapper<HomePageNotice> {
 
-    HomePageNoticeReturnParam getHomePageNoticeDetails(@Param("noticeId")Long noticeId);
+    HomePageNoticeReturnParam getHomePageNoticeDetails(@Param("noticeId") Long noticeId);
 }
