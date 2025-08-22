@@ -22,20 +22,11 @@ import java.time.LocalDateTime;
 @Accessors(chain = true)
 public class StudentExportExcelVO {
 
-    @ExcelProperty("机构名称")
-    @ApiModelProperty("机构名称")
-    private String institutionName;
-
-
 
     @ExcelProperty("班级名称")
     @ApiModelProperty("班级名称")
     private String className;
 
-
-    @ExcelProperty("用户ID")
-    @ApiModelProperty("用户id")
-    private Long userId;
 
     @ExcelProperty("学号")
     @ApiModelProperty("用户学号")
@@ -91,10 +82,6 @@ public class StudentExportExcelVO {
     @ExcelProperty("备注")
     @ApiModelProperty("备注")
     private String remark;
-
-    @ExcelProperty("证件照片")
-    @ApiModelProperty("证件照片")
-    private String idPhoto;
 
     @ExcelProperty("专业")
     @ApiModelProperty("专业")

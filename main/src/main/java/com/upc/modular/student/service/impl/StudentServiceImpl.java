@@ -468,11 +468,7 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
                 vo.setEnrollmentData(s.getEnrollmentData());
                 vo.setPlannedGraduationDate(s.getPlannedGraduationDate());
                 vo.setRemark(s.getRemark());
-                vo.setIdPhoto(s.getIdPhoto());
-                vo.setInstitutionName(s.getInstitutionName());
-                vo.setUserId(s.getUserId());
 
-                // --- 已移除字段的 set 方法已被删除 ---
 
                 return vo;
             }).collect(Collectors.toList());
