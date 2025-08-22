@@ -35,5 +35,71 @@
             </if>
         </where>
     </select>
+    <select id="selectNoticeListWithNames" resultType="com.upc.modular.homepage.param.HomePageNoticeReturnParam"
+            parameterType="com.upc.modular.homepage.param.HomePageNoticeListSearchParam">
+        SELECT
+        hpn.id,
+        hpn.title,
+        hpn.picture,
+        hpn.type,
+        hpn.is_top,
+        hpn.add_datetime,
+        hpn.status,
+        COALESCE(t.name, s.name) AS authorName,
+        COALESCE(t_op.name, s_op.name) AS operatorName
+        FROM
+        home_page_notice hpn
+        LEFT JOIN sys_tbuser u ON hpn.creator = u.id
+        LEFT JOIN teacher t ON u.id = t.user_id AND u.user_type IN (0, 2)
+        LEFT JOIN student s ON u.id = s.user_id AND u.user_type = 1
+        LEFT JOIN sys_tbuser u_op ON hpn.operator = u_op.id
+        LEFT JOIN teacher t_op ON u_op.id = t_op.user_id AND u_op.user_type IN (0, 2)
+        LEFT JOIN student s_op ON u_op.id = s_op.user_id AND u_op.user_type = 1
+        <where>
+            AND hpn.status = 1
+            <if test="param.type != null">
+                AND hpn.type = #{param.type}
+            </if>
+        </where>
+        ORDER BY
+        hpn.is_top DESC,
+        hpn.add_datetime DESC
+        LIMIT #{param.listNumber}
+    </select>
+    <select id="selectNoticePageWithNames"
+            resultType="com.upc.modular.homepage.param.HomePageNoticeReturnParam">
+        SELECT
+        hpn.id,
+        hpn.title,
+        hpn.picture,
+        hpn.type,
+        hpn.is_top,
+        hpn.add_datetime,
+        hpn.status,
+        COALESCE(t.name, s.name) AS authorName,
+        COALESCE(t_op.name, s_op.name) AS operatorName
+        FROM
+        home_page_notice hpn
+        LEFT JOIN sys_tbuser u ON hpn.creator = u.id
+        LEFT JOIN teacher t ON u.id = t.user_id AND u.user_type IN (0, 2)
+        LEFT JOIN student s ON u.id = s.user_id AND u.user_type = 1
+        LEFT JOIN sys_tbuser u_op ON hpn.operator = u_op.id
+        LEFT JOIN teacher t_op ON u_op.id = t_op.user_id AND u_op.user_type IN (0, 2)
+        LEFT JOIN student s_op ON u_op.id = s_op.user_id AND u_op.user_type = 1
+        <where>
+            <if test="param.type != null">
+                AND hpn.type = #{param.type}
+            </if>
+            <if test="param.title != null and param.title != ''">
+                AND hpn.title LIKE CONCAT('%', #{param.title}, '%')
+            </if>
+            <if test="param.status != null">
+                AND hpn.status = #{param.status}
+            </if>
+        </where>
+        ORDER BY
+        hpn.is_top DESC,
+        hpn.add_datetime DESC
+    </select>
 
 </mapper>

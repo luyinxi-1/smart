@@ -25,9 +25,9 @@ public interface IHomePageNoticeService extends IService<HomePageNotice> {
 
     Boolean updateNotice(HomePageNotice homePageNotice);
 
-    List<HomePageNotice> getHomePageNotice(HomePageNoticeListSearchParam param);
+    List<HomePageNoticeReturnParam> getHomePageNotice(HomePageNoticeListSearchParam param);
 
-    Page<HomePageNotice> getHomePageNoticePage(HomePageNoticePageSearchParam param);
+    Page<HomePageNoticeReturnParam> getHomePageNoticePage(HomePageNoticePageSearchParam param);
 
     HomePageNoticeReturnParam getHomePageNoticeDetails(Long noticeId);
 }

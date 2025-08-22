@@ -51,21 +51,21 @@ public class HomePagePromotionController {
 
     @ApiOperation(value = "首页通知公告展示")
     @PostMapping("/getHomePagePromotion")
-    public R<List<HomePagePromotion>> getHomePagePromotion(@RequestBody HomePagePromotionListSearchParam param) {
+    public R<List<HomePagePromotionReturnParam>> getHomePagePromotion(@RequestBody HomePagePromotionListSearchParam param) {
         return R.ok(homePagePromotionService.getHomePagePromotion(param));
     }
 
     @ApiOperation(value = "首页通知公告查看更多")
     @PostMapping("/getHomePagePromotionPage")
-    public R<PageBaseReturnParam<HomePagePromotion>> getHomePagePromotionPage(@RequestBody HomePagePromotionPageSearchParam param) {
-        Page<HomePagePromotion> page = homePagePromotionService.getHomePagePromotionPage(param);
-        PageBaseReturnParam<HomePagePromotion> result = PageBaseReturnParam.ok(page);
+    public R<PageBaseReturnParam<HomePagePromotionReturnParam>> getHomePagePromotionPage(@RequestBody HomePagePromotionPageSearchParam param) {
+        Page<HomePagePromotionReturnParam> page = homePagePromotionService.getHomePagePromotionPage(param);
+        PageBaseReturnParam<HomePagePromotionReturnParam> result = PageBaseReturnParam.ok(page);
         return R.page(result);
     }
 
     @ApiOperation(value = "查看详情")
     @PostMapping("/getHomePagePromotionDetails")
-    public R<HomePagePromotionReturnParam> getHomePagePromotionDetails(@RequestParam("noticeId") Long promotionId) {
+    public R<HomePagePromotionReturnParam> getHomePagePromotionDetails(@RequestParam("promotionId") Long promotionId) {
         return R.ok(homePagePromotionService.getHomePagePromotionDetails(promotionId));
     }
 }

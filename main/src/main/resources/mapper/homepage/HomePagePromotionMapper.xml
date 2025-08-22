@@ -18,18 +18,79 @@
             parameterType="java.lang.Long">
         SELECT
         hpp.*,
-        COALESCE(t.name, s.name) AS authorName
+        COALESCE(t.name, s.name) AS authorName,
+        COALESCE(t_op.name, s_op.name) AS operatorName
         FROM
         home_page_promotion hpp
-        LEFT JOIN sys_tbuser u ON hpn.creator = u.id
+        LEFT JOIN sys_tbuser u ON hpp.creator = u.id
         LEFT JOIN teacher t ON u.id = t.user_id AND u.user_type IN (0, 2)
         LEFT JOIN student s ON u.id = s.user_id AND u.user_type = 1
-
+        LEFT JOIN sys_tbuser u_op ON hpp.operator = u_op.id
+        LEFT JOIN teacher t_op ON u_op.id = t_op.user_id AND u_op.user_type IN (0, 2)
+        LEFT JOIN student s_op ON u_op.id = s_op.user_id AND u_op.user_type = 1
         <where>
             <if test="promotionId != null">
                 AND hpp.id = #{promotionId}
             </if>
         </where>
+    </select>
+    <select id="selectPromotionListWithNames" resultType="com.upc.modular.homepage.param.HomePagePromotionReturnParam"
+            parameterType="com.upc.modular.homepage.param.HomePagePromotionListSearchParam">
+        SELECT
+        hpp.id,
+        hpp.title,
+        hpp.picture,
+        hpp.is_top,
+        hpp.add_datetime,
+        hpp.status,
+        COALESCE(t.name, s.name) AS authorName,
+        COALESCE(t_op.name, s_op.name) AS operatorName
+        FROM
+        home_page_promotion hpp
+        LEFT JOIN sys_tbuser u ON hpp.creator = u.id
+        LEFT JOIN teacher t ON u.id = t.user_id AND u.user_type IN (0, 2)
+        LEFT JOIN student s ON u.id = s.user_id AND u.user_type = 1
+        LEFT JOIN sys_tbuser u_op ON hpp.operator = u_op.id
+        LEFT JOIN teacher t_op ON u_op.id = t_op.user_id AND u_op.user_type IN (0, 2)
+        LEFT JOIN student s_op ON u_op.id = s_op.user_id AND u_op.user_type = 1
+        <where>
+            AND hpp.status = 1
+        </where>
+        ORDER BY
+        hpp.is_top DESC,
+        hpp.add_datetime DESC
+        LIMIT #{param.listNumber}
+    </select>
+    <select id="selectPromotionPageWithNames"
+            resultType="com.upc.modular.homepage.param.HomePagePromotionReturnParam">
+        SELECT
+        hpp.id,
+        hpp.title,
+        hpp.picture,
+        hpp.is_top,
+        hpp.add_datetime,
+        hpp.status,
+        COALESCE(t.name, s.name) AS authorName,
+        COALESCE(t_op.name, s_op.name) AS operatorName
+        FROM
+        home_page_promotion hpp
+        LEFT JOIN sys_tbuser u ON hpp.creator = u.id
+        LEFT JOIN teacher t ON u.id = t.user_id AND u.user_type IN (0, 2)
+        LEFT JOIN student s ON u.id = s.user_id AND u.user_type = 1
+        LEFT JOIN sys_tbuser u_op ON hpp.operator = u_op.id
+        LEFT JOIN teacher t_op ON u_op.id = t_op.user_id AND u_op.user_type IN (0, 2)
+        LEFT JOIN student s_op ON u_op.id = s_op.user_id AND u_op.user_type = 1
+        <where>
+            <if test="param.status != null">
+                AND hpp.status = #{param.status}
+            </if>
+            <if test="param.title != null and param.title != ''">
+                AND hpp.title LIKE CONCAT('%', #{param.title}, '%')
+            </if>
+        </where>
+        ORDER BY
+        hpp.is_top DESC,
+        hpp.add_datetime DESC
     </select>
 
 </mapper>
