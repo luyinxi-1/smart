@@ -46,14 +46,14 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
     private MaterialsTextbookMappingServiceImpl materialsTextbookMappingService;
 
     /**
-     * 添加教学素材
+     * 添加文件素材
      *
      * @param file
      * @param teachingMaterials
      * @return
      */
     @Override
-    public String insertMaterials(MultipartFile file, TeachingMaterials teachingMaterials) {
+    public String insertFileMaterials(MultipartFile file, TeachingMaterials teachingMaterials) {
         try {
             // 查看该作者是否有重名素材
             if (teachingMaterialsMapper.selectOne(new LambdaQueryWrapper<TeachingMaterials>()
@@ -91,6 +91,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             // 上传成功，返回文件名
             return fileName;
         } catch (BusinessException e) {
+            e.printStackTrace();
             throw e;
         } catch (Exception e) {
             e.printStackTrace();
@@ -99,7 +100,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
     }
 
     /**
-     * 下载教学素材
+     * 获取文件素材
      *
      * @param fileName   文件名
      * @param textbookId 绑定的教材id
@@ -107,7 +108,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
      * @param response
      */
     @Override
-    public void downloadMaterials(String fileName, Long textbookId, String action, HttpServletResponse response) {
+    public void getFileMaterials(String fileName, Long textbookId, String action, HttpServletResponse response) {
         try {
             if (ObjectUtils.isEmpty(fileName))
                 throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，参数不能为空");
@@ -125,10 +126,11 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             performFileDownload(materials, action, response);
 
         } catch (BusinessException e) {
+            e.printStackTrace();
             response.reset();
             throw e;
         } catch (Exception e) {
-            log.error("下载文件时发生未知错误", e);
+            e.printStackTrace();
             response.reset();
             throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，下载文件失败");
         }
@@ -181,10 +183,11 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，没有查看权限");
 
             return materials.getFilePath();
-
         } catch (BusinessException e) {
+            e.printStackTrace();
             throw e;
         } catch (Exception e) {
+            e.printStackTrace();
             throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，链接查看失败");
         }
     }
@@ -241,6 +244,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             // 上传成功，返回文件名
             return teachingMaterials.getFileName();
         } catch (BusinessException e) {
+            e.printStackTrace();
             throw e;
         } catch (Exception e) {
             e.printStackTrace();
@@ -288,10 +292,11 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             performFileDownload(materials, action, response);
 
         } catch (BusinessException e) {
+            e.printStackTrace();
             response.reset();
             throw e;
         } catch (Exception e) {
-            log.error("下载文件时发生未知错误", e);
+            e.printStackTrace();
             response.reset();
             throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，下载文件失败");
         }
