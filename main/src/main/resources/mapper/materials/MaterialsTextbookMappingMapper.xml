@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.materials.mapper.MaterialsTextbookMappingMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.upc.modular.materials.entity.MaterialsTextbookMapping">
+        <id column="id" property="id" />
+        <result column="material_id" property="materialId" />
+        <result column="textbook_id" property="textbookId" />
+        <result column="view_count" property="viewCount" />
+        <result column="download_count" property="downloadCount" />
+    </resultMap>
+
+</mapper>

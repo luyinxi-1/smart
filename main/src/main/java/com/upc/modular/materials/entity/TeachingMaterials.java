@@ -39,25 +39,33 @@ public class TeachingMaterials implements Serializable {
     @TableField("type")
     private String type;
 
-    @ApiModelProperty("描述")
-    @TableField("description")
-    private String description;
-
     @ApiModelProperty("作者id")
     @TableField("author_id")
     private Long authorId;
+
+    @ApiModelProperty("是否公开")
+    @TableField("is_public")
+    private Boolean isPublic;
+
+    @ApiModelProperty("文件名")
+    @TableField("file_name")
+    private String fileName;
+
+    @ApiModelProperty("文件大小(单位：M)")
+    @TableField("file_size")
+    private Double fileSize;
 
     @ApiModelProperty("文件路径")
     @TableField("file_path")
     private String filePath;
 
-    @ApiModelProperty("二维码路径")
+    @ApiModelProperty("封面图片路径")
+    @TableField("cover_image_path")
+    private String coverImagePath;
+
+    @ApiModelProperty("素材二维码路径")
     @TableField("qrcode_path")
     private String qrcodePath;
-
-    @ApiModelProperty("文件大小")
-    @TableField("file_size")
-    private Double fileSize;
 
     @ApiModelProperty("上传时间")
     @TableField(value = "add_datetime", fill = FieldFill.INSERT)
