@@ -15,7 +15,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -60,30 +59,14 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
     }
 
     @Override
-    public List<HomePageNotice> getHomePageNotice(HomePageNoticeListSearchParam param) {
-        MyLambdaQueryWrapper<HomePageNotice> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
-        lambdaQueryWrapper
-                .select(HomePageNotice::getId, HomePageNotice::getTitle, HomePageNotice::getPicture,
-                        HomePageNotice::getType, HomePageNotice::getIsTop, HomePageNotice::getAddDatetime)
-                .eq(ObjectUtils.isNotEmpty(param.getType()), HomePageNotice::getType, param.getType())
-                .orderByDesc(HomePageNotice::getIsTop)
-                .orderByDesc(HomePageNotice::getAddDatetime)
-                .last("LIMIT " + param.getListNumber());
-
-        return homePageNoticeMapper.selectList(lambdaQueryWrapper);
+    public List<HomePageNoticeReturnParam> getHomePageNotice(HomePageNoticeListSearchParam param) {
+        return homePageNoticeMapper.selectNoticeListWithNames(param);
     }
 
     @Override
-    public Page<HomePageNotice> getHomePageNoticePage(HomePageNoticePageSearchParam param) {
-        Page<HomePageNotice> page = new Page<>(param.getCurrent(), param.getSize());
-        MyLambdaQueryWrapper<HomePageNotice> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
-        lambdaQueryWrapper
-                .select(HomePageNotice::getId, HomePageNotice::getTitle, HomePageNotice::getPicture,
-                        HomePageNotice::getType, HomePageNotice::getIsTop, HomePageNotice::getAddDatetime)
-                .eq(ObjectUtils.isNotEmpty(param.getType()), HomePageNotice::getType, param.getType())
-                .orderByDesc(HomePageNotice::getIsTop)
-                .orderByDesc(HomePageNotice::getAddDatetime);
-        return this.page(page, lambdaQueryWrapper);
+    public Page<HomePageNoticeReturnParam> getHomePageNoticePage(HomePageNoticePageSearchParam param) {
+        Page<HomePageNoticeReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
+        return homePageNoticeMapper.selectNoticePageWithNames(page, param);
     }
 
     @Override

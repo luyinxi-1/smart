@@ -41,6 +41,8 @@ public class InterceptorConst {
             "/sys-user/getUserAuthTree",
             "/textbook-authority/textbookAuthorityJudge",
             "/textbook-authority/textbookAuthorityEditJudge",
+            "/student/resetStudentPassword",
+            "/textbook-authority/textbookAuthorityEditJudge",
             "/ping"
     };
 }

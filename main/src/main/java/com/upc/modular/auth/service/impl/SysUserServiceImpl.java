@@ -19,6 +19,7 @@ import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.entity.UserRoleList;
 import com.upc.modular.auth.mapper.SysUserMapper;
+import com.upc.modular.auth.mapper.UserRoleListMapper;
 import com.upc.modular.auth.param.*;
 import com.upc.modular.auth.service.ISysLogService;
 import com.upc.modular.auth.service.ISysUserService;
@@ -171,10 +172,15 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
         if (ObjectUtils.isNotEmpty(sysTbuser1)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户名已存在");
         }
+        if (ObjectUtils.isEmpty(sysTbuser.getUserType())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户类型不能为空");
+        }
         if (ObjectUtils.isEmpty(sysTbuser.getPassword())) {
             sysTbuser.setPassword(AesCbcCompatUtil.encryptZeroBase64("Aa123456+"));
         }
-        return this.save(sysTbuser);
+        this.save(sysTbuser);
+        userRoleListService.insertDefaultRole(sysTbuser.getId(), sysTbuser.getUserType());
+        return true;
     }
 
     @Override

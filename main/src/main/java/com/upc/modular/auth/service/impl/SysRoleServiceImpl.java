@@ -51,8 +51,6 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysTbrole> im
     @Autowired
     private SysAuthorityMapper sysAuthorityMapper;
     @Autowired
-    private SysRoleMapper sysRoleMapper;
-    @Autowired
     private SysUserMapper sysUserMapper;
 
     @Override

@@ -62,6 +62,9 @@
             <if test="param.isPartyNumber != null">
                 AND t.is_party_number = #{param.isPartyNumber}
             </if>
+            <if test="param.status != null">
+                AND t.status = #{param.status}
+            </if>
         </where>
         ORDER BY t.add_datetime
         <choose>

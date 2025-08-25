@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.teacher.mapper.TeacherLogMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.upc.modular.teacher.entity.TeacherLog">
+        <id column="id" property="id" />
+        <result column="teacher_id" property="teacherId" />
+        <result column="user_id" property="userId" />
+        <result column="change_content" property="changeContent" />
+        <result column="operation_path" property="operationPath" />
+        <result column="operation_datetime" property="operationDatetime" />
+    </resultMap>
+
+    <select id="selectTeacherLogPage"
+            resultMap="BaseResultMap">
+        SELECT
+        t.id,
+        t.teacher_id,
+        t.user_id,
+        t.change_content,
+        t.operation_path,
+        t.operation_datetime,
+        FROM teacher_log t
+        <where>
+            <if test="param.changeContent != null and param.changeContent != ''">
+                AND t.change_content LIKE CONCAT('%', #{param.changeContent}, '%')
+            </if>
+            <if test="param.teacherId != null">
+                AND t.teacher_id = #{param.teacherId}
+            </if>
+            <if test="param.userId != null">
+                AND t.user_id = #{param.userId}
+            </if>
+            <!-- 条件4: 根据状态精确查询 -->
+            <if test="param.status != null">
+                AND t.status = #{param.status}
+            </if>
+            <!-- 条件4: 根据题目所属学科模糊查询 -->
+            <if test="param.operationPath != null and param.operationPath != ''">
+                AND t.operation_path LIKE CONCAT('%', #{param.operationPath}, '%')
+            </if>
+        </where>
+        ORDER BY t.add_datetime
+        <choose>
+            <when test="param.isAsc == 1">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+    </select>
+</mapper>

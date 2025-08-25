@@ -2,6 +2,7 @@ package com.upc.modular.group.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.group.controller.param.pageGroup;
+import com.upc.modular.group.controller.param.pageGroupVo;
 import com.upc.modular.group.entity.Group;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.student.controller.param.pageStudent;
@@ -20,7 +21,7 @@ import java.util.Map;
  */
 public interface IGroupService extends IService<Group> {
 
-    Page<Group> selectgetByidPage(pageGroup dictType);
+    Page<pageGroupVo> selectgetByidPage(pageGroup dictType);
 
     boolean updateByIdStudents(Group group);
 

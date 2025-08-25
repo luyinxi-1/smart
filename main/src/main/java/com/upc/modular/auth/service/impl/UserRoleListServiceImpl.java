@@ -5,14 +5,17 @@ import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbrole;
 import com.upc.modular.auth.entity.UserRoleList;
 import com.upc.modular.auth.mapper.UserRoleListMapper;
+import com.upc.modular.auth.param.UserRoleListInsertParam;
 import com.upc.modular.auth.param.UserRoleListPageReturnParam;
 import com.upc.modular.auth.param.UserRoleListPageSearchParam;
+import com.upc.modular.auth.service.ISysRoleService;
 import com.upc.modular.auth.service.IUserRoleListService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -33,13 +36,24 @@ import java.util.stream.Collectors;
 public class UserRoleListServiceImpl extends ServiceImpl<UserRoleListMapper, UserRoleList> implements IUserRoleListService {
     @Autowired
     private UserRoleListMapper userRoleListMapper;
+
+    @Autowired
+    private ISysRoleService sysRoleService;
     @Override
-    public Boolean insert(UserRoleList userRoleList) {
-        if (ObjectUtils.isEmpty(userRoleList) || ObjectUtils.isEmpty(userRoleList.getUserId()) || ObjectUtils.isEmpty(userRoleList.getRoleId())) {
+    public Boolean insert(UserRoleListInsertParam param) {
+        if (ObjectUtils.isEmpty(param) || ObjectUtils.isEmpty(param.getUserId()) || ObjectUtils.isEmpty(param.getRoleId())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
         }
-        return this.save(userRoleList);
+        this.removeById(param.getUserId());
+        for (Long id : param.getRoleId()) {
+            UserRoleList userRoleList = new UserRoleList();
+            userRoleList.setRoleId(id);
+            userRoleList.setUserId(param.getUserId());
+            this.save(userRoleList);
+        }
+        return true;
     }
+
 
     @Override
     public Boolean batchDelete(IdParam idParam) {
@@ -82,5 +96,25 @@ public class UserRoleListServiceImpl extends ServiceImpl<UserRoleListMapper, Use
 
 
         return RoleList;
+    }
+    @Override
+    public void insertDefaultRole(Long id, Integer userType) {
+        UserRoleList userRoleList = new UserRoleList();
+        if (userType == 0) {
+            List<SysTbrole> student = sysRoleService.list(new MyLambdaQueryWrapper<SysTbrole>().eq(SysTbrole::getStatus, 1).eq(SysTbrole::getRoleCode, "admin"));
+            userRoleList.setRoleId(student.get(0).getId());
+            userRoleList.setUserId(id);
+        }
+        if (userType == 1) {
+            List<SysTbrole> student = sysRoleService.list(new MyLambdaQueryWrapper<SysTbrole>().eq(SysTbrole::getStatus, 1).eq(SysTbrole::getRoleCode, "student"));
+            userRoleList.setRoleId(student.get(0).getId());
+            userRoleList.setUserId(id);
+        }
+        if (userType == 2) {
+            List<SysTbrole> student = sysRoleService.list(new MyLambdaQueryWrapper<SysTbrole>().eq(SysTbrole::getStatus, 1).eq(SysTbrole::getRoleCode, "teacher"));
+            userRoleList.setRoleId(student.get(0).getId());
+            userRoleList.setUserId(id);
+        }
+        this.save(userRoleList);
     }
 }

@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.annotation.*;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.upc.config.time.MultiFormatLocalDateTimeDeserializer;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -36,16 +39,29 @@ public class HomePagePromotion implements Serializable {
     private String title;
 
     @ApiModelProperty("宣传封面图的URL路径")
-    @TableField("cover_image")
-    private String coverImage;
+    @TableField("picture")
+    private String picture;
 
     @ApiModelProperty("图文混排的宣传内容")
-    @TableField("promotion_content")
-    private String promotionContent;
+    @TableField("content")
+    private String content;
 
     @ApiModelProperty("是否置顶（0 否，1 是）")
     @TableField("is_top")
-    private Integer isTop;
+    private Integer isTop = 0;
+
+    @ApiModelProperty("是否发布(0是未发布 1是发布)")
+    @TableField("status")
+    private Integer status = 0;
+
+    @ApiModelProperty("公示截止日期")
+    @TableField("deadline")
+    @JsonDeserialize(using = MultiFormatLocalDateTimeDeserializer.class)
+    private LocalDateTime deadline;
+
+    @ApiModelProperty("副标题")
+    @TableField("subtitle")
+    private String subtitle;
 
     @ApiModelProperty("创建人用户ID")
     @TableField(value = "creator", fill = FieldFill.INSERT)
