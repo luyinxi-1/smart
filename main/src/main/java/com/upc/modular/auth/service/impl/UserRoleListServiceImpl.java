@@ -72,7 +72,7 @@ public class UserRoleListServiceImpl extends ServiceImpl<UserRoleListMapper, Use
         for (Long id : userRoleList.getRoleId()) {
             UserRoleList param = new UserRoleList();
             param.setRoleId(id);
-            param.setUserId(param.getUserId());
+            param.setUserId(userRoleList.getUserId());
             this.save(param);
         }
         return true;
