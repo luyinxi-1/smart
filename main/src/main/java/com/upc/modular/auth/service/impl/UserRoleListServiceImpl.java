@@ -3,7 +3,6 @@ package com.upc.modular.auth.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
@@ -65,11 +64,18 @@ public class UserRoleListServiceImpl extends ServiceImpl<UserRoleListMapper, Use
     }
 
     @Override
-    public Boolean updateUserRoleList(UserRoleList userRoleList) {
-        if (ObjectUtils.isEmpty(userRoleList)) {
+    public Boolean updateUserRoleList(UserRoleListInsertParam userRoleList) {
+        if (ObjectUtils.isEmpty(userRoleList) || ObjectUtils.isEmpty(userRoleList.getUserId())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
         }
-        return this.updateById(userRoleList);
+        this.remove(new MyLambdaQueryWrapper<UserRoleList>().eq(UserRoleList::getUserId, userRoleList.getUserId()));
+        for (Long id : userRoleList.getRoleId()) {
+            UserRoleList param = new UserRoleList();
+            param.setRoleId(id);
+            param.setUserId(userRoleList.getUserId());
+            this.save(param);
+        }
+        return true;
     }
 
     @Override

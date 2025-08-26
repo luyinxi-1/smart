@@ -1,7 +1,6 @@
 package com.upc.common.utils;
 
-import com.upc.exception.BusinessErrorEnum;
-import com.upc.exception.BusinessException;
+import org.springframework.web.multipart.MultipartFile;
 
 public enum FileType {
     // 常见的文件类型定义
@@ -61,9 +60,9 @@ public enum FileType {
         return mimeType;
     }
 
-    public static boolean isValidFileType(String contentType) {
+    public static boolean isValidFileType(MultipartFile file) {
         for (FileType fileType : FileType.values()) {
-            if (fileType.getMimeType().equals(contentType)) {
+            if (fileType.getMimeType().equals(file.getContentType())) {
                 return true;
             }
         }

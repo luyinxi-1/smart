@@ -48,7 +48,7 @@ public class UserRoleListController {
 
     @ApiOperation(value = "更新用户角色关联")
     @PostMapping("/update")
-    public R<Boolean> updateUserRoleList(@RequestBody UserRoleList userRoleList) {
+    public R<Boolean> updateUserRoleList(@RequestBody UserRoleListInsertParam userRoleList) {
         return R.ok(userRoleListService.updateUserRoleList(userRoleList));
     }
 

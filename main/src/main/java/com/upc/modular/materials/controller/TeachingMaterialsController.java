@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
+import java.util.List;
 
 /**
  * <p>
@@ -31,30 +32,44 @@ public class TeachingMaterialsController {
     private ITeachingMaterialsService teachingMaterialsService;
 
     @ApiOperation(value = "添加教学素材")
-    @PostMapping("/insert-materials")
-    public R<String> insertMaterials(@RequestParam(value = "file") MultipartFile multipartFile, @ModelAttribute TeachingMaterials teachingMaterials) {
-        try {
-            String path = teachingMaterialsService.insertMaterials(multipartFile, teachingMaterials);
-            return R.ok(path);
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return R.fail("上传失败，请联系管理员");
-        }
+    @PostMapping("/insert-file-materials")
+    public R<String> insertFileMaterials(@RequestParam(value = "file") MultipartFile multipartFile, @ModelAttribute TeachingMaterials teachingMaterials) {
+        String fileName = teachingMaterialsService.insertFileMaterials(multipartFile, teachingMaterials);
+        return R.ok(fileName);
     }
 
-    @ApiOperation(value = "下载教学素材（fileId和fileName使用一个，但都需要传参，有鉴权：仅上传者能下载）")
-    @GetMapping("/download-materials")
-    public void downloadMaterials(@RequestParam("fileId") Long fileId, @RequestParam("fileName") String fileName, HttpServletResponse response) {
-        try {
-            teachingMaterialsService.downloadMaterials(fileId, fileName, response);
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "下载文件失败");
-        }
+    @ApiOperation(value = "下载教学素材")
+    @GetMapping("/download-file-materials")
+    public void downloadFileMaterials(@RequestParam String fileName, @RequestParam Long textbookId, @RequestParam String action, HttpServletResponse response) {
+        teachingMaterialsService.getFileMaterials(fileName, textbookId, action, response);
+    }
 
+    @ApiOperation(value = "添加链接素材（链接填在filePath字段）")
+    @PostMapping("/insert-link-materials")
+    public R<String> insertLinkMaterials(@ModelAttribute TeachingMaterials teachingMaterials) {
+        String urlName = teachingMaterialsService.insertLinkMaterials(teachingMaterials);
+        if (urlName == null)
+            return R.fail("添加失败");
+        return R.ok(urlName);
+    }
+
+    @ApiOperation(value = "查看链接素材")
+    @GetMapping("/get-link-materials")
+    public R<String> getLinkMaterials(@RequestParam String fileName, @RequestParam Long textbookId) {
+        String url = teachingMaterialsService.getLinkMaterials(fileName, textbookId);
+        return R.ok(url);
+    }
+
+    @ApiOperation(value = "添加图集素材")
+    @PostMapping("/insert-picture-materials")
+    public R<String> insertPictureMaterials(@RequestParam(value = "file") List<MultipartFile> files, @ModelAttribute TeachingMaterials teachingMaterials) {
+        String fileName = teachingMaterialsService.insertPictureMaterials(files, teachingMaterials);
+        return R.ok(fileName);
+    }
+
+    @ApiOperation(value = "查看图集素材")
+    @GetMapping("/get-one-picture-materials")
+    public void getOnePictureMaterials(@RequestParam String fileName, @RequestParam Long textbookId, String action, HttpServletResponse response) {
+        teachingMaterialsService.getOnePictureMaterials(fileName, textbookId, action, response);
     }
 }

@@ -5,6 +5,7 @@ import com.upc.modular.materials.entity.TeachingMaterials;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
+import java.util.List;
 
 /**
  * <p>
@@ -16,7 +17,15 @@ import javax.servlet.http.HttpServletResponse;
  */
 public interface ITeachingMaterialsService extends IService<TeachingMaterials> {
 
-    String insertMaterials(MultipartFile multipartFile, TeachingMaterials teachingMaterials);
+    String insertFileMaterials(MultipartFile multipartFile, TeachingMaterials teachingMaterials);
 
-    void downloadMaterials(Long fileId, String fileName, HttpServletResponse response);
+    void getFileMaterials(String fileName, Long textbookId, String action, HttpServletResponse response);
+
+    String insertLinkMaterials(TeachingMaterials teachingMaterials);
+
+    String getLinkMaterials(String fileName, Long textbookId);
+
+    String insertPictureMaterials(List<MultipartFile> multipartFile, TeachingMaterials teachingMaterials);
+
+    void getOnePictureMaterials(String fileName, Long textbookId, String action, HttpServletResponse response);
 }

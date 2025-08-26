@@ -46,8 +46,8 @@ public class WordConversionPageService {
                 options.setExportImagesAsBase64(false);
                 options.setExportFontsAsBase64(true);
                 options.setOfficeMathOutputMode(HtmlOfficeMathOutputMode.IMAGE);
-                options.setImagesFolder(basePath);
-                options.setImagesFolderAlias(basePath);
+                options.setImagesFolder(new File(basePath).getAbsolutePath());
+                options.setImagesFolderAlias(new File(basePath).getAbsolutePath());
 
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 pageDoc.save(out, options);

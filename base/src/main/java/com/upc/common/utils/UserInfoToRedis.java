@@ -66,6 +66,10 @@ public class UserInfoToRedis {
     @TableField("status")
     private Integer status;
 
+    @ApiModelProperty("用户昵称")
+    @TableField("nickname")
+    private String nickname;
+
     @ApiModelProperty("创建人")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;

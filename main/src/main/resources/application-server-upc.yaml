@@ -59,4 +59,4 @@ logging:
 
 # 服务器中文件的存放位置
 files:
-  path: upload\picture
+  path: upload/picture

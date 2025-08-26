@@ -64,7 +64,5 @@ logging:
 # Use port 465 instead of the default port 25
 #  spring.mail.properties.mail.smtp.socketFactory.port=465
 #  spring.mail.properties.mail.smtp.ssl.enable=true
-
-# 服务器中文件的存放位置
 files:
-  path: upload\picture
+  path: upload/picture
