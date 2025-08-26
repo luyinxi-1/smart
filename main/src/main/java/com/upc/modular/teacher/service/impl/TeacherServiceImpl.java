@@ -357,7 +357,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     public Boolean updateBatchTeacher(updateBatchTeacherParam param) {
         UpdateWrapper<Teacher> updateWrapper = new UpdateWrapper<>();
         updateWrapper.in("id", param.getIds()); // WHERE id IN (...)
-        updateWrapper.set("account_status", param.getAccountStatus()); // SET account_status = ?
+        updateWrapper.set("status", param.getAccountStatus()); // SET account_status = ?
         // 2. 调用 baseMapper 的 update 方法执行，无需在 XML 中写 SQL
         this.baseMapper.update(null, updateWrapper);
         return true;

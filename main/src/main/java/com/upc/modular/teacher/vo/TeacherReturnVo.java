@@ -17,12 +17,4 @@ public class TeacherReturnVo extends Teacher {
 
     @ApiModelProperty("机构id")
     private Long institutionId;
-
-    @ApiModelProperty("角色id")
-    private Long roleId;
-
-    @ApiModelProperty("角色名称")
-    private String roleName;
-
-
 }
