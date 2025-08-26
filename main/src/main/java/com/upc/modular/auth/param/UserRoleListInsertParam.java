@@ -10,9 +10,11 @@ import java.util.List;
 @Data
 @Accessors(chain = true)
 public class UserRoleListInsertParam {
+
     @ApiModelProperty("用户id")
     private Long userId;
 
     @ApiModelProperty("角色id")
     private List<Long> roleId;
+
 }
