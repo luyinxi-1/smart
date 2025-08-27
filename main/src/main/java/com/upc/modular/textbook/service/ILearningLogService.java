@@ -3,6 +3,9 @@ package com.upc.modular.textbook.service;
 import com.upc.common.responseparam.R;
 import com.upc.modular.textbook.entity.LearningLog;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.textbook.param.RecentStudyReturnParam;
+
+import java.util.List;
 
 /**
  * <p>
@@ -15,4 +18,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 public interface ILearningLogService extends IService<LearningLog> {
 
     Boolean insert(LearningLog learningLog);
+
+    List<RecentStudyReturnParam> recentStudy(Integer limit);
 }

@@ -13,5 +13,44 @@
         <result column="user_id" property="userId" />
         <result column="add_datetime" property="addDatetime" />
     </resultMap>
+    <select id="recentStudy" resultType="com.upc.modular.textbook.param.RecentStudyReturnParam">
+        SELECT
+            -- 显式排除 description、h5_head_code
+            t.id,
+            t.textbook_name,
+            t.type,
+            t.textbook_publishing_house,
+            t.textbook_publishing_time,
+            t.textbook_author_id,
+            t.textbook_version,
+            t.release_status,
+            t.review_status,
+            t.classification,
+            t.author_name,
+            t.executive_editor,
+            t.textbook_english_name,
+            t.version_number,
+            t.creator,
+            t.add_datetime,
+            t.operator,
+            t.operation_datetime
+        FROM
+            textbook t
+                INNER JOIN (
+                SELECT
+                    textbook_id,
+                    MAX(study_datetime) AS last_study_time
+                FROM
+                    learning_log
+                WHERE
+                    user_id = #{userId}
+                GROUP BY
+                    textbook_id
+            ) r ON r.textbook_id = t.id
+        ORDER BY
+            r.last_study_time DESC
+            LIMIT COALESCE(#{limit}, 10)
+    </select>
+
 
 </mapper>

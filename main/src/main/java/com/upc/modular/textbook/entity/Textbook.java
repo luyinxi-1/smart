@@ -91,6 +91,10 @@ public class Textbook implements Serializable {
     @TableField(value = "version_number")
     private String versionNumber;
 
+    @ApiModelProperty("教材封面")
+    @TableField(value = "textbook_picture")
+    private String textbookPicture;
+
     @ApiModelProperty("创建人（创建该教材记录的用户）")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;
