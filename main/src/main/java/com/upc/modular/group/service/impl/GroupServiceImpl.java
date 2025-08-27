@@ -77,10 +77,32 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
         Page<pageGroupVo> voPage = new Page<>(groupPage.getCurrent(), groupPage.getSize(), groupPage.getTotal());
         List<pageGroupVo> voRecords = new ArrayList<>();
 
+        // 收集所有教师ID以便批量查询
+        Set<Long> teacherIds = groupPage.getRecords().stream()
+                .map(Group::getTeacherId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // 批量查询教师信息
+        Map<Long, String> teacherNameMap = new HashMap<>();
+        if (!teacherIds.isEmpty()) {
+            LambdaQueryWrapper<Teacher> teacherQueryWrapper = new LambdaQueryWrapper<>();
+            teacherQueryWrapper.in(Teacher::getId, teacherIds);
+            List<Teacher> teachers = teacherService.list(teacherQueryWrapper);
+            teacherNameMap = teachers.stream()
+                    .collect(Collectors.toMap(Teacher::getId, Teacher::getName));
+        }
+
         for (Group group : groupPage.getRecords()) {
             pageGroupVo vo = new pageGroupVo();
             // 复制基础属性
             BeanUtils.copyProperties(group, vo);
+
+            // 设置教师姓名
+            if (group.getTeacherId() != null) {
+                vo.setTeacherName(teacherNameMap.get(group.getTeacherId()));
+            }
+
             Long creatorId = group.getCreator();
             String creatorName = null; // 默认为null
             if (creatorId != null) {

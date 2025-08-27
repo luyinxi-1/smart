@@ -47,6 +47,10 @@ public class Group implements Serializable {
     @TableField("teacher_id")
     private Long teacherId;
 
+    @ApiModelProperty("教师姓名")
+    @TableField(exist = false)
+    private String teacherName;
+
     @ApiModelProperty("备注")
     @TableField("remark")
     private String remark;
