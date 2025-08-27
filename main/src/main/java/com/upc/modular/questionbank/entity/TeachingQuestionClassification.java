@@ -1,9 +1,7 @@
 package com.upc.modular.questionbank.entity;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,8 +29,8 @@ public class TeachingQuestionClassification implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty("题目分类表")
-    @TableId("id")
+    @ApiModelProperty("主键")
+    @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
     @ApiModelProperty("题目分类名称")

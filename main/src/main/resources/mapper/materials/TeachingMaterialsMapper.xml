@@ -14,5 +14,50 @@
         <result column="file_size" property="fileSize" />
         <result column="add_datetime" property="addDatetime" />
     </resultMap>
+    <!-- 分页或条件查询 -->
+    <select id="selectTeachingMaterialsWithDetails"
+            resultType="com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo">
+        SELECT
+        s.*,
+        u.institution_id AS institutionId,
+        i.institution_name AS institutionName,
+        g.name AS className
+        FROM teaching_materials s
+        WHERE 1=1
+        <if test="param.id != null and param.id != ''">
+            AND id = #{param.id}
+        </if>
+        <!-- 教学素材名称模糊查询 -->
+        <if test="param.name != null and param.name != ''">
+            AND name LIKE CONCAT('%', #{param.name}, '%')
+        </if>
+        <!-- 教学素材类型 -->
+        <if test="param.type != null and param.type != ''">
+            AND type = #{param.type}
+        </if>
+        <!-- 作者id -->
+        <if test="param.authorId != null">
+            AND author_id = #{param.authorId}
+        </if>
+        <!-- 是否公开 -->
+        <if test="param.isPublic != null">
+            AND is_public = #{param.isPublic}
+        </if>
+        <!-- 文件名模糊查询 -->
+        <if test="param.fileName != null and param.fileName != ''">
+            AND file_name LIKE CONCAT('%', #{param.fileName}, '%')
+        </if>
+        <!-- 文件大小范围 -->
+        <if test="param.fileSize != null">
+            AND file_size = #{param.fileSize}
+        </if>
+      <!--  <if test="param.fileSizeStart != null">
+            AND file_size &gt;= #{param.fileSizeStart}
+        </if>
+        <if test="param.fileSizeEnd != null">
+            AND file_size &lt;= #{param.fileSizeEnd}
+        </if>-->
+        ORDER BY add_datetime DESC
+    </select>
 
 </mapper>

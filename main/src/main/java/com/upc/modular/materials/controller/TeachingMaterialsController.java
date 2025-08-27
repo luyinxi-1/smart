@@ -1,16 +1,23 @@
 package com.upc.modular.materials.controller;
 
 
+import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.materials.controller.param.dto.TeachingMaterialsPageSearchDto;
+import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.entity.TeachingMaterials;
 import com.upc.modular.materials.service.ITeachingMaterialsService;
+import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
+import com.upc.modular.student.controller.param.vo.StudentReturnVo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
@@ -71,5 +78,19 @@ public class TeachingMaterialsController {
     @GetMapping("/get-one-picture-materials")
     public void getOnePictureMaterials(@RequestParam String fileName, @RequestParam Long textbookId, String action, HttpServletResponse response) {
         teachingMaterialsService.getOnePictureMaterials(fileName, textbookId, action, response);
+    }
+    @ApiOperation(value = "分页查询教学素材")
+    @PostMapping("/getPage")
+    public R<PageBaseReturnParam<TeachingMaterialsReturnVo>> getPage(@RequestBody TeachingMaterialsPageSearchDto param) {
+        Page<TeachingMaterialsReturnVo> page = teachingMaterialsService.getPage(param);
+        PageBaseReturnParam<TeachingMaterialsReturnVo> result = PageBaseReturnParam.ok(page);
+        return R.page(result);
+    }
+    //查看教学素材
+    @ApiOperation(value = "查看教学素材")
+    @GetMapping("/get-teaching-materials")
+    public R<TeachingMaterials> get(@RequestParam Long id) {
+        TeachingMaterials teachingMaterials = teachingMaterialsService.getById(id);
+        return R.ok(teachingMaterials);
     }
 }

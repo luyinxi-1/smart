@@ -6,14 +6,20 @@ import com.upc.common.utils.FileManageUtil;
 import com.upc.common.utils.UserUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.materials.controller.param.dto.TeachingMaterialsPageSearchDto;
+import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.entity.MaterialsTextbookMapping;
 import com.upc.modular.materials.entity.TeachingMaterials;
 import com.upc.modular.materials.mapper.TeachingMaterialsMapper;
 import com.upc.modular.materials.service.ITeachingMaterialsService;
+import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
+import com.upc.modular.student.controller.param.vo.StudentReturnVo;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
@@ -415,4 +421,29 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             response.setHeader("Content-Disposition", "attachment; filename=\"download.file\"");
         }
     }
+    /*@Override
+    public IPage<TeachingMaterials> pageQuery(Page<TeachingMaterials> page, String name, String type, Boolean isPublic) {
+        LambdaQueryWrapper<TeachingMaterials> wrapper = new LambdaQueryWrapper<>();
+
+        if (!ObjectUtils.isEmpty(name)) {
+            wrapper.like(TeachingMaterials::getName, name);
+        }
+        if (!ObjectUtils.isEmpty(type)) {
+            wrapper.eq(TeachingMaterials::getType, type);
+        }
+        if (!ObjectUtils.isEmpty(isPublic)) {
+            wrapper.eq(TeachingMaterials::getIsPublic, isPublic);
+        }
+
+        wrapper.orderByDesc(TeachingMaterials::getAddDatetime);
+
+        return this.page(page, wrapper);
+    }*/
+    @Override
+    public Page<TeachingMaterialsReturnVo> getPage(TeachingMaterialsPageSearchDto param) {
+        Page<TeachingMaterialsReturnVo> page = new Page<>(param.getCurrent(), param.getSize());
+        return teachingMaterialsMapper.selectTeachingMaterialsWithDetails(page, param);
+    }
+
+
 }
