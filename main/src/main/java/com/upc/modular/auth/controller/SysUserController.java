@@ -104,6 +104,8 @@ public class SysUserController {
     @ApiOperation("获取当前用户信息")
     public R getUserInfo() {
         UserInfoToRedis userInfoToRedis = UserUtils.get();
+        Long id = sysUserService.getUserInfo(userInfoToRedis.getId(), userInfoToRedis.getUserType());
+        userInfoToRedis.setSchoolId(id);
         return R.ok(userInfoToRedis);
     }
 }

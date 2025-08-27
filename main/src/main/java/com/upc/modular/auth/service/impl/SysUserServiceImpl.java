@@ -242,5 +242,14 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
         return R.ok("新密码是：" + newPassword);
     }
 
+    @Override
+    public Long getUserInfo(Long id, Integer userType) {
+        if (ObjectUtils.isEmpty(id) || ObjectUtils.isEmpty(userType)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户ID或用户类型为空");
+        }
+         Long schoolId = sysUserMapper.getUserInfo(id, userType);
+         return schoolId;
+    }
+
 
 }

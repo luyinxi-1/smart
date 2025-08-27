@@ -40,4 +40,6 @@ public interface ISysUserService extends IService<SysTbuser> {
     R updatePassword(@RequestBody UpdatePasswordParam param);
 
     R resetPassword(Long userId);
+
+    Long getUserInfo(Long id, Integer userType);
 }
