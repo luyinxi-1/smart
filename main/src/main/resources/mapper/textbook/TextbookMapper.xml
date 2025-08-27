@@ -29,6 +29,9 @@
         t.textbook_version,
         t.release_status,
         t.review_status,
+        t.author_name,
+        t.executive_editor,
+        t.textbook_english_name,
         t.creator,
         t.add_datetime,
         t.operator,
@@ -57,17 +60,12 @@
             <if test="param.endTime != null">
                 AND t.add_datetime &lt;= #{param.endTime}
             </if>
-            <choose>
-                <when test="classificationIds != null and classificationIds.size > 0">
-                    AND t.classification IN
-                    <foreach collection="classificationIds" item="cid" open="(" close=")" separator=",">
-                        #{cid}
-                    </foreach>
-                </when>
-                <otherwise>
-                    AND 1 = 0
-                </otherwise>
-            </choose>
+            <if test="classificationIds != null and classificationIds.size > 0">
+                AND t.classification IN
+                <foreach collection="classificationIds" item="cid" open="(" close=")" separator=",">
+                    #{cid}
+                </foreach>
+            </if>
         </where>
 
         ORDER BY t.add_datetime
