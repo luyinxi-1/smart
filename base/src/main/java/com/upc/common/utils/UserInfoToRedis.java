@@ -70,6 +70,9 @@ public class UserInfoToRedis {
     @TableField("nickname")
     private String nickname;
 
+    @ApiModelProperty("学生或教师id")
+    private Long schoolId;
+
     @ApiModelProperty("创建人")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;

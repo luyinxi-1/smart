@@ -29,5 +29,18 @@
                  JOIN user_role_list ur ON ur.role_id = r.id
         WHERE ur.user_id = #{userId} AND r.status = 1
     </select>
+    <select id="getUserInfo" resultType="java.lang.Long">
+        <choose>
+            <when test="userType == 1">
+                SELECT id FROM student WHERE user_id = #{id}
+            </when>
+            <when test="userType == 2 or userType == 0">
+                SELECT id FROM teacher WHERE user_id = #{id}
+            </when>
+            <otherwise>
+                SELECT NULL
+            </otherwise>
+        </choose>
+    </select>
 
 </mapper>

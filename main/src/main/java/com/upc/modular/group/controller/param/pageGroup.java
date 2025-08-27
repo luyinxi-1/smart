@@ -40,6 +40,10 @@ public class pageGroup extends PageBaseSearchParam {
     @TableField("status")
     private Integer status;
 
+    @ApiModelProperty("组织ID")
+    @TableField("institution_id")
+    private Long institutionId;
+
     @ApiModelProperty("创建人")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;
