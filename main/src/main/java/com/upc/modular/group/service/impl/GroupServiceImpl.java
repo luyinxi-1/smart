@@ -22,6 +22,7 @@ import com.upc.modular.student.entity.Student;
 import com.upc.modular.student.service.IStudentService;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.service.ITeacherService;
+import com.upc.utils.InstitutionUtil;
 import org.apache.poi.hpsf.ClassID;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,6 +71,15 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
                 .eq(dictType.getStatus() != null, Group::getStatus, dictType.getStatus())
                 .like(!StringUtils.isEmpty(dictType.getName()), Group::getName, dictType.getName())
                 .eq(Group::getStatus, 1);
+
+        // 添加组织ID查询条件
+        if (dictType.getInstitutionId() != null) {
+            // 获取指定组织及其所有下级组织的ID列表
+            List<Institution> allInstitutions = institutionService.list();
+            List<Long> institutionIds = InstitutionUtil.getAllSubInstitutionIds(dictType.getInstitutionId(), allInstitutions);
+            queryWrapper.in(Group::getInstitutionId, institutionIds);
+        }
+
         queryWrapper.orderByDesc(Group::getAddDatetime);
 
         Page<Group> groupPage = baseMapper.selectPage(page, queryWrapper);
