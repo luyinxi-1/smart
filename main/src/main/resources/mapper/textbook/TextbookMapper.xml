@@ -97,30 +97,50 @@
             </otherwise>
         </choose>
     </select>
-    <select id="getOneTextbookDetails" resultType="com.upc.modular.textbook.param.TextbookPageReturnParam"
-            parameterType="java.lang.Long">
+    <select id="getOneTextbookDetails" resultType="com.upc.modular.textbook.param.TextbookPageReturnParam">
         SELECT
-        t.id,
-        t.textbook_name,
-        t.type,
-        t.textbook_publishing_house,
-        t.textbook_publishing_time,
-        t.textbook_version,
-        t.release_status,
-        t.review_status,
-        t.creator,
-        t.add_datetime,
-        t.operator,
-        t.operation_datetime,
-        a.name AS textbook_author_name,
-        d.dict_item_name AS type_name
-        FROM textbook t
-        LEFT JOIN teacher a ON t.textbook_author_id = a.id
-        LEFT JOIN sys_dict_item d ON t.type = d.id
-        <where>
-            <if test="textbookId != null">
-                AND t.id = #{param.textbookName}
-            </if>
-        </where>
+            t.id,
+            t.textbook_name,
+            t.type,
+            t.description,
+            t.textbook_publishing_house,
+            t.textbook_publishing_time,
+            t.textbook_version,
+            t.release_status,
+            t.review_status,
+            t.classification,
+            t.author_name,
+            t.executive_editor,
+            t.textbook_english_name,
+            t.version_number,
+            t.textbook_picture,
+            t.creator,
+            t.add_datetime,
+            t.operator,
+            t.operation_datetime,
+            a.name AS textbook_author_name,
+            d.name AS type_name,
+            -- Add creator's name based on userType
+            CASE
+                WHEN #{userType} = 1 THEN s.name
+                ELSE tch.name
+                END AS creatorName,
+            -- Add the latest review id
+            tr.id AS reviewId
+        FROM
+            textbook t
+                LEFT JOIN
+            teacher a ON t.textbook_author_id = a.id
+                LEFT JOIN
+            sys_dict_data d ON t.type = d.id
+                LEFT JOIN
+            -- Subquery to get the latest review ID for this textbook
+                (SELECT textbook_id, MAX(id) AS id FROM textbook_review WHERE textbook_id = #{textbookId} GROUP BY textbook_id) tr ON t.id = tr.textbook_id
+                LEFT JOIN
+            student s ON t.creator = s.user_id
+                LEFT JOIN
+            teacher tch ON t.creator = tch.user_id
+        WHERE
+            t.id = #{textbookId}
     </select>
 </mapper>

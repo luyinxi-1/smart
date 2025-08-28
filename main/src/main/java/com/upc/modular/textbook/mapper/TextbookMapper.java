@@ -22,5 +22,5 @@ public interface TextbookMapper extends BaseMapper<Textbook> {
 
     List<TextbookPageReturnParam> selectTextbookPage(@Param("param")TextbookPageSearchParam param, @Param("classificationIds") List<Long> classificationIds, @Param("userType") Integer userType);
 
-    TextbookPageReturnParam getOneTextbookDetails(Long textbookId);
+    TextbookPageReturnParam getOneTextbookDetails(@Param("textbookId") Long textbookId, @Param("userType") Integer userType);
 }

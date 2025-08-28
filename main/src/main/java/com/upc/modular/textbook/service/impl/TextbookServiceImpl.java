@@ -158,7 +158,10 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
 
     @Override
     public TextbookPageReturnParam getOneTextbookDetails(Long textbookId) {
-        return textbookMapper.getOneTextbookDetails(textbookId);
+        if (ObjectUtils.isEmpty(UserUtils.get()) || ObjectUtils.isEmpty(UserUtils.get().getUserType())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户类型为空");
+        }
+        return textbookMapper.getOneTextbookDetails(textbookId, UserUtils.get().getUserType());
     }
 
 
