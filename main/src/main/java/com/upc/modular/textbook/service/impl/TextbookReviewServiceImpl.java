@@ -1,11 +1,14 @@
 package com.upc.modular.textbook.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookReview;
 import com.upc.modular.textbook.mapper.TextbookReviewMapper;
+import com.upc.modular.textbook.param.TextbookReviewPageParam;
 import com.upc.modular.textbook.service.ITextbookService;
 import com.upc.modular.textbook.service.ITextbookReviewService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -40,10 +43,32 @@ public class TextbookReviewServiceImpl extends ServiceImpl<TextbookReviewMapper,
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "未找到ID为 " + textbookId + " 的教材");
         }
 
-        // 2. Update the textbook's review status to 2 (审核中)
+        // 1. Update the textbook's review status to 2 (审核中)
         textbook.setReviewStatus(2);
-        boolean updateResult = textbookService.updateById(textbook);
+        textbookService.updateById(textbook);
 
+        // 2. Save the review record
         this.save(textbookReview);
+
+        // 3. 根据审核结果更新教材的最终审核状态
+        if (textbookReview.getAuditResult() != null) {
+            if (textbookReview.getAuditResult() == 1) {
+                // 审核通过
+                textbook.setReviewStatus(1);
+            } else if (textbookReview.getAuditResult() == 0) {
+                // 审核未通过
+                textbook.setReviewStatus(3);
+            }
+            textbookService.updateById(textbook);
+        }
+    }
+
+    @Override
+    public Page<TextbookReview> getPageByTextbookId(TextbookReviewPageParam param) {
+        Page<TextbookReview> page = new Page<>(param.getCurrent(), param.getSize());
+        LambdaQueryWrapper<TextbookReview> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(param.getTextbookId() != null, TextbookReview::getTextbookId, param.getTextbookId());
+        queryWrapper.orderByDesc(TextbookReview::getAddDatetime);
+        return this.page(page, queryWrapper);
     }
 }
