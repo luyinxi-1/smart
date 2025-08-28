@@ -442,6 +442,12 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             return new ArrayList<>();
         }
 
+        for (TextbookCatalog textbookCatalog : textbookCatalogList) {
+            String rawHtml = textbookCatalog.getCatalogName();
+            String plainText = Jsoup.parse(rawHtml).text(); // 去除HTML标签
+            textbookCatalog.setCatalogName(plainText);
+        }
+
         // 2. 获取需要应用的批注内容
         List<LearningAnnotationsAndLabels> learningAnnotationsAndLabels = labelsService.selectLabels(id);
         if (learningAnnotationsAndLabels == null || learningAnnotationsAndLabels.isEmpty()) {
