@@ -11,4 +11,26 @@
         <result column="download_count" property="downloadCount" />
     </resultMap>
 
+<!--    Page<MaterialsTextbookMappingReturnParam> getPage(@Param("page") Page<MaterialsTextbookMappingReturnParam> page, @Param("param") MaterialsTextbookMappingPageSearchParam param);-->
+    <select id="getPage" resultType="com.upc.modular.materials.controller.param.vo.MaterialsTextbookMappingReturnParam">
+        SELECT
+        m.id,
+        m.material_id,
+        m.textbook_id,
+        t.name,
+        t.type,
+        m.chapter_name,
+        te.name as uploader,
+        m.add_datetime
+        FROM
+        materials_textbook_mapping m
+        LEFT JOIN teaching_materials t ON m.material_id = t.id
+        LEFT JOIN teacher te ON t.author_id = te.id
+        WHERE
+        m.textbook_id = #{param.textbookId}
+        <if test="param.materialName != null and param.materialName != ''">
+            and t.name like concat('%',#{param.materialName},'%')
+        </if>
+        ORDER BY m.chapter_name ASC
+    </select>
 </mapper>

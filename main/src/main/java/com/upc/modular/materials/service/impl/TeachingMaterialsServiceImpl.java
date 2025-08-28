@@ -88,7 +88,6 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             teachingMaterials.setFileName(fileName);
             teachingMaterials.setFileSize(Math.round(file.getSize() / (1024.0 * 1024.0) * 100) / 100.0);
             teachingMaterials.setFilePath(filePath);
-            teachingMaterials.setAddDatetime(LocalDateTime.now());
             if (!this.save(teachingMaterials)) {
                 FileManageUtil.deleteFile(filePath);
                 throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，上传失败");
@@ -243,7 +242,6 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             teachingMaterials.setFileName(listFileName.toString());
             teachingMaterials.setFileSize(Math.round(filesSize / (1024.0 * 1024.0) * 100) / 100.0);
             teachingMaterials.setFilePath(listPath.toString());
-            teachingMaterials.setAddDatetime(LocalDateTime.now());
             if (!this.save(teachingMaterials))
                 throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，上传失败");
 
