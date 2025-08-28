@@ -34,10 +34,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -294,22 +291,27 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "相关教材信息有误");
         }
 
+        Teacher teacher = teacherMapper.selectOne(new MyLambdaQueryWrapper<Teacher>().eq(Teacher::getUserId, userId));
+        if (teacher == null || ObjectUtils.isEmpty(teacher.getId())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "相关教师信息有误");
+        }
+
         LambdaQueryWrapper<TextbookAuthority> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(TextbookAuthority::getTextbookId, textbook.getId());
         queryWrapper.eq(TextbookAuthority::getAuthorityType, 1);
         List<TextbookAuthority> textbookAuthorities = textbookAuthorityMapper.selectList(queryWrapper);
-        if (textbook.getTextbookAuthorId() == userId) {
+        if (Objects.equals(textbook.getTextbookAuthorId(), teacher.getId())) {
             // 作者本人
             return true;
         }
-        if (textbook.getCreator() == userId) {
+        if (Objects.equals(textbook.getCreator(), userId)) {
             return true;
         }
         if (textbookAuthorities.isEmpty()) {
             return false;
         }
         for (TextbookAuthority textbookAuthority : textbookAuthorities) {
-            if (textbookAuthority.getUserId() == userId) {
+            if (Objects.equals(textbookAuthority.getUserId(), userId)) {
                 return true;
             }
         }

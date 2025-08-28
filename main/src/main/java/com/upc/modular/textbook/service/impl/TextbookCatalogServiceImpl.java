@@ -5,6 +5,8 @@ import com.aspose.words.SaveFormat;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
@@ -319,11 +321,40 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
     }
 
     @Override
-    public Boolean delete(Long id) {
-        if (ObjectUtils.isEmpty(id)) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参不能为空");
+    public Boolean delete(List<Long> ids) {
+        if (ObjectUtils.isEmpty(ids)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传入的ID列表不能为空");
         }
-        return this.removeById(id);
+
+        Set<Long> allIdsToDelete = new HashSet<>(ids);
+
+        List<Long> parentIds = new ArrayList<>(ids);
+
+        while (!parentIds.isEmpty()) {
+
+            List<Long> childIds = this.list(
+                            new MyLambdaQueryWrapper<TextbookCatalog>()
+                                    .select(TextbookCatalog::getId) // 只查询ID字段，提高效率
+                                    .in(TextbookCatalog::getFatherCatalogId, parentIds)
+                    ).stream()
+                    .map(TextbookCatalog::getId)
+                    .collect(Collectors.toList());
+
+            // d. 如果没有找到子节点，说明已经到达树的末端，退出循环
+            if (childIds.isEmpty()) {
+                break;
+            }
+
+            // e. 将新找到的子节点ID加入待删除的总集合
+            allIdsToDelete.addAll(childIds);
+
+            // f. 将子节点作为下一轮的父节点，继续向下查找
+            parentIds = childIds;
+        }
+
+        // 3. 批量删除所有收集到的ID
+        // 注意：MyBatis-Plus的批量删除方法是 removeByIds
+        return this.removeByIds(allIdsToDelete);
     }
 
     @Override
@@ -440,6 +471,12 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
 
         if (textbookCatalogList == null || textbookCatalogList.isEmpty()) {
             return new ArrayList<>();
+        }
+
+        for (TextbookCatalog textbookCatalog : textbookCatalogList) {
+            String rawHtml = textbookCatalog.getCatalogName();
+            String plainText = Jsoup.parse(rawHtml).text(); // 去除HTML标签
+            textbookCatalog.setCatalogName(plainText);
         }
 
         // 2. 获取需要应用的批注内容

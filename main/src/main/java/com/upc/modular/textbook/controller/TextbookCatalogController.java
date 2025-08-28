@@ -47,7 +47,7 @@ public class TextbookCatalogController {
 
     @ApiOperation(value = "删除教材章节内容")
     @PostMapping("/delete")
-    public R<Boolean> delete(@RequestParam Long id) {
+    public R<Boolean> delete(@RequestParam List<Long> id) {
         return R.ok(textbookCatalogService.delete(id));
     }
 

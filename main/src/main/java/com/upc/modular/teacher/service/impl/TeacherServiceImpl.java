@@ -92,6 +92,7 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教师工号已存在");
         }
         SysTbuser user = new SysTbuser()
+                .setNickname(teacher.getName())
                 .setUsername(teacher.getIdentityId())
                 .setPassword(AesCbcCompatUtil.encryptZeroBase64(teacher.getIdentityId()))
                 .setUserType(2) // 教师
