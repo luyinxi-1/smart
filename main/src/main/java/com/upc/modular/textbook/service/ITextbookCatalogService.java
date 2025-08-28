@@ -26,7 +26,7 @@ public interface ITextbookCatalogService extends IService<TextbookCatalog> {
 
     Boolean insert(List<TextbookCatalogInsertParam> params);
 
-    Boolean delete(Long id);
+    Boolean delete(List<Long> id);
 
     Boolean updateTextbook(List<TextbookCatalog> param);
 
