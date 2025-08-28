@@ -1,6 +1,7 @@
 package com.upc.modular.textbook.controller;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
@@ -47,11 +48,15 @@ public class TextbookAuthorityController {
 
     @ApiOperation(value = "查询教材权限信息")
     @PostMapping("/getTextbookAuthorityById")
-    public R getTextbookAuthorityById(@RequestParam Long id) {
+    public R getTextbookAuthorityById(@RequestParam Long id, @RequestParam Integer authorityType) {
         if (id == null || id == 0L) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
-        TextbookAuthority textbookAuthority = textbookAuthorityService.getById(id);
+        LambdaQueryWrapper<TextbookAuthority> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(authorityType != null, TextbookAuthority::getAuthorityType, authorityType);
+        queryWrapper.eq(TextbookAuthority::getId, id);
+
+        TextbookAuthority textbookAuthority = textbookAuthorityService.getOne(queryWrapper);
         return R.commonReturn(200, "查询成功", textbookAuthority);
     }
 
