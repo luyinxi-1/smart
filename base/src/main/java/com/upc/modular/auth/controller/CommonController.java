@@ -1,6 +1,7 @@
 package com.upc.modular.auth.controller;
 
 import com.upc.common.responseparam.R;
+import com.upc.common.utils.FileManageUtil;
 import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,15 +49,16 @@ public class CommonController {
         //使用UUID生成新的文件名,防止传入的文件名因重复而覆盖
         String fileName = UUID.randomUUID().toString() + suffix;
 
+        String filePath = basePath + "/" + FileManageUtil.yyyyMMddStr();
+
         //创建目录
-        File dir = new File(basePath);
+        File dir = new File(filePath);
         //如果该目录不存在,就创建出来
         if (!dir.exists()) {
             dir.mkdirs();
         }
 
         try {
-            System.out.println(dir.getAbsolutePath());
             //将临时图片转存
             file.transferTo(new File(dir.getAbsolutePath(),fileName));
         } catch (IOException e) {
@@ -65,7 +67,7 @@ public class CommonController {
 
         //log.info(file.toString());
 
-        return R.ok(fileName);
+        return R.ok(filePath + "/" + fileName);
     }
 
     /**
@@ -78,7 +80,7 @@ public class CommonController {
     public void download(String name, HttpServletResponse response) {
         try {
             //response字符流-IO流下载到页面
-            FileInputStream fileInputStream = new FileInputStream(new File(basePath + name));
+            FileInputStream fileInputStream = new FileInputStream(name);
             ServletOutputStream outputStream = response.getOutputStream();
 
             response.setContentType("image/jpeg");
