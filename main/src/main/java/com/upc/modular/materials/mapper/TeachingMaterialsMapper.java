@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
 import com.upc.modular.student.controller.param.vo.StudentReturnVo;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * <p>
@@ -19,6 +20,7 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface TeachingMaterialsMapper extends BaseMapper<TeachingMaterials> {
-    Page<TeachingMaterialsReturnVo> selectTeachingMaterialsWithDetails(Page<TeachingMaterialsReturnVo> page, TeachingMaterialsPageSearchDto param);
+
+    Page<TeachingMaterialsReturnVo> getPage(Page<TeachingMaterialsReturnVo> page, @Param("param") TeachingMaterialsPageSearchDto param);
 
 }

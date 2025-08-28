@@ -11,7 +11,6 @@
         <result column="download_count" property="downloadCount" />
     </resultMap>
 
-<!--    Page<MaterialsTextbookMappingReturnParam> getPage(@Param("page") Page<MaterialsTextbookMappingReturnParam> page, @Param("param") MaterialsTextbookMappingPageSearchParam param);-->
     <select id="getPage" resultType="com.upc.modular.materials.controller.param.vo.MaterialsTextbookMappingReturnParam">
         SELECT
         m.id,

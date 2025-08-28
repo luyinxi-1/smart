@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.utils.FileManageUtil;
 import com.upc.common.utils.UserUtils;
+import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsPageSearchDto;
+import com.upc.modular.materials.controller.param.vo.MaterialsTextbookMappingReturnParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.entity.MaterialsTextbookMapping;
 import com.upc.modular.materials.entity.TeachingMaterials;
@@ -14,7 +16,10 @@ import com.upc.modular.materials.mapper.TeachingMaterialsMapper;
 import com.upc.modular.materials.service.ITeachingMaterialsService;
 import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
 import com.upc.modular.student.controller.param.vo.StudentReturnVo;
+import com.upc.modular.teacher.entity.Teacher;
+import com.upc.modular.teacher.service.impl.TeacherServiceImpl;
 import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,10 +34,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.upc.utils.CreatePage.createPage;
 
 /**
  * <p>
@@ -50,6 +55,9 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
     @Autowired
     private MaterialsTextbookMappingServiceImpl materialsTextbookMappingService;
+
+    @Autowired
+    private TeacherServiceImpl teacherService;
 
     /**
      * 添加文件素材
@@ -313,8 +321,8 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
      * @param textbookId 验证的教材ID
      */
     private Boolean validateDownloadPermission(TeachingMaterials materials, Long textbookId, String action) {
-        // 如果是公开素材，则无需验证权限
-        if (materials.getIsPublic())
+        // 如果是公开素材或是管理员用户，则无需验证权限
+        if (materials.getIsPublic() || UserUtils.get().getUserType() == 0)
             return true;
 
         // 如果是作者本人，则拥有下载权限
@@ -419,29 +427,78 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             response.setHeader("Content-Disposition", "attachment; filename=\"download.file\"");
         }
     }
-    /*@Override
-    public IPage<TeachingMaterials> pageQuery(Page<TeachingMaterials> page, String name, String type, Boolean isPublic) {
-        LambdaQueryWrapper<TeachingMaterials> wrapper = new LambdaQueryWrapper<>();
 
-        if (!ObjectUtils.isEmpty(name)) {
-            wrapper.like(TeachingMaterials::getName, name);
-        }
-        if (!ObjectUtils.isEmpty(type)) {
-            wrapper.eq(TeachingMaterials::getType, type);
-        }
-        if (!ObjectUtils.isEmpty(isPublic)) {
-            wrapper.eq(TeachingMaterials::getIsPublic, isPublic);
-        }
-
-        wrapper.orderByDesc(TeachingMaterials::getAddDatetime);
-
-        return this.page(page, wrapper);
-    }*/
     @Override
     public Page<TeachingMaterialsReturnVo> getPage(TeachingMaterialsPageSearchDto param) {
-        Page<TeachingMaterialsReturnVo> page = new Page<>(param.getCurrent(), param.getSize());
-        return teachingMaterialsMapper.selectTeachingMaterialsWithDetails(page, param);
+
+        MyLambdaQueryWrapper<TeachingMaterials> queryWrapper = new MyLambdaQueryWrapper<>();
+
+        // 用户类型（0管理员、1学生、2教师）
+        Integer userType = UserUtils.get().getUserType();
+        if (userType == 0) {
+            queryWrapper.eq(TeachingMaterials::getAuthorId, param.getAuthorId())
+                    .like(TeachingMaterials::getName, param.getName())
+                    .eq(TeachingMaterials::getType, param.getType())
+                    .eq(TeachingMaterials::getIsPublic, param.getIsPublic());
+        }
+        else if (userType == 1)
+            throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
+        else if (userType == 2) {
+            queryWrapper.like(TeachingMaterials::getName, param.getName())
+                    .eq(TeachingMaterials::getType, param.getType());
+            if (ObjectUtils.isNotEmpty(param.getIsPublic())){
+                if (param.getIsPublic())
+                    queryWrapper.eq(TeachingMaterials::getIsPublic, param.getIsPublic());
+                else queryWrapper.eq(TeachingMaterials::getAuthorId, UserUtils.get().getId());
+            }
+        }
+
+        List<TeachingMaterials> materialsList = this.list(queryWrapper);
+
+        List<Long> authorIdList = materialsList.stream().map(TeachingMaterials::getAuthorId).collect(Collectors.toList());
+        Map<Long, String> teacherIdNameMap = teacherService.list(
+                new LambdaQueryWrapper<Teacher>().in(Teacher::getId, authorIdList))
+                .stream().collect(
+                        Collectors.toMap(Teacher::getId, Teacher::getName));
+
+        List<TeachingMaterialsReturnVo> pageRecordsVO = materialsList.stream()
+                .map(materials -> {
+                    TeachingMaterialsReturnVo temp = new TeachingMaterialsReturnVo();
+                    BeanUtils.copyProperties(materials, temp);
+                    temp.setAuthorName(teacherIdNameMap.get(materials.getAuthorId()));
+                    return temp;
+                })
+                .sorted(Comparator.comparing(TeachingMaterialsReturnVo::getAddDatetime).reversed())
+                .collect(Collectors.toList());
+
+        Page<TeachingMaterialsReturnVo> resultPage = createPage(pageRecordsVO, param.getCurrent(), param.getSize());
+
+        return resultPage;
     }
 
+    @Override
+    public TeachingMaterialsReturnVo getTeachingMaterials(Long id, Long textbookId) {
+        if (id == null)
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，参数 id 不能为空");
+        TeachingMaterialsReturnVo materialsReturnVo = new TeachingMaterialsReturnVo();
+        TeachingMaterials materials = this.getById(id);
+        if (ObjectUtils.isEmpty(materials))
+            throw new BusinessException(BusinessErrorEnum.FILE_NOT_EXIST);
+        if (!materials.getIsPublic() && !materials.getAuthorId().equals(UserUtils.get().getId()) && UserUtils.get().getUserType() != 0) {
+            if (textbookId == null)
+                throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，没有权限查看此文件");
+            List<MaterialsTextbookMapping> textbookMappingList = materialsTextbookMappingService.list(
+                    new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                            .eq(MaterialsTextbookMapping::getMaterialId, id)
+                            .eq(MaterialsTextbookMapping::getTextbookId, textbookId));
+            if(textbookMappingList.size() == 0)
+                throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，没有权限查看此文件");
+        }
+        BeanUtils.copyProperties(materials, materialsReturnVo);
+        Teacher teacher = teacherService.getById(materials.getAuthorId());
+        if (teacher != null && ObjectUtils.isNotEmpty(teacher.getName()))
+            materialsReturnVo.setAuthorName(teacher.getName());
 
+        return materialsReturnVo;
+    }
 }

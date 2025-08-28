@@ -79,6 +79,7 @@ public class TeachingMaterialsController {
     public void getOnePictureMaterials(@RequestParam String fileName, @RequestParam Long textbookId, String action, HttpServletResponse response) {
         teachingMaterialsService.getOnePictureMaterials(fileName, textbookId, action, response);
     }
+
     @ApiOperation(value = "分页查询教学素材")
     @PostMapping("/getPage")
     public R<PageBaseReturnParam<TeachingMaterialsReturnVo>> getPage(@RequestBody TeachingMaterialsPageSearchDto param) {
@@ -86,11 +87,11 @@ public class TeachingMaterialsController {
         PageBaseReturnParam<TeachingMaterialsReturnVo> result = PageBaseReturnParam.ok(page);
         return R.page(result);
     }
-    //查看教学素材
-    @ApiOperation(value = "查看教学素材")
+    // 查看教学素材
+    @ApiOperation(value = "查看教学素材(学生查看时用到textbookId)")
     @GetMapping("/get-teaching-materials")
-    public R<TeachingMaterials> get(@RequestParam Long id) {
-        TeachingMaterials teachingMaterials = teachingMaterialsService.getById(id);
+    public R<TeachingMaterialsReturnVo> get(@RequestParam Long id, @RequestParam Long textbookId) {
+        TeachingMaterialsReturnVo teachingMaterials = teachingMaterialsService.getTeachingMaterials(id, textbookId);
         return R.ok(teachingMaterials);
     }
 }

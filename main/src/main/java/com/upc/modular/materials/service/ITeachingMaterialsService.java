@@ -33,4 +33,6 @@ public interface ITeachingMaterialsService extends IService<TeachingMaterials> {
     void getOnePictureMaterials(String fileName, Long textbookId, String action, HttpServletResponse response);
 
     Page<TeachingMaterialsReturnVo> getPage(TeachingMaterialsPageSearchDto param);
+
+    TeachingMaterialsReturnVo getTeachingMaterials(Long id, Long textbookId);
 }

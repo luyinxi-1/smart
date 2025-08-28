@@ -8,12 +8,12 @@ import java.util.List;
 public class CreatePage {
 
     /**
-     * 获取分页信息
+     * 制作分页查询返回类
      *
-     * @param list 要分页的完整列表
-     * @param <T> 列表中元素的类型
+     * @param list    要分页的完整列表
+     * @param <T>     列表中元素的类型
      * @param current 当前页码（从 1 开始）
-     * @param size 每页大小
+     * @param size    每页大小
      * @return 分页对象
      */
     public static <T> Page<T> createPage(List<T> list, int current, int size) {

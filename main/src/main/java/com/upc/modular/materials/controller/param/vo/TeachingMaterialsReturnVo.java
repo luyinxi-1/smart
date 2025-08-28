@@ -1,20 +1,41 @@
 package com.upc.modular.materials.controller.param.vo;
 
-import com.upc.modular.materials.entity.TeachingMaterials;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
+
+import java.time.LocalDateTime;
 
 @Data
 @Accessors(chain = true)
-@EqualsAndHashCode
 @ApiModel(value = "教学素材返回对象")
-public class TeachingMaterialsReturnVo extends TeachingMaterials {
-    @ApiModelProperty("机构名称")
-    private String institutionName;
+public class TeachingMaterialsReturnVo {
 
-    @ApiModelProperty("机构id")
-    private Long institutionId;
+    @ApiModelProperty("主键")
+    private Long id;
+
+    @ApiModelProperty("教学素材名称")
+    private String name;
+
+    @ApiModelProperty("教学素材类型")
+    private String type;
+
+    @ApiModelProperty("作者名")
+    private String authorName;
+
+    @ApiModelProperty("是否公开")
+    private Boolean isPublic;
+
+    @ApiModelProperty("文件名")
+    private String fileName;
+
+    @ApiModelProperty("封面图片路径")
+    private String coverImagePath;
+
+    @ApiModelProperty("素材二维码路径")
+    private String qrcodePath;
+
+    @ApiModelProperty("上传时间")
+    private LocalDateTime addDatetime;
 }
