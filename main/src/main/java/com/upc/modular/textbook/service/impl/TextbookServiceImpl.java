@@ -16,6 +16,7 @@ import com.upc.modular.institution.service.IInstitutionService;
 import com.upc.modular.institution.service.impl.InstitutionServiceImpl;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.mapper.TeacherMapper;
+import com.upc.modular.teachingactivities.param.DiscussionTopicSecondReplyPageReturnParam;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookAuthority;
 import com.upc.modular.textbook.entity.TextbookClassification;
@@ -26,6 +27,7 @@ import com.upc.modular.textbook.param.TextbookAuthoritySearchParam;
 import com.upc.modular.textbook.param.TextbookPageReturnParam;
 import com.upc.modular.textbook.param.TextbookPageSearchParam;
 import com.upc.modular.textbook.param.UserFavoritesPageSearch;
+import com.upc.modular.textbook.service.ITextbookAuthorityService;
 import com.upc.modular.textbook.service.ITextbookClassificationService;
 import com.upc.modular.textbook.service.ITextbookService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -57,8 +59,6 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     private TextbookClassificationServiceImpl textbookClassificationService;
     @Autowired
     private TextbookAuthorityMapper textbookAuthorityMapper;
-
-
     @Autowired
     private ISysUserService sysUserService;
 
@@ -106,12 +106,43 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
 
     @Override
     public Page<TextbookPageReturnParam> getPage(TextbookPageSearchParam param) {
-        Page<TextbookPageReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
-        if (ObjectUtils.isEmpty(param.getClassificationId())) {
-            return textbookMapper.selectTextbookPage(page, param, Collections.emptyList());
+        if (ObjectUtils.isEmpty(UserUtils.get()) || ObjectUtils.isEmpty(UserUtils.get().getUserType())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户类型为空");
         }
-        List<Long> classificationIds = textbookClassificationService.selectTextbookClassificationSubtreeIdList(param.getClassificationId());
-        return textbookMapper.selectTextbookPage(page, param, classificationIds);
+        List<TextbookPageReturnParam> textbookPageReturnParams = new ArrayList<>();
+        if (ObjectUtils.isEmpty(param.getClassificationId())) {
+            textbookPageReturnParams = textbookMapper.selectTextbookPage(param, Collections.emptyList(), UserUtils.get().getUserType());
+        } else {
+            List<Long> classificationIds = textbookClassificationService.selectTextbookClassificationSubtreeIdList(param.getClassificationId());
+             textbookPageReturnParams = textbookMapper.selectTextbookPage(param, classificationIds, UserUtils.get().getUserType());
+        }
+        List<TextbookPageReturnParam> returnParams = new ArrayList<>();
+        if (UserUtils.get().getUserType() == 0) {
+            returnParams.addAll(textbookPageReturnParams);
+        } else {
+            for (TextbookPageReturnParam returnParam : textbookPageReturnParams) {
+                if (textbookAuthorityEditJudge(returnParam.getId(), UserUtils.get().getId())) {
+                    returnParams.add(returnParam);
+                }
+            }
+        }
+        long current = Math.max(1, param.getCurrent());
+        long size    = Math.max(1, param.getSize());
+        int from = (int) ((current - 1) * size);
+        if (from >= returnParams.size()) {
+            return new Page<>(current, size);   // 越界空页
+        }
+        int to = Math.min(from + (int) size, returnParams.size());
+        List<TextbookPageReturnParam> pageRecords = returnParams.subList(from, to);
+
+        // 组装 Page
+        Page<TextbookPageReturnParam> resultPage = new Page<>();
+        resultPage.setCurrent(current);
+        resultPage.setSize(size);
+        resultPage.setTotal(returnParams.size());
+        resultPage.setRecords(pageRecords);
+        return resultPage;
+
 
     }
 
@@ -245,5 +276,41 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         resultPage.setRecords(pageRecords);
 
         return resultPage;
+    }
+
+    public boolean textbookAuthorityEditJudge(Long textBookId, Long userId) {
+        if (textBookId == null || userId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+        SysTbuser tbuser = sysUserService.getById(userId);
+        if (tbuser == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "相关用户信息有误");
+        }
+        Textbook textbook = textbookMapper.selectOne(new MyLambdaQueryWrapper<Textbook>().eq(Textbook::getId, textBookId));
+        if (textbook == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "相关教材信息有误");
+        }
+
+        LambdaQueryWrapper<TextbookAuthority> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TextbookAuthority::getTextbookId, textbook.getId());
+        queryWrapper.eq(TextbookAuthority::getAuthorityType, 1);
+        List<TextbookAuthority> textbookAuthorities = textbookAuthorityMapper.selectList(queryWrapper);
+        if (textbook.getTextbookAuthorId() == userId) {
+            // 作者本人
+            return true;
+        }
+        if (textbook.getCreator() == userId) {
+            return true;
+        }
+        if (textbookAuthorities.isEmpty()) {
+            return false;
+        }
+        for (TextbookAuthority textbookAuthority : textbookAuthorities) {
+            if (textbookAuthority.getUserId() == userId) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
