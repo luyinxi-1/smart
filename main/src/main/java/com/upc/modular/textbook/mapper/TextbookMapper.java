@@ -1,6 +1,5 @@
 package com.upc.modular.textbook.mapper;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.textbook.entity.Textbook;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.upc.modular.textbook.param.TextbookPageReturnParam;
@@ -21,7 +20,7 @@ import java.util.List;
 @Mapper
 public interface TextbookMapper extends BaseMapper<Textbook> {
 
-    Page<TextbookPageReturnParam> selectTextbookPage(@Param("page") Page<TextbookPageReturnParam> page, @Param("param")TextbookPageSearchParam param, @Param("classificationIds") List<Long> classificationIds);
+    List<TextbookPageReturnParam> selectTextbookPage(@Param("param")TextbookPageSearchParam param, @Param("classificationIds") List<Long> classificationIds, @Param("userType") Integer userType);
 
-    TextbookPageReturnParam getOneTextbookDetails(Long textbookId);
+    TextbookPageReturnParam getOneTextbookDetails(@Param("textbookId") Long textbookId, @Param("userType") Integer userType);
 }

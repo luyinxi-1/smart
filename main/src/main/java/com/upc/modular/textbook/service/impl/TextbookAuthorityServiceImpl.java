@@ -165,12 +165,15 @@ public class TextbookAuthorityServiceImpl extends ServiceImpl<TextbookAuthorityM
         queryWrapper.eq(TextbookAuthority::getTextbookId, textbook.getId());
         queryWrapper.eq(TextbookAuthority::getAuthorityType, 1);
         List<TextbookAuthority> textbookAuthorities = this.list(queryWrapper);
-        if (textbookAuthorities.isEmpty()) {
-            return false;
-        }
         if (textbook.getTextbookAuthorId() == userId) {
             // 作者本人
             return true;
+        }
+        if (textbook.getCreator() == userId) {
+            return true;
+        }
+        if (textbookAuthorities.isEmpty()) {
+            return false;
         }
         for (TextbookAuthority textbookAuthority : textbookAuthorities) {
             if (textbookAuthority.getUserId() == userId) {
