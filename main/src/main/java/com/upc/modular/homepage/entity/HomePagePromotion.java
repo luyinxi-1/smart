@@ -63,6 +63,10 @@ public class HomePagePromotion implements Serializable {
     @TableField("subtitle")
     private String subtitle;
 
+    @ApiModelProperty("教材id")
+    @TableField("textbook_id")
+    private Long textbookId;
+
     @ApiModelProperty("创建人用户ID")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;

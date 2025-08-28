@@ -43,6 +43,7 @@
         hpp.is_top,
         hpp.add_datetime,
         hpp.status,
+        hpp.textbook_id,
         COALESCE(t.name, s.name) AS authorName,
         COALESCE(t_op.name, s_op.name) AS operatorName
         FROM
@@ -70,6 +71,7 @@
         hpp.is_top,
         hpp.add_datetime,
         hpp.status,
+        hpp.textbook_id,
         COALESCE(t.name, s.name) AS authorName,
         COALESCE(t_op.name, s_op.name) AS operatorName
         FROM
