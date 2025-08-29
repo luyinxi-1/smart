@@ -3,6 +3,7 @@ package com.upc.modular.textbook.controller;
 
 import com.upc.common.responseparam.R;
 import com.upc.modular.textbook.entity.TextbookCatalog;
+import com.upc.modular.textbook.param.ReadTextbookReturnParam;
 import com.upc.modular.textbook.param.TextbookCatalogDto;
 import com.upc.modular.textbook.param.TextbookCatalogInsertParam;
 import com.upc.modular.textbook.param.TextbookTree;
@@ -71,8 +72,8 @@ public class TextbookCatalogController {
 
     @ApiOperation(value = "查看教材")
     @PostMapping("/readTextbook")
-    public R<List<TextbookCatalog>> readTextbook(@RequestParam("textbookId") Long textbookId) {
-        List<TextbookCatalog> result = textbookCatalogService.readTextbook(textbookId);
+    public R<ReadTextbookReturnParam> readTextbook(@RequestParam("textbookId") Long textbookId) {
+        ReadTextbookReturnParam result = textbookCatalogService.readTextbook(textbookId);
         return R.ok(result);
     }
 

@@ -14,6 +14,7 @@ import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import com.upc.modular.textbook.mapper.TextbookMapper;
+import com.upc.modular.textbook.param.ReadTextbookReturnParam;
 import com.upc.modular.textbook.param.TextbookCatalogDto;
 import com.upc.modular.textbook.param.TextbookCatalogInsertParam;
 import com.upc.modular.textbook.param.TextbookTree;
@@ -22,6 +23,7 @@ import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.textbook.service.ITextbookService;
 import com.upc.utils.Word2HtmlUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -458,10 +460,12 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
     }
 
     @Override
-    public List<TextbookCatalog> readTextbook(Long id) {
+    public ReadTextbookReturnParam readTextbook(Long id) {
         if (id == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
+
+        ReadTextbookReturnParam result = new ReadTextbookReturnParam();
 
         // 1. 获取已按sort排好序的原始列表
         LambdaQueryWrapper<TextbookCatalog> queryWrapper = new LambdaQueryWrapper<>();
@@ -470,36 +474,46 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         List<TextbookCatalog> textbookCatalogList = this.list(queryWrapper);
 
         if (textbookCatalogList == null || textbookCatalogList.isEmpty()) {
-            return new ArrayList<>();
+            return new ReadTextbookReturnParam();
         }
 
-        for (TextbookCatalog textbookCatalog : textbookCatalogList) {
+        List<TextbookCatalog> textbookCatalogListWithoutHtml = new ArrayList<>();
+        BeanUtils.copyProperties(textbookCatalogList, textbookCatalogListWithoutHtml);
+        for (TextbookCatalog textbookCatalog : textbookCatalogListWithoutHtml) {
             String rawHtml = textbookCatalog.getCatalogName();
             String plainText = Jsoup.parse(rawHtml).text(); // 去除HTML标签
             textbookCatalog.setCatalogName(plainText);
         }
+        result.setTextbookCatalogListWithHtml(textbookCatalogList);
+        result.setTextbookCatalogListWithoutHtml(textbookCatalogListWithoutHtml);
 
         // 2. 获取需要应用的批注内容
         List<LearningAnnotationsAndLabels> learningAnnotationsAndLabels = labelsService.selectLabels(id);
         if (learningAnnotationsAndLabels == null || learningAnnotationsAndLabels.isEmpty()) {
-            return textbookCatalogList;
+            return result;
         }
 
         // 3. 创建一个仅用于快速查找的Map
         Map<Long, TextbookCatalog> lookupMap = textbookCatalogList.stream()
+                .collect(Collectors.toMap(TextbookCatalog::getId, catalog -> catalog));
+        Map<Long, TextbookCatalog> lookupMapWithoutHtml = textbookCatalogListWithoutHtml.stream()
                 .collect(Collectors.toMap(TextbookCatalog::getId, catalog -> catalog));
 
         // 4. 遍历批注，通过lookupMap快速找到并更新原始列表中的对象
         for (LearningAnnotationsAndLabels annotationsAndLabel : learningAnnotationsAndLabels) {
             Long catalogIdToUpdate = annotationsAndLabel.getCatalogId();
             TextbookCatalog catalogToUpdate = lookupMap.get(catalogIdToUpdate);
+            TextbookCatalog catalogToUpdateWithoutHtml = lookupMapWithoutHtml.get(catalogIdToUpdate);
 
             if (catalogToUpdate != null) {
                 catalogToUpdate.setContent(annotationsAndLabel.getContent());
             }
+            if (catalogToUpdateWithoutHtml != null) {
+                catalogToUpdateWithoutHtml.setContent(annotationsAndLabel.getContent());
+            }
         }
 
-        return textbookCatalogList;
+        return result;
     }
 
     @Override
