@@ -1,5 +1,6 @@
 server:
   port: 8088
+  baseurl: http://60.217.24.89:8088
 
 spring:
   datasource:
@@ -64,5 +65,3 @@ logging:
 # Use port 465 instead of the default port 25
 #  spring.mail.properties.mail.smtp.socketFactory.port=465
 #  spring.mail.properties.mail.smtp.ssl.enable=true
-files:
-  path: upload/picture

@@ -35,10 +35,18 @@ import java.util.Objects;
 public final class Word2HtmlUtils {
 
     private static String basePath;
+    private static String serverurl;
+
     @Value("${files.path}")
     public void setBasePath(String path) {
         Word2HtmlUtils.basePath = path;
     }
+
+    @Value("${server.baseurl}")
+    public void setServerurl(String serverurl) {
+        Word2HtmlUtils.serverurl = serverurl;
+    }
+
 
     private Word2HtmlUtils() {}
 
@@ -139,10 +147,10 @@ public final class Word2HtmlUtils {
         opt.setOfficeMathOutputMode(HtmlOfficeMathOutputMode.IMAGE);
 //        opt.setExportImagesAsBase64(true);
 //        opt.setExportFontsAsBase64(true);
-        String string = textbookId.toString();
         opt.setExportImagesAsBase64(false);
-        opt.setImagesFolder(basePath + string);               // 实际磁盘文件夹
-        opt.setImagesFolderAlias(basePath + string);          // HTML 内部引用路径
+        String imagesHttpPath = serverurl + "/" + basePath + "/" + textbookId;
+        opt.setImagesFolder(basePath + "/" + textbookId);   // 实际磁盘文件夹
+        opt.setImagesFolderAlias(imagesHttpPath);           // HTML 内部引用路径
         opt.setPrettyFormat(true);
         return opt;
     }
