@@ -2,6 +2,7 @@ package com.upc.modular.textbook.controller;
 
 
 import com.upc.common.responseparam.R;
+import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.param.TextbookCatalogDto;
 import com.upc.modular.textbook.param.TextbookCatalogInsertParam;
@@ -47,8 +48,8 @@ public class TextbookCatalogController {
 
     @ApiOperation(value = "删除教材章节内容")
     @PostMapping("/delete")
-    public R<Boolean> delete(@RequestParam List<Long> id) {
-        return R.ok(textbookCatalogService.delete(id));
+    public R<Boolean> delete(@RequestBody IdParam idParam) {
+        return R.ok(textbookCatalogService.delete(idParam));
     }
 
     @ApiOperation(value = "更新教材章节内容")

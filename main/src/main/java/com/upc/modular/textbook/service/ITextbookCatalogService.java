@@ -1,6 +1,7 @@
 package com.upc.modular.textbook.service;
 
 import com.upc.common.responseparam.R;
+import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.textbook.param.TextbookCatalogDto;
@@ -26,7 +27,7 @@ public interface ITextbookCatalogService extends IService<TextbookCatalog> {
 
     Boolean insert(List<TextbookCatalogInsertParam> params);
 
-    Boolean delete(List<Long> id);
+    Boolean delete(IdParam idParam);
 
     Boolean updateTextbook(List<TextbookCatalog> param);
 
