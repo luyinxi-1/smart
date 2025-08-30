@@ -9,11 +9,13 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import com.upc.modular.textbook.mapper.TextbookMapper;
+import com.upc.modular.textbook.param.ReadTextbookReturnParam;
 import com.upc.modular.textbook.param.TextbookCatalogDto;
 import com.upc.modular.textbook.param.TextbookCatalogInsertParam;
 import com.upc.modular.textbook.param.TextbookTree;
@@ -22,6 +24,7 @@ import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.textbook.service.ITextbookService;
 import com.upc.utils.Word2HtmlUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -321,11 +324,11 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
     }
 
     @Override
-    public Boolean delete(List<Long> ids) {
-        if (ObjectUtils.isEmpty(ids)) {
+    public Boolean delete(IdParam idParam) {
+        if (ObjectUtils.isEmpty(idParam) || ObjectUtils.isEmpty(idParam.getIdList())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传入的ID列表不能为空");
         }
-
+        List<Long> ids = idParam.getIdList();
         Set<Long> allIdsToDelete = new HashSet<>(ids);
 
         List<Long> parentIds = new ArrayList<>(ids);
@@ -458,10 +461,12 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
     }
 
     @Override
-    public List<TextbookCatalog> readTextbook(Long id) {
+    public List<ReadTextbookReturnParam> readTextbook(Long id) {
         if (id == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
+
+        List<ReadTextbookReturnParam> result = new ArrayList<>();
 
         // 1. 获取已按sort排好序的原始列表
         LambdaQueryWrapper<TextbookCatalog> queryWrapper = new LambdaQueryWrapper<>();
@@ -474,19 +479,25 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         }
 
         for (TextbookCatalog textbookCatalog : textbookCatalogList) {
+            ReadTextbookReturnParam textbookReturnParam = new ReadTextbookReturnParam();
+            BeanUtils.copyProperties(textbookCatalog, textbookReturnParam);
+            result.add(textbookReturnParam);
+        }
+
+        for (ReadTextbookReturnParam textbookCatalog : result) {
             String rawHtml = textbookCatalog.getCatalogName();
             String plainText = Jsoup.parse(rawHtml).text(); // 去除HTML标签
-            textbookCatalog.setCatalogName(plainText);
+            textbookCatalog.setCatalogNameWithoutHtml(plainText);
         }
 
         // 2. 获取需要应用的批注内容
         List<LearningAnnotationsAndLabels> learningAnnotationsAndLabels = labelsService.selectLabels(id);
         if (learningAnnotationsAndLabels == null || learningAnnotationsAndLabels.isEmpty()) {
-            return textbookCatalogList;
+            return result;
         }
 
         // 3. 创建一个仅用于快速查找的Map
-        Map<Long, TextbookCatalog> lookupMap = textbookCatalogList.stream()
+        Map<Long, TextbookCatalog> lookupMap = result.stream()
                 .collect(Collectors.toMap(TextbookCatalog::getId, catalog -> catalog));
 
         // 4. 遍历批注，通过lookupMap快速找到并更新原始列表中的对象
@@ -499,7 +510,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             }
         }
 
-        return textbookCatalogList;
+        return result;
     }
 
     @Override

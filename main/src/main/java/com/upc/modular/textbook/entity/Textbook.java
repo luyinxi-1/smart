@@ -63,7 +63,7 @@ public class Textbook implements Serializable {
     @TableField("release_status")
     private Integer releaseStatus;
 
-    @ApiModelProperty("教材审核状态（0 未提交审核；1 审核通过 2 审核中）")
+    @ApiModelProperty("教材审核状态（0 未提交审核；1 审核通过 2 审核中 3 审核未通过）")
     @TableField("review_status")
     private Integer reviewStatus;
 
