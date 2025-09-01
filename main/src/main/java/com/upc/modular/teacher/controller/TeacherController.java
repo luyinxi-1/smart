@@ -6,19 +6,20 @@ import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
-import com.upc.modular.questionbank.controller.param.GradeSubjectiveRequest;
 import com.upc.modular.teacher.dto.*;
 import com.upc.modular.teacher.vo.GenerateUserResultVo;
 import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.service.ITeacherService;
 import com.upc.modular.teacher.vo.TeacherReturnVo;
+import com.upc.modular.teacher.vo.TeacherUserReturnParam;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
 /**
@@ -51,7 +52,7 @@ public class TeacherController {
 
     @ApiOperation(value = "修改教师")
     @PostMapping("/update")
-    public R<Boolean> update(@RequestBody Teacher teacher) {
+    public R<Boolean> update(@RequestBody TeacherUpdateDto teacher) {
         return R.ok(teacherService.updateTeacher(teacher));
     }
 
@@ -86,6 +87,13 @@ public class TeacherController {
         return R.ok(sysTbuser);
     }
 
+    @ApiOperation("根据用户id获取教师信息")
+    @PostMapping("/getUserTeacher")
+    public R<List<TeacherUserReturnParam>> getUserTeacher(@RequestBody IdParam idParam) {
+        List<TeacherUserReturnParam> teacher = teacherService.getUserTeacher(idParam);
+        return R.ok(teacher);
+    }
+
     @ApiOperation("查询未绑定用户的教师")
     @GetMapping("/getTeacherNoUser")
     public R<List<TeacherReturnVo>> getTeacherNoUser() {
@@ -105,6 +113,18 @@ public class TeacherController {
     public R<Boolean> getTeacherIsInInstitution(@RequestBody GetTeacherIsInInstitutionParam param) {
         Boolean result = teacherService.getTeacherIsInInstitution(param);
         return R.ok(result);
+    }
+
+    @ApiOperation(value = "批量更新教师状态")
+    @PostMapping("/updateBatchTeacher")
+    public R<Boolean> updateBatchTeacher(@RequestBody updateBatchTeacherParam param) {
+        Boolean result = teacherService.updateBatchTeacher(param);
+        return R.ok(result);
+    }
+    @ApiOperation("导出教师")
+    @PostMapping("/exportTeacher")
+    public void exportTeacher(HttpServletResponse response, @RequestBody exportTeacherSearchParam param){
+        teacherService.exportTeacher(response, param);
     }
 
 

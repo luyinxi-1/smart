@@ -21,5 +21,5 @@ public interface SysUserMapper extends BaseMapper<SysTbuser> {
 
     List<SysTbrole> getRolesByUserId(@Param("userId") Long userId);
 
-
+    Long getUserInfo(@Param("id") Long id, @Param("userType") Integer userType);
 }

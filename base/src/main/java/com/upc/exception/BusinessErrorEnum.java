@@ -9,6 +9,10 @@ public enum BusinessErrorEnum implements CommonError {
      */
     PARAMETER_VALIDATION_ERROR(10001, "参数不合法"),
     /**
+     * 外键不存在
+     */
+    FOREIGN_KEY_NOT_FOUND(10004, "关联数据不存在"),
+    /**
      * 未知错误
      */
     UNKNOWN_ERROR(10002, "未知错误"),
@@ -82,6 +86,10 @@ public enum BusinessErrorEnum implements CommonError {
      * 不存在
      */
     NO_EXIT(40003,"不存在"), // 修正了 NO_EXIT 的 errMsg
+    /**
+     * 文件不存在
+     */
+    FILE_NOT_EXIST(40004, "文件不存在"),
     /**
      * 删除失败，存在绑定关系
      */

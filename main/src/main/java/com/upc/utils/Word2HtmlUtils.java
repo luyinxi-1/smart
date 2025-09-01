@@ -35,10 +35,18 @@ import java.util.Objects;
 public final class Word2HtmlUtils {
 
     private static String basePath;
+    private static String serverurl;
+
     @Value("${files.path}")
     public void setBasePath(String path) {
         Word2HtmlUtils.basePath = path;
     }
+
+    @Value("${server.baseurl}")
+    public void setServerurl(String serverurl) {
+        Word2HtmlUtils.serverurl = serverurl;
+    }
+
 
     private Word2HtmlUtils() {}
 
@@ -73,13 +81,13 @@ public final class Word2HtmlUtils {
     }
 
     /** MultipartFile → HTML String（纯内存回显 / 推送） */
-    public static String toHtmlString(MultipartFile upload) throws Exception {
+    public static String toHtmlString(MultipartFile upload, Long textbookId) throws Exception {
         Objects.requireNonNull(upload, "multipartFile must not be null");
         try (InputStream in = upload.getInputStream();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 
             Document doc = new Document(in);
-            HtmlSaveOptions opt = buildHtmlSaveOptions();
+            HtmlSaveOptions opt = buildHtmlSaveOptions(textbookId);
             doc.save(out, opt);
             return new String(out.toByteArray(), StandardCharsets.UTF_8);
         }
@@ -93,7 +101,7 @@ public final class Word2HtmlUtils {
         }
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Document doc = new Document(wordFile.getAbsolutePath());
-            HtmlSaveOptions opt = buildHtmlSaveOptions();
+            HtmlSaveOptions opt = buildHtmlSaveOptions(null);
             doc.save(out, opt);
             return new String(out.toByteArray(), StandardCharsets.UTF_8);
         }
@@ -126,7 +134,7 @@ public final class Word2HtmlUtils {
         Path htmlPath = outputDir.resolve(baseName + ".html");
 
         Document doc = new Document(wordFile.getAbsolutePath());
-        HtmlSaveOptions opt = buildHtmlSaveOptions();
+        HtmlSaveOptions opt = buildHtmlSaveOptions(null);
         doc.save(htmlPath.toString(), opt);
 
         return htmlPath;
@@ -134,14 +142,15 @@ public final class Word2HtmlUtils {
 
     /* -------------------- 公共配置构造 ------------------------ */
 
-    private static HtmlSaveOptions buildHtmlSaveOptions() {
+    private static HtmlSaveOptions buildHtmlSaveOptions(Long textbookId) {
         HtmlSaveOptions opt = new HtmlSaveOptions(SaveFormat.HTML);
         opt.setOfficeMathOutputMode(HtmlOfficeMathOutputMode.IMAGE);
 //        opt.setExportImagesAsBase64(true);
 //        opt.setExportFontsAsBase64(true);
         opt.setExportImagesAsBase64(false);
-        opt.setImagesFolder(basePath);               // 实际磁盘文件夹
-        opt.setImagesFolderAlias(basePath);          // HTML 内部引用路径
+        String imagesHttpPath = serverurl + "/" + basePath + "/" + textbookId;
+        opt.setImagesFolder(basePath + "/" + textbookId);   // 实际磁盘文件夹
+        opt.setImagesFolderAlias(imagesHttpPath);           // HTML 内部引用路径
         opt.setPrettyFormat(true);
         return opt;
     }

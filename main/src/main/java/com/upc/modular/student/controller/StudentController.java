@@ -8,6 +8,7 @@ import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.student.controller.param.GetStudentIsInInstitutionParam;
+import com.upc.modular.student.controller.param.StudentUserResultParam;
 import com.upc.modular.student.controller.param.dto.StudentExportDto;
 import com.upc.modular.student.controller.param.dto.StudentGenerateDto;
 import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
@@ -100,6 +101,14 @@ public class StudentController {
         return R.ok(sysTbuser);
     }
 
+
+    @ApiOperation("根据用户ID查询学生的学生信息")
+    @PostMapping("/getStudent")
+    public R<List<StudentUserResultParam>> getStudentUser(@RequestBody IdParam idParam) {
+        List<StudentUserResultParam> sysTbuser = studentService.getStudent(idParam);
+        return R.ok(sysTbuser);
+    }
+
     @ApiOperation("查询未绑定用户的学生")
     @PostMapping("/getStudentNoUser")
     public R<List<StudentReturnVo>> getStudentNoUser() {
@@ -132,16 +141,17 @@ public class StudentController {
         return R.ok();
     }
 
-
-
     @ApiOperation("导出学生信息")
     @PostMapping("/exportStudentData")
     public void exportStudentData(HttpServletResponse response, @RequestBody StudentExportDto param) {
         studentService.exportStudentData(response, param);
     }
 
-
-
+    @ApiOperation("重置学生密码")
+    @PostMapping("/resetStudentPassword")
+    public R resetStudentPassword(@RequestParam String identityId) {
+        return studentService.resetStudentPassword(identityId);
+    }
 
 
 

@@ -1,5 +1,7 @@
 server:
   port: 8080
+  baseurl: http://172.19.162.132:8080
+
 
 spring:
   datasource:
@@ -58,5 +60,3 @@ logging:
 #  spring.mail.properties.mail.smtp.ssl.enable=true
 
 # 服务器中文件的存放位置
-files:
-  path: D:\workspace\Files

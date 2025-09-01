@@ -3,15 +3,16 @@ package com.upc.modular.teacher.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
-import com.upc.modular.questionbank.controller.param.GradeSubjectiveRequest;
 import com.upc.modular.teacher.dto.*;
 import com.upc.modular.teacher.vo.GenerateUserResultVo;
 import com.upc.modular.teacher.vo.ImportTeacherReturnVo;
 import com.upc.modular.teacher.entity.Teacher;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.teacher.vo.TeacherReturnVo;
+import com.upc.modular.teacher.vo.TeacherUserReturnParam;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
 /**
@@ -38,11 +39,12 @@ public interface ITeacherService extends IService<Teacher> {
 
     GenerateUserResultVo generateTeacherUsers(TeacherGenerateDto dto);
 
-    Boolean updateTeacher(Teacher teacher);
+    Boolean updateTeacher(TeacherUpdateDto teacher);
 
     Boolean getTeacherIsInInstitution(GetTeacherIsInInstitutionParam param);
+    List<TeacherUserReturnParam> getUserTeacher(IdParam idParam);
 
+    Boolean updateBatchTeacher(updateBatchTeacherParam param);
 
-
-
+    void exportTeacher(HttpServletResponse response, exportTeacherSearchParam param);
 }

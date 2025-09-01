@@ -52,7 +52,7 @@ public class SysDictTypeController {
     }
 
     @ApiOperation(value = "查询字典类型")
-    @GetMapping("/getById")
+    @PostMapping("/getById")
     public R getById(@RequestParam("dictId") Long dictId) {
         SysDictType dictType = dictTypeService.getById(dictId);
         return R.commonReturn(200, "查询成功", dictType);
@@ -67,7 +67,7 @@ public class SysDictTypeController {
 
 
     @ApiOperation(value = "检查数据字典类型是否已存在")
-    @GetMapping("/checkDictTypeUnique")
+    @PostMapping("/checkDictTypeUnique")
     public String checkDictTypeUnique(SysDictType param) {
         return dictTypeService.checkDictTypeUnique(param);
     }

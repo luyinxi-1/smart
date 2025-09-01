@@ -55,6 +55,10 @@ public class Course implements Serializable {
     @TableField("user_id")
     private Long userId;
 
+    @ApiModelProperty("课程封面")
+    @TableField("course_picture")
+    private Long coursePicture;
+
     @ApiModelProperty("创建者")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;

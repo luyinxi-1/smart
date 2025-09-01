@@ -6,6 +6,7 @@ import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.group.controller.param.pageGroup;
+import com.upc.modular.group.controller.param.pageGroupVo;
 import com.upc.modular.group.entity.Group;
 import com.upc.modular.group.service.IGroupService;
 import com.upc.modular.student.controller.param.pageStudent;
@@ -37,17 +38,6 @@ public class GroupController {
     @Autowired
     private IGroupService groupService;
 
-
-    @ApiOperation(value = "获取年级选项列表")
-    @GetMapping("/getGradeOptions")
-    public R<List<Integer>> getGradeOptions() {
-        int currentYear = Year.now().getValue();
-        List<Integer> yearList = IntStream.rangeClosed(currentYear - 10, currentYear + 10)
-                .boxed()
-                .sorted((a, b) -> b - a) // 降序排列
-                .collect(Collectors.toList());
-        return R.ok(yearList);
-    }
 
 
     @ApiOperation(value = "批量添加班级信息")
@@ -92,9 +82,9 @@ public class GroupController {
 
     @ApiOperation(value = "分页按条件查询班级信息")
     @PostMapping("/getByidPage")
-    public R<PageBaseReturnParam<Group>> getPage(@RequestBody pageGroup dictType) {
-        Page<Group> page = groupService.selectgetByidPage(dictType);
-        PageBaseReturnParam<Group> result = PageBaseReturnParam.ok(page);
+    public R<PageBaseReturnParam<pageGroupVo>> getPage(@RequestBody pageGroup dictType) {
+        Page<pageGroupVo> page = groupService.selectgetByidPage(dictType);
+        PageBaseReturnParam<pageGroupVo> result = PageBaseReturnParam.ok(page);
         return R.page(result);
     }
 

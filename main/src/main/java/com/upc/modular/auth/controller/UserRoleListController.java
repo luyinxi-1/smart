@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.entity.SysTbrole;
 import com.upc.modular.auth.entity.UserRoleList;
+import com.upc.modular.auth.param.UserRoleListInsertParam;
 import com.upc.modular.auth.param.UserRoleListPageReturnParam;
 import com.upc.modular.auth.param.UserRoleListPageSearchParam;
 import com.upc.modular.auth.service.IUserRoleListService;
@@ -13,6 +15,8 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * <p>
@@ -32,8 +36,8 @@ public class UserRoleListController {
 
     @ApiOperation(value = "新增用户角色关联")
     @PostMapping("/insert")
-    public R<Boolean> insert(@RequestBody UserRoleList userRoleList) {
-        return R.ok(userRoleListService.insert(userRoleList));
+    public R<Boolean> insert(@RequestBody UserRoleListInsertParam param) {
+        return R.ok(userRoleListService.insert(param));
     }
 
     @ApiOperation(value = "删除用户角色关联")
@@ -44,7 +48,7 @@ public class UserRoleListController {
 
     @ApiOperation(value = "更新用户角色关联")
     @PostMapping("/update")
-    public R<Boolean> updateUserRoleList(@RequestBody UserRoleList userRoleList) {
+    public R<Boolean> updateUserRoleList(@RequestBody UserRoleListInsertParam userRoleList) {
         return R.ok(userRoleListService.updateUserRoleList(userRoleList));
     }
 
@@ -54,5 +58,13 @@ public class UserRoleListController {
         Page<UserRoleListPageReturnParam> page = userRoleListService.getPage(param);
         PageBaseReturnParam<UserRoleListPageReturnParam> result = PageBaseReturnParam.ok(page);
         return R.page(result);
+    }
+
+    @ApiOperation(value = "获取用户绑定角色")
+    @PostMapping("/getUserRoleList")
+    public R<List<Long>> getUserRoleList(@RequestParam Long userId) {
+        List<Long> result = userRoleListService.getUserRoleList(userId);
+
+        return R.ok(result);
     }
 }

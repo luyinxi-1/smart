@@ -1,9 +1,11 @@
 package com.upc.modular.student.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.student.controller.param.GetStudentIsInInstitutionParam;
+import com.upc.modular.student.controller.param.StudentUserResultParam;
 import com.upc.modular.student.controller.param.dto.StudentExportDto;
 import com.upc.modular.student.controller.param.vo.GenerateUserResultVoStudent;
 import com.upc.modular.student.controller.param.vo.ImportStudentReturnVo;
@@ -56,4 +58,8 @@ public interface IStudentService extends IService<Student> {
 
 
     void exportStudentData(HttpServletResponse response, StudentExportDto param);
+
+    List<StudentUserResultParam> getStudent(IdParam idParam);
+
+    R resetStudentPassword(String identityId);
 }

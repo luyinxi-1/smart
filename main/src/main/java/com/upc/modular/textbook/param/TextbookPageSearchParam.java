@@ -24,7 +24,7 @@ public class TextbookPageSearchParam extends PageBaseSearchParam {
     @ApiModelProperty("教材发布状态（1 已发布/ 0 未发布）")
     private Integer releaseStatus;
 
-    @ApiModelProperty("教材审核状态（0 未提交审核；1 审核通过）")
+    @ApiModelProperty("教材审核状态（0 未提交审核；1 审核通过 2 审核中 3 审核未通过）")
     private Integer reviewStatus;
 
     @ApiModelProperty("开始时间")

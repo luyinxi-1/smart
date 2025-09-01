@@ -9,10 +9,7 @@ import com.upc.common.utils.UserUtils;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysDictType;
 import com.upc.modular.auth.entity.SysTbuser;
-import com.upc.modular.auth.param.GetUserIsInInstitutionParam;
-import com.upc.modular.auth.param.ImportSysUserReturnParam;
-import com.upc.modular.auth.param.SysUserPageSearchParam;
-import com.upc.modular.auth.param.UserLoginParam;
+import com.upc.modular.auth.param.*;
 import com.upc.modular.auth.param.tree.UserAuthTree;
 import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.auth.service.impl.SysRoleServiceImpl;
@@ -48,6 +45,18 @@ public class SysUserController {
     @ApiOperation("登录")
     public R<String> login(@RequestBody UserLoginParam userLogin, HttpServletRequest request) {
         return R.ok(sysUserService.login(userLogin, request));
+    }
+
+    @PostMapping("/resetPassword")
+    @ApiOperation("重置密码")
+    public R resetPassword(@RequestParam Long userId) {
+        return sysUserService.resetPassword(userId);
+    }
+
+    @PostMapping("/updatePassword")
+    @ApiOperation("修改密码")
+    public R updatePassword(@RequestBody UpdatePasswordParam param) {
+        return sysUserService.updatePassword(param);
     }
 
     @ApiOperation(value = "删除用户")
@@ -95,6 +104,8 @@ public class SysUserController {
     @ApiOperation("获取当前用户信息")
     public R getUserInfo() {
         UserInfoToRedis userInfoToRedis = UserUtils.get();
+        Long id = sysUserService.getUserInfo(userInfoToRedis.getId(), userInfoToRedis.getUserType());
+        userInfoToRedis.setSchoolId(id);
         return R.ok(userInfoToRedis);
     }
 }
