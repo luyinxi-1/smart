@@ -2,7 +2,7 @@ spring:
   application:
     name: SmartTextBook
   profiles:
-    active: server-ql
+    active: server-dev
   servlet:
     multipart:
       enabled: true
@@ -12,3 +12,6 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher # 确保使用 AntPathMatcher 进行路径匹配
+
+files:
+  path: upload/public/picture

@@ -17,4 +17,7 @@ public class TextbookAuthoritySearchParam extends PageBaseSearchParam {
 
     @ApiModelProperty("权限类型，1表示协作者，2表示可见机构")
     private Integer authorityType;
+
+    @ApiModelProperty("查询条件：1表示教师名称查询条件，2表示可见机构查询条件")
+    private String TeacherNameOrInstituteName;
 }

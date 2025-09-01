@@ -5,8 +5,11 @@ import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.group.controller.param.UserTypeCount;
 import com.upc.modular.group.controller.param.pageGroup;
+import com.upc.modular.group.controller.param.pageGroupVo;
 import com.upc.modular.group.entity.Group;
 import com.upc.modular.group.entity.UserClassList;
 import com.upc.modular.group.mapper.GroupMapper;
@@ -16,7 +19,12 @@ import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.institution.service.IInstitutionService;
 import com.upc.modular.student.controller.param.pageStudent;
 import com.upc.modular.student.entity.Student;
+import com.upc.modular.student.service.IStudentService;
+import com.upc.modular.teacher.entity.Teacher;
+import com.upc.modular.teacher.service.ITeacherService;
+import com.upc.utils.InstitutionUtil;
 import org.apache.poi.hpsf.ClassID;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,8 +49,20 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
     @Autowired
     private IInstitutionService institutionService;
 
+    // 注入用户服务，用于查询用户类型
+    @Autowired
+    private ISysUserService sysUserService;
+
+    // 注入学生服务，用于查询学生姓名
+    @Autowired
+    private IStudentService studentService;
+
+    // 注入教师服务，用于查询教师姓名
+    @Autowired
+    private ITeacherService teacherService;
+
     @Override
-    public Page<Group> selectgetByidPage(pageGroup dictType) {
+    public Page<pageGroupVo> selectgetByidPage(pageGroup dictType) {
         Page<Group> page = new Page<>(dictType.getCurrent(), dictType.getSize());
         LambdaQueryWrapper<Group> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper
@@ -51,8 +71,84 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
                 .eq(dictType.getStatus() != null, Group::getStatus, dictType.getStatus())
                 .like(!StringUtils.isEmpty(dictType.getName()), Group::getName, dictType.getName())
                 .eq(Group::getStatus, 1);
+
+        // 添加组织ID查询条件
+        if (dictType.getInstitutionId() != null) {
+            // 获取指定组织及其所有下级组织的ID列表
+            List<Institution> allInstitutions = institutionService.list();
+            List<Long> institutionIds = InstitutionUtil.getAllSubInstitutionIds(dictType.getInstitutionId(), allInstitutions);
+            queryWrapper.in(Group::getInstitutionId, institutionIds);
+        }
+
         queryWrapper.orderByDesc(Group::getAddDatetime);
-        return baseMapper.selectPage(page, queryWrapper);
+
+        Page<Group> groupPage = baseMapper.selectPage(page, queryWrapper);
+
+        Page<pageGroupVo> voPage = new Page<>(groupPage.getCurrent(), groupPage.getSize(), groupPage.getTotal());
+        List<pageGroupVo> voRecords = new ArrayList<>();
+
+        // 收集所有教师ID以便批量查询
+        Set<Long> teacherIds = groupPage.getRecords().stream()
+                .map(Group::getTeacherId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // 批量查询教师信息
+        Map<Long, String> teacherNameMap = new HashMap<>();
+        if (!teacherIds.isEmpty()) {
+            LambdaQueryWrapper<Teacher> teacherQueryWrapper = new LambdaQueryWrapper<>();
+            teacherQueryWrapper.in(Teacher::getId, teacherIds);
+            List<Teacher> teachers = teacherService.list(teacherQueryWrapper);
+            teacherNameMap = teachers.stream()
+                    .collect(Collectors.toMap(Teacher::getId, Teacher::getName));
+        }
+
+        for (Group group : groupPage.getRecords()) {
+            pageGroupVo vo = new pageGroupVo();
+            // 复制基础属性
+            BeanUtils.copyProperties(group, vo);
+
+            // 设置教师姓名
+            if (group.getTeacherId() != null) {
+                vo.setTeacherName(teacherNameMap.get(group.getTeacherId()));
+            }
+
+            Long creatorId = group.getCreator();
+            String creatorName = null; // 默认为null
+            if (creatorId != null) {
+                // 3.1 根据ID查询用户信息，获取用户类型
+                SysTbuser user = sysUserService.getById(creatorId);
+
+                if (user != null) {
+                    Integer userType = user.getUserType();
+                    // 3.2 根据用户类型，去不同的表查询姓名
+                    if (userType == 1) { // 类型为1，是学生
+                        LambdaQueryWrapper<Student> studentLqw = new LambdaQueryWrapper<>();
+                        studentLqw.eq(Student::getUserId, user.getId()).last("LIMIT 1");
+                        Student student = studentService.getOne(studentLqw);
+                        if (student != null) {
+                            creatorName = student.getName();
+                        }
+                    } else if (userType == 0 || userType == 2) { // 类型为0或2，是教师/管理员
+                        LambdaQueryWrapper<Teacher> teacherLqw = new LambdaQueryWrapper<>();
+                        teacherLqw.eq(Teacher::getUserId, user.getId()).last("LIMIT 1");
+                        Teacher teacher = teacherService.getOne(teacherLqw);
+                        if (teacher != null) {
+                            creatorName = teacher.getName();
+                        }
+                    }
+                }
+            }
+
+            // 3.3 设置查询到的姓名
+            vo.setCreatorName(creatorName);
+            voRecords.add(vo);
+        }
+
+        // 4. 将处理好的列表放入新的分页对象中
+        voPage.setRecords(voRecords);
+
+        return voPage;
     }
 
     @Override
@@ -82,6 +178,16 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
             institutionToUpdate.setFatherInstitutionId(group.getInstitutionId()); // 更新父级ID
             institutionToUpdate.setIntroduction(group.getRemark()); // 更新介绍
             institutionService.updateById(institutionToUpdate);
+        }
+
+        if (group.getDefaultClassroom() == null) {
+            group.setDefaultClassroom(oldGroup.getDefaultClassroom());
+        }
+        if (group.getAdmissionDate() == null) {
+            group.setAdmissionDate(oldGroup.getAdmissionDate());
+        }
+        if (group.getGraduationDate() == null) {
+            group.setGraduationDate(oldGroup.getGraduationDate());
         }
 
         // 4. 更新班级表

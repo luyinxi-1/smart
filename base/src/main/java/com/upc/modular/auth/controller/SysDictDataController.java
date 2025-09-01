@@ -50,7 +50,7 @@ public class SysDictDataController {
     @ApiOperation(value = "修改字典类型")
     @PostMapping("/update")
     public R update(@RequestBody SysDictData dict) {
-        sysDictItemService.updateById(dict);
+        sysDictItemService.updateDictData(dict);
         return R.commonReturn(200, "修改成功", "");
     }
 
@@ -62,13 +62,13 @@ public class SysDictDataController {
         return R.page(result);
     }
 
-    @ApiOperation(value = "根据字典数据类型获取字典数据")
-    @GetMapping("/selectDictDataByDictType")
+    @ApiOperation(value = "根据字典数据类型获取字典数据树")
+    @PostMapping("/selectDictDataByDictType")
     public R selectDictDataByDictType(@RequestBody SysDictItemSearchParam param) {
-        List<SysDictData> list = sysDictItemService.selectDictDataByDictType(param);
+        List<SysDictData> treeList = sysDictItemService.selectDictDataByDictType(param);
         SysDictItemTotalParam result = new SysDictItemTotalParam();
-        result.setSysDictDataList(list);
-        result.setTotalNum(list.size());
+        result.setSysDictDataList(treeList);
+        result.setTotalNum(treeList.size()); // 注意：这里的 totalNum 是顶级节点的数量
         return R.commonReturn(200, "查询成功", result);
     }
 

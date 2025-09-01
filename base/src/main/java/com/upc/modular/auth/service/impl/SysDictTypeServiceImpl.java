@@ -100,14 +100,15 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
         Page<SysDictType> page = new Page<>(dictType.getCurrent(), dictType.getSize());
         MyLambdaQueryWrapper<SysDictType> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
         lambdaQueryWrapper.eq(ObjectUtils.isNotEmpty(dictType.getStatus()), SysDictType::getStatus, dictType.getStatus())
-                .like(ObjectUtils.isNotEmpty(dictType.getDictTypeName()), SysDictType::getDictName, dictType.getDictTypeName())
+                .like(ObjectUtils.isNotEmpty(dictType.getDictName()), SysDictType::getDictName, dictType.getDictName())
+                .like(ObjectUtils.isNotEmpty(dictType.getDictType()), SysDictType::getDictType, dictType.getDictType())
                 .between(
                         ObjectUtils.isNotEmpty(dictType.getStartTime()) && ObjectUtils.isNotEmpty(dictType.getEndTime()),
                         SysDictType::getAddDatetime,
                         dictType.getStartTime(),
                         dictType.getEndTime()
                 )
-                .orderBy(true, dictType.getIsAsc() == 1, SysDictType::getAddDatetime);
+                .orderBy(true, dictType.getIsAsc() == 1, SysDictType::getId);
         return this.page(page, lambdaQueryWrapper);
     }
 

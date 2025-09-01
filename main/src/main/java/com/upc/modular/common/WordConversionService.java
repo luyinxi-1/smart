@@ -42,8 +42,8 @@ public class WordConversionService {
             // B. 将图片以Base64编码的形式内嵌到HTML文件中，生成单文件
             // saveOptions.setExportImagesAsBase64(true);
             saveOptions.setExportImagesAsBase64(false);
-            saveOptions.setImagesFolder(basePath);               // 实际磁盘文件夹
-            saveOptions.setImagesFolderAlias(basePath);          // HTML 内部引用路径
+            saveOptions.setImagesFolder(new File(basePath).getAbsolutePath());               // 实际磁盘文件夹
+            saveOptions.setImagesFolderAlias(new File(basePath).getAbsolutePath());          // HTML 内部引用路径
 
             // C. 将字体以内嵌的形式保存，保证在不同电脑上显示效果一致
             saveOptions.setExportFontsAsBase64(true);

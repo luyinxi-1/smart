@@ -81,15 +81,19 @@ public class Teacher implements Serializable {
 
     @ApiModelProperty("学历（0：本科，1：硕士，2：博士）")
     @TableField("educational_background")
-    private Integer educationalBackground;
+    private Integer educationalBackground = 0;
 
     @ApiModelProperty("是否为党员（0为否，1为是）")
     @TableField("is_party_number")
-    private Integer isPartyNumber;
+    private Integer isPartyNumber = 0;
 
     @ApiModelProperty("教学年限")
     @TableField("teaching_years")
     private String teachingYears;
+
+    @ApiModelProperty("状态")
+    @TableField("status")
+    private Integer status = 1;
 
     @ApiModelProperty("创建者")
     @TableField(value = "creator", fill = FieldFill.INSERT)

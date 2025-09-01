@@ -7,6 +7,12 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.upc.common.utils.UserUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.service.ISysUserService;
+import com.upc.modular.student.entity.Student;
+import com.upc.modular.student.service.IStudentService;
+import com.upc.modular.teacher.entity.Teacher;
+import com.upc.modular.teacher.service.ITeacherService;
 import com.upc.modular.teachingactivities.param.DiscussionTopicReturnParam;
 import com.upc.modular.teachingactivities.param.DiscussionTopicSearchParam;
 import com.upc.modular.teachingactivities.entity.DiscussionTopic;
@@ -24,12 +30,11 @@ import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.upc.modular.textbook.service.ITextbookClassificationService;
 import com.upc.modular.textbook.service.ITextbookService;
 import com.upc.modular.textbook.service.impl.TextbookClassificationServiceImpl;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -83,12 +88,16 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
     private TextbookClassificationServiceImpl textbookClassificationService;
     @Autowired
     private ITextbookAuthorityService textbookAuthorityService;
+    @Autowired
+    private DiscussionTopicMapper discussionTopicMapper;
+
 
     @Override
     public List<DiscussionTopicReturnParam> getDiscussionTopicList(DiscussionTopicSearchParam param) {
         LambdaQueryWrapper<DiscussionTopic> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.like(StringUtils.isNotBlank(param.getTopicTitle()), DiscussionTopic::getTopicTitle, param.getTopicTitle());
         queryWrapper.eq(param.getType() != null, DiscussionTopic::getType, param.getType());
+        queryWrapper.eq(param.getMessageType() != null, DiscussionTopic::getMessageType, param.getMessageType());
         queryWrapper.eq(param.getTextbookId() != null, DiscussionTopic::getTextbookId, param.getTextbookId());
         queryWrapper.eq(param.getTextbookCatalogId() != null, DiscussionTopic::getTextbookCatalogId, param.getTextbookCatalogId());
 
@@ -130,16 +139,22 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
         }
         List<Long> classificationIdList = textbookClassificationService.selectTextbookClassificationSubtreeIdList(param.getClassificationId());
 
-        List<Long> idList = textbookService.list(
+        List<Long> textbookIdList = textbookService.list(
                         new LambdaQueryWrapper<Textbook>().select(Textbook::getId)
                                 .like(ObjectUtils.isNotEmpty(param.getTextbookName()), Textbook::getTextbookName, param.getTextbookName())
                                 .in(ObjectUtils.isNotEmpty(classificationIdList), Textbook::getClassification, classificationIdList)
                 ).stream()
                 .map(Textbook::getId)
                 .filter(Objects::nonNull)
+                // 权限判断逻辑必须在Java中执行，因此这是一个必要的预处理步骤
                 .filter(id -> textbookAuthorityService.textbookAuthorityJudge(id, userId))
                 .collect(Collectors.toList());
-        return null;
+
+        if (CollectionUtils.isEmpty(textbookIdList)) {
+            return Collections.emptyList();
+        }
+
+        return discussionTopicMapper.selectWithDetailsByTextbookIds(textbookIdList);
     }
 
 

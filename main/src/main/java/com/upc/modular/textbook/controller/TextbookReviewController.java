@@ -4,14 +4,13 @@ package com.upc.modular.textbook.controller;
 import com.upc.common.responseparam.R;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookReview;
+import com.upc.modular.textbook.param.TextbookReviewPageParam;
 import com.upc.modular.textbook.service.ITextbookReviewService;
 import com.upc.modular.textbook.service.ITextbookService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
 import org.springframework.web.bind.annotation.RestController;
 
@@ -36,6 +35,18 @@ public class TextbookReviewController {
     public R insertTextbookReview(@RequestBody TextbookReview textbookReview) {
         textbookReviewService.insertTextbookReview(textbookReview);
         return R.commonReturn(200, "新增成功", "");
+    }
+
+    @ApiOperation(value = "根据教材ID分页查询审核记录")
+    @PostMapping("/getPageByTextbookId")
+    public R getPageByTextbookId(@RequestBody TextbookReviewPageParam param) {
+        return R.ok(textbookReviewService.getPageByTextbookId(param));
+    }
+
+    @ApiOperation(value = "根据审核记录ID查询详情")
+    @GetMapping("/getReviewDetails/{reviewId}")
+    public R getReviewDetails(@PathVariable Long reviewId) {
+        return R.ok(textbookReviewService.getById(reviewId));
     }
 
 }

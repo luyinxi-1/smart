@@ -36,4 +36,8 @@ public class TeacherPageSearchDto extends PageBaseSearchParam {
 
     @ApiModelProperty("是否为党员（0为否，1为是）")
     private Integer isPartyNumber;
+
+    @ApiModelProperty("状态")
+    private Integer status;
+
 }

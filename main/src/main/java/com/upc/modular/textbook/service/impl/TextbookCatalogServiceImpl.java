@@ -5,19 +5,26 @@ import com.aspose.words.SaveFormat;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import com.upc.modular.textbook.mapper.TextbookMapper;
+import com.upc.modular.textbook.param.ReadTextbookReturnParam;
 import com.upc.modular.textbook.param.TextbookCatalogDto;
+import com.upc.modular.textbook.param.TextbookCatalogInsertParam;
+import com.upc.modular.textbook.param.TextbookTree;
 import com.upc.modular.textbook.service.ILearningAnnotationsAndLabelsService;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.textbook.service.ITextbookService;
 import com.upc.utils.Word2HtmlUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +32,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
@@ -69,7 +77,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         }
         try {
             // 1. 将文件转换为HTML字符串
-            String htmlString = Word2HtmlUtils.toHtmlString(file);
+            String htmlString = Word2HtmlUtils.toHtmlString(file, textbookId);
 
             // 1.5 将第一个标题之前的Html内容取出来
             String preHtmlString = extractAllHtmlBeforeFirstHeading(htmlString);
@@ -91,29 +99,274 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         }
     }
 
-
+    private static final int INITIAL_SORT = 100;
+    private static final int STEP = 100;
+    private static final int MAX_LEVEL = 4;
+    @Transactional(rollbackFor = Exception.class)
     @Override
-    public Boolean insert(TextbookCatalog param) {
-        if (ObjectUtils.isEmpty(param) || ObjectUtils.isEmpty(param.getTextbookId()) || ObjectUtils.isEmpty(param.getSort()) || ObjectUtils.isEmpty(param.getFatherCatalogId())) {
+    public Boolean insert(List<TextbookCatalogInsertParam> params) {
+        if (params == null || params.isEmpty()) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参不能为空");
         }
-        return this.save(param);
+        // 统一教材ID & firstAdd
+        Long textbookId = params.get(0).getTextbookId();
+        Integer firstAdd = params.get(0).getFirstAdd();
+        if (textbookId == null || firstAdd == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "textbookId / firstAdd 不能为空");
+        }
+        // 所有条目的 textbookId/firstAdd 必须一致
+        for (TextbookCatalogInsertParam p : params) {
+            if (!Objects.equals(textbookId, p.getTextbookId()) || !Objects.equals(firstAdd, p.getFirstAdd())) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "批次中的 textbookId/firstAdd 必须一致");
+            }
+        }
+
+        if (firstAdd == 0) {
+            // ===== 场景1：首次整书导入 =====
+            return insertFirstAdd(params, textbookId);
+        } else {
+            // ===== 场景2：增量插入 =====
+            return insertIncremental(params, textbookId);
+        }
+    }
+
+    /** 场景1：表空时整书导入（顺序传入），按 100 递增，处理临时ID映射 */
+    private Boolean insertFirstAdd(List<TextbookCatalogInsertParam> params, Long textbookId) {
+        // 校验表确实为空（同一本书）
+        Long count = lambdaQuery().eq(TextbookCatalog::getTextbookId, textbookId).count();
+        if (count != null && count > 0) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "firstAdd=0 但数据库已有该书数据");
+        }
+
+        Map<String, Long> tempId2RealId = new HashMap<>();
+        int sort = INITIAL_SORT;
+
+        for (TextbookCatalogInsertParam p : params) {
+            TextbookCatalog entity = new TextbookCatalog();
+            entity.setTextbookId(textbookId);
+            entity.setCatalogName(p.getCatalogName());
+            entity.setContent(p.getContent());
+            entity.setCatalogLevel(p.getCatalogLevel());
+
+            // 父ID：优先真实 fatherCatalogId；否则看 temporaryParentId 映射；顶级则设 0
+            Long realFatherId = p.getFatherCatalogId();
+            if (realFatherId == null || realFatherId == 0) {
+                if (StringUtils.isNotBlank(p.getTemporaryParentId())) {
+                    realFatherId = tempId2RealId.getOrDefault(p.getTemporaryParentId(), 0L);
+                } else {
+                    realFatherId = 0L;
+                }
+            }
+            entity.setFatherCatalogId(realFatherId);
+
+            entity.setSort(sort);
+            sort += STEP;
+
+            // 插入
+            textbookCatalogMapper.insert(entity);
+
+            // 建立临时ID映射
+            if (StringUtils.isNotBlank(p.getTemporaryId())) {
+                tempId2RealId.put(p.getTemporaryId(), entity.getId());
+            }
+        }
+        return true;
+    }
+
+    /** 场景2：增量插入 */
+    private Boolean insertIncremental(List<TextbookCatalogInsertParam> params, Long textbookId) {
+        // 缓存“临时ID → 真实ID”映射（本次批内引用）
+        Map<String, Long> tempId2RealId = new HashMap<>();
+
+        for (TextbookCatalogInsertParam p : params) {
+            TextbookCatalog entity = new TextbookCatalog();
+            entity.setTextbookId(textbookId);
+            entity.setCatalogName(p.getCatalogName());
+            entity.setContent(p.getContent());
+            entity.setCatalogLevel(p.getCatalogLevel());
+
+            // 解析父ID：先用真实 fatherCatalogId；若为 0/空，再看 temporaryParentId
+            Long fatherId = normalizeFatherId(p, tempId2RealId);
+            entity.setFatherCatalogId(fatherId);
+
+            // 计算 sort
+            Integer sort = computeSortForIncrement(textbookId, fatherId, p.getSameCatalogLevelId());
+            entity.setSort(sort);
+
+            // 插入
+            textbookCatalogMapper.insert(entity);
+
+            // 建立批内临时ID映射（供后续条目引用）
+            if (StringUtils.isNotBlank(p.getTemporaryId())) {
+                tempId2RealId.put(p.getTemporaryId(), entity.getId());
+            }
+        }
+        return true;
+    }
+
+    private Long normalizeFatherId(TextbookCatalogInsertParam p, Map<String, Long> tempId2RealId) {
+        Long fatherId = p.getFatherCatalogId();
+        if (fatherId != null && fatherId > 0) return fatherId;
+
+        if (StringUtils.isNotBlank(p.getTemporaryParentId())) {
+            return tempId2RealId.getOrDefault(p.getTemporaryParentId(), 0L);
+        }
+        return 0L; // 顶级
+    }
+
+    /** 计算增量插入时的 sort（含“同级后插”与“该父级下第一个”两种） */
+    private Integer computeSortForIncrement(Long textbookId, Long fatherId, Long sameCatalogLevelId) {
+        // 左边界 L
+        int L;
+        if (sameCatalogLevelId != null && sameCatalogLevelId > 0) {
+            // 插在“上一个同级目录”的整棵子树之后
+            L = maxSortInSubtree(textbookId, sameCatalogLevelId);
+        } else {
+            // 插在该父级下第一个 → 取父目录的 sort（顶级父=0）
+            if (fatherId == null || fatherId == 0) {
+                L = 0;
+            } else {
+                TextbookCatalog parent = textbookCatalogMapper.selectById(fatherId);
+                if (parent == null) {
+                    throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "父目录不存在：" + fatherId);
+                }
+                L = parent.getSort() == null ? 0 : parent.getSort();
+            }
+        }
+
+        // 右边界 R：同一本书中“最接近且更大”的 sort
+        Integer R = minGreaterSort(textbookId, L);
+
+        Integer candidate;
+        if (R == null) {
+            // 末尾插入
+            candidate = L + STEP;
+        } else {
+            long gap = (long) R - L;
+            if (gap <= 1) {
+                // 无间隙 → 重排整书（或重排同一父级的子树），这里给出整书重排实现
+                reindexTextbook(textbookId);
+                // 重排后再取一次
+                R = minGreaterSort(textbookId, L);
+                if (R == null) {
+                    candidate = L + STEP;
+                } else {
+                    candidate = L + (R - L) / 2;
+                }
+            } else {
+                candidate = L + (R - L) / 2;
+            }
+        }
+        // 防御：至少比 L 大 1
+        if (candidate <= L) candidate = L + 1;
+        return candidate;
+    }
+
+    /** 同一本书里，所有节点中，> base 的最小 sort（没有则返回 null） */
+    private Integer minGreaterSort(Long textbookId, int baseSortExclusive) {
+        return lambdaQuery()
+                .eq(TextbookCatalog::getTextbookId, textbookId)
+                .gt(TextbookCatalog::getSort, baseSortExclusive)
+                .orderByAsc(TextbookCatalog::getSort)
+                .last("LIMIT 1")
+                .oneOpt()
+                .map(TextbookCatalog::getSort)
+                .orElse(null);
+    }
+
+    /** 取某节点“整棵子树”的最大 sort（含自身）。深度最多 4 层。 */
+    private int maxSortInSubtree(Long textbookId, Long rootId) {
+        TextbookCatalog root = textbookCatalogMapper.selectById(rootId);
+        if (root == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "sameCatalogLevelId 无效：" + rootId);
+        }
+        int max = root.getSort() == null ? 0 : root.getSort();
+
+        // BFS/DFS 递归查子代（最多 4 层）
+        Deque<Long> q = new ArrayDeque<>();
+        Map<Long, Integer> levelMap = new HashMap<>();
+        q.add(rootId);
+        levelMap.put(rootId, 1);
+
+        while (!q.isEmpty()) {
+            Long cur = q.poll();
+            int lv = levelMap.get(cur);
+            if (lv >= MAX_LEVEL) continue;
+
+            List<TextbookCatalog> children = lambdaQuery()
+                    .eq(TextbookCatalog::getTextbookId, textbookId)
+                    .eq(TextbookCatalog::getFatherCatalogId, cur)
+                    .list();
+            for (TextbookCatalog c : children) {
+                if (c.getSort() != null) {
+                    max = Math.max(max, c.getSort());
+                }
+                q.add(c.getId());
+                levelMap.put(c.getId(), lv + 1);
+            }
+        }
+        return max;
+    }
+
+    /** 给整本书重排 sort：100,200,300,...（保持当前 sort 顺序的相对次序） */
+    private void reindexTextbook(Long textbookId) {
+        List<TextbookCatalog> all = lambdaQuery()
+                .eq(TextbookCatalog::getTextbookId, textbookId)
+                .orderByAsc(TextbookCatalog::getSort)
+                .list();
+
+        int s = INITIAL_SORT;
+        for (TextbookCatalog x : all) {
+            x.setSort(s);
+            s += STEP;
+        }
+        this.updateBatchById(all);
     }
 
     @Override
-    public Boolean delete(Long id) {
-        if (ObjectUtils.isEmpty(id)) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参不能为空");
+    public Boolean delete(IdParam idParam) {
+        if (ObjectUtils.isEmpty(idParam) || ObjectUtils.isEmpty(idParam.getIdList())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传入的ID列表不能为空");
         }
-        return this.removeById(id);
+        List<Long> ids = idParam.getIdList();
+        Set<Long> allIdsToDelete = new HashSet<>(ids);
+
+        List<Long> parentIds = new ArrayList<>(ids);
+
+        while (!parentIds.isEmpty()) {
+
+            List<Long> childIds = this.list(
+                            new MyLambdaQueryWrapper<TextbookCatalog>()
+                                    .select(TextbookCatalog::getId) // 只查询ID字段，提高效率
+                                    .in(TextbookCatalog::getFatherCatalogId, parentIds)
+                    ).stream()
+                    .map(TextbookCatalog::getId)
+                    .collect(Collectors.toList());
+
+            // d. 如果没有找到子节点，说明已经到达树的末端，退出循环
+            if (childIds.isEmpty()) {
+                break;
+            }
+
+            // e. 将新找到的子节点ID加入待删除的总集合
+            allIdsToDelete.addAll(childIds);
+
+            // f. 将子节点作为下一轮的父节点，继续向下查找
+            parentIds = childIds;
+        }
+
+        // 3. 批量删除所有收集到的ID
+        // 注意：MyBatis-Plus的批量删除方法是 removeByIds
+        return this.removeByIds(allIdsToDelete);
     }
 
     @Override
-    public Boolean updateTextbook(TextbookCatalog param) {
+    @Transactional
+    public Boolean updateTextbook(List<TextbookCatalog> param) {
         if (ObjectUtils.isEmpty(param)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参不能为空");
         }
-        return this.updateById(param);
+        return this.updateBatchById(param);
     }
 
     @Override
@@ -208,10 +461,12 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
     }
 
     @Override
-    public List<TextbookCatalog> readTextbook(Long id) {
+    public List<ReadTextbookReturnParam> readTextbook(Long id) {
         if (id == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
+
+        List<ReadTextbookReturnParam> result = new ArrayList<>();
 
         // 1. 获取已按sort排好序的原始列表
         LambdaQueryWrapper<TextbookCatalog> queryWrapper = new LambdaQueryWrapper<>();
@@ -223,14 +478,26 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             return new ArrayList<>();
         }
 
+        for (TextbookCatalog textbookCatalog : textbookCatalogList) {
+            ReadTextbookReturnParam textbookReturnParam = new ReadTextbookReturnParam();
+            BeanUtils.copyProperties(textbookCatalog, textbookReturnParam);
+            result.add(textbookReturnParam);
+        }
+
+        for (ReadTextbookReturnParam textbookCatalog : result) {
+            String rawHtml = textbookCatalog.getCatalogName();
+            String plainText = Jsoup.parse(rawHtml).text(); // 去除HTML标签
+            textbookCatalog.setCatalogNameWithoutHtml(plainText);
+        }
+
         // 2. 获取需要应用的批注内容
         List<LearningAnnotationsAndLabels> learningAnnotationsAndLabels = labelsService.selectLabels(id);
         if (learningAnnotationsAndLabels == null || learningAnnotationsAndLabels.isEmpty()) {
-            return textbookCatalogList;
+            return result;
         }
 
         // 3. 创建一个仅用于快速查找的Map
-        Map<Long, TextbookCatalog> lookupMap = textbookCatalogList.stream()
+        Map<Long, TextbookCatalog> lookupMap = result.stream()
                 .collect(Collectors.toMap(TextbookCatalog::getId, catalog -> catalog));
 
         // 4. 遍历批注，通过lookupMap快速找到并更新原始列表中的对象
@@ -243,8 +510,45 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             }
         }
 
-        return textbookCatalogList;
+        return result;
     }
+
+    @Override
+    public List<TextbookTree> getTextbookCatalogTree(Long textbookId) {
+        List<TextbookCatalog> catalogList = textbookCatalogMapper.selectList(
+                new LambdaQueryWrapper<TextbookCatalog>()
+                        .eq(TextbookCatalog::getTextbookId, textbookId)
+                        .orderByAsc(TextbookCatalog::getSort)
+        );
+
+        Map<Long, TextbookTree> nodeMap = new HashMap<>();
+        for (TextbookCatalog record : catalogList) {
+            String plainText = null;
+            if (record.getCatalogName() != null) {
+                plainText = Jsoup.parse(record.getCatalogName()).text();
+            }
+            TextbookTree node = new TextbookTree()
+                    .setTextbookId(record.getTextbookId())
+                    .setCatalogName(plainText)
+                    .setCatalogLevel(record.getCatalogLevel())
+                    .setFatherCatalogId(record.getFatherCatalogId())
+                    .setSort(record.getSort())
+                    .setChildren(new ArrayList<>());
+            nodeMap.put(record.getId(), node);
+        }
+
+        List<TextbookTree> roots = new ArrayList<>();
+        for (TextbookCatalog record : catalogList) {
+            TextbookTree node = nodeMap.get(record.getId());
+            if (record.getFatherCatalogId() == null || !nodeMap.containsKey(record.getFatherCatalogId())) {
+                roots.add(node);
+            } else {
+                nodeMap.get(record.getFatherCatalogId()).getChildren().add(node);
+            }
+        }
+        return roots;
+    }
+
 
 
     /**

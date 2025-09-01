@@ -1,10 +1,10 @@
 package com.upc.modular.textbook.service;
 
 import com.upc.common.responseparam.R;
+import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.upc.modular.textbook.param.TextbookCatalogDto;
-import com.upc.modular.textbook.param.WordRequest;
+import com.upc.modular.textbook.param.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
@@ -22,15 +22,17 @@ public interface ITextbookCatalogService extends IService<TextbookCatalog> {
 
     void processAndSaveHtml(MultipartFile file, Long textbookId);
 
-    Boolean insert(TextbookCatalog param);
+    Boolean insert(List<TextbookCatalogInsertParam> params);
 
-    Boolean delete(Long id);
+    Boolean delete(IdParam idParam);
 
-    Boolean updateTextbook(TextbookCatalog param);
+    Boolean updateTextbook(List<TextbookCatalog> param);
 
     void exportTextbook(HttpServletResponse response, Long textbookId);
 
     void exportTextbookByString(HttpServletResponse response, String html);
 
-    List<TextbookCatalog> readTextbook(Long id);
+    List<ReadTextbookReturnParam> readTextbook(Long id);
+
+    List<TextbookTree> getTextbookCatalogTree(Long textbookId);
 }

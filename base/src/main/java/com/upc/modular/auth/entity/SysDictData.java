@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.*;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
+
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -65,6 +67,14 @@ public class SysDictData implements Serializable {
     @TableField("remark")
     private String remark;
 
+    @ApiModelProperty("父id")
+    @TableField("parent_id")
+    private Long parentId = 0L;
+
+    @ApiModelProperty("字典等级")
+    @TableField("dict_level")
+    private Integer dictLevel;
+
     @ApiModelProperty("创建人")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;
@@ -80,6 +90,11 @@ public class SysDictData implements Serializable {
     @ApiModelProperty("操作时间")
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
     private LocalDateTime operationDatetime;
+
+    @ApiModelProperty("子节点列表")
+    // 这个注解告诉MyBatis-Plus，这个字段不是数据库表里的列
+    @TableField(exist = false)
+    private List<SysDictData> children;
 
 
 }

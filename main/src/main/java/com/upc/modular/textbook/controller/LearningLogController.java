@@ -3,12 +3,15 @@ package com.upc.modular.textbook.controller;
 
 import com.upc.common.responseparam.R;
 import com.upc.modular.textbook.entity.LearningLog;
+import com.upc.modular.textbook.param.RecentStudyReturnParam;
 import com.upc.modular.textbook.service.ILearningLogService;
 import io.lettuce.core.output.BooleanListOutput;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * <p>
@@ -30,5 +33,11 @@ public class LearningLogController {
     @PostMapping("/insert")
     public R<Boolean> insert(@RequestBody LearningLog learningLog) {
        return R.ok(learningLogService.insert(learningLog));
+    }
+
+    @ApiOperation(value = "最近学习")
+    @PostMapping("/recentStudy")
+    public R<List<RecentStudyReturnParam>> recentStudy(@RequestParam("limit") Integer limit) {
+        return R.ok(learningLogService.recentStudy(limit));
     }
 }

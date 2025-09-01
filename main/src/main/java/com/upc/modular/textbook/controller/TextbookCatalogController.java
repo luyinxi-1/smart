@@ -2,8 +2,12 @@ package com.upc.modular.textbook.controller;
 
 
 import com.upc.common.responseparam.R;
+import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.TextbookCatalog;
+import com.upc.modular.textbook.param.ReadTextbookReturnParam;
 import com.upc.modular.textbook.param.TextbookCatalogDto;
+import com.upc.modular.textbook.param.TextbookCatalogInsertParam;
+import com.upc.modular.textbook.param.TextbookTree;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -39,19 +43,19 @@ public class TextbookCatalogController {
 
     @ApiOperation(value = "插入教材章节内容")
     @PostMapping("/insert")
-    public R<Boolean> insert(@RequestBody TextbookCatalog param) {
-        return R.ok(textbookCatalogService.insert(param));
+    public R<Boolean> insert(@RequestBody List<TextbookCatalogInsertParam> params) {
+        return R.ok(textbookCatalogService.insert(params));
     }
 
     @ApiOperation(value = "删除教材章节内容")
     @PostMapping("/delete")
-    public R<Boolean> delete(@RequestParam Long id) {
-        return R.ok(textbookCatalogService.delete(id));
+    public R<Boolean> delete(@RequestBody IdParam idParam) {
+        return R.ok(textbookCatalogService.delete(idParam));
     }
 
     @ApiOperation(value = "更新教材章节内容")
     @PostMapping("/update")
-    public R<Boolean> update(@RequestBody TextbookCatalog param) {
+    public R<Boolean> update(@RequestBody List<TextbookCatalog> param) {
         return R.ok(textbookCatalogService.updateTextbook(param));
     }
 
@@ -69,8 +73,15 @@ public class TextbookCatalogController {
 
     @ApiOperation(value = "查看教材")
     @PostMapping("/readTextbook")
-    public R<List<TextbookCatalog>> readTextbook(@RequestParam Long id) {
-        List<TextbookCatalog> result = textbookCatalogService.readTextbook(id);
+    public R<List<ReadTextbookReturnParam>> readTextbook(@RequestParam("textbookId") Long textbookId) {
+        List<ReadTextbookReturnParam> result = textbookCatalogService.readTextbook(textbookId);
+        return R.ok(result);
+    }
+
+    @ApiOperation(value = "返回教材目录树")
+    @PostMapping("/getTextbookCatalogTree")
+    public R<List<TextbookTree>> getTextbookCatalogTree(@RequestParam("textbookId") Long textbookId) {
+        List<TextbookTree> result = textbookCatalogService.getTextbookCatalogTree(textbookId);
         return R.ok(result);
     }
 

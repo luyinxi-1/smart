@@ -21,4 +21,7 @@ public class DiscussionTopicSearchParam {
 
     @ApiModelProperty("讨论关联的教材目录")
     private Long textbookCatalogId;
+
+    @ApiModelProperty("留言的类型")
+    private Integer messageType;
 }

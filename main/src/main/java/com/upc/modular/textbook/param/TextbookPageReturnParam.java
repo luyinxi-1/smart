@@ -18,4 +18,10 @@ public class TextbookPageReturnParam extends Textbook {
 
     @ApiModelProperty("教材类型名称")
     private String typeName;
+
+    @ApiModelProperty("创建人姓名")
+    private String creatorName;
+
+    @ApiModelProperty("审核表id")
+    private Long reviewId;
 }

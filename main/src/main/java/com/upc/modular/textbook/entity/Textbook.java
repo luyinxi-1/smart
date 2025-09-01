@@ -63,7 +63,7 @@ public class Textbook implements Serializable {
     @TableField("release_status")
     private Integer releaseStatus;
 
-    @ApiModelProperty("教材审核状态（0 未提交审核；1 审核通过 2 审核中）")
+    @ApiModelProperty("教材审核状态（0 未提交审核；1 审核通过 2 审核中 3 审核未通过）")
     @TableField("review_status")
     private Integer reviewStatus;
 
@@ -74,6 +74,26 @@ public class Textbook implements Serializable {
     @ApiModelProperty("教材分类")
     @TableField(value = "classification")
     private Long classification;
+
+    @ApiModelProperty("教材作者")
+    @TableField(value = "author_name")
+    private String authorName;
+
+    @ApiModelProperty("责任编辑")
+    @TableField(value = "executive_editor")
+    private String executiveEditor;
+
+    @ApiModelProperty("教材英文名")
+    @TableField(value = "textbook_english_name")
+    private String textbookEnglishName;
+
+    @ApiModelProperty("教材版本号")
+    @TableField(value = "version_number")
+    private String versionNumber;
+
+    @ApiModelProperty("教材封面")
+    @TableField(value = "textbook_picture")
+    private String textbookPicture;
 
     @ApiModelProperty("创建人（创建该教材记录的用户）")
     @TableField(value = "creator", fill = FieldFill.INSERT)

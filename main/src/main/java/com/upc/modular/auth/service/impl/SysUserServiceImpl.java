@@ -4,10 +4,14 @@ import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.ExcelReader;
 import com.alibaba.excel.read.metadata.ReadSheet;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.upc.common.responseparam.R;
+import com.upc.common.utils.UserInfoToRedis;
+import com.upc.common.utils.UserUtils;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
@@ -15,16 +19,20 @@ import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.entity.UserRoleList;
 import com.upc.modular.auth.mapper.SysUserMapper;
+import com.upc.modular.auth.mapper.UserRoleListMapper;
 import com.upc.modular.auth.param.*;
 import com.upc.modular.auth.service.ISysLogService;
 import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.auth.service.IUserRoleListService;
 import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.institution.mapper.InstitutionMapper;
+import com.upc.utils.AesCbcCompatUtil;
 import com.upc.utils.InstitutionUtil;
+import com.upc.utils.MD5Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
@@ -32,6 +40,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * <p>
@@ -112,7 +121,9 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
         Page<SysTbuser> page = new Page<>(param.getCurrent(), param.getSize());
         MyLambdaQueryWrapper<SysTbuser> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
         if (ObjectUtils.isEmpty(param.getUserType())) {
-            lambdaQueryWrapper.orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
+            lambdaQueryWrapper
+                    .like(ObjectUtils.isNotEmpty(param.getNickname()), SysTbuser::getNickname, param.getNickname())
+                    .orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
             return this.page(page, lambdaQueryWrapper);
         }
         if (param.getUserType() == -1) {
@@ -120,6 +131,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
                     .and(w -> w.eq(SysTbuser::getUserType, 1)
                             .or()
                             .eq(SysTbuser::getUserType, 2))
+                    .like(ObjectUtils.isNotEmpty(param.getNickname()), SysTbuser::getNickname, param.getNickname())
                     .orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
             return this.page(page, lambdaQueryWrapper);
         }
@@ -153,10 +165,90 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
 
     @Override
     public Boolean insert(SysTbuser sysTbuser) {
-        if (ObjectUtils.isEmpty(sysTbuser) || ObjectUtils.isEmpty(sysTbuser.getPassword()) || ObjectUtils.isEmpty(sysTbuser.getUsername())) {
+        if (ObjectUtils.isEmpty(sysTbuser) || ObjectUtils.isEmpty(sysTbuser.getUsername())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
         }
-        return this.save(sysTbuser);
+        SysTbuser sysTbuser1 = sysUserMapper.selectOne(new LambdaQueryWrapper<SysTbuser>().eq(SysTbuser::getUsername, sysTbuser.getUsername()));
+        if (ObjectUtils.isNotEmpty(sysTbuser1)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户名已存在");
+        }
+        if (ObjectUtils.isEmpty(sysTbuser.getUserType())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户类型不能为空");
+        }
+        if (ObjectUtils.isEmpty(sysTbuser.getPassword())) {
+            sysTbuser.setPassword(AesCbcCompatUtil.encryptZeroBase64("Aa123456+"));
+        }
+        this.save(sysTbuser);
+        userRoleListService.insertDefaultRole(sysTbuser.getId(), sysTbuser.getUserType());
+        return true;
+    }
+
+    @Override
+    public R updatePassword(UpdatePasswordParam param) {
+        if (StringUtils.isBlank(param.getOldPassword()) || StringUtils.isBlank(param.getNewPassword())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+        if (param.getOldPassword().equals(param.getNewPassword())) {
+            return R.ok("新旧密码不能重复");
+        }
+
+        SysTbuser tbuser;
+        Long targetId;
+        if (param.getId() == null || param.getId() == 0L) {
+            UserInfoToRedis userInfoToRedis = UserUtils.get();
+            tbuser = this.getById(userInfoToRedis.getId());
+
+            if (userInfoToRedis == null || tbuser ==  null) {
+                throw new BusinessException(BusinessErrorEnum.USER_NO);
+            }
+            targetId = userInfoToRedis.getId();
+        } else {
+            tbuser = this.getById(param.getId());
+            targetId = tbuser.getId();
+        }
+
+        if (!param.getOldPassword().equals(tbuser.getPassword())) {
+            return R.ok("旧密码输入错误");
+        }
+
+        LambdaUpdateWrapper<SysTbuser> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(SysTbuser::getId, targetId);
+        updateWrapper.set(SysTbuser::getPassword, param.getNewPassword());
+        boolean update = this.update(updateWrapper);
+
+
+        if (update) {
+            return R.ok("修改成功");
+        } else {
+            throw new BusinessException(BusinessErrorEnum.MYSQL_ERR);
+        }
+    }
+
+    @Override
+    public R resetPassword(Long userId) {
+        if (userId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+
+        // 生成一个随机八位数密码
+        String newPassword = String.valueOf(ThreadLocalRandom.current().nextInt(10000000, 100000000));
+        String secretPassword = AesCbcCompatUtil.encryptZeroBase64(newPassword);
+
+        LambdaUpdateWrapper<SysTbuser> updateWrapper = new LambdaUpdateWrapper();
+        updateWrapper.eq(SysTbuser::getId, userId);
+        updateWrapper.set(SysTbuser::getPassword, secretPassword);
+        this.update(updateWrapper);
+
+        return R.ok("新密码是：" + newPassword);
+    }
+
+    @Override
+    public Long getUserInfo(Long id, Integer userType) {
+        if (ObjectUtils.isEmpty(id) || ObjectUtils.isEmpty(userType)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户ID或用户类型为空");
+        }
+         Long schoolId = sysUserMapper.getUserInfo(id, userType);
+         return schoolId;
     }
 
 

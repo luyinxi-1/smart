@@ -14,6 +14,7 @@ import com.upc.modular.student.controller.param.dto.StudentImportDto;
 import com.upc.modular.student.entity.Student;
 import com.upc.modular.student.service.IStudentService;
 import com.upc.modular.student.service.impl.StudentServiceImpl; // Import the specific implementation to access saveBatchUsers
+import com.upc.utils.AesCbcCompatUtil;
 import com.upc.utils.AgeQuantifyUtils;
 import com.upc.utils.MD5Utils;
 import com.upc.utils.TypeConversionUtils;
@@ -67,17 +68,17 @@ public StudentListener(StudentServiceImpl studentService,
         Map<String, Long> classMap,
         Map<String, Long> institutionMap,
         Long studentRoleId) {
-        this.studentService = studentService;
-        this.sysUserService = sysUserService;
-        this.userRoleListService = userRoleListService;
-        this.userClassListService = userClassListService;
-        this.existStudentMap = existStudentMap;
-        this.classMap = classMap;
-        this.institutionMap = institutionMap;
-        this.studentRoleId = studentRoleId;
+                this.studentService = studentService;
+                this.sysUserService = sysUserService;
+                this.userRoleListService = userRoleListService;
+                this.userClassListService = userClassListService;
+                this.existStudentMap = existStudentMap;
+                this.classMap = classMap;
+                this.institutionMap = institutionMap;
+                this.studentRoleId = studentRoleId;
         }
 
-@Override
+        @Override
 public void invoke(StudentImportDto dto, AnalysisContext context) {
         try {
         int rowIndex = context.readRowHolder().getRowIndex() + 1;
@@ -139,11 +140,12 @@ public void invoke(StudentImportDto dto, AnalysisContext context) {
 
         SysTbuser user = new SysTbuser()
         .setUsername(identityId)
-        .setPassword(MD5Utils.md5(identityId))
+        .setPassword(AesCbcCompatUtil.encryptZeroBase64(identityId))
         .setUserType(1)
         .setStatus(1)
         .setInstitutionId(institutionId)
         .setAddDatetime(LocalDateTime.now());
+        user.setNickname(student.getName());
         userInsertList.add(user);
 
         insertTotal++;

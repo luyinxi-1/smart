@@ -1,7 +1,6 @@
 package com.upc.modular.homepage.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.upc.modular.homepage.entity.HomePageNotice;
 import com.upc.modular.homepage.entity.HomePagePromotion;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.homepage.param.HomePagePromotionListSearchParam;
@@ -26,9 +25,9 @@ public interface IHomePagePromotionService extends IService<HomePagePromotion> {
 
     Boolean updatePromotion(HomePagePromotion homePagePromotion);
 
-    List<HomePagePromotion> getHomePagePromotion(HomePagePromotionListSearchParam param);
+    List<HomePagePromotionReturnParam> getHomePagePromotion(HomePagePromotionListSearchParam param);
 
-    Page<HomePagePromotion> getHomePagePromotionPage(HomePagePromotionPageSearchParam param);
+    Page<HomePagePromotionReturnParam> getHomePagePromotionPage(HomePagePromotionPageSearchParam param);
 
     HomePagePromotionReturnParam getHomePagePromotionDetails(Long promotionId);
 }

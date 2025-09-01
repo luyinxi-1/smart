@@ -2,12 +2,13 @@ package com.upc.modular.auth.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.common.responseparam.R;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.param.GetUserIsInInstitutionParam;
-import com.upc.modular.auth.param.ImportSysUserReturnParam;
 import com.upc.modular.auth.param.SysUserPageSearchParam;
+import com.upc.modular.auth.param.UpdatePasswordParam;
 import com.upc.modular.auth.param.UserLoginParam;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -35,4 +36,10 @@ public interface ISysUserService extends IService<SysTbuser> {
     Boolean getUserIsInInstitution(GetUserIsInInstitutionParam param);
 
     Boolean insert(SysTbuser sysTbuser);
+
+    R updatePassword(@RequestBody UpdatePasswordParam param);
+
+    R resetPassword(Long userId);
+
+    Long getUserInfo(Long id, Integer userType);
 }
