@@ -5,10 +5,7 @@ import com.upc.common.utils.FileManageUtil;
 import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.ServletOutputStream;
@@ -77,7 +74,7 @@ public class CommonController {
      * @param response
      */
     @GetMapping("/download")
-    public void download(String name, HttpServletResponse response) {
+    public void download(@RequestParam String name, HttpServletResponse response) {
         try {
             //response字符流-IO流下载到页面
             FileInputStream fileInputStream = new FileInputStream(name);

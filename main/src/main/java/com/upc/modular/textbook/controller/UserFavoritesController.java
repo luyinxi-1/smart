@@ -57,7 +57,11 @@ public class UserFavoritesController {
         return R.page(result);
     }
 
-
+    @ApiOperation(value = "查询教材的收藏状态")
+    @PostMapping("/isFavoriteTextbook")
+    public R<Boolean> isFavoriteTextbook(@RequestParam Long textBookId) {
+        return R.ok(userFavoritesService.isFavoriteTextbook(textBookId));
+    }
 
 
 

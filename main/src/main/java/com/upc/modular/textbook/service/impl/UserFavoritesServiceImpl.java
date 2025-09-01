@@ -131,4 +131,20 @@ public class UserFavoritesServiceImpl extends ServiceImpl<UserFavoritesMapper, U
 
         return voPage;
     }
+
+    @Override
+    public Boolean isFavoriteTextbook(Long textBookId) {
+        if (textBookId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+
+        LambdaQueryWrapper<UserFavorites> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(UserFavorites::getTextbookId, textBookId);
+        long count = this.count(queryWrapper);
+        if (count > 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

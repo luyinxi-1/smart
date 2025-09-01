@@ -32,7 +32,7 @@ public interface ITextbookCatalogService extends IService<TextbookCatalog> {
 
     void exportTextbookByString(HttpServletResponse response, String html);
 
-    ReadTextbookReturnParam readTextbook(Long id);
+    List<ReadTextbookReturnParam> readTextbook(Long id);
 
     List<TextbookTree> getTextbookCatalogTree(Long textbookId);
 }
