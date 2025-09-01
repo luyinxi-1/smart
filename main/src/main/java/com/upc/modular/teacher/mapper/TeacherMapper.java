@@ -24,4 +24,5 @@ public interface TeacherMapper extends BaseMapper<Teacher> {
     Long getInstitutionIdByTeacherId(@Param("teacherId") Long teacherId);
 
 
+    TeacherReturnVo getInformationByTeacherId(@Param("teacherId") Long teacherId);
 }
