@@ -22,4 +22,6 @@ public interface IUserFavoritesService extends IService<UserFavorites> {
     void deleteUserFavorites(IdParam idParam);
 
     Page<UserFavoritesVO> getPage(UserFavoritesPageSearch param);
+
+    Boolean isFavoriteTextbook(Long textBookId);
 }

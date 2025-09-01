@@ -7,6 +7,7 @@ import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.textbook.entity.TextbookAuthority;
+import com.upc.modular.textbook.param.TextbookAuthorityReturnParam;
 import com.upc.modular.textbook.param.TextbookAuthoritySearchParam;
 import com.upc.modular.textbook.service.ITextbookAuthorityService;
 import io.swagger.annotations.Api;
@@ -69,8 +70,8 @@ public class TextbookAuthorityController {
 
     @ApiOperation(value = "按条件分页查询教材权限")
     @PostMapping("/getTextbookAuthorityPage")
-    public R<Page<TextbookAuthority>> getTextbookAuthorityPage(@RequestBody TextbookAuthoritySearchParam param) {
-        Page<TextbookAuthority> textbookAuthorityPage = textbookAuthorityService.getTextbookAuthorityPage(param);
+    public R<Page<TextbookAuthorityReturnParam>> getTextbookAuthorityPage(@RequestBody TextbookAuthoritySearchParam param) {
+        Page<TextbookAuthorityReturnParam> textbookAuthorityPage = textbookAuthorityService.getTextbookAuthorityPage(param);
         return R.ok(textbookAuthorityPage);
     }
 

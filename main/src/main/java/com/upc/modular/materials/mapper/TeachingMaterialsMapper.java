@@ -23,4 +23,5 @@ public interface TeachingMaterialsMapper extends BaseMapper<TeachingMaterials> {
 
     Page<TeachingMaterialsReturnVo> getPage(Page<TeachingMaterialsReturnVo> page, @Param("param") TeachingMaterialsPageSearchDto param);
 
+
 }
