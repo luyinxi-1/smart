@@ -74,6 +74,19 @@
                  LEFT JOIN sys_tbuser u ON t.user_id = u.id
         WHERE t.id = #{teacherId}
     </select>
+    <select id="getInformationByTeacherId" resultType="com.upc.modular.teacher.vo.TeacherReturnVo"
+            parameterType="java.lang.Long">
+        SELECT
+            t.*,
+            u.institution_id,
+            i.institution_name
+        FROM
+            teacher t
+                LEFT JOIN sys_tbuser u ON t.user_id = u.id
+                LEFT JOIN institution i ON u.institution_id = i.id
+        WHERE
+            t.id = #{teacherId}
+    </select>
 
 
 </mapper>

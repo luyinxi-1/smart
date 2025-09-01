@@ -154,7 +154,7 @@ public class CourseClassListServiceImpl extends ServiceImpl<CourseClassListMappe
             resultList = courseClassListMapper.getMyCourseAdmin(id, param);
         }
         for (GetMyCourseReturnParam params : resultList) {
-            if (ObjectUtils.isEmpty(params.getId())) {
+            if (ObjectUtils.isNotEmpty(params.getId())) {
                 MyLambdaQueryWrapper<CourseTextbookList> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
                 lambdaQueryWrapper.eq(CourseTextbookList::getCourseId, params.getId());
                 long count = courseTextbookListService.count(lambdaQueryWrapper);
