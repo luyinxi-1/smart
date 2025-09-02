@@ -49,4 +49,12 @@ public class TextbookReviewController {
         return R.ok(textbookReviewService.getById(reviewId));
     }
 
+    @ApiOperation(value = "处理审核结果")
+    @PostMapping("/processReviewResult")
+    public R processReviewResult(@RequestParam Long reviewId,
+                                 @RequestParam Integer auditResult,
+                                 @RequestParam String description) {
+        textbookReviewService.processReviewResult(reviewId, auditResult, description);
+        return R.commonReturn(200, "处理成功", "");
+    }
 }
