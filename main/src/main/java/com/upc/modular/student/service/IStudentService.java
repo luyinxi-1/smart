@@ -62,4 +62,6 @@ public interface IStudentService extends IService<Student> {
     List<StudentUserResultParam> getStudent(IdParam idParam);
 
     R resetStudentPassword(String identityId);
+
+   StudentUserResultParam getStudentUserById(IdParam idParam);
 }
