@@ -1,11 +1,14 @@
 package com.upc.modular.course.controller.param;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import lombok.experimental.Accessors;
+
+import java.time.LocalDateTime;
 
 @Data
 @Accessors(chain = true)
@@ -28,7 +31,15 @@ public class CoursePageReturnParam {
     @ApiModelProperty("状态")
     private Integer status;
 
-    @ApiModelProperty("用户id")
-    private Long userId;
+    @ApiModelProperty("教师id")
+    private Long teacherId;
 
+    @ApiModelProperty("教师名称")
+    private String teacherName;
+
+    @ApiModelProperty("创建者姓名")
+    private String creator;
+
+    @ApiModelProperty("创建时间")
+    private LocalDateTime addDatetime;
 }
