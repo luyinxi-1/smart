@@ -79,6 +79,10 @@ public class Teacher implements Serializable {
     @TableField("introduction")
     private String introduction;
 
+    @ApiModelProperty("证件照")
+    @TableField("photo")
+    private String photo;
+
     @ApiModelProperty("学历（0：本科，1：硕士，2：博士）")
     @TableField("educational_background")
     private Integer educationalBackground = 0;
