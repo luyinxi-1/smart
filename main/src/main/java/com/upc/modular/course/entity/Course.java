@@ -51,9 +51,9 @@ public class Course implements Serializable {
     @TableField("status")
     private Integer status;
 
-    @ApiModelProperty("用户id")
-    @TableField("user_id")
-    private Long userId;
+    @ApiModelProperty("教师id")
+    @TableField("teacher_id")
+    private Long teacherId;
 
     @ApiModelProperty("课程封面")
     @TableField("course_picture")

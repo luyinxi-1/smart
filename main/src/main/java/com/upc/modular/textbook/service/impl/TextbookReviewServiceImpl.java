@@ -29,9 +29,9 @@ public class TextbookReviewServiceImpl extends ServiceImpl<TextbookReviewMapper,
 
     @Autowired
     private ITextbookService textbookService;
+
     @Override
     public void insertTextbookReview(TextbookReview textbookReview) {
-
         if (ObjectUtils.isEmpty(textbookReview)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
         }
@@ -49,18 +49,6 @@ public class TextbookReviewServiceImpl extends ServiceImpl<TextbookReviewMapper,
 
         // 2. Save the review record
         this.save(textbookReview);
-
-        // 3. 根据审核结果更新教材的最终审核状态
-        if (textbookReview.getAuditResult() != null) {
-            if (textbookReview.getAuditResult() == 1) {
-                // 审核通过
-                textbook.setReviewStatus(1);
-            } else if (textbookReview.getAuditResult() == 0) {
-                // 审核未通过
-                textbook.setReviewStatus(3);
-            }
-            textbookService.updateById(textbook);
-        }
     }
 
     @Override
@@ -70,5 +58,32 @@ public class TextbookReviewServiceImpl extends ServiceImpl<TextbookReviewMapper,
         queryWrapper.eq(param.getTextbookId() != null, TextbookReview::getTextbookId, param.getTextbookId());
         queryWrapper.orderByDesc(TextbookReview::getAddDatetime);
         return this.page(page, queryWrapper);
+    }
+
+    @Override
+    public void processReviewResult(Long reviewId, Integer auditResult, String description) {
+        // 1. 获取审核记录
+        TextbookReview review = this.getById(reviewId);
+        if (review == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "未找到ID为 " + reviewId + " 的审核记录");
+        }
+
+        // 2. 更新审核记录结果
+        review.setAuditResult(auditResult);
+        review.setDescriptionOfAuditResults(description);
+        this.updateById(review);
+
+        // 3. 更新教材状态
+        Textbook textbook = textbookService.getById(review.getTextbookId());
+        if (textbook != null) {
+            if (auditResult == 1) {
+                // 审核通过
+                textbook.setReviewStatus(1);
+            } else if (auditResult == 0) {
+                // 审核未通过
+                textbook.setReviewStatus(3);
+            }
+            textbookService.updateById(textbook);
+        }
     }
 }

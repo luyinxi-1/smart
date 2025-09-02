@@ -2,7 +2,9 @@ package com.upc.modular.client.controller;
 
 import com.upc.common.responseparam.R;
 import com.upc.modular.client.controller.param.SyncInfoReturnParam;
+import com.upc.modular.textbook.service.impl.LearningLogServiceImpl;
 import io.swagger.annotations.Api;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,8 +21,11 @@ import java.util.Map;
 @RequestMapping("/dataSync")
 public class DataSyncController {
 
+    @Autowired
+    private LearningLogServiceImpl learningLogService;
+
     @PostMapping("/learningLog")
-    public R<SyncInfoReturnParam> learningLog(@RequestBody ArrayList<Object> params) {
+    public R<SyncInfoReturnParam> learningLog(@RequestBody ArrayList<com.upc.modular.client.entity.LearningLog> params) {
         System.out.println("params: " + params);
         // 创建Map<String, String>
         Map<String, String> map = new HashMap<>();

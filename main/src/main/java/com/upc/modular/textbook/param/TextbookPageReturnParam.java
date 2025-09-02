@@ -24,4 +24,7 @@ public class TextbookPageReturnParam extends Textbook {
 
     @ApiModelProperty("审核表id")
     private Long reviewId;
+
+    @ApiModelProperty("教材权限状态（1 指定范围查看 2 公开查看）")
+    private Integer ViewStatus;
 }

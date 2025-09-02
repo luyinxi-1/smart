@@ -29,4 +29,8 @@ public interface ITextbookAuthorityService extends IService<TextbookAuthority> {
     boolean textbookAuthorityJudge(Long textBookId, Long userId);
 
     boolean textbookAuthorityEditJudge(Long textBookId, Long userId);
+
+    void updateTextbookAuthorityById(Integer authorityType, Long textbookId, List<Long> visibleInstituteIds);
+
+    void deleteTextbookAuthorityByTextbookIds(Integer authorityType, Long textbookId);
 }
