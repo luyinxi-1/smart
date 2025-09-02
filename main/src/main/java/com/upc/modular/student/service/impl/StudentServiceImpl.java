@@ -410,7 +410,7 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         List<Institution> institutions = institutionMapper.selectList(null);
         List<Long> allSubInstitutionIds = InstitutionUtil.getAllSubInstitutionIds(param.getInstitutionId(), institutions);
 
-        // 查询教师对应的机构ID（通过teacher.user_id -> sys_tbuser.institution_id）
+        // 查询学生对应的机构ID（通过teacher.user_id -> sys_tbuser.institution_id）
         Long institutionId = studentMapper.getInstitutionIdByStudentId(param.getStudentId());
 
         if (institutionId == null) {
@@ -550,6 +550,41 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         lambdaQueryWrapper.eq(Student::getIdentityId, identityId);
         Student student = this.getOne(lambdaQueryWrapper);
         return sysUserService.resetPassword(student.getUserId());
+    }
+
+    @Override
+    public StudentUserResultParam getStudentUserById(IdParam idParam) {
+        List<Long> idList = idParam.getIdList();
+        if (idList == null || idList.isEmpty()) {
+            return null;
+        }
+
+        // 这里只取第一个学生id
+        Long studentId = idList.get(0);
+
+        // 查学生信息
+        Student student = studentMapper.selectById(studentId);
+        if (student == null) {
+            return null;
+        }
+
+        // 封装返回参数
+        StudentUserResultParam param = new StudentUserResultParam();
+        BeanUtils.copyProperties(student, param);
+
+        // 查登录日志
+        SysLog sysLog = sysLogMapper.selectOne(
+                new MyLambdaQueryWrapper<SysLog>()
+                        .eq(SysLog::getUserId, student.getUserId())
+                        .eq(SysLog::getLogContent, "/sys-user/login")
+                        .orderByDesc(SysLog::getAddDatetime)
+                        .last("LIMIT 1")
+        );
+        if (sysLog != null) {
+            param.setLastLoginTime(sysLog.getAddDatetime());
+        }
+
+        return param;
     }
 
 

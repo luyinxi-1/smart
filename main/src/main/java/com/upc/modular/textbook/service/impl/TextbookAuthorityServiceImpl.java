@@ -1,6 +1,7 @@
 package com.upc.modular.textbook.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -48,6 +49,21 @@ public class TextbookAuthorityServiceImpl extends ServiceImpl<TextbookAuthorityM
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "ID列表不能为空");
         }
         this.removeBatchByIds(ids);
+    }
+
+    @Override
+    public void deleteTextbookAuthorityByTextbookIds(Integer authorityType, Long textbookId) {
+
+        if (authorityType == null || textbookId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+
+        LambdaUpdateWrapper<TextbookAuthority> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(TextbookAuthority::getTextbookId, textbookId);
+        updateWrapper.eq(TextbookAuthority::getAuthorityType, authorityType);
+
+        // DELETE FROM textbook_authority WHERE textbook_id = ? AND authority_type = ?
+        this.remove(updateWrapper);
     }
 
     @Override
@@ -211,7 +227,7 @@ public class TextbookAuthorityServiceImpl extends ServiceImpl<TextbookAuthorityM
         queryWrapper.eq(TextbookAuthority::getAuthorityType, 2);
         List<TextbookAuthority> textbookAuthorities = this.list(queryWrapper);
         if (textbookAuthorities.isEmpty()) {
-            return false;
+            return true;
         }
         for (TextbookAuthority textbookAuthority : textbookAuthorities) {
             Long visibleInstituteId = textbookAuthority.getVisibleInstituteId();
@@ -264,5 +280,30 @@ public class TextbookAuthorityServiceImpl extends ServiceImpl<TextbookAuthorityM
         return false;
     }
 
+    @Override
+    public void updateTextbookAuthorityById(Integer authorityType, Long textbookId, List<Long> visibleInstituteIds) {
+        if (authorityType == null || textbookId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+
+        this.deleteTextbookAuthorityByTextbookIds(authorityType, textbookId);
+
+
+        // 往TextbookAuthority表批量插入数据，textbook_id都是textbookId， visible_institute_id分别是visibleInstituteIds的每一条数据。
+        if (CollectionUtils.isEmpty(visibleInstituteIds)) {
+            return;
+        }
+
+        List<TextbookAuthority> authorityList = visibleInstituteIds.stream().map(instituteId -> {
+            TextbookAuthority authority = new TextbookAuthority();
+            authority.setTextbookId(textbookId);
+            authority.setAuthorityType(authorityType);
+            authority.setVisibleInstituteId(instituteId); // 设置每个实体对应的单位ID
+            return authority;
+        }).collect(Collectors.toList());
+
+        this.saveBatch(authorityList);
+
+    }
 
 }

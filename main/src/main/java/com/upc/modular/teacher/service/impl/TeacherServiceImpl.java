@@ -428,6 +428,14 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         }
     }
 
+    @Override
+    public TeacherReturnVo getInformationByTeacherId(Long teacherId) {
+        if (ObjectUtils.isEmpty(teacherId)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
+        }
+        return teacherMapper.getInformationByTeacherId(teacherId);
+    }
+
     /**
      * 将Teacher实体转换为用于Excel导出的DTO对象
      * @param teacher 教师实体

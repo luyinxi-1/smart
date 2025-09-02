@@ -47,4 +47,6 @@ public interface ITeacherService extends IService<Teacher> {
     Boolean updateBatchTeacher(updateBatchTeacherParam param);
 
     void exportTeacher(HttpServletResponse response, exportTeacherSearchParam param);
+
+    TeacherReturnVo getInformationByTeacherId(Long teacherId);
 }

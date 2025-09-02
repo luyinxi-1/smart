@@ -17,6 +17,7 @@
         <result column="email" property="email" />
         <result column="phone" property="phone" />
         <result column="introduction" property="introduction" />
+        <result column="photo" property="photo" />
         <result column="creator" property="creator" />
         <result column="add_datetime" property="addDatetime" />
         <result column="operator" property="operator" />
@@ -73,6 +74,19 @@
         FROM teacher t
                  LEFT JOIN sys_tbuser u ON t.user_id = u.id
         WHERE t.id = #{teacherId}
+    </select>
+    <select id="getInformationByTeacherId" resultType="com.upc.modular.teacher.vo.TeacherReturnVo"
+            parameterType="java.lang.Long">
+        SELECT
+            t.*,
+            u.institution_id,
+            i.institution_name
+        FROM
+            teacher t
+                LEFT JOIN sys_tbuser u ON t.user_id = u.id
+                LEFT JOIN institution i ON u.institution_id = i.id
+        WHERE
+            t.id = #{teacherId}
     </select>
 
 

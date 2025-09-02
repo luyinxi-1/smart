@@ -97,6 +97,7 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
         LambdaQueryWrapper<DiscussionTopic> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.like(StringUtils.isNotBlank(param.getTopicTitle()), DiscussionTopic::getTopicTitle, param.getTopicTitle());
         queryWrapper.eq(param.getType() != null, DiscussionTopic::getType, param.getType());
+        queryWrapper.eq(param.getMessageType() != null, DiscussionTopic::getMessageType, param.getMessageType());
         queryWrapper.eq(param.getTextbookId() != null, DiscussionTopic::getTextbookId, param.getTextbookId());
         queryWrapper.eq(param.getTextbookCatalogId() != null, DiscussionTopic::getTextbookCatalogId, param.getTextbookCatalogId());
 
