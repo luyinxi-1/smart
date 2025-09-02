@@ -115,15 +115,6 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         }
         List<TextbookPageReturnParam> returnParams = new ArrayList<>();
         if (UserUtils.get().getUserType() == 0) {
-            for (TextbookPageReturnParam returnParam : textbookPageReturnParams) {
-                Integer integer = textbookAuthorityEditJudge(returnParam.getId(), UserUtils.get().getId());
-                if (integer == 1) {
-                    returnParam.setViewStatus(1);
-                }
-                if (integer == 2){
-                    returnParam.setViewStatus(2);
-                }
-            }
             returnParams.addAll(textbookPageReturnParams);
         } else {
             for (TextbookPageReturnParam returnParam : textbookPageReturnParams) {
