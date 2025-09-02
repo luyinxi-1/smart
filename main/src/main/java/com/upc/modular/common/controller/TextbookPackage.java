@@ -17,9 +17,15 @@ import org.jsoup.nodes.Entities;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.FileSystemResource;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -66,72 +72,60 @@ public class TextbookPackage {
 
     @ApiOperation(value = "教材打包")
     @PostMapping("/do")
-    public R textbookPackage(@RequestParam String targetDeviceID,
-                             @RequestParam Long textbookId,
-                             @RequestParam String targetPath) {
-
-        if (StringUtils.isEmpty(targetPath)) {
-            return R.fail("错误：必须提供一个有效的目标输出路径 (targetPath)！");
-        }
-        if (targetDeviceID == null || targetDeviceID.isEmpty() || "YOUR_WINDOWS_UUID_HERE".equals(targetDeviceID)) {
-            return R.fail("错误：请提供一个有效的目标设备ID (targetDeviceID)！");
-        }
-
-        // 2. 根据textbookId查询教材名称作为outputBaseName
+    // 1. 移除 @RequestParam String targetPath
+    // 2. 将返回类型修改为 ResponseEntity<Resource>
+    public ResponseEntity<Resource> textbookPackage(@RequestParam String targetDeviceID,
+                                                    @RequestParam Long textbookId) {
+        // ... [查询教材名称的代码保持不变] ...
         Textbook textbook = textbookMapper.selectById(textbookId);
         if (textbook == null) {
-            return R.fail("错误：未找到ID为 " + textbookId + " 的教材信息。");
+            // 对于返回文件的接口，错误处理需要特别设计，这里简化处理
+            return ResponseEntity.badRequest().body(null);
         }
-        String outputBaseName = textbook.getTextbookName();
-        // 对文件名进行基本清理，防止路径问题
-        outputBaseName = outputBaseName.replaceAll("[\\\\/:*?\"<>|]", "_");
+        String outputBaseName = textbook.getTextbookName().replaceAll("[\\\\/:*?\"<>|]", "_");
 
-        Path tempHtmlPath = null;
-        Path tempResourceDir = null;
+        // 创建一个唯一的临时目录用于存放本次操作的所有文件
+        Path temporaryWorkDir = null;
         try {
-            // 步骤 1: 生成原始的HTML文件
-//            System.out.println("步骤 1: 开始从数据库生成HTML文件...");
-            tempHtmlPath = generateTextbookHtml(textbookId);
-//            System.out.println("-> HTML文件已生成在: " + tempHtmlPath.toAbsolutePath());
+            temporaryWorkDir = Files.createTempDirectory("package_" + textbookId + "_");
 
-            // 步骤 2: 收集本地图片资源并重写HTML路径
-//            System.out.println("步骤 2: 开始收集本地图片并重写HTML路径...");
-            Path sourceImageDir = Paths.get(basePath + textbookId.toString()); // 源图片文件夹路径
-            tempResourceDir = collectLocalResourcesAndRewriteHtml(tempHtmlPath, Paths.get(targetPath), sourceImageDir);
-//            System.out.println("-> 图片已收集至: " + tempResourceDir.resolve(IMAGE_SUBFOLDER_NAME).toAbsolutePath());
-//            System.out.println("-> HTML图片路径已更新为相对路径。");
+            // 步骤 1 & 2: 在临时目录中生成HTML和资源
+            Path tempHtmlPath = generateTextbookHtml(textbookId, temporaryWorkDir, outputBaseName);
+            Path sourceImageDir = Paths.get(basePath + textbookId.toString());
+            collectLocalResourcesAndRewriteHtml(tempHtmlPath, temporaryWorkDir, sourceImageDir);
 
-            // 步骤 3: 将所有内容打包和编译
-//            System.out.println("步骤 3: 开始执行加密打包和Go程序编译...");
-            packageAndCompile(targetDeviceID, tempHtmlPath, tempResourceDir, outputBaseName, targetPath);
+            // 步骤 3: 打包和编译，所有输出也都在这个临时目录中
+            Path finalPackagePath = packageAndCompile(targetDeviceID, temporaryWorkDir, outputBaseName);
 
-//            System.out.println("\n🎉🎉🎉 全部流程成功完成！ 🎉🎉🎉");
+            // 步骤 4: 准备文件下载
+            byte[] fileContent = Files.readAllBytes(finalPackagePath);
+            Resource resource = new ByteArrayResource(fileContent);
+            String downloadFilename = outputBaseName + "_Package.zip";;
+
+            // 设置HTTP头，让浏览器知道这是一个需要下载的文件
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + outputBaseName + "_Package.zip");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(resource);
 
         } catch (Exception e) {
             System.err.println("❌ 处理失败！");
             e.printStackTrace();
-            return R.fail("打包过程中发生错误: " + e.getMessage());
+            // 实际项目中应返回更友好的错误信息
+            return ResponseEntity.internalServerError().body(null);
         } finally {
-            // 步骤 4: 清理所有临时文件和文件夹
-//            System.out.println("步骤 4: 开始清理临时文件...");
-            if (tempHtmlPath != null) {
+            // 步骤 5: 清理服务器上的临时目录和文件（非常重要！）
+            if (temporaryWorkDir != null) {
                 try {
-                    Files.deleteIfExists(tempHtmlPath);
-//                    System.out.println("-> 临时HTML文件已清理: " + tempHtmlPath.toAbsolutePath());
-                } catch (IOException e) {
-                    System.err.println("警告：未能删除临时HTML文件: " + tempHtmlPath);
-                }
-            }
-            if (tempResourceDir != null) {
-                try {
-                    deleteDirectoryRecursively(tempResourceDir);
-//                    System.out.println("-> 临时资源文件夹已清理: " + tempResourceDir.toAbsolutePath());
-                } catch (IOException e) {
-                    System.err.println("警告：未能删除临时资源文件夹: " + tempResourceDir);
+                    deleteDirectoryRecursively(temporaryWorkDir);
+                } catch (IOException ex) {
+                    System.err.println("警告：未能删除临时文件夹: " + temporaryWorkDir);
                 }
             }
         }
-        return R.ok("打包成功！请检查输出目录：" + targetPath);
     }
 
     /**
@@ -204,33 +198,44 @@ public class TextbookPackage {
         }
     }
 
-    private Path generateTextbookHtml(Long textbookId) throws Exception {
+    /**
+     * 生成教材HTML文件，并将其保存在指定的工作目录中。
+     * @param textbookId 教材ID
+     * @param workDir 本次请求的唯一临时工作目录
+     * @param outputBaseName 教材的名称，用作HTML文件名
+     * @return 生成的HTML文件的路径
+     * @throws IOException 如果文件操作失败或未找到内容
+     */
+    private Path generateTextbookHtml(Long textbookId, Path workDir, String outputBaseName) throws IOException {
         LambdaQueryWrapper<TextbookCatalog> lambdaQueryWrapper = new LambdaQueryWrapper<>();
         lambdaQueryWrapper.eq(TextbookCatalog::getTextbookId, textbookId);
         lambdaQueryWrapper.orderByAsc(TextbookCatalog::getSort);
         List<TextbookCatalog> textbookCatalogs = textbookCatalogMapper.selectList(lambdaQueryWrapper);
 
         if (textbookCatalogs.isEmpty()) {
-            throw new RuntimeException("未找到ID为 " + textbookId + " 的教材内容。");
+            throw new IOException("未找到ID为 " + textbookId + " 的教材内容。");
         }
 
+        // --- [后续的HTML内容拼接逻辑保持不变] ---
         List<String> htmlFragments = textbookCatalogs.stream()
-                .sorted(Comparator.comparing(TextbookCatalog::getSort))
                 .flatMap(catalog -> Stream.of("<h2>" + catalog.getCatalogName() + "</h2>", catalog.getContent()))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
         StringBuilder htmlBuilder = new StringBuilder();
-        htmlBuilder.append("<!DOCTYPE html><html lang=\"zh-CN\"><head><meta charset='UTF-8'><title>教材内容</title></head><body>");
+        htmlBuilder.append("<!DOCTYPE html><html lang=\"zh-CN\"><head><meta charset='UTF-8'><title>").append(outputBaseName).append("</title></head><body>");
         for (String fragment : htmlFragments) {
             htmlBuilder.append(fragment).append("\n");
         }
         htmlBuilder.append("</body></html>");
 
         String mergedHtml = sanitizeHtml(htmlBuilder.toString());
-        Path tempHtmlFile = Files.createTempFile("textbook_" + textbookId + "_", ".html");
-        Files.write(tempHtmlFile, mergedHtml.getBytes(StandardCharsets.UTF_8));
-        return tempHtmlFile;
+
+        // --- [核心修改点：不再创建随机临时文件，而是在指定工作目录中创建固定名称的文件] ---
+        Path htmlFile = workDir.resolve(outputBaseName + ".html");
+        Files.write(htmlFile, mergedHtml.getBytes(StandardCharsets.UTF_8));
+
+        return htmlFile;
     }
 
     private String sanitizeHtml(String html) {
@@ -241,19 +246,36 @@ public class TextbookPackage {
     }
 
     /**
-     * 完整的打包和编译流程。MODIFIED: 接收动态的targetPath
+     * 核心打包编译方法，现在返回最终打包好的文件路径
+     * @return 包含.exe和加密.zip的总包路径
      */
-    public static void packageAndCompile(String deviceId, Path mainFile, Path resourceDir, String outputBaseName, String targetPath) throws Exception {
+    public Path packageAndCompile(String deviceId, Path workDir, String outputBaseName) throws Exception {
         String password = generateRandomPassword(12);
         System.out.println(" -> 1: 生成随机密码 -> " + password);
 
-        Path zipOutputPath = Paths.get(targetPath, outputBaseName + ".zip");
-        createEncryptedZip(mainFile, resourceDir, zipOutputPath, password);
-        System.out.println(" -> 2: 创建加密ZIP包 -> " + zipOutputPath.toAbsolutePath());
+        // 在工作目录中找到HTML文件和resource文件夹
+        Path mainFile = workDir.resolve(outputBaseName + ".html"); // 假设 generateTextbookHtml 已按此命名
+        Path resourceDir = workDir.resolve(RESOURCE_FOLDER_NAME);
 
-        Path exeOutputPath = Paths.get(targetPath, outputBaseName + ".exe");
+        // 1. 创建加密的教材内容ZIP包
+        Path contentZipPath = workDir.resolve(outputBaseName + "_Content.zip");
+        createEncryptedZip(mainFile, resourceDir, contentZipPath, password);
+        System.out.println(" -> 2: 创建加密内容ZIP包 -> " + contentZipPath.toAbsolutePath());
+
+        // 2. 编译Go解锁程序
+        Path exeOutputPath = workDir.resolve(outputBaseName + "_Unlocker.exe");
         compileGoExecutable(deviceId, password, exeOutputPath);
         System.out.println(" -> 3: 编译Go可执行文件 -> " + exeOutputPath.toAbsolutePath());
+
+        // 3. 将上面两步生成的文件，打包成一个最终的ZIP包供用户下载
+        Path finalPackagePath = workDir.resolve(outputBaseName + "_Package.zip");
+        System.out.println(" -> 4: 创建最终下载包 -> " + finalPackagePath.toAbsolutePath());
+        try (ZipFile finalZip = new ZipFile(finalPackagePath.toFile())) {
+            finalZip.addFile(contentZipPath.toFile());
+            finalZip.addFile(exeOutputPath.toFile());
+        }
+
+        return finalPackagePath;
     }
 
     /**
