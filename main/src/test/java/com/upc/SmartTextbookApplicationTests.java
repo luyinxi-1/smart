@@ -146,47 +146,47 @@ class SmartTextbookApplicationTests {
 //            e.printStackTrace();
 //        }
 //    }
-    @Test
-    public void mergeHtmlFragmentsToWord() {
-        try {
-            LambdaQueryWrapper<TextbookCatalog> lambdaQueryWrapper = new LambdaQueryWrapper<>();
-            lambdaQueryWrapper.eq(TextbookCatalog::getTextbookId, 10091L);
-            lambdaQueryWrapper.orderByAsc(TextbookCatalog::getSort);
-            List<TextbookCatalog> textbookCatalogs = textbookCatalogMapper.selectList(lambdaQueryWrapper);
-            List<String> htmlFragments = textbookCatalogs.stream()
-                    .sorted(Comparator.comparing(TextbookCatalog::getSort))
-                    .flatMap(catalog -> Stream.of(catalog.getCatalogName(), catalog.getContent()))
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-            String outputDocxPath = "C:\\Users\\Administrator\\Desktop\\recovered.docx";
-            // 1. 拼接HTML结构
-            StringBuilder htmlBuilder = new StringBuilder();
-            htmlBuilder.append("<html><head><meta charset='UTF-8'></head><body>");
-
-            for (String fragment : htmlFragments) {
-                htmlBuilder.append(fragment).append("\n");
-            }
-
-            htmlBuilder.append("</body></html>");
-
-            // 2. 转义检查（防止 <body> 冲突）
-            String mergedHtml = sanitizeHtml(htmlBuilder.toString());
-
-            // 3. 保存临时HTML文件（可选）
-            String tempHtmlPath = "temp_merged.html";
-            Files.write(Paths.get(tempHtmlPath), mergedHtml.getBytes(StandardCharsets.UTF_8));
-
-            // 4. 加载并保存为 Word 文档
-            Document doc = new Document(tempHtmlPath);
-            doc.save(outputDocxPath, SaveFormat.DOCX);
-
-            System.out.println("✅ 合并并生成 Word 成功: " + outputDocxPath);
-
-        } catch (Exception e) {
-            System.err.println("❌ 合并 HTML 转 Word 失败！");
-            e.printStackTrace();
-        }
-    }
+//    @Test
+//    public void mergeHtmlFragmentsToWord() {
+//        try {
+//            LambdaQueryWrapper<TextbookCatalog> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+//            lambdaQueryWrapper.eq(TextbookCatalog::getTextbookId, 10091L);
+//            lambdaQueryWrapper.orderByAsc(TextbookCatalog::getSort);
+//            List<TextbookCatalog> textbookCatalogs = textbookCatalogMapper.selectList(lambdaQueryWrapper);
+//            List<String> htmlFragments = textbookCatalogs.stream()
+//                    .sorted(Comparator.comparing(TextbookCatalog::getSort))
+//                    .flatMap(catalog -> Stream.of(catalog.getCatalogName(), catalog.getContent()))
+//                    .filter(Objects::nonNull)
+//                    .collect(Collectors.toList());
+//            String outputDocxPath = "C:\\Users\\Administrator\\Desktop\\recovered.docx";
+//            // 1. 拼接HTML结构
+//            StringBuilder htmlBuilder = new StringBuilder();
+//            htmlBuilder.append("<html><head><meta charset='UTF-8'></head><body>");
+//
+//            for (String fragment : htmlFragments) {
+//                htmlBuilder.append(fragment).append("\n");
+//            }
+//
+//            htmlBuilder.append("</body></html>");
+//
+//            // 2. 转义检查（防止 <body> 冲突）
+//            String mergedHtml = sanitizeHtml(htmlBuilder.toString());
+//
+//            // 3. 保存临时HTML文件（可选）
+//            String tempHtmlPath = "temp_merged.html";
+//            Files.write(Paths.get(tempHtmlPath), mergedHtml.getBytes(StandardCharsets.UTF_8));
+//
+//            // 4. 加载并保存为 Word 文档
+//            Document doc = new Document(tempHtmlPath);
+//            doc.save(outputDocxPath, SaveFormat.DOCX);
+//
+//            System.out.println("✅ 合并并生成 Word 成功: " + outputDocxPath);
+//
+//        } catch (Exception e) {
+//            System.err.println("❌ 合并 HTML 转 Word 失败！");
+//            e.printStackTrace();
+//        }
+//    }
 //
 //    @Test
 //    public void mergeHtmlFragmentsToWord() {

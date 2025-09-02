@@ -1,5 +1,6 @@
 package com.upc.modular.auth.param.tree;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.upc.modular.auth.entity.SysAuthorityModel;
 import com.upc.modular.auth.utils.MyBeanUtils;
@@ -49,6 +50,9 @@ public class FunctionAuthNode {
 
     @ApiModelProperty("权限名")
     private String authName;
+
+    @ApiModelProperty("图片链接")
+    private String picUrl;
 
     @ApiModelProperty("是否外链")
     private Integer haveUrl;

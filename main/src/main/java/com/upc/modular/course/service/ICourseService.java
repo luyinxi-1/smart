@@ -28,4 +28,5 @@ public interface ICourseService extends IService<Course> {
     void exportCourseData(HttpServletResponse response, IdParam param);
 
 
+    Long inserCourse(Course course);
 }

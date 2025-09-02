@@ -7,6 +7,8 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.util.List;
+
 @Data
 @Accessors(chain = true)
 public class ClassInfoReturnParam {
@@ -15,8 +17,11 @@ public class ClassInfoReturnParam {
     private String name;
 
     @ApiModelProperty("年级")
-    private Integer grade;
+    private Long grade;
 
     @ApiModelProperty("学生数量")
     private Long studentCount;
+
+    @ApiModelProperty("班级id列表")
+    private Long classId;
 }

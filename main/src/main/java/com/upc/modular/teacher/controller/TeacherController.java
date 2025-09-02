@@ -127,7 +127,9 @@ public class TeacherController {
         teacherService.exportTeacher(response, param);
     }
 
-
-
-
+    @ApiOperation("根据教师id查询信息")
+    @PostMapping("/getInformationByTeacherId")
+    public R<TeacherReturnVo> getInformationByTeacherId(@RequestParam("teacherId") Long teacherId) {
+        return R.ok(teacherService.getInformationByTeacherId(teacherId));
+    }
 }

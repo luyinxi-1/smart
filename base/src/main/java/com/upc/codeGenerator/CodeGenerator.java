@@ -16,7 +16,7 @@ public class CodeGenerator {
 
 //        表名
         String[] tables = {
-                "materials_textbook_mapping"
+                "teacher_annotation"
         };
 
         new CodeGeneratorConfig(author, moduleName, tables).generate();

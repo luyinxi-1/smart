@@ -40,6 +40,13 @@ public class TextbookAuthorityController {
         return R.commonReturn(200, "删除成功", "");
     }
 
+    @ApiOperation(value = "根据教材id删除教材权限信息")
+    @PostMapping("/deleteTextbookAuthorityByTextbookIds")
+    public R deleteTextbookAuthorityByTextbookIds(@RequestParam Integer authorityType, @RequestParam Long textbookId) {
+        textbookAuthorityService.deleteTextbookAuthorityByTextbookIds(authorityType, textbookId);
+        return R.commonReturn(200, "删除成功", "");
+    }
+
     @ApiOperation(value = "新增教材权限信息")
     @PostMapping("/insertTextbookAuthority")
     public R insertTextbookAuthority(@RequestBody TextbookAuthority textbookAuthority) {
@@ -61,12 +68,13 @@ public class TextbookAuthorityController {
         return R.commonReturn(200, "查询成功", textbookAuthority);
     }
 
-//    @ApiOperation(value = "修改教材权限信息")
-//    @PostMapping("/updateTextbookAuthorityById")
-//    public R updateTextbookAuthorityById(@RequestBody TextbookAuthority textbookAuthority) {
-//        textbookAuthorityService.updateTextbookAuthorityById(textbookAuthority);
-//        return R.commonReturn(200, "修改成功", "");
-//    }
+    @ApiOperation(value = "修改教材权限信息")
+    @PostMapping("/updateTextbookAuthorityById")
+    public R updateTextbookAuthorityById(@RequestParam Integer authorityType, @RequestParam Long textbookId,
+                                         @RequestBody List<Long> visibleInstituteIds) {
+        textbookAuthorityService.updateTextbookAuthorityById(authorityType, textbookId, visibleInstituteIds);
+        return R.commonReturn(200, "修改成功", "");
+    }
 
     @ApiOperation(value = "按条件分页查询教材权限")
     @PostMapping("/getTextbookAuthorityPage")

@@ -5,13 +5,14 @@
     <!-- 通用查询映射结果 -->
     <resultMap id="BaseResultMap" type="com.upc.modular.textbook.entity.LearningLog">
         <id column="id" property="id" />
-        <result column="remark" property="remark" />
-        <result column="textbook_id" property="textbookId" />
-        <result column="client_uuid" property="clientUuid" />
-        <result column="catalogue_id" property="catalogueId" />
-        <result column="study_datetime" property="studyDatetime" />
         <result column="user_id" property="userId" />
+        <result column="textbook_id" property="textbookId" />
+        <result column="catalogue_id" property="catalogueId" />
+        <result column="client_uuid" property="clientUuid" />
         <result column="add_datetime" property="addDatetime" />
+        <result column="operation_datetime" property="operationDatetime" />
+        <result column="creator" property="creator" />
+        <result column="operator" property="operator" />
     </resultMap>
     <select id="recentStudy" resultType="com.upc.modular.textbook.param.RecentStudyReturnParam">
         SELECT
@@ -39,7 +40,7 @@
                 INNER JOIN (
                 SELECT
                     textbook_id,
-                    MAX(study_datetime) AS last_study_time
+                    MAX(add_datetime) AS last_study_time
                 FROM
                     learning_log
                 WHERE

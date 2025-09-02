@@ -26,7 +26,7 @@ public class FileManageUtil {
      *
      * @param file
      * @param folderPath 保存文件的目录，标准：upload/xxxx
-     * @return
+     * @return 保存的文件路径
      */
     public static String uploadFile(MultipartFile file, Path folderPath, String fileName) {
         // 验证文件类型
