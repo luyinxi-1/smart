@@ -20,8 +20,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -287,34 +289,43 @@ public class TextbookPackage {
     /**
      * 编译Go程序
      */
-    private static void compileGoExecutable(String deviceId, String password, Path exeOutputPath) throws IOException, InterruptedException, URISyntaxException {
-        // 定义工作区路径
+    private static void compileGoExecutable(String deviceId, String password, Path exeOutputPath) throws IOException, InterruptedException {
+        // 确保 GO_BUILD_WORKSPACE 是正确的服务器路径, 例如 "/opt/GoBuildWorkspace"
+        final String GO_BUILD_WORKSPACE = "/opt/GoBuildWorkspace";
         Path workspaceDir = Paths.get(GO_BUILD_WORKSPACE);
         if (!Files.isDirectory(workspaceDir)) {
             throw new IOException("Go编译工作区不存在，请先手动创建: " + workspaceDir);
         }
 
-        URL resourceUrl = TextbookPackage.class.getResource("/template.go");
-        if (resourceUrl == null) {
+        String templateContent;
+        InputStream inputStream = TextbookPackage.class.getResourceAsStream("/template.go");
+        if (inputStream == null) {
             throw new IOException("无法在类路径中找到资源文件: template.go");
         }
 
-        Path templatePath;
-        try {
-            templatePath = Paths.get(resourceUrl.toURI());
-        } catch (java.nio.file.FileSystemNotFoundException e) {
-            java.nio.file.FileSystems.newFileSystem(resourceUrl.toURI(), java.util.Collections.emptyMap());
-            templatePath = Paths.get(resourceUrl.toURI());
+        // 使用Java 8兼容的方式读取流
+        try (InputStream is = inputStream) {
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            int nRead;
+            byte[] data = new byte[1024];
+            while ((nRead = is.read(data, 0, data.length)) != -1) {
+                buffer.write(data, 0, nRead);
+            }
+            byte[] allBytes = buffer.toByteArray();
+            templateContent = new String(allBytes, StandardCharsets.UTF_8);
         }
 
-        String templateContent = new String(Files.readAllBytes(templatePath), StandardCharsets.UTF_8);
+        // 替换占位符
         String finalGoCode = templateContent
                 .replace("DEVICE_CODE_PLACEHOLDER", deviceId)
                 .replace("PASSWORD_PLACEHOLDER", password);
 
+        // 创建临时Go源文件
         Path tempGoFile = Files.createTempFile(workspaceDir, "unlocker_", ".go");
         Files.write(tempGoFile, finalGoCode.getBytes(StandardCharsets.UTF_8));
 
+        // 准备并执行编译命令
+        // 注意：这里的编译参数是为Windows准备的，部署到Linux时需要修改
         ProcessBuilder pb = new ProcessBuilder(
                 "go", "build", "-ldflags=-H=windowsgui", "-o", exeOutputPath.toString(), tempGoFile.getFileName().toString()
         );
