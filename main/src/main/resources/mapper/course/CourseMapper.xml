@@ -10,7 +10,7 @@
         <result column="credit" property="credit" />
         <result column="description" property="description" />
         <result column="status" property="status" />
-        <result column="user_id" property="userId" />
+        <result column="teacher_id" property="teacherId" />
         <result column="creator" property="creator" />
         <result column="add_datetime" property="addDatetime" />
         <result column="operator" property="operator" />

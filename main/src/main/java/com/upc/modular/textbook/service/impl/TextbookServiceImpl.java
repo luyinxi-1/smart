@@ -111,7 +111,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             textbookPageReturnParams = textbookMapper.selectTextbookPage(param, Collections.emptyList(), UserUtils.get().getUserType());
         } else {
             List<Long> classificationIds = textbookClassificationService.selectTextbookClassificationSubtreeIdList(param.getClassificationId());
-             textbookPageReturnParams = textbookMapper.selectTextbookPage(param, classificationIds, UserUtils.get().getUserType());
+            textbookPageReturnParams = textbookMapper.selectTextbookPage(param, classificationIds, UserUtils.get().getUserType());
         }
         List<TextbookPageReturnParam> returnParams = new ArrayList<>();
         if (UserUtils.get().getUserType() == 0) {
@@ -121,6 +121,13 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                 if (textbookAuthorityEditJudge(returnParam.getId(), UserUtils.get().getId())) {
                     returnParams.add(returnParam);
                 }
+            }
+        }
+        for (TextbookPageReturnParam returnParam : returnParams) {
+            if (judgeTextbookViewStatus(returnParam)) {
+                returnParam.setViewStatus(1);
+            } else {
+                returnParam.setViewStatus(2);
             }
         }
         long current = Math.max(1, param.getCurrent());
@@ -308,7 +315,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             return true;
         }
         if (textbookAuthorities.isEmpty()) {
-            return true;
+            return false;
         }
         for (TextbookAuthority textbookAuthority : textbookAuthorities) {
             if (Objects.equals(textbookAuthority.getUserId(), userId)) {
@@ -317,5 +324,13 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         }
 
         return false;
+    }
+
+    public boolean judgeTextbookViewStatus(TextbookPageReturnParam returnParam) {
+        LambdaQueryWrapper<TextbookAuthority> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TextbookAuthority::getTextbookId, returnParam.getId());
+        queryWrapper.eq(TextbookAuthority::getAuthorityType, 2);
+        List<TextbookAuthority> textbookAuthorities = textbookAuthorityMapper.selectList(queryWrapper);
+        return textbookAuthorities.isEmpty();
     }
 }
