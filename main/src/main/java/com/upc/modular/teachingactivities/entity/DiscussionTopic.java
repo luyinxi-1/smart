@@ -41,6 +41,10 @@ public class DiscussionTopic implements Serializable {
     @TableField("type")
     private Integer type;
 
+    @ApiModelProperty("留言的类型")
+    @TableField("message_type")
+    private Integer messageType;
+
     @ApiModelProperty("讨论关联的教材主表")
     @TableField("textbook_id")
     private Long textbookId;
