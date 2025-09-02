@@ -25,7 +25,7 @@ import springfox.documentation.spring.web.SpringfoxWebMvcConfiguration;
  */
 @Configuration
 @EnableSwagger2WebMvc // 启用 Swagger 2 MVC 支持
-@EnableWebMvc // 确保Spring MVC配置正常工作
+// @EnableWebMvc // 确保Spring MVC配置正常工作
 @Import(SpringfoxWebMvcConfiguration.class) // 导入Springfox的WebMvc配置，确保其内部组件被正确扫描
 public class Knife4jConfig implements WebMvcConfigurer { // 实现 WebMvcConfigurer 接口
 
