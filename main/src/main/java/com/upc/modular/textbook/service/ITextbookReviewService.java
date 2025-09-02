@@ -23,4 +23,12 @@ public interface ITextbookReviewService extends IService<TextbookReview> {
      * @return 分页结果
      */
     Page<TextbookReview> getPageByTextbookId(TextbookReviewPageParam param);
+
+    /**
+     * 处理审核结果
+     * @param reviewId 审核记录ID
+     * @param auditResult 审核结果 1通过 0不通过
+     * @param description 审核描述
+     */
+    void processReviewResult(Long reviewId, Integer auditResult, String description);
 }
