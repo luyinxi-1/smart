@@ -1,6 +1,8 @@
 package com.upc.modular.common.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.upc.exception.BusinessErrorEnum;
+import com.upc.exception.BusinessException;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.TextbookMapper;
@@ -58,7 +60,7 @@ public class TextbookPackage {
         Textbook textbook = textbookMapper.selectById(textbookId);
         if (textbook == null) {
             // 在生产环境中，最好返回一个包含错误信息的JSON体
-            return ResponseEntity.badRequest().body(null);
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材不存在");
         }
         // 清理文件名中的非法字符
         String outputBaseName = textbook.getTextbookName().replaceAll("[\\\\/:*?\"<>|]", "_");
@@ -89,7 +91,7 @@ public class TextbookPackage {
                     .body(resource);
 
         } catch (Exception e) {
-            System.err.println("❌ 教材打包失败！Textbook ID: " + textbookId);
+            System.err.println("教材打包失败！Textbook ID: " + textbookId);
             e.printStackTrace();
             return ResponseEntity.internalServerError().body(null);
         } finally {
@@ -99,7 +101,7 @@ public class TextbookPackage {
                     deleteDirectoryRecursively(temporaryWorkDir);
                     System.out.println("已清理临时工作目录: " + temporaryWorkDir);
                 } catch (IOException ex) {
-                    System.err.println("⚠️ 警告：未能成功删除临时文件夹: " + temporaryWorkDir);
+                    System.err.println("警告：未能成功删除临时文件夹: " + temporaryWorkDir);
                 }
             }
         }
@@ -246,7 +248,6 @@ public class TextbookPackage {
             }
             buffer.flush();
             templateContent = new String(buffer.toByteArray(), StandardCharsets.UTF_8);
-            // --- [修改结束] ---
         }
 
         // 替换模板中的占位符
@@ -280,7 +281,6 @@ public class TextbookPackage {
             // 捕获编译过程的输出，用于调试
             String result;
             try (InputStream processInputStream = process.getInputStream()) {
-                // --- [修改点 1 的另一个应用] ---
                 ByteArrayOutputStream processOutputBuffer = new ByteArrayOutputStream();
                 int nRead;
                 byte[] data = new byte[1024];
@@ -289,15 +289,12 @@ public class TextbookPackage {
                 }
                 processOutputBuffer.flush();
                 result = new String(processOutputBuffer.toByteArray(), StandardCharsets.UTF_8);
-                // --- [修改结束] ---
             }
 
-            // --- [修改点 2: 替换 String.isBlank()] ---
             // Java 8 的等效写法：检查是否为 null 或 trim后是否为空
             if (result != null && !result.trim().isEmpty()) {
                 System.out.println("Go build output:\n" + result);
             }
-            // --- [修改结束] ---
 
 
             // 等待编译完成，设置5分钟超时
