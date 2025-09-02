@@ -41,7 +41,7 @@ public class TextbookAuthorityController {
     }
 
     @ApiOperation(value = "根据教材id删除教材权限信息")
-    @PostMapping("/deleteTextbookAuthorityByIds")
+    @PostMapping("/deleteTextbookAuthorityByTextbookIds")
     public R deleteTextbookAuthorityByTextbookIds(@RequestParam Integer authorityType, @RequestParam Long textbookId) {
         textbookAuthorityService.deleteTextbookAuthorityByTextbookIds(authorityType, textbookId);
         return R.commonReturn(200, "删除成功", "");

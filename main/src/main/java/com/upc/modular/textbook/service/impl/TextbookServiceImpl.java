@@ -118,7 +118,13 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             returnParams.addAll(textbookPageReturnParams);
         } else {
             for (TextbookPageReturnParam returnParam : textbookPageReturnParams) {
-                if (textbookAuthorityEditJudge(returnParam.getId(), UserUtils.get().getId())) {
+                Integer integer = textbookAuthorityEditJudge(returnParam.getId(), UserUtils.get().getId());
+                if (integer == 1) {
+                    returnParam.setViewStatus(1);
+                    returnParams.add(returnParam);
+                }
+                if (integer == 2){
+                    returnParam.setViewStatus(2);
                     returnParams.add(returnParam);
                 }
             }
@@ -278,7 +284,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         return resultPage;
     }
 
-    public boolean textbookAuthorityEditJudge(Long textBookId, Long userId) {
+    public Integer textbookAuthorityEditJudge(Long textBookId, Long userId) {
         if (textBookId == null || userId == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
@@ -302,20 +308,20 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         List<TextbookAuthority> textbookAuthorities = textbookAuthorityMapper.selectList(queryWrapper);
         if (Objects.equals(textbook.getTextbookAuthorId(), teacher.getId())) {
             // 作者本人
-            return true;
+            return 1;
         }
         if (Objects.equals(textbook.getCreator(), userId)) {
-            return true;
+            return 1;
         }
         if (textbookAuthorities.isEmpty()) {
-            return true;
+            return 2;
         }
         for (TextbookAuthority textbookAuthority : textbookAuthorities) {
             if (Objects.equals(textbookAuthority.getUserId(), userId)) {
-                return true;
+                return 1;
             }
         }
 
-        return false;
+        return 0;
     }
 }
