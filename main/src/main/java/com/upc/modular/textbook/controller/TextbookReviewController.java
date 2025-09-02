@@ -57,4 +57,11 @@ public class TextbookReviewController {
         textbookReviewService.processReviewResult(reviewId, auditResult, description);
         return R.commonReturn(200, "处理成功", "");
     }
+
+    @ApiOperation(value = "修改审核记录")
+    @PostMapping("/updateReview")
+    public R updateReview(@RequestBody TextbookReview textbookReview) {
+        textbookReviewService.updateReview(textbookReview);
+        return R.commonReturn(200, "修改成功", "");
+    }
 }
