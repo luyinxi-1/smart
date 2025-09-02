@@ -46,7 +46,8 @@ public class TextbookPackage {
     @Value("${files.path}")
     private String basePath;
 
-    private static final String GO_BUILD_WORKSPACE = "D:\\build_workspace";
+    // private static final String GO_BUILD_WORKSPACE = "D:\\build_workspace";
+    private static final String GO_BUILD_WORKSPACE = "/opt/GoBuildWorkspace";
     private static final String RESOURCE_FOLDER_NAME = "resource";
     private static final String IMAGE_SUBFOLDER_NAME = "img";
 
