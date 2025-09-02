@@ -308,7 +308,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             return true;
         }
         if (textbookAuthorities.isEmpty()) {
-            return false;
+            return true;
         }
         for (TextbookAuthority textbookAuthority : textbookAuthorities) {
             if (Objects.equals(textbookAuthority.getUserId(), userId)) {
