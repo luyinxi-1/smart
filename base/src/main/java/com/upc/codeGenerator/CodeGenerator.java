@@ -16,7 +16,7 @@ public class CodeGenerator {
 
 //        表名
         String[] tables = {
-                "attachment"
+                "teacher_annotation"
         };
 
         new CodeGeneratorConfig(author, moduleName, tables).generate();
