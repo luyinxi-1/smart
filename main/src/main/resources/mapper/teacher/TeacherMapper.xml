@@ -17,6 +17,7 @@
         <result column="email" property="email" />
         <result column="phone" property="phone" />
         <result column="introduction" property="introduction" />
+        <result column="photo" property="photo" />
         <result column="creator" property="creator" />
         <result column="add_datetime" property="addDatetime" />
         <result column="operator" property="operator" />
