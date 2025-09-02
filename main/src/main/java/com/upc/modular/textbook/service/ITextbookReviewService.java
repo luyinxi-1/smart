@@ -31,4 +31,10 @@ public interface ITextbookReviewService extends IService<TextbookReview> {
      * @param description 审核描述
      */
     void processReviewResult(Long reviewId, Integer auditResult, String description);
+
+    /**
+     * 修改审核记录
+     * @param textbookReview 审核记录信息
+     */
+    void updateReview(TextbookReview textbookReview);
 }

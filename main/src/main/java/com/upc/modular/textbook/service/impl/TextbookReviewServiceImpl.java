@@ -86,4 +86,20 @@ public class TextbookReviewServiceImpl extends ServiceImpl<TextbookReviewMapper,
             textbookService.updateById(textbook);
         }
     }
+
+    @Override
+    public void updateReview(TextbookReview textbookReview) {
+        if (ObjectUtils.isEmpty(textbookReview) || textbookReview.getId() == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空或ID为空");
+        }
+
+        // 检查审核记录是否存在
+        TextbookReview existingReview = this.getById(textbookReview.getId());
+        if (existingReview == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "未找到ID为 " + textbookReview.getId() + " 的审核记录");
+        }
+
+        // 更新审核记录
+        this.updateById(textbookReview);
+    }
 }
