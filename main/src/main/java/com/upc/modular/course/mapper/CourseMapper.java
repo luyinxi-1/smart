@@ -22,5 +22,8 @@ import java.util.List;
 @Mapper
 public interface CourseMapper extends BaseMapper<Course> {
 
-    Page<CoursePageReturnParam> selectCourse(Page<CoursePageReturnParam> page, CoursePageSearchParam param);
+    Page<CoursePageReturnParam> selectCourse(
+            Page<CoursePageReturnParam> page,
+            @Param("param") CoursePageSearchParam param
+    );
 }

@@ -39,11 +39,18 @@ public class CourseController {
     @Autowired
     ICourseService courseService;
 
+//    @ApiOperation("新增课程信息")
+//    @PostMapping("/inserCourse")
+//    public R inserCourse(@RequestBody Course course){
+//        courseService.save(course);
+//        return R.commonReturn(200, "新增成功", "");
+//    }
+
     @ApiOperation("新增课程信息")
     @PostMapping("/inserCourse")
-    public R inserCourse(@RequestBody Course course){
-        courseService.save(course);
-        return R.commonReturn(200, "新增成功", "");
+    public R<Long> inserCourse(@RequestBody Course course){
+        Long courseId = courseService.inserCourse(course);
+        return R.ok(courseId);
     }
 
     @ApiOperation("删除课程信息")

@@ -21,6 +21,11 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.course.service.ICourseTextbookListService;
 import com.upc.modular.group.entity.Group;
 import com.upc.modular.group.service.IGroupService;
+import com.upc.modular.teacher.entity.Teacher;
+import com.upc.modular.teacher.mapper.TeacherMapper;
+import com.upc.modular.textbook.entity.Textbook;
+import com.upc.modular.textbook.entity.TextbookCatalog;
+import com.upc.modular.textbook.mapper.TextbookMapper;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -47,6 +52,12 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
 
     @Autowired
     private CourseMapper courseMapper;
+
+    @Autowired
+    private TextbookMapper textbookMapper;
+
+    @Autowired
+    private TeacherMapper teacherMapper;
 
     @Override
     public Void deleteCourseByIds(IdParam idParam) {
@@ -117,6 +128,28 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
             e.printStackTrace();
             throw new RuntimeException("导出失败，请重试");
         }
+    }
+
+    @Override
+    public Long inserCourse(Course param) {
+        Long textbookId = param.getTextbookId();
+        Long teacherId = param.getTeacherId();
+
+        LambdaQueryWrapper<Textbook> queryWrapper1 = new LambdaQueryWrapper<>();
+        queryWrapper1.eq(Textbook::getId,textbookId);
+        boolean isTextbookExists = textbookMapper.exists(queryWrapper1);
+        if (!isTextbookExists) {
+            throw new RuntimeException("ID为 " + textbookId + " 的教材不存在！");
+        }
+
+        LambdaQueryWrapper<Teacher> queryWrapper2 = new LambdaQueryWrapper<>();
+        queryWrapper2.eq(Teacher::getId,teacherId);
+        boolean isTeacherExists = teacherMapper.exists(queryWrapper2);
+        if (!isTeacherExists) {
+            throw new RuntimeException("ID为 " + teacherId + " 的教师不存在！");
+        }
+        this.save(param);
+        return param.getId();
     }
 }
 
