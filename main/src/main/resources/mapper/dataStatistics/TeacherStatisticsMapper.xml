@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.datastatistics.mapper.TeacherStatisticsMapper">
+
+    <!-- 统计教师授课班级数量 -->
+    <select id="countTeacherClasses" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT g.id)
+        FROM `group` g
+        INNER JOIN user_class_list ucl ON g.id = ucl.class_id
+        WHERE ucl.user_id = #{teacherId} AND ucl.type = 2
+    </select>
+
+    <!-- 统计教师授课学生数量 -->
+    <select id="countTeacherStudents" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT s.id)
+        FROM student s
+        INNER JOIN user_class_list ucl ON s.class_id = ucl.class_id
+        WHERE ucl.user_id = #{teacherId} AND ucl.type = 2
+    </select>
+
+    <!-- 统计教师教材数量 -->
+    <select id="countTeacherTextbooks" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT t.id)
+        FROM textbook t
+        INNER JOIN course_textbook_list ctl ON t.id = ctl.textbook_id
+        INNER JOIN course c ON ctl.course_id = c.id
+        INNER JOIN course_class_list ccl ON c.id = ccl.course_id
+        INNER JOIN user_class_list ucl ON ccl.class_id = ucl.class_id
+        WHERE ucl.user_id = #{teacherId} AND ucl.type = 2
+    </select>
+
+    <!-- 统计教师授课课程数量 -->
+    <select id="countTeacherCourses" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT c.id)
+        FROM course c
+        INNER JOIN course_class_list ccl ON c.id = ccl.course_id
+        INNER JOIN user_class_list ucl ON ccl.class_id = ucl.class_id
+        WHERE ucl.user_id = #{teacherId} AND ucl.type = 2
+    </select>
+
+
+</mapper>
