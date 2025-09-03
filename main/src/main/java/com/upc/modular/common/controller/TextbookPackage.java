@@ -133,7 +133,7 @@ public class TextbookPackage {
         textbookCatalogs.stream()
                 .filter(c -> c != null && c.getCatalogName() != null)
                 .forEach(catalog -> {
-                    htmlBuilder.append("<h2>").append(catalog.getCatalogName()).append("</h2>");
+                    htmlBuilder.append(catalog.getCatalogName());
                     if (catalog.getContent() != null) {
                         htmlBuilder.append(catalog.getContent());
                     }
