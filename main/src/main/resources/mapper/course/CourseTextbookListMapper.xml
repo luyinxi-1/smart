@@ -18,7 +18,8 @@
         SELECT
         ctl.*,
         t.textbook_name,
-        c.course_name
+        c.course_name,
+        t.textbook_picture
         FROM course_textbook_list ctl
         LEFT JOIN course c ON ctl.course_id = c.id
         LEFT JOIN textbook t ON ctl.textbook_id = t.id

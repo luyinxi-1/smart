@@ -38,8 +38,11 @@ public class CoursePageReturnParam {
     private String teacherName;
 
     @ApiModelProperty("创建者姓名")
-    private String creator;
+    private String creatorName;
 
     @ApiModelProperty("创建时间")
     private LocalDateTime addDatetime;
+
+    @ApiModelProperty("课程封面")
+    private String coursePicture;
 }

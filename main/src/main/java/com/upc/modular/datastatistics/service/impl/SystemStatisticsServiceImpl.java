@@ -10,6 +10,7 @@ import com.upc.modular.materials.service.ITeachingMaterialsService;
 import com.upc.modular.questionbank.service.ITeachingQuestionService;
 import com.upc.modular.student.service.IStudentService;
 import com.upc.modular.teacher.service.ITeacherService;
+import com.upc.modular.teachingactivities.service.IDiscussionTopicReplyService;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.service.IIdeologicalMaterialService;
@@ -47,6 +48,8 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
     private IIdeologicalMaterialService ideologicalMaterialService;
     @Autowired
     private IStudentService studentService;
+    @Autowired
+    private IDiscussionTopicReplyService discussionTopicReplyService;
 
     @Override
     public Integer getTodayVisitors() {
@@ -157,7 +160,7 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
     @Override
     public Long getCommunicationFeedbackCount() {
         // TODO: 实现交流反馈数量统计逻辑
-        return null;
+        return discussionTopicReplyService.count();
     }
 
     @Override

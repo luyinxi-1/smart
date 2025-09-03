@@ -124,11 +124,16 @@ public class SystemStatisticsController {
         return R.ok(systemStatisticsService.getTextbookTypeCount());
     }
 
-    @ApiOperation("交流反馈数量统计")
+    /*@ApiOperation("交流反馈数量统计")
     @GetMapping("/communication-feedback-count")
     public R<Long> getCommunicationFeedbackCount() {
         // TODO: 实现交流反馈数量统计逻辑
-        return R.ok();
+        return R.ok(systemStatisticsService.getCommunicationFeedbackCount());
+    }*/
+    @ApiOperation("交流反馈数量统计")
+    @GetMapping("/communication-feedback-count")
+    public R<Long> getCommunicationFeedbackCount() {
+        return R.ok(systemStatisticsService.getCommunicationFeedbackCount());
     }
     @ApiOperation("教学素材数量统计")
     @GetMapping("/teaching-materials-count")

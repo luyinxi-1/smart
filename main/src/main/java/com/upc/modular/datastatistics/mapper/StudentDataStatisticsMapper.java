@@ -1,7 +1,11 @@
 package com.upc.modular.datastatistics.mapper;
 
+import com.upc.modular.textbook.entity.LearningLog;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
 
 @Mapper
 public interface StudentDataStatisticsMapper {
@@ -22,4 +26,15 @@ public interface StudentDataStatisticsMapper {
 
     @Select("SELECT COUNT(DISTINCT name) FROM teaching_question_bank WHERE operator = #{currentUserId}")
     Long countQuestionsByUserId(Long currentUserId);
+
+    @Select("SELECT * FROM learning_log WHERE user_id = #{userId} AND data_type = #{dataType} ORDER BY add_datetime ASC")
+    List<LearningLog> findAddDatetime(
+            @Param("userId") Long currentUserId,
+            @Param("dataType") int dataType);
+
+    @Select("SELECT * FROM learning_log WHERE user_id = #{userId} AND data_type = #{dataType} AND EXTRACT(YEAR FROM add_datetime) = #{year} ORDER BY add_datetime ASC")
+    List<LearningLog> findAddDatetimeByYear(
+            @Param("userId") Long currentUserId,
+            @Param("dataType") int dataType,
+            @Param("year") Integer year);
 }

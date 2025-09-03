@@ -85,19 +85,28 @@
         COUNT(DISTINCT ser.id) AS pendingReviewCount
         FROM
         teaching_question_bank tqb
-        -- 【重要】用 LEFT JOIN 保证所有题库都能被查出来，即使没有待批改记录
         LEFT JOIN
         textbook_catalog tc ON tqb.textbook_catalog_id = tc.id
         LEFT JOIN
         student_exercises_record ser ON tqb.id = ser.teaching_question_bank_id AND ser.status = 1
+        <!-- 【新增】JOIN textbook 表用于权限校验 -->
+        JOIN
+        textbook tb ON tqb.textbook_id = tb.id
         WHERE
-        tqb.textbook_id = #{textbookId}
-        <!-- 权限校验：可以加上只查询当前老师负责的教材下的题库 -->
-        <!-- AND tqb.creator = #{teacherId} -->
+        tqb.textbook_id = #{param.textbookId}
+        AND tb.textbook_author_id = #{param.teacherId}
+        <if test="param.textbookCatalogId != null">
+            AND tqb.textbook_catalog_id = #{param.textbookCatalogId}
+        </if>
+        <if test="param.teachingQuestionBankName != null and param.teachingQuestionBankName != ''">
+            AND tqb.name LIKE CONCAT('%', #{param.teachingQuestionBankName}, '%')
+        </if>
         GROUP BY
         tqb.id, tqb.name, tqb.textbook_catalog_id, tc.catalog_name
         ORDER BY
-        tqb.textbook_catalog_id ASC, tqb.id ASC
+        CASE WHEN COUNT(DISTINCT ser.id) > 0 THEN 0 ELSE 1 END ASC,
+        tqb.textbook_catalog_id ASC,
+        tqb.id ASC
     </select>
 
     <select id="selectGradingSituationPage" resultType="com.upc.modular.questionbank.controller.param.GradingSituationReturnVO">
