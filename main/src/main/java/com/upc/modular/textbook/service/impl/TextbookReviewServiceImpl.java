@@ -29,9 +29,9 @@ public class TextbookReviewServiceImpl extends ServiceImpl<TextbookReviewMapper,
 
     @Autowired
     private ITextbookService textbookService;
-
     @Override
     public void insertTextbookReview(TextbookReview textbookReview) {
+
         if (ObjectUtils.isEmpty(textbookReview)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
         }
@@ -61,6 +61,7 @@ public class TextbookReviewServiceImpl extends ServiceImpl<TextbookReviewMapper,
     }
 
     @Override
+    @Transactional
     public void processReviewResult(Long reviewId, Integer auditResult, String description) {
         // 1. 获取审核记录
         TextbookReview review = this.getById(reviewId);
@@ -85,21 +86,5 @@ public class TextbookReviewServiceImpl extends ServiceImpl<TextbookReviewMapper,
             }
             textbookService.updateById(textbook);
         }
-    }
-
-    @Override
-    public void updateReview(TextbookReview textbookReview) {
-        if (ObjectUtils.isEmpty(textbookReview) || textbookReview.getId() == null) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空或ID为空");
-        }
-
-        // 检查审核记录是否存在
-        TextbookReview existingReview = this.getById(textbookReview.getId());
-        if (existingReview == null) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "未找到ID为 " + textbookReview.getId() + " 的审核记录");
-        }
-
-        // 更新审核记录
-        this.updateById(textbookReview);
     }
 }
