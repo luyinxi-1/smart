@@ -18,6 +18,7 @@ import com.upc.modular.teachingactivities.param.DiscussionTopicSecondReplyPageRe
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookAuthority;
 import com.upc.modular.textbook.mapper.TextbookAuthorityMapper;
+import com.upc.modular.textbook.param.TextbookAuthorityDetailReturnParam;
 import com.upc.modular.textbook.param.TextbookAuthorityReturnParam;
 import com.upc.modular.textbook.param.TextbookAuthoritySearchParam;
 import com.upc.modular.textbook.service.ITextbookAuthorityService;
@@ -106,7 +107,7 @@ public class TextbookAuthorityServiceImpl extends ServiceImpl<TextbookAuthorityM
     private IInstitutionService iInstitutionService;
 
     @Override
-    public Page<TextbookAuthorityReturnParam> getTextbookAuthorityPage(TextbookAuthoritySearchParam param) {
+    public Page<TextbookAuthorityDetailReturnParam> getTextbookAuthorityPage(TextbookAuthoritySearchParam param) {
         if (param.getAuthorityType() == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "必须要选择查询的权限类型");
         }
@@ -126,10 +127,10 @@ public class TextbookAuthorityServiceImpl extends ServiceImpl<TextbookAuthorityM
             return new Page<>();
         }
 
-        List<TextbookAuthorityReturnParam> resultList = new ArrayList<>();
+        List<TextbookAuthorityDetailReturnParam> resultList = new ArrayList<>();
         if (param.getAuthorityType() == 1) {
             for (TextbookAuthority textbookAuthority : textbookAuthorityList) {
-                TextbookAuthorityReturnParam returnParam = new TextbookAuthorityReturnParam();
+                TextbookAuthorityDetailReturnParam returnParam = new TextbookAuthorityDetailReturnParam();
                 BeanUtils.copyProperties(textbookAuthority, returnParam);
                 if (textbookAuthority == null || textbookAuthority.getUserId() == null) {
                     continue;
@@ -137,11 +138,23 @@ public class TextbookAuthorityServiceImpl extends ServiceImpl<TextbookAuthorityM
                 Teacher teacher = teacherService.getOne(new LambdaQueryWrapper<Teacher>()
                         .eq(Teacher::getUserId, textbookAuthority.getUserId()));
                 returnParam.setTeacher(teacher);
+
+                // 获取教师所在组织信息
+                if (teacher != null) {
+                    SysTbuser user = sysUserService.getById(teacher.getUserId());
+                    if (user != null && user.getInstitutionId() != null) {
+                        Institution institution = iInstitutionService.getById(user.getInstitutionId());
+                        if (institution != null) {
+                            returnParam.setTeacherInstitutionId(institution.getId());
+                            returnParam.setTeacherInstitutionName(institution.getInstitutionName());
+                        }
+                    }
+                }
                 resultList.add(returnParam);
             }
         } else if (param.getAuthorityType() == 2) {
             for (TextbookAuthority textbookAuthority : textbookAuthorityList) {
-                TextbookAuthorityReturnParam returnParam = new TextbookAuthorityReturnParam();
+                TextbookAuthorityDetailReturnParam returnParam = new TextbookAuthorityDetailReturnParam();
                 BeanUtils.copyProperties(textbookAuthority, returnParam);
                 resultList.add(returnParam);
             }
@@ -182,16 +195,17 @@ public class TextbookAuthorityServiceImpl extends ServiceImpl<TextbookAuthorityM
             return new Page<>(current, size);   // 越界空页
         }
         int to = Math.min(from + (int) size, resultList.size());
-        List<TextbookAuthorityReturnParam> pageRecords = resultList.subList(from, to);
+        List<TextbookAuthorityDetailReturnParam> pageRecords = resultList.subList(from, to);
 
         // 组装 Page
-        Page<TextbookAuthorityReturnParam> resultPage = new Page<>();
+        Page<TextbookAuthorityDetailReturnParam> resultPage = new Page<>();
         resultPage.setCurrent(current);
         resultPage.setSize(size);
         resultPage.setTotal(resultList.size());
         resultPage.setRecords(pageRecords);
         return resultPage;
     }
+
 
     @Autowired
     private ISysUserService sysUserService;
