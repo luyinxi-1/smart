@@ -28,8 +28,9 @@
         c.status,
         t.id AS teacherId,
         t.name AS teacherName,
-        u.username AS creator,
-        c.add_datetime AS addDatetime
+        u.username AS creatorName,
+        c.add_datetime AS addDatetime,
+        c.course_picture AS coursePicture
         FROM course c
         LEFT JOIN teacher t
         ON c.teacher_id = t.id

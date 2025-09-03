@@ -28,7 +28,7 @@ public interface ITeachingQuestionBankService extends IService<TeachingQuestionB
 
     void updateQuestionBank(TeachingQuestionBank teachingQuestionbank);
 
-    List<QuestionBankWithStatusVO> getQuestionBanksWithStatusForTextbook(Long textbookId, Long currentTeacherId);
+    List<QuestionBankWithStatusVO> getQuestionBanksWithStatusForTextbook(QuestionBankWithStatusSearchParam param);
 
     Page<GradingSituationReturnVO> getGradingSituationPage(GradingSituationSearchParam param);
 

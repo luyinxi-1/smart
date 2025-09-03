@@ -231,23 +231,19 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
     }
 
     @Override
-    public List<QuestionBankWithStatusVO> getQuestionBanksWithStatusForTextbook(Long textbookId, Long currentTeacherId) {
-        List<QuestionBankWithStatusVO> resultList = teachingQuestionBankMapper.selectQuestionBanksWithPendingStatus(textbookId, currentTeacherId);
+    public List<QuestionBankWithStatusVO> getQuestionBanksWithStatusForTextbook(QuestionBankWithStatusSearchParam param) {
+        List<QuestionBankWithStatusVO> resultList = teachingQuestionBankMapper.selectQuestionBanksWithPendingStatus(param);
 
         if (resultList != null && !resultList.isEmpty()) {
             for (QuestionBankWithStatusVO vo : resultList) {
-                // 使用 StringUtils.hasText() 比 != null 更健壮，能同时判断 null, "", " "
                 if (StringUtils.hasText(vo.getCatalogName())) {
                     String rawHtml = vo.getCatalogName();
-                    // 使用 Jsoup 解析HTML并提取纯文本
                     String plainText = Jsoup.parse(rawHtml).text();
-                    // 将处理后的纯文本名称设置回VO对象
                     vo.setCatalogName(plainText);
                 }
             }
         }
         return resultList;
-
     }
 
     @Override
