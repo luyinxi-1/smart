@@ -35,9 +35,9 @@ public class TextbookReview implements Serializable {
     @TableField(value = "add_datetime", fill = FieldFill.INSERT)
     private LocalDateTime addDatetime;
 
-    @ApiModelProperty("审核结果 1通过 0不通过")
+    @ApiModelProperty("审核结果 0未通过 1通过 NULL待审核")
     @TableField(value ="audit_result")
-    private Integer auditResult = 0;
+    private Integer auditResult; // 移除 "= 0" 的默认值
 
     @ApiModelProperty("创建者")
     @TableField(value = "creator", fill = FieldFill.INSERT)
