@@ -19,15 +19,6 @@ import java.util.Map;
 public class SystemStatisticsController {
     @Autowired
     private ISystemStatisticsService systemStatisticsService;
-    @Autowired
-    private ITextbookService textbookService;
-
-    @ApiOperation("获取学生详细统计数据")
-    @GetMapping("/student-detail-statistics/{studentId}")
-    public R<Map<String, Object>> getStudentDetailStatistics(@PathVariable Long studentId) {
-        // TODO: 实现学生详细统计数据逻辑
-        return R.ok();
-    }
 
     @ApiOperation("获取今日访问人数")
     @GetMapping("/today-visitors")
@@ -75,15 +66,13 @@ public class SystemStatisticsController {
     @GetMapping("/student-count")
     public R<Long> getStudentCount() {
         // TODO: 实现学生数量统计逻辑
-        return R.ok();
+        return R.ok(systemStatisticsService.getStudentCount());
     }
 
     @ApiOperation("教师数量统计")
     @GetMapping("/teacher-count")
     public R<Long> getTeacherCount() {
         // TODO: 实现教师数量统计逻辑
-       // log.info("获取教师数量统计");
-       // log.info("获取教师数量统计结果：{}", systemStatisticsService.getTeacherCount());
         return R.ok(systemStatisticsService.getTeacherCount());
     }
 
@@ -91,21 +80,21 @@ public class SystemStatisticsController {
     @GetMapping("/ideological-education-count")
     public R<Long> getIdeologicalEducationCount() {
         // TODO: 实现教学思政数量统计逻辑
-        return R.ok();
+        return R.ok(systemStatisticsService.getIdeologicalEducationCount());
     }
 
     @ApiOperation("教学活动数量统计")
     @GetMapping("/teaching-activities-count")
     public R<Long> getTeachingActivitiesCount() {
         // TODO: 实现教学活动数量统计逻辑
-        return R.ok();
+        return R.ok(systemStatisticsService.getTeachingActivitiesCount());
     }
 
     @ApiOperation("题库数量统计")
     @GetMapping("/question-bank-count")
     public R<Long> getQuestionBankCount() {
         // TODO: 实现题库数量统计逻辑
-        return R.ok();
+        return R.ok(systemStatisticsService.getQuestionBankCount());
     }
 
     @ApiOperation("班级数量统计")
@@ -119,14 +108,14 @@ public class SystemStatisticsController {
     @GetMapping("/teaching-course-count")
     public R<Long> getTeachingCourseCount() {
         // TODO: 实现在授课程数量统计逻辑
-        return R.ok();
+        return R.ok(systemStatisticsService.getTeachingCourseCount());
     }
 
     @ApiOperation("智慧教材数量统计")
     @GetMapping("/smart-textbook-count")
     public R<Long> getSmartTextbookCount() {
         // TODO: 实现智慧教材数量统计逻辑
-        return R.ok();
+        return R.ok(systemStatisticsService.getSmartTextbookCount());
     }
 
     @ApiOperation("教材类型统计")

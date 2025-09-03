@@ -21,10 +21,10 @@
         FROM
         course c
         LEFT JOIN
-        teacher t ON c.user_id = t.user_id
+        teacher t ON c.teacher_id = t.id
         <where>
             <if test="id != null">
-                AND c.user_id = #{id}
+                AND c.teacher_id = #{id}
             </if>
             <if test="param.courseName != null and param.courseName != ''">
                 AND c.course_name LIKE CONCAT('%', #{param.courseName}, '%')
@@ -41,7 +41,7 @@
         FROM
             course c
                 LEFT JOIN
-            teacher t ON c.user_id = t.user_id
+            teacher t ON c.teacher_id = t.id
         <where>
             <if test="param.courseName != null and param.courseName != ''">
                 AND c.course_name LIKE CONCAT('%', #{param.courseName}, '%')
@@ -62,7 +62,7 @@
         LEFT JOIN
         user_class_list ucl ON ccl.class_id = ucl.class_id
         LEFT JOIN
-        teacher t ON c.user_id = t.user_id
+        teacher t ON c.teacher_id = t.id
         <where>
             <if test="id != null">
                 AND ucl.user_id = #{id}
