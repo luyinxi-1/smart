@@ -9,6 +9,7 @@ import com.upc.modular.textbook.service.ITextbookReviewService;
 import com.upc.modular.textbook.service.ITextbookService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -45,23 +46,16 @@ public class TextbookReviewController {
 
     @ApiOperation(value = "根据审核记录ID查询详情")
     @GetMapping("/getReviewDetails/{reviewId}")
-    public R getReviewDetails(@PathVariable Long reviewId) {
+    public R getReviewDetails(@ApiParam(example = "1") @PathVariable Long reviewId) {
         return R.ok(textbookReviewService.getById(reviewId));
     }
 
     @ApiOperation(value = "处理审核结果")
     @PostMapping("/processReviewResult")
-    public R processReviewResult(@RequestParam Long reviewId,
-                                 @RequestParam Integer auditResult,
-                                 @RequestParam String description) {
+    public R processReviewResult(@ApiParam(example = "1") @RequestParam Long reviewId,
+                                 @ApiParam(example = "1") @RequestParam Integer auditResult,
+                                 @ApiParam(example = "审核通过") @RequestParam String description) {
         textbookReviewService.processReviewResult(reviewId, auditResult, description);
         return R.commonReturn(200, "处理成功", "");
-    }
-
-    @ApiOperation(value = "修改审核记录")
-    @PostMapping("/updateReview")
-    public R updateReview(@RequestBody TextbookReview textbookReview) {
-        textbookReviewService.updateReview(textbookReview);
-        return R.commonReturn(200, "修改成功", "");
     }
 }
