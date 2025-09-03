@@ -7,6 +7,7 @@ import com.upc.common.utils.UserUtils;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsPageSearchDto;
 import com.upc.modular.materials.controller.param.vo.MaterialsTextbookMappingReturnParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
@@ -18,10 +19,12 @@ import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
 import com.upc.modular.student.controller.param.vo.StudentReturnVo;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.service.impl.TeacherServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -36,9 +39,7 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
-
 import static com.upc.utils.CreatePage.createPage;
-
 /**
  * <p>
  * 服务实现类
@@ -47,6 +48,7 @@ import static com.upc.utils.CreatePage.createPage;
  * @author mjh
  * @since 2025-07-17
  */
+@Slf4j
 @Service
 public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsMapper, TeachingMaterials> implements ITeachingMaterialsService {
 
@@ -501,4 +503,99 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
         return materialsReturnVo;
     }
+    @Override
+    public void updateTeachingMaterialsById(TeachingMaterials teachingmaterials) {
+        if (teachingmaterials == null || teachingmaterials.getId() == null || teachingmaterials.getId() == 0L) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+        TeachingMaterials oldData = this.getById(teachingmaterials.getId());
+        // 判断isPublic是否发生变化
+        boolean oldPublic = oldData.getIsPublic();
+        boolean newIsPublic = teachingmaterials.getIsPublic();
+        if (oldPublic != newIsPublic) {
+            // 发生改变则移动文件
+            String oldPath = oldData.getFilePath();
+            String baseDir = newIsPublic ? "upload/teaching_materials/public/" : "upload/teaching_materials/private/";
+            String newPath = baseDir  + extractRelativePath(oldPath);
+            //log.info("移动文件：{} -> {}", oldPath, newPath);
+            boolean moved = FileManageUtil.moveFile(oldPath, newPath);
+            if (!moved) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "文件移动失败");
+            }
+        }
+        this.updateById(teachingmaterials);
+    }
+
+    /**
+     * 提取文件路径中的文件名
+     *
+     * @param filePath 文件完整路径
+     * @return 文件名
+     */
+   /* private String extractFileName(String filePath) {
+        if (filePath == null || filePath.isEmpty()) {
+            return null;
+        }
+
+        // 把 Windows 的 "\" 替换成 Linux 的 "/"
+        String normalizedPath = filePath.replace('\\', '/');
+
+        // 找到最后一个 "/"
+        int idx = normalizedPath.lastIndexOf('/');
+        if (idx == -1) {
+            return normalizedPath; // 没有目录分隔符，说明就是文件名
+        }
+        return normalizedPath.substring(idx + 1);
+    }*/
+    private String extractRelativePath(String filePath) {
+        if (filePath == null || filePath.isEmpty()) {
+            return null;
+        }
+
+        // 统一路径分隔符（把 \ 换成 /）
+        String normalizedPath = filePath.replace('\\', '/');
+
+        // 定义前缀
+        String publicPrefix = "upload/teaching_materials/public/";
+        String privatePrefix = "upload/teaching_materials/private/";
+
+        String relativePath;
+        if (normalizedPath.startsWith(publicPrefix)) {
+            relativePath = normalizedPath.substring(publicPrefix.length());
+        } else if (normalizedPath.startsWith(privatePrefix)) {
+            relativePath = normalizedPath.substring(privatePrefix.length());
+        } else {
+            // 如果不包含前缀，就直接返回原始路径
+            relativePath = normalizedPath;
+        }
+
+        // 返回时保持 Windows 风格（\）
+        return relativePath.replace('/', '\\');
+    }
+
+
+
+    @Override
+   public void deleteTeachingMaterialsByIds(List<Long> ids) {
+       // 1. 查出这些素材
+       List<TeachingMaterials> materialsList = this.listByIds(ids);
+
+       // 2. 遍历删除文件
+       for (TeachingMaterials materials : materialsList) {
+           String filePath = materials.getFilePath();
+           if (filePath != null) {
+               File file = new File(filePath);
+               if (file.exists()) {
+                   boolean deleted = file.delete();
+                   if (!deleted) {
+                       // 如果需要更稳妥，可以抛异常或记录日志
+                       System.out.println("文件删除失败: " + filePath);
+                   }
+               }
+           }
+       }
+       // 3. 删除数据库记录
+       this.removeByIds(ids);
+   }
+
 }

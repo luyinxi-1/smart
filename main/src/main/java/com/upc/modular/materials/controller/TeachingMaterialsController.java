@@ -5,6 +5,7 @@ import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsPageSearchDto;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.entity.TeachingMaterials;
@@ -93,5 +94,17 @@ public class TeachingMaterialsController {
     public R<TeachingMaterialsReturnVo> get(@RequestParam Long id, @RequestParam Long textbookId) {
         TeachingMaterialsReturnVo teachingMaterials = teachingMaterialsService.getTeachingMaterials(id, textbookId);
         return R.ok(teachingMaterials);
+    }
+    @ApiOperation(value = "修改教学素材信息")
+    @PostMapping("/updateTeachingMaterialsById")
+    public R updateInstitutionById(@RequestBody TeachingMaterials teachingmaterials) {
+        teachingMaterialsService.updateTeachingMaterialsById(teachingmaterials);
+        return R.commonReturn(200, "修改成功", "");
+    }
+    @ApiOperation(value = "删除教学素材信息")
+    @PostMapping("/deleteTeachingMaterialsByIds")
+    public R deleteTeachingMaterialsByIds (@RequestBody List<Long> ids) {
+        teachingMaterialsService.deleteTeachingMaterialsByIds(ids);
+        return R.commonReturn(200, "删除成功", "");
     }
 }

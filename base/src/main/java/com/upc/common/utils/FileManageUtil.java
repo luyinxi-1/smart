@@ -107,7 +107,7 @@ public class FileManageUtil {
             System.err.println("源文件和目标文件相同：" + oldPath + " -> " + newPath);
             return false;
         }
-        File destinationFilefiled = new File(destinationPath.getParent().toString());
+        /*File destinationFilefiled = new File(destinationPath.getParent().toString());
         if (!destinationFilefiled.exists()) {
             if (!destinationFilefiled.mkdirs())
                 throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "创建目录失败");
@@ -120,7 +120,26 @@ public class FileManageUtil {
             System.err.println("文件移动失败：" + e.getMessage());
             return false;
         }
+        return true;*/
+        File destinationFilefiled = new File(destinationPath.getParent().toString());
+        if (!destinationFilefiled.exists()) {
+            if (!destinationFilefiled.mkdirs())
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "创建目录失败");
+        }
+
+        try {
+            // 确保目标目录存在
+            Files.createDirectories(destinationPath.getParent());
+
+            // 移动文件，如果目标文件存在则替换（使用兼容的选项）
+            Files.move(sourcePath, destinationPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            System.err.println("文件移动失败：" + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
         return true;
+
     }
 
     /**
@@ -166,6 +185,7 @@ public class FileManageUtil {
             return false;
         }
         return true;
+
     }
 
     /**

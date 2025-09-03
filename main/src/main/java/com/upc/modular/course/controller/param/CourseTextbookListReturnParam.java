@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
+import java.time.LocalDateTime;
+
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Accessors(chain = true)
@@ -18,5 +20,6 @@ public class CourseTextbookListReturnParam extends CourseTextbookList {
     @ApiModelProperty("课程名称")
     private String courseName;
 
-
+    @ApiModelProperty("教材封面")
+    private String textbookPicture;
 }

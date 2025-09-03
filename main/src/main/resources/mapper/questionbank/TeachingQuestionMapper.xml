@@ -12,6 +12,8 @@
         <result column="answer" property="answer" />
         <result column="subject" property="subject" />
         <result column="teaching_question_classification_id" property="teachingQuestionClassificationId" />
+        <result column="choice_question_options" property="choiceQuestionOptions" />
+        <result column="answer_analysis" property="answerAnalysis" />
         <result column="creator" property="creator" />
         <result column="add_datetime" property="addDatetime" />
         <result column="operator" property="operator" />

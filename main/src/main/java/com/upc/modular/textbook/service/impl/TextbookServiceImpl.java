@@ -12,6 +12,7 @@ import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.service.ISysUserService;
+import com.upc.modular.auth.service.impl.SysUserServiceImpl;
 import com.upc.modular.institution.service.IInstitutionService;
 import com.upc.modular.institution.service.impl.InstitutionServiceImpl;
 import com.upc.modular.teacher.entity.Teacher;
@@ -61,6 +62,8 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
 
     @Autowired
     private InstitutionServiceImpl institutionService;
+
+
 
 
 
@@ -169,42 +172,37 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     }
 
 
-    /**
-     * 这是从 TextbookAuthorityServiceImpl 复制过来的权限判断逻辑
-     * @param textBookId 教材ID
-     * @param userId 用户ID
-     * @return boolean 是否有权限
-     */
-    private boolean hasPermission(Long textBookId, Long userId) {
-        // 这部分逻辑与您的 textbookAuthorityJudge 完全相同
+    public boolean textbookAuthorityJudge(Long textBookId, Long userId) {
+        if (textBookId == null || userId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
         SysTbuser tbuser = sysUserService.getById(userId);
-        if (tbuser == null || tbuser.getInstitutionId() == null) {
-            // 如果用户或其机构信息不存在，视为无权限
-            return false;
+        if (tbuser == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "相关用户信息有误");
         }
         Long userInstitutionId = tbuser.getInstitutionId();
 
-        // 查询该教材所有“机构可见”的权限记录
-        LambdaQueryWrapper<TextbookAuthority> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(TextbookAuthority::getTextbookId, textBookId);
-        queryWrapper.eq(TextbookAuthority::getAuthorityType, 2);
-        // 注意：这里我们使用注入的 textbookAuthorityMapper 来查询
-        List<TextbookAuthority> textbookAuthorities = textbookAuthorityMapper.selectList(queryWrapper);
-
-        if (textbookAuthorities.isEmpty()) {
-            return false;
+        Textbook textbook = textbookMapper.selectById(textBookId);
+        if (textbook == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "相关教材信息有误");
         }
 
-        // 遍历所有可见机构设置，判断用户所属机构是否被包含
+        LambdaQueryWrapper<TextbookAuthority> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TextbookAuthority::getTextbookId, textbook.getId());
+        queryWrapper.eq(TextbookAuthority::getAuthorityType, 2);
+        List<TextbookAuthority> textbookAuthorities = textbookAuthorityMapper.selectList(queryWrapper);
+        if (textbookAuthorities.isEmpty()) {
+            return true;
+        }
         for (TextbookAuthority textbookAuthority : textbookAuthorities) {
             Long visibleInstituteId = textbookAuthority.getVisibleInstituteId();
-            if (visibleInstituteId != null) {
-                boolean result = institutionService.judgeInclusion(userInstitutionId, visibleInstituteId);
-                if (result) {
-                    return true; // 只要有一个满足条件，就代表有权限
-                }
+            boolean result = institutionService.judgeInclusion(userInstitutionId, visibleInstituteId);
+
+            if (result) {
+                return true;
             }
         }
+
         return false;
     }
 
@@ -221,7 +219,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         for (Textbook textbook : allTextbooks) {
             // 调用您指定的权限判断接口
 
-            boolean hasAuthority = this.hasPermission(textbook.getId(), currentUserId);
+            boolean hasAuthority = textbookAuthorityJudge(textbook.getId(), currentUserId);
             // 作者本人默认拥有权限
             boolean isAuthor = currentUserId.equals(textbook.getTextbookAuthorId());
 

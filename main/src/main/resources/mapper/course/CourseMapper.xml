@@ -17,25 +17,31 @@
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
 
-    <select id="selectCourse" resultType="com.upc.modular.course.controller.param.CoursePageReturnParam">
+    <select id="selectCourse"
+            resultType="com.upc.modular.course.controller.param.CoursePageReturnParam">
         SELECT
         c.id,
-        c.textbook_id as textbookId,
-        c.course_name as courseName,
+        c.textbook_id AS textbookId,
+        c.course_name AS courseName,
         c.credit,
         c.description,
         c.status,
-        c.user_id as userId
-        FROM
-        course c
-        LEFT JOIN
-        teacher t ON c.user_id = t.user_id
+        t.id AS teacherId,
+        t.name AS teacherName,
+        u.username AS creatorName,
+        c.add_datetime AS addDatetime,
+        c.course_picture AS coursePicture
+        FROM course c
+        LEFT JOIN teacher t
+        ON c.teacher_id = t.id
+        LEFT JOIN sys_tbuser u
+        ON c.creator = u.id
         <where>
-            <!-- 条件1: 根据课程名称模糊查询 -->
+            <!-- 条件1: 课程名称模糊 -->
             <if test="param.courseName != null and param.courseName != ''">
                 AND c.course_name LIKE CONCAT('%', #{param.courseName}, '%')
             </if>
-            <!-- 条件2: 根据教师姓名模糊查询 -->
+            <!-- 条件2: 教师姓名模糊（用 t.name 过滤） -->
             <if test="param.teacherName != null and param.teacherName != ''">
                 AND t.name LIKE CONCAT('%', #{param.teacherName}, '%')
             </if>

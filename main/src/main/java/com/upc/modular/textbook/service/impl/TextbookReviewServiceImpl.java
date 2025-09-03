@@ -29,9 +29,9 @@ public class TextbookReviewServiceImpl extends ServiceImpl<TextbookReviewMapper,
 
     @Autowired
     private ITextbookService textbookService;
-
     @Override
     public void insertTextbookReview(TextbookReview textbookReview) {
+
         if (ObjectUtils.isEmpty(textbookReview)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
         }
@@ -61,6 +61,7 @@ public class TextbookReviewServiceImpl extends ServiceImpl<TextbookReviewMapper,
     }
 
     @Override
+    @Transactional
     public void processReviewResult(Long reviewId, Integer auditResult, String description) {
         // 1. 获取审核记录
         TextbookReview review = this.getById(reviewId);
