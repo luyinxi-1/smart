@@ -14,4 +14,7 @@ public class MyJoinDiscussionTopicSearchParam {
     @ApiModelProperty("教材名称")
     private String textbookName;
 
+    @ApiModelProperty("教材id")
+    private Long textbookId;
+
 }
