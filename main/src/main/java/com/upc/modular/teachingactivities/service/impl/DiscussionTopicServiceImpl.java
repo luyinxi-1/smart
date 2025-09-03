@@ -146,7 +146,6 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
                 ).stream()
                 .map(Textbook::getId)
                 .filter(Objects::nonNull)
-                // 权限判断逻辑必须在Java中执行，因此这是一个必要的预处理步骤
                 .filter(id -> textbookAuthorityService.textbookAuthorityJudge(id, userId))
                 .collect(Collectors.toList());
 
@@ -154,7 +153,16 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
             return Collections.emptyList();
         }
 
-        return discussionTopicMapper.selectWithDetailsByTextbookIds(textbookIdList);
+        if (ObjectUtils.isEmpty(param.getTextbookId())) {
+            return discussionTopicMapper.selectWithDetailsByTextbookIds(textbookIdList);
+        } else {
+            if (textbookIdList.contains(param.getTextbookId())) {
+                List<Long> newTextbookIdList = new ArrayList<>();
+                newTextbookIdList.add(param.getTextbookId());
+                return discussionTopicMapper.selectWithDetailsByTextbookIds(newTextbookIdList);
+            }
+        }
+        return Collections.emptyList();
     }
 
 
