@@ -1,22 +1,19 @@
 package com.upc.modular.materials.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.utils.FileManageUtil;
 import com.upc.common.utils.UserUtils;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
-import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsPageSearchDto;
-import com.upc.modular.materials.controller.param.vo.MaterialsTextbookMappingReturnParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.entity.MaterialsTextbookMapping;
 import com.upc.modular.materials.entity.TeachingMaterials;
 import com.upc.modular.materials.mapper.TeachingMaterialsMapper;
 import com.upc.modular.materials.service.ITeachingMaterialsService;
-import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
-import com.upc.modular.student.controller.param.vo.StudentReturnVo;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.service.impl.TeacherServiceImpl;
 import lombok.extern.slf4j.Slf4j;
@@ -24,22 +21,20 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+
 import static com.upc.utils.CreatePage.createPage;
+
 /**
  * <p>
  * 服务实现类
@@ -106,7 +101,6 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             // 上传成功，返回文件名
             return fileName;
         } catch (BusinessException e) {
-            e.printStackTrace();
             throw e;
         } catch (Exception e) {
             e.printStackTrace();
@@ -141,7 +135,6 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             performFileDownload(materials, action, response);
 
         } catch (BusinessException e) {
-            e.printStackTrace();
             response.reset();
             throw e;
         } catch (Exception e) {
@@ -366,18 +359,18 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
      * 执行文件下载
      */
     private void performFileDownload(TeachingMaterials materials, String action, HttpServletResponse response) {
-        File file = new File(materials.getFilePath());
-        if (!file.exists())
+        Path filePath = Paths.get(materials.getFilePath());
+        if (!Files.exists(filePath))
             throw new BusinessException(BusinessErrorEnum.FILE_NOT_EXIST, "，文件不存在");
 
         // 构造下载文件名
         String downloadFileName = buildDownloadFileName(materials);
 
         // 设置响应头
-        setupResponseHeaders(response, file, downloadFileName, action);
+        setupResponseHeaders(response, filePath, downloadFileName, action);
 
         // 执行文件传输
-        FileManageUtil.transferFile(file, response);
+        FileManageUtil.transferFile(filePath, response);
     }
 
     /**
@@ -403,9 +396,9 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
     /**
      * 设置响应头
      */
-    private void setupResponseHeaders(HttpServletResponse response, File file, String fileName, String action) {
+    private void setupResponseHeaders(HttpServletResponse response, Path filePath, String fileName, String action) {
         try {
-            String mimeType = Files.probeContentType(file.toPath());
+            String mimeType = Files.probeContentType(filePath);
             response.setContentType(mimeType);
         } catch (Exception e) {
             log.error("获取文件类型失败", e);
@@ -413,7 +406,11 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         }
 
         response.setCharacterEncoding("UTF-8");
-        response.setContentLengthLong(file.length());
+        try {
+            response.setContentLengthLong(Files.size(filePath));
+        } catch (IOException e) {
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，获取文件大小失败");
+        }
 
         try {
             String encodedFileName = URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
@@ -442,13 +439,12 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                     .like(TeachingMaterials::getName, param.getName())
                     .eq(TeachingMaterials::getType, param.getType())
                     .eq(TeachingMaterials::getIsPublic, param.getIsPublic());
-        }
-        else if (userType == 1)
+        } else if (userType == 1)
             throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
         else if (userType == 2) {
             queryWrapper.like(TeachingMaterials::getName, param.getName())
                     .eq(TeachingMaterials::getType, param.getType());
-            if (ObjectUtils.isNotEmpty(param.getIsPublic())){
+            if (ObjectUtils.isNotEmpty(param.getIsPublic())) {
                 if (param.getIsPublic())
                     queryWrapper.eq(TeachingMaterials::getIsPublic, param.getIsPublic());
                 else queryWrapper.eq(TeachingMaterials::getAuthorId, UserUtils.get().getId());
@@ -459,7 +455,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
         List<Long> authorIdList = materialsList.stream().map(TeachingMaterials::getAuthorId).collect(Collectors.toList());
         Map<Long, String> teacherIdNameMap = teacherService.list(
-                new LambdaQueryWrapper<Teacher>().in(Teacher::getId, authorIdList))
+                        new LambdaQueryWrapper<Teacher>().in(Teacher::getId, authorIdList))
                 .stream().collect(
                         Collectors.toMap(Teacher::getId, Teacher::getName));
 
@@ -493,7 +489,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                     new LambdaQueryWrapper<MaterialsTextbookMapping>()
                             .eq(MaterialsTextbookMapping::getMaterialId, id)
                             .eq(MaterialsTextbookMapping::getTextbookId, textbookId));
-            if(textbookMappingList.size() == 0)
+            if (textbookMappingList.size() == 0)
                 throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，没有权限查看此文件");
         }
         BeanUtils.copyProperties(materials, materialsReturnVo);
@@ -503,6 +499,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
         return materialsReturnVo;
     }
+
     @Override
     public void updateTeachingMaterialsById(TeachingMaterials teachingmaterials) {
         if (teachingmaterials == null || teachingmaterials.getId() == null || teachingmaterials.getId() == 0L) {
@@ -516,7 +513,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             // 发生改变则移动文件
             String oldPath = oldData.getFilePath();
             String baseDir = newIsPublic ? "upload/teaching_materials/public/" : "upload/teaching_materials/private/";
-            String newPath = baseDir  + extractRelativePath(oldPath);
+            String newPath = baseDir + extractRelativePath(oldPath);
             //log.info("移动文件：{} -> {}", oldPath, newPath);
             boolean moved = FileManageUtil.moveFile(oldPath, newPath);
             if (!moved) {
@@ -532,21 +529,6 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
      * @param filePath 文件完整路径
      * @return 文件名
      */
-   /* private String extractFileName(String filePath) {
-        if (filePath == null || filePath.isEmpty()) {
-            return null;
-        }
-
-        // 把 Windows 的 "\" 替换成 Linux 的 "/"
-        String normalizedPath = filePath.replace('\\', '/');
-
-        // 找到最后一个 "/"
-        int idx = normalizedPath.lastIndexOf('/');
-        if (idx == -1) {
-            return normalizedPath; // 没有目录分隔符，说明就是文件名
-        }
-        return normalizedPath.substring(idx + 1);
-    }*/
     private String extractRelativePath(String filePath) {
         if (filePath == null || filePath.isEmpty()) {
             return null;
@@ -574,28 +556,25 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
     }
 
 
-
     @Override
-   public void deleteTeachingMaterialsByIds(List<Long> ids) {
-       // 1. 查出这些素材
-       List<TeachingMaterials> materialsList = this.listByIds(ids);
+    public void deleteTeachingMaterialsByIds(List<Long> ids) {
+        // 1. 查出这些素材
+        List<TeachingMaterials> materialsList = this.listByIds(ids);
 
-       // 2. 遍历删除文件
-       for (TeachingMaterials materials : materialsList) {
-           String filePath = materials.getFilePath();
-           if (filePath != null) {
-               File file = new File(filePath);
-               if (file.exists()) {
-                   boolean deleted = file.delete();
-                   if (!deleted) {
-                       // 如果需要更稳妥，可以抛异常或记录日志
-                       System.out.println("文件删除失败: " + filePath);
-                   }
-               }
-           }
-       }
-       // 3. 删除数据库记录
-       this.removeByIds(ids);
-   }
+        // 2. 遍历删除文件
+        for (TeachingMaterials materials : materialsList) {
+            Path filePath = Paths.get(materials.getFilePath());
+
+            if (Files.exists(filePath)) {
+                try {
+                    Files.delete(filePath);
+                } catch (IOException e) {
+                    throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，文件删除失败");
+                }
+            }
+        }
+        // 3. 删除数据库记录
+        this.removeByIds(ids);
+    }
 
 }
