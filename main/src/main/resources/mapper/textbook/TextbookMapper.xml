@@ -75,7 +75,6 @@
             <if test="param.reviewStatus != null">
                 AND (t.review_status = #{param.reviewStatus} OR t.review_status IS NULL)
             </if>
-            </if>
             <if test="param.startTime != null">
                 AND t.add_datetime &gt;= #{param.startTime}
             </if>
