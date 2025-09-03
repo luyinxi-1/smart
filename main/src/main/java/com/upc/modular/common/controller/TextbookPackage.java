@@ -133,7 +133,7 @@ public class TextbookPackage {
         textbookCatalogs.stream()
                 .filter(c -> c != null && c.getCatalogName() != null)
                 .forEach(catalog -> {
-                    htmlBuilder.append("<h2>").append(catalog.getCatalogName()).append("</h2>");
+                    htmlBuilder.append(catalog.getCatalogName());
                     if (catalog.getContent() != null) {
                         htmlBuilder.append(catalog.getContent());
                     }
@@ -238,8 +238,6 @@ public class TextbookPackage {
                 throw new IOException("无法在类路径中找到Go模板文件: /template.go");
             }
 
-            // --- [修改点 1: 替换 InputStream.readAllBytes()] ---
-            // Java 8 的标准写法：使用 ByteArrayOutputStream 来读取所有字节
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
             int nRead;
             byte[] data = new byte[1024]; // 可以选择合适的缓冲区大小
@@ -291,7 +289,6 @@ public class TextbookPackage {
                 result = new String(processOutputBuffer.toByteArray(), StandardCharsets.UTF_8);
             }
 
-            // Java 8 的等效写法：检查是否为 null 或 trim后是否为空
             if (result != null && !result.trim().isEmpty()) {
                 System.out.println("Go build output:\n" + result);
             }

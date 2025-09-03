@@ -1,5 +1,9 @@
 package com.upc.modular.datastatistics.service;
 
+import com.upc.modular.datastatistics.controller.param.StudentReadingTimeByMonthReturnParam;
+
+import java.util.List;
+
 public interface IStudentDataStatistics {
     Long countStudentTextbookReading();
 
@@ -13,4 +17,7 @@ public interface IStudentDataStatistics {
 
     Long countStudentQuestions();
 
+    Long countStudentTextbookReadingTime();
+
+    List<StudentReadingTimeByMonthReturnParam> countStudentTextbookReadingTimeByMonth(Integer year);
 }
