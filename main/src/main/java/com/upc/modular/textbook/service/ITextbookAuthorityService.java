@@ -3,8 +3,9 @@ package com.upc.modular.textbook.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.textbook.entity.TextbookAuthority;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.upc.modular.textbook.param.TextbookAuthorityReturnParam;
+import com.upc.modular.textbook.param.TextbookAuthorityDetailReturnParam;
 import com.upc.modular.textbook.param.TextbookAuthoritySearchParam;
+import com.upc.modular.textbook.param.TextbookAuthorityUpdateParam;
 
 import java.util.List;
 
@@ -24,13 +25,13 @@ public interface ITextbookAuthorityService extends IService<TextbookAuthority> {
 
 //    void updateTextbookAuthorityById(TextbookAuthority textbookAuthority);
 
-    Page<TextbookAuthorityReturnParam> getTextbookAuthorityPage(TextbookAuthoritySearchParam param);
+    Page<TextbookAuthorityDetailReturnParam> getTextbookAuthorityPage(TextbookAuthoritySearchParam param);
 
     boolean textbookAuthorityJudge(Long textBookId, Long userId);
 
     boolean textbookAuthorityEditJudge(Long textBookId, Long userId);
 
-    void updateTextbookAuthorityById(Integer authorityType, Long textbookId, List<Long> visibleInstituteIds);
+    void updateTextbookAuthorityById(TextbookAuthorityUpdateParam textbookAuthorityUpdateParam);
 
     void deleteTextbookAuthorityByTextbookIds(Integer authorityType, Long textbookId);
 }

@@ -3,6 +3,7 @@ package com.upc.modular.auth.controller;
 import com.upc.common.responseparam.R;
 import com.upc.common.utils.FileManageUtil;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
@@ -10,12 +11,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
+
+import static com.upc.common.utils.FileManageUtil.uploadFile;
 
 /**
  * @Author: xth
@@ -36,35 +37,28 @@ public class CommonController {
      * @param file
      * @return
      */
+    @ApiOperation("上传文件")
     @PostMapping("/upload")
     public R<String> upload(MultipartFile file) {
-        //文件名处理
-        String originalFilename = file.getOriginalFilename();
-        //suffix为图片后缀名
-        String suffix = originalFilename.substring(originalFilename.lastIndexOf("."));
+        Path folderPath = Paths.get(basePath, FileManageUtil.yyyyMMddStr());
+        String fileName = FileManageUtil.createFileName(file);
+        String filePath = uploadFile(file, folderPath, fileName);
 
-        //使用UUID生成新的文件名,防止传入的文件名因重复而覆盖
-        String fileName = UUID.randomUUID().toString() + suffix;
+        return R.ok(filePath);
+    }
 
-        String filePath = basePath + "/" + FileManageUtil.yyyyMMddStr();
-
-        //创建目录
-        File dir = new File(filePath);
-        //如果该目录不存在,就创建出来
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-
-        try {
-            //将临时图片转存
-            file.transferTo(new File(dir.getAbsolutePath(),fileName));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        //log.info(file.toString());
-
-        return R.ok(filePath + "/" + fileName);
+    /**
+     * 上传svg字符串并转换成png文件
+     *
+     * @param dataUrl
+     * @return
+     */
+    @ApiOperation("上传svg字符串并转换成png文件")
+    @PostMapping("/uploadSvg")
+    public R<String> uploadSvgDataUrlToPng(@RequestParam String dataUrl) {
+        Path folderPath = Paths.get(basePath, FileManageUtil.yyyyMMddStr());
+        String pngFileName = UUID.randomUUID() + ".png";
+        return R.ok(FileManageUtil.convertSvgDataUrlToPng(dataUrl, folderPath, pngFileName));
     }
 
     /**
@@ -73,6 +67,7 @@ public class CommonController {
      * @param name
      * @param response
      */
+    @ApiOperation("文件下载")
     @GetMapping("/download")
     public void download(@RequestParam String name, HttpServletResponse response) {
         try {
