@@ -81,16 +81,13 @@
             </if>
             <if test="param.reviewStatus != null">
                 <choose>
-                    <when test="param.reviewStatus == 1">
-                        AND t.review_status = #{param.reviewStatus}
+                    <when test="param.reviewStatus == 0">
+                        AND (t.review_status = #{param.reviewStatus} OR t.review_status IS NULL)
                     </when>
                     <otherwise>
-                        AND (t.review_status = #{param.reviewStatus} OR t.review_status IS NULL)
+                        AND t.review_status = #{param.reviewStatus}
                     </otherwise>
                 </choose>
-            </if>
-            <if test="param.reviewStatus != null">
-                AND (t.review_status = #{param.reviewStatus} OR t.review_status IS NULL)
             </if>
             <if test="param.startTime != null">
                 AND t.add_datetime &gt;= #{param.startTime}
