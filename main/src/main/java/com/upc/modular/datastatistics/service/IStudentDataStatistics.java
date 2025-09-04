@@ -1,6 +1,7 @@
 package com.upc.modular.datastatistics.service;
 
 import com.upc.modular.datastatistics.controller.param.StudentReadingTimeByMonthReturnParam;
+import com.upc.modular.datastatistics.controller.param.StudentTextbookCompletionReturnParam;
 
 import java.util.List;
 
@@ -20,4 +21,6 @@ public interface IStudentDataStatistics {
     Long countStudentTextbookReadingTime();
 
     List<StudentReadingTimeByMonthReturnParam> countStudentTextbookReadingTimeByMonth(Integer year);
+
+    List<StudentTextbookCompletionReturnParam> countStudentTextbookCompetion();
 }
