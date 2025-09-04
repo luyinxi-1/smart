@@ -19,6 +19,7 @@ import com.upc.modular.textbook.entity.TextbookAuthority;
 import com.upc.modular.textbook.mapper.TextbookAuthorityMapper;
 import com.upc.modular.textbook.param.TextbookAuthorityDetailReturnParam;
 import com.upc.modular.textbook.param.TextbookAuthoritySearchParam;
+import com.upc.modular.textbook.param.TextbookAuthorityUpdateParam;
 import com.upc.modular.textbook.service.ITextbookAuthorityService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.textbook.service.ITextbookService;
@@ -293,23 +294,25 @@ public class TextbookAuthorityServiceImpl extends ServiceImpl<TextbookAuthorityM
     }
 
     @Override
-    public void updateTextbookAuthorityById(Integer authorityType, Long textbookId, List<Long> visibleInstituteIds) {
-        if (authorityType == null || textbookId == null) {
+    public void updateTextbookAuthorityById(TextbookAuthorityUpdateParam textbookAuthorityUpdateParam) {
+        if (textbookAuthorityUpdateParam.getAuthorityType() == null
+                || textbookAuthorityUpdateParam.getTextbookId() == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
 
-        this.deleteTextbookAuthorityByTextbookIds(authorityType, textbookId);
+        this.deleteTextbookAuthorityByTextbookIds(textbookAuthorityUpdateParam.getAuthorityType(),
+                textbookAuthorityUpdateParam.getTextbookId());
 
 
         // 往TextbookAuthority表批量插入数据，textbook_id都是textbookId， visible_institute_id分别是visibleInstituteIds的每一条数据。
-        if (CollectionUtils.isEmpty(visibleInstituteIds)) {
+        if (CollectionUtils.isEmpty(textbookAuthorityUpdateParam.getVisibleInstituteIds())) {
             return;
         }
 
-        List<TextbookAuthority> authorityList = visibleInstituteIds.stream().map(instituteId -> {
+        List<TextbookAuthority> authorityList = textbookAuthorityUpdateParam.getVisibleInstituteIds().stream().map(instituteId -> {
             TextbookAuthority authority = new TextbookAuthority();
-            authority.setTextbookId(textbookId);
-            authority.setAuthorityType(authorityType);
+            authority.setTextbookId(textbookAuthorityUpdateParam.getTextbookId());
+            authority.setAuthorityType(textbookAuthorityUpdateParam.getAuthorityType());
             authority.setVisibleInstituteId(instituteId); // 设置每个实体对应的单位ID
             return authority;
         }).collect(Collectors.toList());
