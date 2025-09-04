@@ -323,20 +323,6 @@ public class FileManageUtil {
 
     }
 
-    /**
-     * 删除文件，成功返回true，失败返回false
-     *
-     * @param pathIncludeFileName 路径名（包含文件名）
-     * @return 是否删除成功
-     * @author 秋天
-     */
-    public static Boolean deleteFile(String pathIncludeFileName) {
-        File file = new File(pathIncludeFileName);
-        if (file.exists()) {
-            return file.delete();
-        }
-        return false;
-    }
 
     /**
      * 创建文件名，默认使用UUID

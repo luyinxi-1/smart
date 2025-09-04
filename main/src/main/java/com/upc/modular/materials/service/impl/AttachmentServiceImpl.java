@@ -14,6 +14,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -60,7 +61,12 @@ public class AttachmentServiceImpl extends ServiceImpl<AttachmentMapper, Attachm
         Attachment attachment = this.getById(id);
         if (attachment == null)
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，文件不存在");
-        return FileManageUtil.deleteFile(attachment.getFilePath()) && this.removeById(id);
+        try {
+            return Files.deleteIfExists(Paths.get(attachment.getFilePath())) && this.removeById(id);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，文件删除失败");
+        }
     }
 
     @Override

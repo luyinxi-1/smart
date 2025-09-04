@@ -3,6 +3,7 @@ package com.upc.modular.datastatistics.controller;
 
 import com.upc.common.responseparam.R;
 import com.upc.modular.datastatistics.controller.param.StudentReadingTimeByMonthReturnParam;
+import com.upc.modular.datastatistics.controller.param.StudentTextbookCompletionReturnParam;
 import com.upc.modular.datastatistics.service.IStudentDataStatistics;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -75,6 +76,12 @@ public class StudentDataStatisticsController {
     @GetMapping("/reading-time-month")
     public R<List<StudentReadingTimeByMonthReturnParam>> countStudentTextbookReadingTimeByMonth(@RequestParam Integer year){
         return R.ok(iStudentDataStatistics.countStudentTextbookReadingTimeByMonth(year));
+    }
+
+    @ApiOperation("统计学生教材完成度")
+    @GetMapping("/textbook-completion")
+    public R<List<StudentTextbookCompletionReturnParam>> countStudentTextbookCompletion(){
+        return R.ok(iStudentDataStatistics.countStudentTextbookCompetion());
     }
 
 
