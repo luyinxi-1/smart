@@ -19,8 +19,8 @@ public class SyncInfoReturnParam {
     private LocalDateTime syncTime;
 
     @ApiModelProperty("同步用户id")
-    private String syncUserId;
+    private Long syncUserId;
 
-    @ApiModelProperty("同步的失败列表List<Map<失败数据uuid, 失败原因>>")
-    private List<Map<String, String>> failList;
+    @ApiModelProperty("失败列表Map{id, 失败原因}")
+    private Map<Long, String> failMap;
 }
