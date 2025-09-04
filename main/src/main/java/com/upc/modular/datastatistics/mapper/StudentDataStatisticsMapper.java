@@ -1,11 +1,13 @@
 package com.upc.modular.datastatistics.mapper;
 
 import com.upc.modular.textbook.entity.LearningLog;
+import com.upc.modular.textbook.entity.Textbook;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface StudentDataStatisticsMapper {
@@ -37,4 +39,10 @@ public interface StudentDataStatisticsMapper {
             @Param("userId") Long currentUserId,
             @Param("dataType") int dataType,
             @Param("year") Integer year);
+
+    @Select("SELECT DISTINCT textbook_id,catalogue_id FROM learning_log WHERE user_id = #{currentUserId} AND data_type = 1")
+    List<Map<String, Object>> findReadCatalogsByUserId(Long currentUserId);
+
+    @Select("SELECT * FROM textbook where id = #{textbookId}")
+    Textbook getTextbookById(Long textbookId);
 }
