@@ -1,0 +1,122 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.datastatistics.mapper.TeacherTextbookStatisticsMapper">
+
+    <!-- 按时间统计交流反馈新增数量 -->
+    <select id="getCommunicationFeedbackStatisticsByTime" resultType="com.upc.modular.datastatistics.controller.param.TextbookTimeStatisticsReturnParam">
+        <choose>
+            <when test="queryMethod == 1">
+                <!-- 按年统计 -->
+                SELECT 
+                    TO_CHAR(dtr.add_datetime, 'YYYY') as time,
+                    COUNT(*) as count,
+                    NULL as duration
+                FROM discussion_topic_reply dtr
+                INNER JOIN discussion_topic dt ON dtr.topic_id = dt.id
+                WHERE dt.textbook_id = #{textbookId}
+                <if test="startTime != null and startTime != ''">
+                    AND dtr.add_datetime >= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
+                </if>
+                <if test="endTime != null and endTime != ''">
+                    AND dtr.add_datetime &lt;= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
+                </if>
+                GROUP BY TO_CHAR(dtr.add_datetime, 'YYYY')
+                ORDER BY time
+            </when>
+            <when test="queryMethod == 2">
+                <!-- 按月统计 -->
+                SELECT 
+                    TO_CHAR(dtr.add_datetime, 'YYYY-MM') as time,
+                    COUNT(*) as count,
+                    NULL as duration
+                FROM discussion_topic_reply dtr
+                INNER JOIN discussion_topic dt ON dtr.topic_id = dt.id
+                WHERE dt.textbook_id = #{textbookId}
+                <if test="startTime != null and startTime != ''">
+                    AND dtr.add_datetime >= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
+                </if>
+                <if test="endTime != null and endTime != ''">
+                    AND dtr.add_datetime &lt;= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
+                </if>
+                GROUP BY TO_CHAR(dtr.add_datetime, 'YYYY-MM')
+                ORDER BY time
+            </when>
+            <when test="queryMethod == 3">
+                <!-- 按日统计 -->
+                SELECT 
+                    TO_CHAR(dtr.add_datetime, 'YYYY-MM-DD') as time,
+                    COUNT(*) as count,
+                    NULL as duration
+                FROM discussion_topic_reply dtr
+                INNER JOIN discussion_topic dt ON dtr.topic_id = dt.id
+                WHERE dt.textbook_id = #{textbookId}
+                <if test="startTime != null and startTime != ''">
+                    AND dtr.add_datetime >= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
+                </if>
+                <if test="endTime != null and endTime != ''">
+                    AND dtr.add_datetime &lt;= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
+                </if>
+                GROUP BY TO_CHAR(dtr.add_datetime, 'YYYY-MM-DD')
+                ORDER BY time
+            </when>
+        </choose>
+    </select>
+
+    <!-- 按时间统计阅读时长 - 基于learning_log表 -->
+    <select id="getReadingDurationStatisticsByTime" resultType="com.upc.modular.datastatistics.controller.param.TextbookTimeStatisticsReturnParam">
+        <choose>
+            <when test="queryMethod == 1">
+                <!-- 按年统计 -->
+                SELECT 
+                    TO_CHAR(ll.add_datetime, 'YYYY') as time,
+                    COUNT(DISTINCT ll.user_id) as count,
+                    COALESCE(COUNT(*), 0) as duration
+                FROM learning_log ll
+                WHERE ll.textbook_id = #{textbookId} AND ll.data_type = 0
+                <if test="startTime != null and startTime != ''">
+                    AND ll.add_datetime >= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
+                </if>
+                <if test="endTime != null and endTime != ''">
+                    AND ll.add_datetime &lt;= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
+                </if>
+                GROUP BY TO_CHAR(ll.add_datetime, 'YYYY')
+                ORDER BY time
+            </when>
+            <when test="queryMethod == 2">
+                <!-- 按月统计 -->
+                SELECT 
+                    TO_CHAR(ll.add_datetime, 'YYYY-MM') as time,
+                    COUNT(DISTINCT ll.user_id) as count,
+                    COALESCE(COUNT(*), 0) as duration
+                FROM learning_log ll
+                WHERE ll.textbook_id = #{textbookId} AND ll.data_type = 0
+                <if test="startTime != null and startTime != ''">
+                    AND ll.add_datetime >= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
+                </if>
+                <if test="endTime != null and endTime != ''">
+                    AND ll.add_datetime &lt;= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
+                </if>
+                GROUP BY TO_CHAR(ll.add_datetime, 'YYYY-MM')
+                ORDER BY time
+            </when>
+            <when test="queryMethod == 3">
+                <!-- 按日统计 -->
+                SELECT 
+                    TO_CHAR(ll.add_datetime, 'YYYY-MM-DD') as time,
+                    COUNT(DISTINCT ll.user_id) as count,
+                    COALESCE(COUNT(*), 0) as duration
+                FROM learning_log ll
+                WHERE ll.textbook_id = #{textbookId} AND ll.data_type = 0
+                <if test="startTime != null and startTime != ''">
+                    AND ll.add_datetime >= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
+                </if>
+                <if test="endTime != null and endTime != ''">
+                    AND ll.add_datetime &lt;= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
+                </if>
+                GROUP BY TO_CHAR(ll.add_datetime, 'YYYY-MM-DD')
+                ORDER BY time
+            </when>
+        </choose>
+    </select>
+
+</mapper>
