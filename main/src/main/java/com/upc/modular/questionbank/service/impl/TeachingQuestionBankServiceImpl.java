@@ -164,7 +164,7 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
     }
 
     @Override
-    public void inserQuestionBank(TeachingQuestionBank param) {
+    public Long inserQuestionBank(TeachingQuestionBank param) {
         Long textbookId = param.getTextbookId();
         Long textbookCatalogId = param.getTextbookCatalogId();
 
@@ -184,6 +184,7 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
         }
 
         this.save(param);
+        return param.getId();
     }
 
     @Override
