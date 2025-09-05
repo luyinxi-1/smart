@@ -1,11 +1,8 @@
 package com.upc.modular.teachingactivities.service;
 
-import com.upc.modular.teachingactivities.param.DiscussionTopicReturnParam;
-import com.upc.modular.teachingactivities.param.DiscussionTopicSearchParam;
+import com.upc.modular.teachingactivities.param.*;
 import com.upc.modular.teachingactivities.entity.DiscussionTopic;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.upc.modular.teachingactivities.param.MyJoinDiscussionTopicDiscussionTopicReturnParam;
-import com.upc.modular.teachingactivities.param.MyJoinDiscussionTopicSearchParam;
 
 import java.util.List;
 
@@ -28,4 +25,6 @@ public interface IDiscussionTopicService extends IService<DiscussionTopic> {
     List<DiscussionTopicReturnParam> getDiscussionTopicList(DiscussionTopicSearchParam param);
 
     List<MyJoinDiscussionTopicDiscussionTopicReturnParam> selectMyJoinDiscussionTopic(MyJoinDiscussionTopicSearchParam param);
+
+    DiscussionTopicSecondReturnParam getSecondTextbookById(Long id);
 }

@@ -39,7 +39,7 @@ public class DiscussionTopic implements Serializable {
 
     @ApiModelProperty("话题的类型")
     @TableField("type")
-    private Integer type;
+    private String type;
 
     @ApiModelProperty("留言的类型")
     @TableField("message_type")
