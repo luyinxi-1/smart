@@ -80,9 +80,11 @@ public class TextbookReviewServiceImpl extends ServiceImpl<TextbookReviewMapper,
             if (auditResult == 1) {
                 // 审核通过
                 textbook.setReviewStatus(1);
+                textbook.setReleaseStatus(1); // 【新增】更新发布状态为“已发布”
             } else if (auditResult == 0) {
                 // 审核未通过
                 textbook.setReviewStatus(3);
+                textbook.setReleaseStatus(0);
             }
             textbookService.updateById(textbook);
         }
