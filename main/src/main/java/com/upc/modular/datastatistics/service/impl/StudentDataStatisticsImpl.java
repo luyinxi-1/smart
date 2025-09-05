@@ -2,9 +2,15 @@ package com.upc.modular.datastatistics.service.impl;
 
 import ch.qos.logback.classic.Logger;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.utils.UserUtils;
+import com.upc.modular.auth.entity.SysAuthorityModel;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.datastatistics.controller.param.StudentReadingTimeByMonthReturnParam;
 import com.upc.modular.datastatistics.controller.param.StudentTextbookCompletionReturnParam;
+import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 import com.upc.modular.datastatistics.mapper.StudentDataStatisticsMapper;
 import com.upc.modular.datastatistics.service.IStudentDataStatistics;
 import com.upc.modular.student.entity.Student;
@@ -22,53 +28,77 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class StudentDataStatisticsImpl implements IStudentDataStatistics {
-    // 完成度阈值
+public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatisticsMapper,StudentStatisticsData> implements IStudentDataStatistics {
+    // 完成度阈值（完成阅读）
     private static final long COMPLETION_THRESHOLD = 70L;
+    // 阅读时间阈值（阅读排行榜）
+    private static final long READING_TIME_THRESHOLD = 30L;
     @Autowired
     private StudentDataStatisticsMapper studentDataStatisticsMapper;
 
     // 注入教材目录服务
     @Autowired
     private ITextbookCatalogService textbookCatalogService;
+
+    @Autowired
+    private StudentMapper studentMapper;
+
+    @Autowired
+    private SysUserMapper sysUserMapper;
+
+    /**
+     * 统计学生阅读的教材数量
+     */
     @Override
     public Long countStudentTextbookReading() {
         Long currentUserId = UserUtils.get().getId();
         return studentDataStatisticsMapper.countTextbookByUserId(currentUserId);
 
     }
-
+    /**
+     * 统计学生书架的书籍数量
+     */
     @Override
     public Long countStudentFavoritebook() {
         Long currentUserId = UserUtils.get().getId();
         return studentDataStatisticsMapper.countFavoritebookByUserId(currentUserId);
     }
-
+    /**
+     * 统计学生参与的教学活动数量
+     */
     @Override
     public Long countStudentTeachingActivities() {
         Long currentUserId = UserUtils.get().getId();
         return studentDataStatisticsMapper.countTeachingActivitiesByUserId(currentUserId);
 
     }
-
+    /**
+     * 统计学生交流反馈数量
+     */
     @Override
     public Long countStudentCommunicationFeedback() {
         Long currentUserId = UserUtils.get().getId();
         return studentDataStatisticsMapper.countCommunicationByUserId(currentUserId);
     }
-
+    /**
+     * 统计学生笔记数量
+     */
     @Override
     public Long countStudentnotes() {
         Long currentUserId = UserUtils.get().getId();
         return studentDataStatisticsMapper.countNotesByUserId(currentUserId);
     }
-
+    /**
+     * 统计学生答题数量
+     */
     @Override
     public Long countStudentQuestions() {
         Long currentUserId = UserUtils.get().getId();
         return studentDataStatisticsMapper.countQuestionsByUserId(currentUserId);
     }
-
+    /**
+     * 统计学生教材总阅读时间
+     */
     @Override
     public Long countStudentTextbookReadingTime() {
         Long currentUserId = UserUtils.get().getId();
@@ -97,7 +127,10 @@ public class StudentDataStatisticsImpl implements IStudentDataStatistics {
         }
         return totalReadingTime;
     }
-
+    /**
+     * 按月统计学生教材阅读时间
+     * @param year 年份
+     */
     @Override
     public List<StudentReadingTimeByMonthReturnParam> countStudentTextbookReadingTimeByMonth(Integer year) {
         Long currentUserId = UserUtils.get().getId();
@@ -135,7 +168,9 @@ public class StudentDataStatisticsImpl implements IStudentDataStatistics {
 
         return result;
     }
-
+    /**
+     * 统计学生教材完成度
+     */
     @Override
     public List<StudentTextbookCompletionReturnParam> countStudentTextbookCompetion() {
         Long currentUserId = UserUtils.get().getId();
@@ -185,6 +220,9 @@ public class StudentDataStatisticsImpl implements IStudentDataStatistics {
         }
         return result;
     }
+    /**
+     * 统计学生完成阅读的教材数量
+     */
     @Override
     public Long countStudentTextbookRead() {
         List<StudentTextbookCompletionReturnParam> completionList = countStudentTextbookCompetion();
@@ -194,6 +232,53 @@ public class StudentDataStatisticsImpl implements IStudentDataStatistics {
                 .filter(param -> param.getCompletion() != null && param.getCompletion() >= COMPLETION_THRESHOLD)
                 .count();
         return completedTextbooks;
+    }
+
+    @Override
+    public Long countStudentCurrentYearTextbookReadingTime() {
+        Long userId = UserUtils.get().getId();
+        int currentYear = LocalDateTime.now().getYear();
+        // 容忍范围
+        final long MIN_DIFF_SECONDS = 55;
+        final long MAX_DIFF_SECONDS = 65;
+        // 获取时间列表
+        List<LearningLog> records;
+        records = studentDataStatisticsMapper.findAddDatetimeByYear(userId, 0, currentYear);
+        if(records == null || records.size() < 2){
+            return 0L;
+        }
+        //计算本年阅读时间
+        long totalReadingTime = 0L;
+        for (int i = 0; i < records.size() - 1; i++) {
+            LocalDateTime currentAddDatetime = records.get(i).getAddDatetime();
+            LocalDateTime nextAddDatetime = records.get(i + 1).getAddDatetime();
+            if (currentAddDatetime == null || nextAddDatetime == null) {
+                continue;
+            }
+            Duration duration = Duration.between(currentAddDatetime, nextAddDatetime);
+            long seconds = duration.getSeconds();
+            if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
+                totalReadingTime += 1; // 假设定时数据间隔时间为1秒
+            }
+        }
+
+        //将统计信息存入到student_statistic_data中
+        Student student = studentMapper.selectOne(new QueryWrapper<Student>().lambda()
+                .eq(Student::getUserId, userId));
+        StudentStatisticsData statisticsData = new StudentStatisticsData();
+        statisticsData.setId(student.getId());
+        statisticsData.setReadingTime(totalReadingTime);
+        statisticsData.setUserId(userId);
+
+        SysTbuser sysTbuser = sysUserMapper.selectOne(new QueryWrapper<SysTbuser>().lambda()
+                .eq(SysTbuser::getId, userId));
+        statisticsData.setPicUrl(sysTbuser.getUserPicture());
+
+        statisticsData.setUpdateTime(LocalDateTime.now());
+        this.saveOrUpdate(statisticsData);
+
+        //返回本年用户阅读时间
+        return totalReadingTime;
     }
 
     /**
@@ -226,5 +311,7 @@ public class StudentDataStatisticsImpl implements IStudentDataStatistics {
         }
         return count;
     }
+
+
 
 }

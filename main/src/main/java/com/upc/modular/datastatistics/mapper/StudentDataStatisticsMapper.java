@@ -1,5 +1,7 @@
 package com.upc.modular.datastatistics.mapper;
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 import com.upc.modular.textbook.entity.LearningLog;
 import com.upc.modular.textbook.entity.Textbook;
 import org.apache.ibatis.annotations.Mapper;
@@ -10,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 @Mapper
-public interface StudentDataStatisticsMapper {
+public interface StudentDataStatisticsMapper  extends BaseMapper<StudentStatisticsData>{
     @Select("select count(DISTINCT textbook_id) from learning_log where user_id = #{currentUserId}")
     Long countTextbookByUserId(Long currentUserId);
 
