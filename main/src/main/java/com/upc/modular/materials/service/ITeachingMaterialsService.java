@@ -36,6 +36,8 @@ public interface ITeachingMaterialsService extends IService<TeachingMaterials> {
     Page<TeachingMaterialsReturnVo> getPage(TeachingMaterialsPageSearchDto param);
 
     TeachingMaterialsReturnVo getTeachingMaterials(Long id, Long textbookId);
+
     void updateTeachingMaterialsById(TeachingMaterials teachingmaterials);
+
     void deleteTeachingMaterialsByIds(List<Long> ids);
 }

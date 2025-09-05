@@ -2,13 +2,18 @@ package com.upc.modular.datastatistics.controller;
 
 
 import com.upc.common.responseparam.R;
+import com.upc.modular.datastatistics.controller.param.StudentReadingTimeByMonthReturnParam;
+import com.upc.modular.datastatistics.controller.param.StudentTextbookCompletionReturnParam;
 import com.upc.modular.datastatistics.service.IStudentDataStatistics;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @Api(tags = "学生数据统计")
 @RestController("/count")
@@ -36,11 +41,11 @@ public class StudentDataStatisticsController {
         return R.ok(iStudentDataStatistics.countStudentTeachingActivities());
     }
 
-//    @ApiOperation("统计学生已完成阅读的教材数量")
-//    @GetMapping("/read-textbook")
-//    public R<Long> countStudentTextbookread(){
-//
-//    }
+    @ApiOperation("统计学生已完成阅读的教材数量")
+    @GetMapping("/read-textbook")
+    public R<Long> countStudentTextbookread(){
+        return R.ok(iStudentDataStatistics.countStudentTextbookRead());
+    }
 
     @ApiOperation("统计学生参与交流反馈数量")
     @GetMapping("/communication-feedback")
@@ -60,4 +65,25 @@ public class StudentDataStatisticsController {
         return R.ok(iStudentDataStatistics.countStudentQuestions());
 
     }
+
+    @ApiOperation("统计学生教材阅读总时长")
+    @GetMapping("/reading-time")
+    public R<Long> countStudentTextbookReadingTime(){
+        return R.ok(iStudentDataStatistics.countStudentTextbookReadingTime());
+    }
+
+    @ApiOperation("统计学生教材每月阅读时长")
+    @GetMapping("/reading-time-month")
+    public R<List<StudentReadingTimeByMonthReturnParam>> countStudentTextbookReadingTimeByMonth(@RequestParam Integer year){
+        return R.ok(iStudentDataStatistics.countStudentTextbookReadingTimeByMonth(year));
+    }
+
+    @ApiOperation("统计学生教材完成度")
+    @GetMapping("/textbook-completion")
+    public R<List<StudentTextbookCompletionReturnParam>> countStudentTextbookCompletion(){
+        return R.ok(iStudentDataStatistics.countStudentTextbookCompetion());
+    }
+
+
+
 }

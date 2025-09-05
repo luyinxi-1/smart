@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.textbook.mapper.TextbookReviewMapper">
+
+    <select id="selectPageWithUserNames" resultType="com.upc.modular.textbook.param.TextbookReviewReturnParam">
+        SELECT
+        tr.*,
+        COALESCE(t.name, s.name, su.username) AS creatorName,
+        COALESCE(t2.name, s2.name, su2.username) AS operatorName
+        FROM textbook_review tr
+        LEFT JOIN teacher t ON tr.creator = t.user_id
+        LEFT JOIN student s ON tr.creator = s.user_id
+        LEFT JOIN sys_tbuser su ON tr.creator = su.id
+        LEFT JOIN teacher t2 ON tr.operator = t2.user_id
+        LEFT JOIN student s2 ON tr.operator = s2.user_id
+        LEFT JOIN sys_tbuser su2 ON tr.operator = su2.id
+        <where>
+            <if test="textbookId != null">
+                AND tr.textbook_id = #{textbookId}
+            </if>
+        </where>
+        ORDER BY tr.add_datetime DESC
+    </select>
+
+    <select id="selectByIdWithUserNames" resultType="com.upc.modular.textbook.param.TextbookReviewReturnParam">
+        SELECT
+            tr.*,
+            COALESCE(t.name, s.name, su.username) AS creatorName,
+            COALESCE(t2.name, s2.name, su2.username) AS operatorName
+        FROM textbook_review tr
+                 LEFT JOIN teacher t ON tr.creator = t.user_id
+                 LEFT JOIN student s ON tr.creator = s.user_id
+                 LEFT JOIN sys_tbuser su ON tr.creator = su.id
+                 LEFT JOIN teacher t2 ON tr.operator = t2.user_id
+                 LEFT JOIN student s2 ON tr.operator = s2.user_id
+                 LEFT JOIN sys_tbuser su2 ON tr.operator = su2.id
+        WHERE tr.id = #{id}
+    </select>
+</mapper>

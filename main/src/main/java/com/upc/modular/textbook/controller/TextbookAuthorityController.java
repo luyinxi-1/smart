@@ -7,8 +7,9 @@ import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.textbook.entity.TextbookAuthority;
-import com.upc.modular.textbook.param.TextbookAuthorityReturnParam;
+import com.upc.modular.textbook.param.TextbookAuthorityDetailReturnParam;
 import com.upc.modular.textbook.param.TextbookAuthoritySearchParam;
+import com.upc.modular.textbook.param.TextbookAuthorityUpdateParam;
 import com.upc.modular.textbook.service.ITextbookAuthorityService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -70,16 +71,15 @@ public class TextbookAuthorityController {
 
     @ApiOperation(value = "修改教材权限信息")
     @PostMapping("/updateTextbookAuthorityById")
-    public R updateTextbookAuthorityById(@RequestParam Integer authorityType, @RequestParam Long textbookId,
-                                         @RequestBody List<Long> visibleInstituteIds) {
-        textbookAuthorityService.updateTextbookAuthorityById(authorityType, textbookId, visibleInstituteIds);
+    public R updateTextbookAuthorityById(@RequestBody TextbookAuthorityUpdateParam textbookAuthorityUpdateParam) {
+        textbookAuthorityService.updateTextbookAuthorityById(textbookAuthorityUpdateParam);
         return R.commonReturn(200, "修改成功", "");
     }
 
     @ApiOperation(value = "按条件分页查询教材权限")
     @PostMapping("/getTextbookAuthorityPage")
-    public R<Page<TextbookAuthorityReturnParam>> getTextbookAuthorityPage(@RequestBody TextbookAuthoritySearchParam param) {
-        Page<TextbookAuthorityReturnParam> textbookAuthorityPage = textbookAuthorityService.getTextbookAuthorityPage(param);
+    public R<Page<TextbookAuthorityDetailReturnParam>> getTextbookAuthorityPage(@RequestBody TextbookAuthoritySearchParam param) {
+        Page<TextbookAuthorityDetailReturnParam> textbookAuthorityPage = textbookAuthorityService.getTextbookAuthorityPage(param);
         return R.ok(textbookAuthorityPage);
     }
 

@@ -78,15 +78,14 @@ public class TeachingQuestionBankController {
     }
 
     @ApiOperation("点击教材题库后的页面")
-    @GetMapping("/listWithStatus/{textbookId}")
-    public R<List<QuestionBankWithStatusVO>> getQuestionBanksWithStatus(@ApiParam(value = "教材ID", required = true) @PathVariable Long textbookId) {
+    @PostMapping("/listWithStatus")
+    public R<List<QuestionBankWithStatusVO>> getQuestionBanksWithStatus(@RequestBody QuestionBankWithStatusSearchParam param) {
         Long userId = UserUtils.get().getId();
-        Long currentTeacherId = teacherMapper.selectOne(
-                new LambdaQueryWrapper<Teacher>()
-                        .eq(Teacher::getUserId,userId)
+        Long teacherId = teacherMapper.selectOne(
+                new LambdaQueryWrapper<Teacher>().eq(Teacher::getUserId, userId)
         ).getId();
-//        Long currentTeacherId = 2L;
-        List<QuestionBankWithStatusVO> result = teachingQuestionBankService.getQuestionBanksWithStatusForTextbook(textbookId, currentTeacherId);
+        param.setTeacherId(teacherId);
+        List<QuestionBankWithStatusVO> result = teachingQuestionBankService.getQuestionBanksWithStatusForTextbook(param);
         return R.ok(result);
     }
 

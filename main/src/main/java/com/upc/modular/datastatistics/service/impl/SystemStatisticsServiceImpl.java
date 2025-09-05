@@ -1,12 +1,19 @@
 package com.upc.modular.datastatistics.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.upc.modular.course.service.ICourseService;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
+import com.upc.modular.group.service.IGroupService;
 import com.upc.modular.materials.entity.TeachingMaterials;
 import com.upc.modular.materials.mapper.TeachingMaterialsMapper;
 import com.upc.modular.materials.service.ITeachingMaterialsService;
+import com.upc.modular.questionbank.service.ITeachingQuestionService;
+import com.upc.modular.student.service.IStudentService;
 import com.upc.modular.teacher.service.ITeacherService;
+import com.upc.modular.teachingactivities.service.IDiscussionTopicReplyService;
+import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
 import com.upc.modular.textbook.entity.Textbook;
+import com.upc.modular.textbook.service.IIdeologicalMaterialService;
 import com.upc.modular.textbook.service.ITextbookService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,12 +36,20 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
     private ITeacherService teacherService;
     @Autowired
     private ITextbookService textbookService;
-
-    @Override
-    public Map<String, Object> getStudentDetailStatistics(Long studentId) {
-        // TODO: 实现学生详细统计数据逻辑
-        return null;
-    }
+    @Autowired
+    private ICourseService courseService;
+    @Autowired
+    private IGroupService groupService;
+    @Autowired
+    private ITeachingQuestionService teachingQuestionService;
+    @Autowired
+    private IDiscussionTopicService discussionTopicService;
+    @Autowired
+    private IIdeologicalMaterialService ideologicalMaterialService;
+    @Autowired
+    private IStudentService studentService;
+    @Autowired
+    private IDiscussionTopicReplyService discussionTopicReplyService;
 
     @Override
     public Integer getTodayVisitors() {
@@ -75,7 +90,7 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
     @Override
     public Long getStudentCount() {
         // TODO: 实现学生数量统计逻辑
-        return null;
+        return studentService.count();
     }
 
     @Override
@@ -87,38 +102,38 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
     @Override
     public Long getIdeologicalEducationCount() {
         // TODO: 实现教学思政数量统计逻辑
-        return null;
+        return ideologicalMaterialService.count();
     }
 
     @Override
     public Long getTeachingActivitiesCount() {
         // TODO: 实现教学活动数量统计逻辑
-        return null;
+        return discussionTopicService.count();
     }
 
     @Override
-    public Long getQuestionBankCount() {
+    public Long getQuestionBankCount() {     //teaching_question表
         // TODO: 实现题库数量统计逻辑
-        return null;
+        return teachingQuestionService.count() ;
     }
 
     @Override
     public Long getClassCount() {
         // TODO: 实现班级数量统计逻辑
-        return null;
+        return groupService.count();
     }
 
     @Override
     public Long getTeachingCourseCount() {
         // TODO: 实现在授课程数量统计逻辑
-        return null;
+        return courseService.count();
     }
 
     @Override
     public Long getSmartTextbookCount() {
         // TODO: 实现智慧教材数量统计逻辑
 
-        return null;
+        return textbookService.count();
     }
 
     //教材类型统计
@@ -134,19 +149,18 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
         // 转换成 Map<String, Long>
         Map<String, Long> typeCountMap = new HashMap<>();
         for (Map<String, Object> row : result) {
-            String type = (String) row.get("type");
+            // Deleted: String type = row.get("type").toString(); // 使用toString()方法代替强制类型转换
+            Object typeObj = row.get("type");
+            String type = (typeObj != null) ? typeObj.toString() : "未知类型"; // 添加空值检查
             Long count = ((Number) row.get("cnt")).longValue();
             typeCountMap.put(type, count);
         }
-
         return typeCountMap;
     }
-
-
     @Override
     public Long getCommunicationFeedbackCount() {
         // TODO: 实现交流反馈数量统计逻辑
-        return null;
+        return discussionTopicReplyService.count();
     }
 
     @Override

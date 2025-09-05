@@ -74,4 +74,12 @@ public class TeachingQuestion implements Serializable {
     @ApiModelProperty("题目分类")
     @TableField("teaching_question_classification_id")
     private String teachingQuestionClassificationId;
+
+    @ApiModelProperty("选择题选项")
+    @TableField("choice_question_options")
+    private String choiceQuestionOptions;
+
+    @ApiModelProperty("答案解析")
+    @TableField("answer_analysis")
+    private String answerAnalysis;
 }

@@ -70,10 +70,24 @@
                 AND a.name LIKE CONCAT('%', #{param.authorName}, '%')
             </if>
             <if test="param.releaseStatus != null">
-                AND t.release_status = #{param.releaseStatus}
+                <choose>
+                    <when test="param.releaseStatus == 1">
+                        AND t.release_status = #{param.releaseStatus}
+                    </when>
+                    <otherwise>
+                        AND (t.release_status = #{param.releaseStatus} OR t.release_status IS NULL)
+                    </otherwise>
+                </choose>
             </if>
             <if test="param.reviewStatus != null">
-                AND t.review_status = #{param.reviewStatus}
+                <choose>
+                    <when test="param.reviewStatus == 0">
+                        AND (t.review_status = #{param.reviewStatus} OR t.review_status IS NULL)
+                    </when>
+                    <otherwise>
+                        AND t.review_status = #{param.reviewStatus}
+                    </otherwise>
+                </choose>
             </if>
             <if test="param.startTime != null">
                 AND t.add_datetime &gt;= #{param.startTime}

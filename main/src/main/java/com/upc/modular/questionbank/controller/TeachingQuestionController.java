@@ -55,7 +55,7 @@ public class TeachingQuestionController {
         return R.commonReturn(200, "修改成功", "");
     }
 
-    @ApiOperation("根据id查询单个课程信息")
+    @ApiOperation("根据id查询单个题目信息")
     @PostMapping("selectQuestion")
     public R<TeachingQuestion> selectQuestion(@RequestBody TeachingQuestion teachingQuestion){
         TeachingQuestion result = teachingQuestionService.getById(teachingQuestion);

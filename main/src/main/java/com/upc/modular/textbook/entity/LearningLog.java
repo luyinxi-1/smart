@@ -63,5 +63,8 @@ public class LearningLog implements Serializable {
     @TableField(value = "operator", fill = FieldFill.UPDATE)
     private Long operator;
 
+    @ApiModelProperty("数据发送类型")
+    @TableField(value = "data_type")
+    private int dataType;
 
 }

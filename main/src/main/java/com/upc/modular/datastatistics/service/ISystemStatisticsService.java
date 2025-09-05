@@ -4,10 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 public interface ISystemStatisticsService {
-    /**
-     * 获取学生详细统计数据
-     */
-    Map<String, Object> getStudentDetailStatistics(Long studentId);
 
     /**
      * 获取今日访问人数

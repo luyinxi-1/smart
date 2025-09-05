@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
+import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
 
@@ -20,7 +21,7 @@ public class FileManageUtil {
 
     /**
      * 上传文件并保存到 ./uplpad 下的指定的目录
-     * 该方法会对上传的文件进行类型验证，确保文件的内容类型符合要求，
+     * 该方法会对上传的文件进行类型验证，确保文件的内容类型符合要求(必须有扩展名)，
      * 并且检查目标路径是否有效。文件将被保存到指定目录下，并返回文件的保存路径。
      * 保存文件的目录标准：upload/xxxx
      *
@@ -33,7 +34,7 @@ public class FileManageUtil {
         if (!FileType.isValidFileType(file))
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，只能上传指定的文件类型");
         // 验证目标路径
-        if (ObjectUtils.isEmpty(folderPath))
+        if (folderPath == null || folderPath.toString().trim().isEmpty())
             throw new RuntimeException("请指定正确的保存路径");
         folderPath = folderPath.normalize();
         if (!folderPath.startsWith("upload") || folderPath.isAbsolute())
@@ -42,34 +43,53 @@ public class FileManageUtil {
         if (!fileName.contains(".") || fileName.lastIndexOf(".") == fileName.length() - 1)
             throw new RuntimeException("需要文件扩展名");
 
-        File Filefiled = new File(folderPath.toString());
-        if (!Filefiled.exists())
-            if (!Filefiled.mkdirs())
-                throw new RuntimeException("创建目录失败");
         try {
-            file.transferTo(new File(Filefiled.getAbsolutePath(), fileName));   // 将上传的文件保存到指定路径
+            Files.createDirectories(folderPath);
         } catch (IOException e) {
-            throw new RuntimeException("文件保存失败");
+            e.printStackTrace();
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，文件保存失败");
+        }
+        Path filePath = folderPath.resolve(fileName);
+        try (InputStream in = file.getInputStream()) {
+            Files.copy(in, filePath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，文件保存失败");
         }
 
-        return folderPath.resolve(fileName).toString();
+        return filePath.toString().replace("\\", "/");
     }
 
     /**
      * 下载/在线浏览 文件中，执行文件传输
      * 提前设置好响应头，再执行文件传输！！！
      */
-    public static void transferFile(File file, HttpServletResponse response) {
-        try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
-             BufferedOutputStream bos = new BufferedOutputStream(response.getOutputStream())) {
+    public static void transferFile(Path filePath, HttpServletResponse response) {
+        // 1. 校验文件是否存在
+        if (filePath == null || !Files.exists(filePath)) {
+            throw new BusinessException(BusinessErrorEnum.FILE_NOT_EXIST, "，文件不存在");
+        }
 
-            byte[] buffer = new byte[1024 * 8]; // 使用更大的缓冲区提高性能
+        if (Files.isDirectory(filePath)) {
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，不能下载目录");
+        }
+
+        try (
+                // 2. 使用 Files.newInputStream() 替代 FileInputStream
+                InputStream in = Files.newInputStream(filePath);
+                BufferedInputStream bis = new BufferedInputStream(in);
+
+                // 3. 获取响应输出流
+                OutputStream out = response.getOutputStream();
+                BufferedOutputStream bos = new BufferedOutputStream(out)
+        ) {
+
+            byte[] buffer = new byte[1024 * 8]; // 8KB 缓冲区
             int bytesRead;
-
             while ((bytesRead = bis.read(buffer)) != -1) {
                 bos.write(buffer, 0, bytesRead);
             }
-            bos.flush();
+            bos.flush(); // flush 可省略，因为 try-with-resources 会自动 flush
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -77,6 +97,37 @@ public class FileManageUtil {
         }
     }
 
+    /**
+     * 保存Base64图片
+     *
+     * @param base64Data base64字符串（可包含前缀：data:image/png;base64,xxx）
+     * @param folderPath 保存目录
+     * @param fileName   保存文件名
+     * @return 图片完整路径
+     */
+    public static String saveBase64Image(String base64Data, Path folderPath, String fileName) {
+        if (ObjectUtils.isEmpty(base64Data))
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，请上传有效的图片");
+        if (!fileName.endsWith(".png"))
+            throw new RuntimeException("文件名错误");
+
+        if (base64Data.contains(","))
+            base64Data = base64Data.split(",")[1];
+
+        try {
+            byte[] bytes = Base64.getDecoder().decode(base64Data);
+
+            Files.createDirectories(folderPath);
+            Path filePath = folderPath.resolve(fileName);
+
+            Files.write(filePath, bytes);
+
+            return filePath.toString().replace("\\", "/");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，图片保存失败");
+        }
+    }
 
     /**
      * 服务器上移动文件，目标路径文件已存在时报错
@@ -188,20 +239,6 @@ public class FileManageUtil {
 
     }
 
-    /**
-     * 删除文件，成功返回true，失败返回false
-     *
-     * @param pathIncludeFileName 路径名（包含文件名）
-     * @return 是否删除成功
-     * @author 秋天
-     */
-    public static Boolean deleteFile(String pathIncludeFileName) {
-        File file = new File(pathIncludeFileName);
-        if (file.exists()) {
-            return file.delete();
-        }
-        return false;
-    }
 
     /**
      * 创建文件名，默认使用UUID

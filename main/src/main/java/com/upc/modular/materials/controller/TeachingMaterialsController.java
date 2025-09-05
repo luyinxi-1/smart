@@ -1,24 +1,18 @@
 package com.upc.modular.materials.controller;
 
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
-import com.upc.exception.BusinessErrorEnum;
-import com.upc.exception.BusinessException;
-import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsPageSearchDto;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.entity.TeachingMaterials;
 import com.upc.modular.materials.service.ITeachingMaterialsService;
-import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
-import com.upc.modular.student.controller.param.vo.StudentReturnVo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
@@ -88,6 +82,7 @@ public class TeachingMaterialsController {
         PageBaseReturnParam<TeachingMaterialsReturnVo> result = PageBaseReturnParam.ok(page);
         return R.page(result);
     }
+
     // 查看教学素材
     @ApiOperation(value = "查看教学素材(学生查看时用到textbookId)")
     @GetMapping("/get-teaching-materials")
@@ -95,15 +90,17 @@ public class TeachingMaterialsController {
         TeachingMaterialsReturnVo teachingMaterials = teachingMaterialsService.getTeachingMaterials(id, textbookId);
         return R.ok(teachingMaterials);
     }
+
     @ApiOperation(value = "修改教学素材信息")
     @PostMapping("/updateTeachingMaterialsById")
     public R updateInstitutionById(@RequestBody TeachingMaterials teachingmaterials) {
         teachingMaterialsService.updateTeachingMaterialsById(teachingmaterials);
         return R.commonReturn(200, "修改成功", "");
     }
+
     @ApiOperation(value = "删除教学素材信息")
     @PostMapping("/deleteTeachingMaterialsByIds")
-    public R deleteTeachingMaterialsByIds (@RequestBody List<Long> ids) {
+    public R deleteTeachingMaterialsByIds(@RequestBody List<Long> ids) {
         teachingMaterialsService.deleteTeachingMaterialsByIds(ids);
         return R.commonReturn(200, "删除成功", "");
     }

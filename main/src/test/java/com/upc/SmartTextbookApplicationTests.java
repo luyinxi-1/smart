@@ -1,37 +1,10 @@
 package com.upc;
 
-import com.aspose.words.Document;
-import com.aspose.words.SaveFormat;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.upc.modular.client.entity.User;
-import com.upc.modular.client.mapper.UserMapper;
-import com.upc.modular.client.service.IUserService;
-import com.upc.modular.common.WordConversionPageService;
-import com.upc.modular.common.WordConversionService;
-import com.upc.modular.student.entity.Student;
-import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Entities;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.*;
-import com.upc.common.utils.FileManageUtil;
 
 @SpringBootTest
 class SmartTextbookApplicationTests {
