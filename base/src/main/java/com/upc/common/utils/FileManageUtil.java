@@ -4,15 +4,10 @@ package com.upc.common.utils;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
-import org.apache.batik.transcoder.TranscoderInput;
-import org.apache.batik.transcoder.TranscoderOutput;
-import org.apache.batik.transcoder.image.PNGTranscoder;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -51,17 +46,18 @@ public class FileManageUtil {
         try {
             Files.createDirectories(folderPath);
         } catch (IOException e) {
-            throw new RuntimeException("创建目录失败: " + folderPath, e);
+            e.printStackTrace();
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，文件保存失败");
         }
-        File outFile = folderPath.resolve(fileName).toFile();
-        try {
-            file.transferTo(new File(outFile.getAbsolutePath()));   // 将上传的文件保存到指定路径
+        Path filePath = folderPath.resolve(fileName);
+        try (InputStream in = file.getInputStream()) {
+            Files.copy(in, filePath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             e.printStackTrace();
-            throw new RuntimeException("文件保存失败");
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，文件保存失败");
         }
 
-        return outFile.getPath().replace("\\", "/");
+        return filePath.toString().replace("\\", "/");
     }
 
     /**
@@ -101,117 +97,37 @@ public class FileManageUtil {
         }
     }
 
-    public static String convertSvgDataUrlToPng(String dataUrl, Path folderPath, String pngFileName) {
-            // 1. 提取逗号后的 SVG 内容
-            if (!dataUrl.startsWith("data:image/svg+xml"))
-                throw new RuntimeException("数据格式错误");
-            // 验证目标路径
-            if (folderPath == null || folderPath.toString().trim().isEmpty())
-                throw new RuntimeException("请指定正确的保存路径");
+    /**
+     * 保存Base64图片
+     *
+     * @param base64Data base64字符串（可包含前缀：data:image/png;base64,xxx）
+     * @param folderPath 保存目录
+     * @param fileName   保存文件名
+     * @return 图片完整路径
+     */
+    public static String saveBase64Image(String base64Data, Path folderPath, String fileName) {
+        if (ObjectUtils.isEmpty(base64Data))
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，请上传有效的图片");
+        if (!fileName.endsWith(".png"))
+            throw new RuntimeException("文件名错误");
 
-            folderPath = folderPath.normalize();
-            if (!folderPath.startsWith("upload") || folderPath.isAbsolute())
-                throw new RuntimeException("请指定正确的保存路径");
-            // 验证文件名
-            if (!pngFileName.endsWith(".png"))
-                throw new RuntimeException("扩展名错误");
-
-            try {
-                Files.createDirectories(folderPath);
-            } catch (IOException e) {
-                throw new RuntimeException("创建目录失败: " + folderPath, e);
-            }
+        if (base64Data.contains(","))
+            base64Data = base64Data.split(",")[1];
 
         try {
-            // 解析 Data URL
-            int comma = dataUrl.indexOf(',');
-            if (comma < 0) throw new RuntimeException("Data URL 格式错误");
-            String meta = dataUrl.substring(0, comma);        // 例如 data:image/svg+xml;charset=utf-8 或 ...;base64
-            String payload = dataUrl.substring(comma + 1);
+            byte[] bytes = Base64.getDecoder().decode(base64Data);
 
-            byte[] svgBytes;
-            if (meta.contains(";base64")) {
-                svgBytes = Base64.getDecoder().decode(payload);
-            } else {
-                // 百分号编码
-                String svgContent = URLDecoder.decode(payload, "UTF-8");
-                svgBytes = svgContent.getBytes(StandardCharsets.UTF_8);
-            }
+            Files.createDirectories(folderPath);
+            Path filePath = folderPath.resolve(fileName);
 
-            File targetFile = folderPath.resolve(pngFileName).toFile();
+            Files.write(filePath, bytes);
 
-            // 使用 Batik 转 PNG —— 仅适用于不含 <foreignObject> 的 SVG
-            try (InputStream in = new ByteArrayInputStream(svgBytes);
-                 OutputStream out = Files.newOutputStream(targetFile.toPath())) {
-
-                TranscoderInput input = new TranscoderInput(in);
-                TranscoderOutput output = new TranscoderOutput(out);
-
-                PNGTranscoder transcoder = new PNGTranscoder();
-                // 如需固定导出尺寸可设置：
-                // transcoder.addTranscodingHint(PNGTranscoder.KEY_WIDTH,  800f);
-                // transcoder.addTranscodingHint(PNGTranscoder.KEY_HEIGHT, 600f);
-
-                transcoder.transcode(input, output);
-                out.flush();
-            }
-
-            return targetFile.toString().replace("\\", "/");
+            return filePath.toString().replace("\\", "/");
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("文件转换失败: " + e.getMessage(), e);
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，图片保存失败");
         }
     }
-
-
-//    public static String convertSvgDataUrlToPng(String dataUrl, Path folderPath, String pngFileName) {
-//        try {
-//            // 1. 提取逗号后的 SVG 内容
-//            if (!dataUrl.startsWith("data:image/svg+xml"))
-//                throw new RuntimeException("数据格式错误");
-//            // 验证目标路径
-//            if (folderPath == null || folderPath.toString().trim().isEmpty())
-//                throw new RuntimeException("请指定正确的保存路径");
-//
-//            folderPath = folderPath.normalize();
-//            if (!folderPath.startsWith("upload") || folderPath.isAbsolute())
-//                throw new RuntimeException("请指定正确的保存路径");
-//            // 验证文件名
-//            if (!pngFileName.endsWith(".png"))
-//                throw new RuntimeException("扩展名错误");
-//
-//            try {
-//                Files.createDirectories(folderPath);
-//            } catch (IOException e) {
-//                throw new RuntimeException("创建目录失败: " + folderPath, e);
-//            }
-//
-//            int commaIndex = dataUrl.indexOf(',');
-//            String encodedSvg = dataUrl.substring(commaIndex + 1);
-//            String svgContent = URLDecoder.decode(encodedSvg, "UTF-8");
-//
-//            // 2. 创建输入流
-//            InputStream inputStream = new ByteArrayInputStream(svgContent.getBytes("UTF-8"));
-//            TranscoderInput input = new TranscoderInput(inputStream);
-//
-//            // 3. 设置输出
-//            File outFile = folderPath.resolve(pngFileName).toFile();
-//            OutputStream outputStream = new FileOutputStream(outFile);
-//            try (OutputStream os = outputStream) {
-//                TranscoderOutput output = new TranscoderOutput(os);
-//                PNGTranscoder transcoder = new PNGTranscoder();
-//                transcoder.transcode(input, output);
-//                // 自动关闭
-//            }
-//            System.out.println("PNG 图片已保存至: " + outFile.getAbsolutePath());
-//            return outFile.getPath().replace("\\", "/");
-//
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，文件转换失败");
-//        }
-//    }
-
 
     /**
      * 服务器上移动文件，目标路径文件已存在时报错

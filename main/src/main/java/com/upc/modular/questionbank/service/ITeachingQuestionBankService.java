@@ -24,7 +24,7 @@ public interface ITeachingQuestionBankService extends IService<TeachingQuestionB
 
     Page<TeachingQuestionBankPageReturnParam> selectQuestionPage(TeachingQuestionBankPageSearchParam param);
 
-    void inserQuestionBank(TeachingQuestionBank teachingQuestionbank);
+    Long inserQuestionBank(TeachingQuestionBank teachingQuestionbank);
 
     void updateQuestionBank(TeachingQuestionBank teachingQuestionbank);
 
