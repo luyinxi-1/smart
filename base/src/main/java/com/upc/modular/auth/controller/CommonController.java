@@ -48,17 +48,17 @@ public class CommonController {
     }
 
     /**
-     * 上传svg字符串并转换成png文件
+     * 上传base64格式图片转换成png文件
      *
-     * @param dataUrl
+     * @param base64Data
      * @return
      */
-    @ApiOperation("上传svg字符串并转换成png文件")
-    @PostMapping("/uploadSvg")
-    public R<String> uploadSvgDataUrlToPng(@RequestParam String dataUrl) {
+    @ApiOperation("上传base64格式图片转换成png文件")
+    @PostMapping("/uploadBase64")
+    public R<String> uploadBase64(@RequestParam String base64Data) {
         Path folderPath = Paths.get(basePath, FileManageUtil.yyyyMMddStr());
         String pngFileName = UUID.randomUUID() + ".png";
-        return R.ok(FileManageUtil.convertSvgDataUrlToPng(dataUrl, folderPath, pngFileName));
+        return R.ok(FileManageUtil.saveBase64Image(base64Data, folderPath, pngFileName));
     }
 
     /**

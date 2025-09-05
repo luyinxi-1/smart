@@ -41,11 +41,11 @@ public class StudentDataStatisticsController {
         return R.ok(iStudentDataStatistics.countStudentTeachingActivities());
     }
 
-//    @ApiOperation("统计学生已完成阅读的教材数量")
-//    @GetMapping("/read-textbook")
-//    public R<Long> countStudentTextbookread(){
-//
-//    }
+    @ApiOperation("统计学生已完成阅读的教材数量")
+    @GetMapping("/read-textbook")
+    public R<Long> countStudentTextbookread(){
+        return R.ok(iStudentDataStatistics.countStudentTextbookRead());
+    }
 
     @ApiOperation("统计学生参与交流反馈数量")
     @GetMapping("/communication-feedback")

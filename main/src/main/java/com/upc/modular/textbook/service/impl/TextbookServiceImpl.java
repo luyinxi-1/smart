@@ -1,6 +1,7 @@
 package com.upc.modular.textbook.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -213,8 +214,10 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户未登录");
         }
         Long currentUserId = userInfoToRedis.getId();
+        QueryWrapper<Textbook> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("release_status", 1);
+        List<Textbook> allTextbooks = this.list(queryWrapper); // 从数据库加载所有教材到内存
 
-        List<Textbook> allTextbooks = this.list(); // 从数据库加载所有教材到内存
         List<Textbook> authorizedTextbooks = new ArrayList<>();
         for (Textbook textbook : allTextbooks) {
             // 调用您指定的权限判断接口
