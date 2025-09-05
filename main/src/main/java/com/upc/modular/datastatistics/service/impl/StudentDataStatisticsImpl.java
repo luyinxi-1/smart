@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class StudentDataStatisticsImpl implements IStudentDataStatistics {
+    // 完成度阈值
+    private static final long COMPLETION_THRESHOLD = 70L;
     @Autowired
     private StudentDataStatisticsMapper studentDataStatisticsMapper;
 
@@ -182,6 +184,16 @@ public class StudentDataStatisticsImpl implements IStudentDataStatistics {
             }
         }
         return result;
+    }
+    @Override
+    public Long countStudentTextbookRead() {
+        List<StudentTextbookCompletionReturnParam> completionList = countStudentTextbookCompetion();
+
+        //统计完成度为指定值的教材数量
+        long completedTextbooks = completionList.stream()
+                .filter(param -> param.getCompletion() != null && param.getCompletion() >= COMPLETION_THRESHOLD)
+                .count();
+        return completedTextbooks;
     }
 
     /**

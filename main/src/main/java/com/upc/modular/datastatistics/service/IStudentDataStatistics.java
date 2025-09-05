@@ -23,4 +23,6 @@ public interface IStudentDataStatistics {
     List<StudentReadingTimeByMonthReturnParam> countStudentTextbookReadingTimeByMonth(Integer year);
 
     List<StudentTextbookCompletionReturnParam> countStudentTextbookCompetion();
+
+    Long countStudentTextbookRead();
 }
