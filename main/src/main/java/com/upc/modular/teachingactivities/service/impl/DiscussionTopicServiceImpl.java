@@ -13,12 +13,9 @@ import com.upc.modular.student.entity.Student;
 import com.upc.modular.student.service.IStudentService;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.service.ITeacherService;
-import com.upc.modular.teachingactivities.param.DiscussionTopicReturnParam;
-import com.upc.modular.teachingactivities.param.DiscussionTopicSearchParam;
+import com.upc.modular.teachingactivities.param.*;
 import com.upc.modular.teachingactivities.entity.DiscussionTopic;
 import com.upc.modular.teachingactivities.mapper.DiscussionTopicMapper;
-import com.upc.modular.teachingactivities.param.MyJoinDiscussionTopicDiscussionTopicReturnParam;
-import com.upc.modular.teachingactivities.param.MyJoinDiscussionTopicSearchParam;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.textbook.entity.Textbook;
@@ -30,6 +27,7 @@ import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.upc.modular.textbook.service.ITextbookClassificationService;
 import com.upc.modular.textbook.service.ITextbookService;
 import com.upc.modular.textbook.service.impl.TextbookClassificationServiceImpl;
+import org.jsoup.Jsoup;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -90,7 +88,8 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
     private ITextbookAuthorityService textbookAuthorityService;
     @Autowired
     private DiscussionTopicMapper discussionTopicMapper;
-
+    @Autowired
+    private ISysUserService sysTbuserService;
 
     @Override
     public List<DiscussionTopicReturnParam> getDiscussionTopicList(DiscussionTopicSearchParam param) {
@@ -163,6 +162,49 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
             }
         }
         return Collections.emptyList();
+    }
+
+    @Override
+    public DiscussionTopicSecondReturnParam getSecondTextbookById(Long id) {
+        DiscussionTopicSecondReturnParam discussionTopicReturnParam = new DiscussionTopicSecondReturnParam();
+        DiscussionTopic discussionTopic = this.getById(id);
+
+        if (discussionTopic == null) {
+            throw new BusinessException(BusinessErrorEnum.FOREIGN_KEY_NOT_FOUND, "讨论话题不存在");
+        }
+
+        BeanUtils.copyProperties(discussionTopic, discussionTopicReturnParam);
+
+        // 处理教材信息
+        if (discussionTopic.getTextbookId() != null) {
+            Textbook textbook = textbookService.getById(discussionTopic.getTextbookId());
+            if (textbook != null) {
+                discussionTopicReturnParam.setTextbookName(textbook.getTextbookName());
+            }
+        }
+
+        // 处理教材目录信息 - 添加空值检查
+        if (discussionTopic.getTextbookCatalogId() != null) {
+            TextbookCatalog textbookCatalog = textbookCatalogService.getById(discussionTopic.getTextbookCatalogId());
+            if (textbookCatalog != null && textbookCatalog.getCatalogName() != null) {
+                String catalogName = Jsoup.parse(textbookCatalog.getCatalogName()).text();
+                discussionTopicReturnParam.setTextbookCatalogName(catalogName);
+            } else {
+                discussionTopicReturnParam.setTextbookCatalogName("");
+            }
+        } else {
+            discussionTopicReturnParam.setTextbookCatalogName("");
+        }
+
+        // 处理创建者信息
+        if (discussionTopic.getCreator() != null) {
+            SysTbuser sysTbuser = sysTbuserService.getById(discussionTopic.getCreator());
+            if (sysTbuser != null) {
+                discussionTopicReturnParam.setNickName(sysTbuser.getNickname());
+            }
+        }
+
+        return discussionTopicReturnParam;
     }
 
 

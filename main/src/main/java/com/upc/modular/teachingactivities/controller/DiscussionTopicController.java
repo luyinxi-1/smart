@@ -4,14 +4,12 @@ package com.upc.modular.teachingactivities.controller;
 import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
-import com.upc.modular.teachingactivities.param.DiscussionTopicReturnParam;
-import com.upc.modular.teachingactivities.param.DiscussionTopicSearchParam;
+import com.upc.modular.teachingactivities.param.*;
 import com.upc.modular.teachingactivities.entity.DiscussionTopic;
-import com.upc.modular.teachingactivities.param.MyJoinDiscussionTopicDiscussionTopicReturnParam;
-import com.upc.modular.teachingactivities.param.MyJoinDiscussionTopicSearchParam;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,8 +51,8 @@ public class DiscussionTopicController {
         if (id == null || id == 0L) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
-        DiscussionTopic discussionTopic = discussionTopicService.getById(id);
-        return R.commonReturn(200, "查询成功", discussionTopic);
+        DiscussionTopicSecondReturnParam discussionTopicReturnParam = discussionTopicService.getSecondTextbookById(id);
+        return R.commonReturn(200, "查询成功", discussionTopicReturnParam);
     }
 
     @ApiOperation(value = "修改教学活动讨论话题")

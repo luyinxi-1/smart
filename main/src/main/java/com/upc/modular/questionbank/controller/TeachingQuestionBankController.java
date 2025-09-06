@@ -43,9 +43,8 @@ public class TeachingQuestionBankController {
 
     @ApiOperation("新增题库")
     @PostMapping("/inserQuestionBank")
-    public R inserQuestionBank(@RequestBody TeachingQuestionBank teachingQuestionbank){
-        teachingQuestionBankService.inserQuestionBank(teachingQuestionbank);
-        return R.commonReturn(200, "新增成功", "");
+    public R<Long> inserQuestionBank(@RequestBody TeachingQuestionBank teachingQuestionbank){
+        return R.ok(teachingQuestionBankService.inserQuestionBank(teachingQuestionbank));
     }
 
     @ApiOperation("删除题库")
