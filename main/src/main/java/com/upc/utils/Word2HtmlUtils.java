@@ -39,7 +39,7 @@ public final class Word2HtmlUtils {
 
     @Value("${files.path}")
     public void setBasePath(String path) {
-        Word2HtmlUtils.basePath = path;
+        Word2HtmlUtils.basePath = path + "/convertTextbookImage";
     }
 
     @Value("${server.baseurl}")
