@@ -326,6 +326,31 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
 
     }
 
+    @Override
+    public Long countStudentTextbookReadingTimeByTime(String startTime, String endTime) {
+        Long userId = UserUtils.get().getId();
+        final long MIN_DIFF_SECONDS = 55;
+        final long MAX_DIFF_SECONDS = 65;
+        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetimeByTime(userId, startTime, endTime,0);
+        if(records == null || records.size() < 2){
+            return 0L;
+        }
+        long totalReadingTime = 0L;
+        for (int i = 0; i < records.size() - 1; i++) {
+            LocalDateTime currentAddDatetime = records.get(i).getAddDatetime();
+            LocalDateTime nextAddDatetime = records.get(i + 1).getAddDatetime();
+            if (currentAddDatetime == null || nextAddDatetime == null) {
+                continue;
+            }
+            Duration duration = Duration.between(currentAddDatetime, nextAddDatetime);
+            long seconds = duration.getSeconds();
+            if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
+                totalReadingTime += 1;
+            }
+        }
+        return totalReadingTime;
+    }
+
     /**
      * 计算教材的总章节数
      * @param textbookId 教材ID

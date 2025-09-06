@@ -79,6 +79,12 @@ public class StudentDataStatisticsController {
         return R.ok(iStudentDataStatistics.countStudentTextbookReadingTimeByMonth(year));
     }
 
+    @ApiOperation("按时间统计总阅读时长")
+    @GetMapping("/reading-time-by-time")
+    public R<Long> countStudentTextbookReadingTimeByTime(@RequestParam String startTime, @RequestParam String endTime){
+        return R.ok(iStudentDataStatistics.countStudentTextbookReadingTimeByTime(startTime, endTime));
+    }
+
     @ApiOperation("学生阅读时间排行榜")
     @GetMapping("/reading-time-currentyear")
     public R<List<StudentStatisticsData>> countStudentTextbookReadingTimeCurrentYear(){
