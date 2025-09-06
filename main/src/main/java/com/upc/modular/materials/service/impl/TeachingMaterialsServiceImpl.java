@@ -9,6 +9,7 @@ import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsPageSearchDto;
+import com.upc.modular.materials.controller.param.dto.TeachingMaterialsSaveOrUpdateParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.entity.MaterialsTextbookMapping;
 import com.upc.modular.materials.entity.TeachingMaterials;
@@ -30,8 +31,12 @@ import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.upc.utils.CreatePage.createPage;
 
@@ -57,77 +62,116 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
     private TeacherServiceImpl teacherService;
 
     /**
-     * 添加文件素材
+     * 添加教学素材
      *
-     * @param file
-     * @param teachingMaterials
+     * @param files
+     * @param param
      * @return
      */
     @Override
-    public String insertFileMaterials(MultipartFile file, TeachingMaterials teachingMaterials) {
-        try {
-            // 查看该作者是否有重名素材
-            if (teachingMaterialsMapper.selectOne(new LambdaQueryWrapper<TeachingMaterials>()
-                    .eq(TeachingMaterials::getName, teachingMaterials.getName())
-                    .eq(TeachingMaterials::getAuthorId, UserUtils.get().getId())) != null)
-                throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，该命名素材已存在");
-            // 公共素材路径：upload/teaching_materials/public/文件类型/yyyyMMdd/文件名
-            // 私有素材路径：upload/teaching_materials/private/用户id/文件类型/yyyyMMdd/文件名
+    public Boolean insertMaterials(List<MultipartFile> files, TeachingMaterialsSaveOrUpdateParam param) {
+        // 查看该作者是否有重名素材
+        if (ObjectUtils.isNotEmpty(teachingMaterialsMapper.selectList(new LambdaQueryWrapper<TeachingMaterials>()
+                .eq(TeachingMaterials::getName, param.getName())
+                .eq(TeachingMaterials::getAuthorId, UserUtils.get().getId()))))
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，该命名素材已存在");
+        TeachingMaterials teachingMaterials = new TeachingMaterials();
+
+        if (param.getType().equals("link")) {
+            // 处理链接素材：链接地址存在了filePath里，所以不需要处理
+            if (ObjectUtils.isEmpty(param.getFilePath()))
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+            BeanUtils.copyProperties(param, teachingMaterials);
+            teachingMaterials.setId(null);
+            teachingMaterials.setAuthorId(UserUtils.get().getId());
+            String urlName = UUID.randomUUID().toString();
+            teachingMaterials.setAuthorId(UserUtils.get().getId());
+            teachingMaterials.setFileName(urlName);
+            // 链接地址存在了filePath里，所以不需要处理
+
+        } else if (param.getType().equals("imageSet")) {
+            // 处理图集素材
+            // 公共素材路径：upload/teaching_materials/public/imageSet/yyyyMMdd/[uuid]_[length]/图片
+            // 私有素材路径：upload/teaching_materials/private/用户id/imageSet/yyyyMMdd/[uuid]_[length]/图片
             Path folderPath;
-            if (teachingMaterials.getIsPublic())
+            String imageSetLength = String.valueOf(files.size());
+            String imageSetName = UUID.randomUUID() + "_" + imageSetLength;
+            if (param.getIsPublic())
                 folderPath = Paths.get("upload", "teaching_materials", "public",
-                        teachingMaterials.getType(), FileManageUtil.yyyyMMddStr());
+                        "imageSet", FileManageUtil.yyyyMMddStr(), imageSetName);
             else
                 folderPath = Paths.get("upload", "teaching_materials", "private",
                         UserUtils.get().getId().toString(),
-                        teachingMaterials.getType(), FileManageUtil.yyyyMMddStr());
+                        "imageSet", FileManageUtil.yyyyMMddStr(), imageSetName);
 
+            Long filesSize = 0L;
+            for (int i = 0; i < files.size(); i++) {
+                MultipartFile file = files.get(i);
+                String fileName = FileManageUtil.createFileName(file, String.valueOf(i + 1));
+                String filePath = FileManageUtil.uploadFile(file, folderPath, fileName);
+                if (ObjectUtils.isEmpty(filePath))
+                    throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，上传失败");
+
+                filesSize += file.getSize();
+            }
+            BeanUtils.copyProperties(param, teachingMaterials);
+            teachingMaterials.setId(null);
+            teachingMaterials.setAuthorId(UserUtils.get().getId());
+            teachingMaterials.setFileName(imageSetName);
+            teachingMaterials.setFileSize(Math.round(filesSize / (1024.0 * 1024.0) * 100) / 100.0);
+            teachingMaterials.setFilePath(folderPath.toString());
+
+        } else {
+            if (!TeachingMaterials.SUPPORTED_TYPES.contains(param.getType()))
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，不支持该素材类型");
+            // 处理文件类型素材
+            // 公共素材路径：upload/teaching_materials/public/文件类型/yyyyMMdd/文件名
+            // 私有素材路径：upload/teaching_materials/private/用户id/文件类型/yyyyMMdd/文件名
+            Path folderPath;
+            if (param.getIsPublic())
+                folderPath = Paths.get("upload", "teaching_materials", "public",
+                        param.getType(), FileManageUtil.yyyyMMddStr());
+            else
+                folderPath = Paths.get("upload", "teaching_materials", "private",
+                        UserUtils.get().getId().toString(),
+                        param.getType(), FileManageUtil.yyyyMMddStr());
+            if (files.size() > 1)
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+            MultipartFile file = files.get(0);
             String fileName = FileManageUtil.createFileName(file);
 
             String filePath = FileManageUtil.uploadFile(file, folderPath, fileName);
             if (ObjectUtils.isEmpty(filePath))
                 throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，上传失败");
 
+            BeanUtils.copyProperties(param, teachingMaterials);
             teachingMaterials.setId(null);
             teachingMaterials.setAuthorId(UserUtils.get().getId());
             teachingMaterials.setFileName(fileName);
             teachingMaterials.setFileSize(Math.round(file.getSize() / (1024.0 * 1024.0) * 100) / 100.0);
             teachingMaterials.setFilePath(filePath);
-            if (!this.save(teachingMaterials)) {
-                try {
-                    Files.deleteIfExists(Paths.get(filePath));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，上传失败");
-            }
 
-            // 上传成功，返回文件名
-            return fileName;
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，上传失败");
         }
+        return this.save(teachingMaterials);
     }
 
     /**
      * 获取文件素材
      *
-     * @param fileName   文件名
+     * @param id         素材id
+     * @param imageSetId 图集的图id
      * @param textbookId 绑定的教材id
      * @param action     下载方式
      * @param response
      */
     @Override
-    public void getFileMaterials(String fileName, Long textbookId, String action, HttpServletResponse response) {
+    public void getFileMaterials(Long id, Integer imageSetId, Long textbookId, String action, HttpServletResponse response) {
         try {
-            if (ObjectUtils.isEmpty(fileName))
+            if (ObjectUtils.isEmpty(id))
                 throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，参数不能为空");
 
             // 获取并验证教学材料
-            TeachingMaterials materials = teachingMaterialsMapper.selectOne(new LambdaQueryWrapper<TeachingMaterials>().eq(TeachingMaterials::getFileName, fileName));
+            TeachingMaterials materials = teachingMaterialsMapper.selectById(id);
             if (ObjectUtils.isEmpty(materials))
                 throw new BusinessException(BusinessErrorEnum.FILE_NOT_EXIST, "，文件不存在");
 
@@ -136,7 +180,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，没有下载权限");
 
             // 执行文件下载
-            performFileDownload(materials, action, response);
+            performFileDownload(materials, imageSetId, action, response);
 
         } catch (BusinessException e) {
             response.reset();
@@ -146,171 +190,33 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             response.reset();
             throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，下载文件失败");
         }
-    }
-
-    /**
-     * 添加链接素材
-     *
-     * @param teachingMaterials
-     * @return
-     */
-    @Override
-    public String insertLinkMaterials(TeachingMaterials teachingMaterials) {
-        // 查看该作者是否有重名素材
-        if (teachingMaterialsMapper.selectOne(new LambdaQueryWrapper<TeachingMaterials>()
-                .eq(TeachingMaterials::getName, teachingMaterials.getName())
-                .eq(TeachingMaterials::getAuthorId, UserUtils.get().getId())) != null)
-            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，该命名素材已存在");
-        if (teachingMaterials.getType().equals("链接")) {
-            String urlName = UUID.randomUUID().toString();
-            teachingMaterials.setAuthorId(UserUtils.get().getId());
-            teachingMaterials.setFileName(urlName);
-            boolean save = this.save(teachingMaterials);
-            if (save)
-                return teachingMaterials.getFileName();
-        }
-        return null;
     }
 
     /**
      * 获取链接素材
      *
-     * @param fileName
+     * @param id
      * @param textbookId
      * @return
      */
     @Override
-    public String getLinkMaterials(String fileName, Long textbookId) {
-        try {
-            if (ObjectUtils.isEmpty(fileName))
-                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，参数不能为空");
+    public String getLinkMaterials(Long id, Long textbookId) {
 
-            // 获取并验证教学材料
-            TeachingMaterials materials = teachingMaterialsMapper.selectOne(new LambdaQueryWrapper<TeachingMaterials>().eq(TeachingMaterials::getFileName, fileName));
-            if (ObjectUtils.isEmpty(materials))
-                throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，链接不存在");
+        if (ObjectUtils.isEmpty(id))
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，参数不能为空");
 
-            // 验证权限，如果是从教材中下载，则增加下载查看次数用于数据统计
-            if (!validateDownloadPermission(materials, textbookId, "view"))
-                throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，没有查看权限");
+        // 获取并验证教学材料
+        TeachingMaterials materials = teachingMaterialsMapper.selectOne(new LambdaQueryWrapper<TeachingMaterials>().eq(TeachingMaterials::getId, id));
+        if (ObjectUtils.isEmpty(materials))
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，链接不存在");
+        if (!materials.getType().equals("link"))
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，参数错误");
 
-            return materials.getFilePath();
-        } catch (BusinessException e) {
-            e.printStackTrace();
-            throw e;
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，链接查看失败");
-        }
-    }
-
-    /**
-     * 添加图集素材
-     *
-     * @param files
-     * @param teachingMaterials
-     * @return
-     */
-    @Override
-    public String insertPictureMaterials(List<MultipartFile> files, TeachingMaterials teachingMaterials) {
-        try {
-            // 查看该作者是否有重名素材
-            if (teachingMaterialsMapper.selectOne(new LambdaQueryWrapper<TeachingMaterials>()
-                    .eq(TeachingMaterials::getName, teachingMaterials.getName())
-                    .eq(TeachingMaterials::getAuthorId, UserUtils.get().getId())) != null)
-                throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，该命名素材已存在");
-            // 公共素材路径：upload/teaching_materials/public/pictures/yyyyMMdd/图集uuid/图片
-            // 私有素材路径：upload/teaching_materials/private/用户id/pictures/yyyyMMdd/图集uuid/图片
-            Path folderPath;
-            String picturesName = UUID.randomUUID().toString().substring(0, 12);
-            if (teachingMaterials.getIsPublic())
-                folderPath = Paths.get("upload", "teaching_materials", "public",
-                        "图集", FileManageUtil.yyyyMMddStr(), picturesName);
-            else
-                folderPath = Paths.get("upload", "teaching_materials", "private",
-                        UserUtils.get().getId().toString(),
-                        "图集", FileManageUtil.yyyyMMddStr(), picturesName);
-            List<String> listFileName = new ArrayList<>();
-            List<String> listPath = new ArrayList<>();
-            Long filesSize = 0L;
-            for (int i = 0; i < files.size(); i++) {
-                MultipartFile file = files.get(i);
-                String fileName = FileManageUtil.createFileName(file, String.valueOf(i + 1));
-
-                String filePath = FileManageUtil.uploadFile(file, folderPath, fileName);
-                if (ObjectUtils.isEmpty(filePath))
-                    throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，上传失败");
-                listFileName.add(Paths.get(picturesName, fileName).toString());
-                listPath.add(filePath);
-                filesSize += file.getSize();
-            }
-            teachingMaterials.setId(null);
-            teachingMaterials.setAuthorId(UserUtils.get().getId());
-            teachingMaterials.setFileName(listFileName.toString());
-            teachingMaterials.setFileSize(Math.round(filesSize / (1024.0 * 1024.0) * 100) / 100.0);
-            teachingMaterials.setFilePath(listPath.toString());
-            if (!this.save(teachingMaterials))
-                throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，上传失败");
-
-            // 上传成功，返回文件名
-            return teachingMaterials.getFileName();
-        } catch (BusinessException e) {
-            e.printStackTrace();
-            throw e;
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，上传失败");
-        }
-    }
-
-    /**
-     * 获取图集素材
-     *
-     * @param fileName
-     * @param textbookId
-     * @param action
-     */
-    @Override
-    public void getOnePictureMaterials(String fileName, Long textbookId, String action, HttpServletResponse response) {
-        try {
-            if (ObjectUtils.isEmpty(fileName))
-                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，参数不能为空");
-
-            // 获取并验证教学材料
-            TeachingMaterials materials = teachingMaterialsMapper.selectOne(new LambdaQueryWrapper<TeachingMaterials>().like(TeachingMaterials::getFileName, fileName));
-            if (ObjectUtils.isEmpty(materials))
-                throw new BusinessException(BusinessErrorEnum.FILE_NOT_EXIST, "，文件不存在");
-
-            fileName = fileName.replace("\\\\", "\\");
-            List<String> listFileName = Arrays.asList(
-                    materials.getFileName()
-                            .substring(1, materials.getFileName().length() - 1)
-                            .split(",\\s*"));
-            // 获取匹配的下标
-            int index = listFileName.indexOf(fileName);
-            List<String> listPath = Arrays.asList(
-                    materials.getFilePath()
-                            .substring(1, materials.getFilePath().length() - 1)
-                            .split(",\\s*"));
-            String filePath = listPath.get(index);
-            materials.setFilePath(filePath);
-            materials.setName(materials.getName() + "_" + (index + 1));
-            // 验证权限，如果是从教材中下载，则增加下载查看次数用于数据统计
-            if (!validateDownloadPermission(materials, textbookId, action))
-                throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，没有下载权限");
-
-            // 执行文件下载
-            performFileDownload(materials, action, response);
-
-        } catch (BusinessException e) {
-            e.printStackTrace();
-            response.reset();
-            throw e;
-        } catch (Exception e) {
-            e.printStackTrace();
-            response.reset();
-            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，下载文件失败");
-        }
+        // 验证权限，如果是从教材中下载，则增加下载查看次数用于数据统计
+        if (!validateDownloadPermission(materials, textbookId, "view"))
+            throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，没有查看权限");
+        // 链接存在filePath字段
+        return materials.getFilePath();
     }
 
     /**
@@ -318,83 +224,79 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
      *
      * @param materials  教学材料对象
      * @param textbookId 验证的教材ID
+     * @param action     在线查看/下载
      */
     private Boolean validateDownloadPermission(TeachingMaterials materials, Long textbookId, String action) {
+        if (ObjectUtils.isNotEmpty(textbookId)) {
+            // 检查是否有权限通过该教材访问此文件
+            List<MaterialsTextbookMapping> textbookMappingList = materialsTextbookMappingService.list(
+                    new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                            .eq(MaterialsTextbookMapping::getMaterialId, materials.getId()));
+
+            int index = textbookMappingList.indexOf(
+                    textbookMappingList.stream()
+                            .filter(mapping -> mapping.getTextbookId().equals(textbookId))
+                            .findFirst()
+                            .orElse(null) // 如果没找到，返回 null，indexOf(null) 会查找 null 元素
+            );
+            if (index != -1) {
+                MaterialsTextbookMapping mapping = textbookMappingList.get(index);
+                if (action.equals("view"))
+                    mapping.setViewCount(mapping.getViewCount() + 1);
+                else if (action.equals("download"))
+                    mapping.setDownloadCount(mapping.getDownloadCount() + 1);
+                else throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，参数错误");
+                materialsTextbookMappingService.updateById(mapping);
+                return true;
+            }
+        }
+
         // 如果是公开素材或是管理员用户，则无需验证权限
         if (materials.getIsPublic() || UserUtils.get().getUserType() == 0)
             return true;
 
-        // 如果是作者本人，则拥有下载权限
+        // 如果是作者本人，则拥有权限
         Long currentUserId = UserUtils.get().getId();
         if (materials.getAuthorId().equals(currentUserId))
             return true;
 
-        // 如果不是作者，则必须提供有效的 textbookId 才能继续验证
-        if (textbookId == null)
-            return false;
-
-        // 检查是否有权限通过该教材访问此文件
-        List<MaterialsTextbookMapping> textbookMappingList = materialsTextbookMappingService.list(
-                new LambdaQueryWrapper<MaterialsTextbookMapping>()
-                        .eq(MaterialsTextbookMapping::getMaterialId, materials.getId()));
-
-        int index = textbookMappingList.indexOf(
-                textbookMappingList.stream()
-                        .filter(mapping -> mapping.getTextbookId().equals(textbookId))
-                        .findFirst()
-                        .orElse(null) // 如果没找到，返回 null，indexOf(null) 会查找 null 元素
-        );
-        if (index != -1) {
-            MaterialsTextbookMapping mapping = textbookMappingList.get(index);
-            if (action.equals("view")) {
-                mapping.setViewCount(mapping.getViewCount() + 1);
-            } else if (action.equals("download")) {
-                mapping.setDownloadCount(mapping.getDownloadCount() + 1);
-            } else {
-                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，参数错误");
-            }
-            materialsTextbookMappingService.updateById(mapping);
-            return true;
-        }
         return false;
     }
 
     /**
      * 执行文件下载
      */
-    private void performFileDownload(TeachingMaterials materials, String action, HttpServletResponse response) {
-        Path filePath = Paths.get(materials.getFilePath());
+    private void performFileDownload(TeachingMaterials materials, Integer imageSetId, String action, HttpServletResponse response) {
+        Path filePath;
+        if (materials.getType().equals("imageSet")) {
+            Path dir = Paths.get(materials.getFilePath());
+            List<Path> files;
+            try (Stream<Path> stream = Files.walk(dir)) {
+                files = stream.filter(Files::isRegularFile).collect(Collectors.toList());
+            } catch (IOException e) {
+                e.printStackTrace();
+                throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，获取图片失败");
+            }
+            if (imageSetId < 0 || imageSetId >= files.size())
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，图片不存在");
+            filePath = files.get(imageSetId);
+        } else
+            filePath = Paths.get(materials.getFilePath());
         if (!Files.exists(filePath))
             throw new BusinessException(BusinessErrorEnum.FILE_NOT_EXIST, "，文件不存在");
 
         // 构造下载文件名
-        String downloadFileName = buildDownloadFileName(materials);
+        String downloadFileName;
+        if (materials.getType().equals("imageSet"))
+            downloadFileName = materials.getFileName() + "_" + filePath.getFileName().toString();
+        else
+            downloadFileName = filePath.getFileName().toString();
 
         // 设置响应头
         setupResponseHeaders(response, filePath, downloadFileName, action);
 
         // 执行文件传输
         FileManageUtil.transferFile(filePath, response);
-    }
-
-    /**
-     * 构造下载文件名
-     * 如果文件名包含扩展名，则使用原始扩展名，否则使用文件名
-     */
-    private String buildDownloadFileName(TeachingMaterials materials) {
-        String filePath = materials.getFilePath();
-        String originalFileName = "";
-        if (filePath.startsWith("upload/"))         // linux
-            originalFileName = filePath.substring(filePath.lastIndexOf("/") + 1);
-        else if (filePath.startsWith("upload\\"))   // windows
-            originalFileName = filePath.substring(filePath.lastIndexOf("\\") + 1);
-
-        if (originalFileName.contains(".")) {
-            String suffix = originalFileName.substring(originalFileName.lastIndexOf("."));
-            return materials.getName() + suffix;
-        } else {
-            return materials.getName();
-        }
     }
 
     /**
@@ -505,11 +407,15 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
     }
 
     @Override
-    public void updateTeachingMaterialsById(TeachingMaterials teachingmaterials) {
-        if (teachingmaterials == null || teachingmaterials.getId() == null || teachingmaterials.getId() == 0L) {
+    public void updateTeachingMaterialsById(TeachingMaterialsSaveOrUpdateParam teachingmaterials) {
+        if (ObjectUtils.isEmpty(teachingmaterials) || ObjectUtils.isEmpty(teachingmaterials.getId())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
         TeachingMaterials oldData = this.getById(teachingmaterials.getId());
+        // 验证权限：判断是否是作者或者管理员
+        if (!oldData.getAuthorId().equals(UserUtils.get().getId()) && UserUtils.get().getUserType() != 0) {
+            throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
+        }
         // 判断isPublic是否发生变化
         boolean oldPublic = oldData.getIsPublic();
         boolean newIsPublic = teachingmaterials.getIsPublic();
@@ -524,7 +430,8 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "文件移动失败");
             }
         }
-        this.updateById(teachingmaterials);
+//        this.updateById(teachingmaterials.);
+        this.updateById(null);
     }
 
     /**
@@ -538,25 +445,21 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             return null;
         }
 
-        // 统一路径分隔符（把 \ 换成 /）
-        String normalizedPath = filePath.replace('\\', '/');
-
         // 定义前缀
         String publicPrefix = "upload/teaching_materials/public/";
         String privatePrefix = "upload/teaching_materials/private/";
 
         String relativePath;
-        if (normalizedPath.startsWith(publicPrefix)) {
-            relativePath = normalizedPath.substring(publicPrefix.length());
-        } else if (normalizedPath.startsWith(privatePrefix)) {
-            relativePath = normalizedPath.substring(privatePrefix.length());
+        if (filePath.startsWith(publicPrefix)) {
+            relativePath = filePath.substring(publicPrefix.length());
+        } else if (filePath.startsWith(privatePrefix)) {
+            relativePath = filePath.substring(privatePrefix.length());
         } else {
             // 如果不包含前缀，就直接返回原始路径
-            relativePath = normalizedPath;
+            relativePath = filePath;
         }
 
-        // 返回时保持 Windows 风格（\）
-        return relativePath.replace('/', '\\');
+        return relativePath;
     }
 
 
