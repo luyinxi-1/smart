@@ -8,12 +8,13 @@ public interface ISystemStatisticsService {
     /**
      * 获取今日访问人数
      */
-    Integer getTodayVisitors();
+    Long getTodayVisitorCount();
 
     /**
      * 按时间统计访问人数
      */
-    List<Map<String, Object>> getVisitorsByTime(Integer days);
+    // 按时间统计访问人数
+    List<Map<String, Object>> getVisitorCountByTime(Map<String, Object> param);
 
     /**
      * 获取今日总学习时长
@@ -23,17 +24,21 @@ public interface ISystemStatisticsService {
     /**
      * 按时间统计总学习时长
      */
-    List<Map<String, Object>> getStudyDurationByTime(Integer days);
+    // 按时间统计总学习时长
+    List<Map<String, Object>> getStudyDurationByTime(Map<String, Object> param);
 
     /**
      * 获取今日活跃人数
      */
-    Integer getTodayActiveUsers();
+
+    // 今日活跃人数
+    Long getTodayActiveUserCount();
 
     /**
      * 按时间统计活跃人数
      */
-    List<Map<String, Object>> getActiveUsersByTime(Integer days);
+    // 按时间统计活跃人数
+    List<Map<String, Object>> getActiveUserCountByTime(Map<String, Object> param);
 
     /**
      * 学生数量统计
@@ -94,4 +99,5 @@ public interface ISystemStatisticsService {
      * 资源使用数据统计
      */
     Map<String, Object> getResourceUsageStatistics();
+
 }

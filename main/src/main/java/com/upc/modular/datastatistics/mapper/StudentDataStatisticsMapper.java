@@ -49,4 +49,7 @@ public interface StudentDataStatisticsMapper  extends BaseMapper<StudentStatisti
     Textbook getTextbookById(Long textbookId);
     @Select("SELECT COUNT(DISTINCT textbook_id) FROM learning_log WHERE user_id = #{userId} AND EXTRACT(YEAR FROM add_datetime) = #{year}")
     Long countTextbookByUserIdAndYear(Long userId, int currentYear);
+
+    @Select("SELECT * FROM learning_log WHERE user_id = #{userId} AND data_type = #{type} AND add_datetime BETWEEN #{startTime} AND #{endTime}")
+    List<LearningLog> findAddDatetimeByTime(Long userId, String startTime, String endTime, int type);
 }

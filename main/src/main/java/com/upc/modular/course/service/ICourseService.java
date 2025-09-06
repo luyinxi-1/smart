@@ -29,4 +29,6 @@ public interface ICourseService extends IService<Course> {
 
 
     Long inserCourse(Course course);
+    //
+
 }

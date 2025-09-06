@@ -32,4 +32,5 @@ public interface IStudentDataStatistics extends IService<StudentStatisticsData> 
 
     List<StudentStatisticsData> countStudentCurrentTextbookRead();
 
+    Long countStudentTextbookReadingTimeByTime(String startTime, String endTime);
 }

@@ -57,7 +57,7 @@ public class Course implements Serializable {
 
     @ApiModelProperty("课程封面")
     @TableField("course_picture")
-    private Long coursePicture;
+    private String coursePicture;
 
     @ApiModelProperty("创建者")
     @TableField(value = "creator", fill = FieldFill.INSERT)
