@@ -1,11 +1,8 @@
 package com.upc.modular.datastatistics.service.impl;
 
-import ch.qos.logback.classic.Logger;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.utils.UserUtils;
-import com.upc.modular.auth.entity.SysAuthorityModel;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.datastatistics.controller.param.StudentReadingTimeByMonthReturnParam;
@@ -31,8 +28,6 @@ import java.util.stream.Collectors;
 public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatisticsMapper,StudentStatisticsData> implements IStudentDataStatistics {
     // 完成度阈值（完成阅读）
     private static final long COMPLETION_THRESHOLD = 70L;
-    // 阅读时间阈值（阅读排行榜）
-    private static final long READING_TIME_THRESHOLD = 30L;
     @Autowired
     private StudentDataStatisticsMapper studentDataStatisticsMapper;
 
@@ -234,8 +229,11 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         return completedTextbooks;
     }
 
+    /**
+     * 统计学生今年教材阅读时长
+     */
     @Override
-    public Long countStudentCurrentYearTextbookReadingTime() {
+    public List<StudentStatisticsData> countStudentCurrentYearTextbookReadingTime() {
         Long userId = UserUtils.get().getId();
         int currentYear = LocalDateTime.now().getYear();
         // 容忍范围
@@ -244,8 +242,8 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         // 获取时间列表
         List<LearningLog> records;
         records = studentDataStatisticsMapper.findAddDatetimeByYear(userId, 0, currentYear);
-        if(records == null || records.size() < 2){
-            return 0L;
+        if (records == null || records.isEmpty() || records.size() < 2) {
+            return Collections.emptyList();
         }
         //计算本年阅读时间
         long totalReadingTime = 0L;
@@ -258,7 +256,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             Duration duration = Duration.between(currentAddDatetime, nextAddDatetime);
             long seconds = duration.getSeconds();
             if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
-                totalReadingTime += 1; // 假设定时数据间隔时间为1秒
+                totalReadingTime += 1;
             }
         }
 
@@ -277,8 +275,55 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         statisticsData.setUpdateTime(LocalDateTime.now());
         this.saveOrUpdate(statisticsData);
 
-        //返回本年用户阅读时间
-        return totalReadingTime;
+        // 查询所有学生统计数据并按reading_time降序排序
+        List<StudentStatisticsData> sortedStatistics = this.list(new QueryWrapper<StudentStatisticsData>().lambda()
+                .orderByDesc(StudentStatisticsData::getReadingTime));
+
+        return sortedStatistics;
+    }
+    /**
+     * 统计学生今年教材阅读数量
+     */
+    @Override
+    public List<StudentStatisticsData> countStudentCurrentTextbookRead() {
+        Long userId = UserUtils.get().getId();
+        int currentYear = LocalDateTime.now().getYear();
+
+        // 统计今年阅读的教材数量
+        Long currentYearTextbookCount = studentDataStatisticsMapper.countTextbookByUserIdAndYear(userId, currentYear);
+        if (currentYearTextbookCount == null) {
+            currentYearTextbookCount = 0L;
+        }
+
+        // 获取学生信息
+        Student student = studentMapper.selectOne(new QueryWrapper<Student>().lambda()
+                .eq(Student::getUserId, userId));
+
+        // 获取用户信息
+        SysTbuser sysTbuser = sysUserMapper.selectOne(new QueryWrapper<SysTbuser>().lambda()
+                .eq(SysTbuser::getId, userId));
+
+        // 构造统计数据实体
+        StudentStatisticsData statisticsData = new StudentStatisticsData();
+        if (student != null) {
+            statisticsData.setId(student.getId());
+        }
+        statisticsData.setUserId(userId);
+        statisticsData.setReadingBook(currentYearTextbookCount);
+        if (sysTbuser != null) {
+            statisticsData.setPicUrl(sysTbuser.getUserPicture());
+        }
+        statisticsData.setUpdateTime(LocalDateTime.now());
+
+        // 保存或更新统计数据
+        this.saveOrUpdate(statisticsData);
+
+        // 查询所有学生统计数据并按reading_book降序排序
+        List<StudentStatisticsData> sortedStatistics = this.list(new QueryWrapper<StudentStatisticsData>().lambda()
+                .orderByDesc(StudentStatisticsData::getReadingBook));
+
+        return sortedStatistics;
+
     }
 
     /**

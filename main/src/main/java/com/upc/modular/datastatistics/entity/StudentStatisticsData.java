@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Accessors(chain = true)
-@TableName("student_statistics_data")
+@TableName("student_statistic_data")
 @ApiModel(value = "StudentStatisticsData对象", description = "")
 public class StudentStatisticsData implements Serializable {
 

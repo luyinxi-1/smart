@@ -47,4 +47,6 @@ public interface StudentDataStatisticsMapper  extends BaseMapper<StudentStatisti
 
     @Select("SELECT * FROM textbook where id = #{textbookId}")
     Textbook getTextbookById(Long textbookId);
+    @Select("SELECT COUNT(DISTINCT textbook_id) FROM learning_log WHERE user_id = #{userId} AND EXTRACT(YEAR FROM add_datetime) = #{year}")
+    Long countTextbookByUserIdAndYear(Long userId, int currentYear);
 }

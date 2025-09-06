@@ -28,5 +28,8 @@ public interface IStudentDataStatistics extends IService<StudentStatisticsData> 
 
     Long countStudentTextbookRead();
 
-    Long countStudentCurrentYearTextbookReadingTime();
+    List<StudentStatisticsData> countStudentCurrentYearTextbookReadingTime();
+
+    List<StudentStatisticsData> countStudentCurrentTextbookRead();
+
 }
