@@ -6,6 +6,7 @@ import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsPageSearchDto;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsSaveOrUpdateParam;
+import com.upc.modular.materials.controller.param.vo.MaterialsTextbookNameMappingReturnParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.service.ITeachingMaterialsService;
 import io.swagger.annotations.Api;
@@ -73,9 +74,11 @@ public class TeachingMaterialsController {
 
     @ApiOperation(value = "修改教学素材信息")
     @PostMapping("/updateTeachingMaterialsById")
-    public R updateInstitutionById(@RequestBody TeachingMaterialsSaveOrUpdateParam teachingMaterials) {
-        teachingMaterialsService.updateTeachingMaterialsById(teachingMaterials);
-        return R.commonReturn(200, "修改成功", "");
+    public R<String> updateInstitutionById(@RequestParam(value = "file") List<MultipartFile> files, @ModelAttribute TeachingMaterialsSaveOrUpdateParam param) {
+        Boolean result = teachingMaterialsService.updateTeachingMaterialsById(files, param);
+        if (!result)
+            return R.fail("修改失败");
+        else return R.ok("修改成功");
     }
 
     @ApiOperation(value = "删除教学素材信息")
@@ -83,5 +86,12 @@ public class TeachingMaterialsController {
     public R deleteTeachingMaterialsByIds(@RequestBody List<Long> ids) {
         teachingMaterialsService.deleteTeachingMaterialsByIds(ids);
         return R.commonReturn(200, "删除成功", "");
+    }
+
+    @ApiOperation(value = "获取素材关联教材（可用于删除素材前确认）")
+    @PostMapping("/getMaterialsTextbookMappingByMaterialsId")
+    public R<MaterialsTextbookNameMappingReturnParam> getMaterialsTextbookMappingByMaterialsId(@RequestBody List<Long> ids) {
+        MaterialsTextbookNameMappingReturnParam result = teachingMaterialsService.getMaterialsTextbookMappingByMaterialsId(ids);
+        return R.ok(result);
     }
 }

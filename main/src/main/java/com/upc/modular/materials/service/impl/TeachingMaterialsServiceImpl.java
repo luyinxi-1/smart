@@ -10,6 +10,7 @@ import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsPageSearchDto;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsSaveOrUpdateParam;
+import com.upc.modular.materials.controller.param.vo.MaterialsTextbookNameMappingReturnParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.entity.MaterialsTextbookMapping;
 import com.upc.modular.materials.entity.TeachingMaterials;
@@ -18,6 +19,7 @@ import com.upc.modular.materials.service.ITeachingMaterialsService;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.service.impl.TeacherServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,10 +33,9 @@ import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -60,6 +61,9 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
     @Autowired
     private TeacherServiceImpl teacherService;
+
+    @Autowired
+    private TeachingMaterialsMapper baseMapper;
 
     /**
      * 添加教学素材
@@ -94,6 +98,8 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             // 公共素材路径：upload/teaching_materials/public/imageSet/yyyyMMdd/[uuid]_[length]/图片
             // 私有素材路径：upload/teaching_materials/private/用户id/imageSet/yyyyMMdd/[uuid]_[length]/图片
             Path folderPath;
+            if (files.isEmpty() || files.get(0).isEmpty())
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，请上传图片");
             String imageSetLength = String.valueOf(files.size());
             String imageSetName = UUID.randomUUID() + "_" + imageSetLength;
             if (param.getIsPublic())
@@ -122,11 +128,11 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             teachingMaterials.setFilePath(folderPath.toString());
 
         } else {
-            if (!TeachingMaterials.SUPPORTED_TYPES.contains(param.getType()))
-                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，不支持该素材类型");
-            // 处理文件类型素材
+            // 处理其他文件类型素材
             // 公共素材路径：upload/teaching_materials/public/文件类型/yyyyMMdd/文件名
             // 私有素材路径：upload/teaching_materials/private/用户id/文件类型/yyyyMMdd/文件名
+            if (!TeachingMaterials.SUPPORTED_TYPES.contains(param.getType()))
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，不支持该素材类型");
             Path folderPath;
             if (param.getIsPublic())
                 folderPath = Paths.get("upload", "teaching_materials", "public",
@@ -135,7 +141,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 folderPath = Paths.get("upload", "teaching_materials", "private",
                         UserUtils.get().getId().toString(),
                         param.getType(), FileManageUtil.yyyyMMddStr());
-            if (files.size() > 1)
+            if (files.size() != 1 || files.get(0).isEmpty())
                 throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
             MultipartFile file = files.get(0);
             String fileName = FileManageUtil.createFileName(file);
@@ -161,7 +167,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
      * @param id         素材id
      * @param imageSetId 图集的图id
      * @param textbookId 绑定的教材id
-     * @param action     下载方式
+     * @param action     在线查看/下载
      * @param response
      */
     @Override
@@ -407,59 +413,171 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
     }
 
     @Override
-    public void updateTeachingMaterialsById(TeachingMaterialsSaveOrUpdateParam teachingmaterials) {
-        if (ObjectUtils.isEmpty(teachingmaterials) || ObjectUtils.isEmpty(teachingmaterials.getId())) {
+    public Boolean updateTeachingMaterialsById(List<MultipartFile> files, TeachingMaterialsSaveOrUpdateParam param) {
+        if (ObjectUtils.isEmpty(param) || ObjectUtils.isEmpty(param.getId()))
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
-        }
-        TeachingMaterials oldData = this.getById(teachingmaterials.getId());
+        if (ObjectUtils.isEmpty(param.getType()))
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，参数 type 不能为空");
+        TeachingMaterials oldData = this.getById(param.getId());
         // 验证权限：判断是否是作者或者管理员
         if (!oldData.getAuthorId().equals(UserUtils.get().getId()) && UserUtils.get().getUserType() != 0) {
             throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
         }
-        // 判断isPublic是否发生变化
-        boolean oldPublic = oldData.getIsPublic();
-        boolean newIsPublic = teachingmaterials.getIsPublic();
-        if (oldPublic != newIsPublic) {
-            // 发生改变则移动文件
-            String oldPath = oldData.getFilePath();
-            String baseDir = newIsPublic ? "upload/teaching_materials/public/" : "upload/teaching_materials/private/";
-            String newPath = baseDir + extractRelativePath(oldPath);
-            //log.info("移动文件：{} -> {}", oldPath, newPath);
-            boolean moved = FileManageUtil.moveFile(oldPath, newPath);
-            if (!moved) {
-                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "文件移动失败");
+        if (!param.getType().equals(oldData.getType()))
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，类型不可变");
+        // 先处理简单数据
+        if (ObjectUtils.isNotEmpty(param.getName()))
+            oldData.setName(param.getName());
+        if (ObjectUtils.isNotEmpty(param.getType()))
+            oldData.setType(param.getType());
+        if (ObjectUtils.isNotEmpty(param.getCoverImagePath()))
+            oldData.setCoverImagePath(param.getCoverImagePath());
+        if (ObjectUtils.isNotEmpty(param.getQrcodePath()))
+            oldData.setQrcodePath(param.getQrcodePath());
+        oldData.setOperationDatetime(LocalDateTime.now());
+        if (param.getType().equals("link")) {
+            // 处理链接素材
+            if (ObjectUtils.isNotEmpty(param.getFilePath()))
+                oldData.setFilePath(param.getFilePath());
+            if (ObjectUtils.isNotEmpty(param.getIsPublic()))
+                oldData.setIsPublic(param.getIsPublic());
+        } else if (param.getType().equals("imageSet")) {
+            // 处理图集素材
+            // 公共素材路径：upload/teaching_materials/public/imageSet/yyyyMMdd/[uuid]_[length]/图片
+            // 私有素材路径：upload/teaching_materials/private/用户id/imageSet/yyyyMMdd/[uuid]_[length]/图片
+            if (ObjectUtils.isNotEmpty(files) && !files.get(0).isEmpty()) {
+                // 如果不为空，则删除旧文件，添加新文件
+                // 删除旧文件
+                Path oldImageSetPath = Paths.get(oldData.getFilePath());
+                if (Files.exists(oldImageSetPath)) {
+                    try {
+                        FileUtils.deleteDirectory(oldImageSetPath.toFile());
+                    } catch (IOException e) {
+                        // 如果失败，不影响新文件创建
+                        e.printStackTrace();
+                    }
+                }
+                // 添加新文件
+                Path newfolderPath;
+                String imageSetLength = String.valueOf(files.size());
+                String imageSetName = UUID.randomUUID() + "_" + imageSetLength;
+                Boolean isPublic = oldData.getIsPublic();
+                if (ObjectUtils.isNotEmpty(param.getIsPublic()))
+                    isPublic = param.getIsPublic();
+
+                if (isPublic)
+                    newfolderPath = Paths.get("upload", "teaching_materials", "public",
+                            "imageSet", FileManageUtil.yyyyMMddStr(), imageSetName);
+                else
+                    newfolderPath = Paths.get("upload", "teaching_materials", "private",
+                            UserUtils.get().getId().toString(),
+                            "imageSet", FileManageUtil.yyyyMMddStr(), imageSetName);
+
+                Long filesSize = 0L;
+                for (int i = 0; i < files.size(); i++) {
+                    MultipartFile file = files.get(i);
+                    String fileName = FileManageUtil.createFileName(file, String.valueOf(i + 1));
+                    String filePath = FileManageUtil.uploadFile(file, newfolderPath, fileName);
+                    if (ObjectUtils.isEmpty(filePath))
+                        throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，更新失败");
+
+                    filesSize += file.getSize();
+                }
+                oldData.setIsPublic(isPublic);
+                oldData.setFileName(imageSetName);
+                oldData.setFileSize(Math.round(filesSize / (1024.0 * 1024.0) * 100) / 100.0);
+                oldData.setFilePath(newfolderPath.toString().replace("\\", "/"));
+            } else {
+                // 如果参数文件为空，则只修改公开状态，移动文件
+                if (ObjectUtils.isNotEmpty(param.getIsPublic()) && !param.getIsPublic().equals(oldData.getIsPublic())) {
+                    try {
+                        Path oldPath = Paths.get(oldData.getFilePath());
+                        Path newfolderPath;
+                        if (param.getIsPublic())
+                            newfolderPath = Paths.get("upload", "teaching_materials", "public",
+                                    "imageSet", FileManageUtil.yyyyMMddStr());
+                        else
+                            newfolderPath = Paths.get("upload", "teaching_materials", "private",
+                                    UserUtils.get().getId().toString(),
+                                    "imageSet", FileManageUtil.yyyyMMddStr());
+                        Path newPath = newfolderPath.resolve(oldPath.getFileName());
+                        // 确保目标目录存在
+                        Files.createDirectories(newPath.getParent());
+                        Files.move(oldPath, newPath, StandardCopyOption.REPLACE_EXISTING);
+
+                        oldData.setIsPublic(param.getIsPublic());
+                        oldData.setFilePath(newPath.toString().replace("\\", "/"));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，更新失败");
+                    }
+                }
+            }
+        } else {
+            // 处理其他文件类型素材
+            // 公共素材路径：upload/teaching_materials/public/文件类型/yyyyMMdd/文件名
+            // 私有素材路径：upload/teaching_materials/private/用户id/文件类型/yyyyMMdd/文件名
+            if (ObjectUtils.isNotEmpty(files) && !files.get(0).isEmpty()) {
+                if (files.size() > 1)
+                    throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，一次只能上传一个文件");
+                // 如果不为空且合法，则删除旧文件，添加新文件
+                MultipartFile file = files.get(0);
+
+                // 删除旧文件
+                Path oldFilePath = Paths.get(oldData.getFilePath());
+                try {
+                    Files.deleteIfExists(oldFilePath);
+                } catch (IOException e) {
+                    // 如果失败，不影响新文件创建
+                    e.printStackTrace();
+                }
+                // 添加新文件
+                Path newfolderPath;
+                if (param.getIsPublic())
+                    newfolderPath = Paths.get("upload", "teaching_materials", "public",
+                            param.getType(), FileManageUtil.yyyyMMddStr());
+                else
+                    newfolderPath = Paths.get("upload", "teaching_materials", "private",
+                            UserUtils.get().getId().toString(),
+                            param.getType(), FileManageUtil.yyyyMMddStr());
+                String fileName = FileManageUtil.createFileName(file);
+
+                String filePath = FileManageUtil.uploadFile(file, newfolderPath, fileName);
+                if (ObjectUtils.isEmpty(filePath))
+                    throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，上传失败");
+
+                oldData.setIsPublic(param.getIsPublic());
+                oldData.setFileName(fileName);
+                oldData.setFileSize(Math.round(file.getSize() / (1024.0 * 1024.0) * 100) / 100.0);
+                oldData.setFilePath(filePath);
+            } else {
+                // 如果参数文件为空，则只修改公开状态，移动文件
+                if (ObjectUtils.isNotEmpty(param.getIsPublic()) && !param.getIsPublic().equals(oldData.getIsPublic())) {
+                    try {
+                        Path oldPath = Paths.get(oldData.getFilePath());
+                        Path newfolderPath;
+                        if (param.getIsPublic())
+                            newfolderPath = Paths.get("upload", "teaching_materials", "public",
+                                    param.getType(), FileManageUtil.yyyyMMddStr());
+                        else
+                            newfolderPath = Paths.get("upload", "teaching_materials", "private",
+                                    UserUtils.get().getId().toString(),
+                                    param.getType(), FileManageUtil.yyyyMMddStr());
+                        Path newPath = newfolderPath.resolve(oldPath.getFileName());
+                        // 确保目标目录存在
+                        Files.createDirectories(newPath.getParent());
+                        Files.move(oldPath, newPath, StandardCopyOption.REPLACE_EXISTING);
+
+                        oldData.setIsPublic(param.getIsPublic());
+                        oldData.setFilePath(newPath.toString().replace("\\", "/"));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，更新失败");
+                    }
+                }
             }
         }
-//        this.updateById(teachingmaterials.);
-        this.updateById(null);
-    }
-
-    /**
-     * 提取文件路径中的文件名
-     *
-     * @param filePath 文件完整路径
-     * @return 文件名
-     */
-    private String extractRelativePath(String filePath) {
-        if (filePath == null || filePath.isEmpty()) {
-            return null;
-        }
-
-        // 定义前缀
-        String publicPrefix = "upload/teaching_materials/public/";
-        String privatePrefix = "upload/teaching_materials/private/";
-
-        String relativePath;
-        if (filePath.startsWith(publicPrefix)) {
-            relativePath = filePath.substring(publicPrefix.length());
-        } else if (filePath.startsWith(privatePrefix)) {
-            relativePath = filePath.substring(privatePrefix.length());
-        } else {
-            // 如果不包含前缀，就直接返回原始路径
-            relativePath = filePath;
-        }
-
-        return relativePath;
+        return this.updateById(oldData);
     }
 
 
@@ -467,19 +585,49 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
     public void deleteTeachingMaterialsByIds(List<Long> ids) {
         // 1. 查出这些素材
         List<TeachingMaterials> materialsList = this.listByIds(ids);
-
+        // 检查权限
+        // 0-管理员
+        if (UserUtils.get().getUserType() != 0) {
+            materialsList.forEach(materials -> {
+                if (!materials.getAuthorId().equals(UserUtils.get().getId()))
+                    throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，无权限删除");
+            });
+        }
         // 2. 遍历删除文件
         for (TeachingMaterials materials : materialsList) {
-            Path filePath = Paths.get(materials.getFilePath());
-
-            try {
-                Files.deleteIfExists(filePath);
-            } catch (IOException e) {
-                throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，文件删除失败");
+            if (materials.getType().equals("link"))
+                this.removeById(materials.getId());
+            else if (materials.getType().equals("imageSet")) {
+                Path filePath = Paths.get(materials.getFilePath());
+                if (FileUtils.deleteQuietly(filePath.toFile()))
+                    this.removeById(materials.getId());
+                else throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，部分素材删除失败");
+            } else {
+                try {
+                    Path filePath = Paths.get(materials.getFilePath());
+                    Files.deleteIfExists(filePath);
+                    this.removeById(materials.getId());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，部分素材删除失败");
+                }
             }
         }
-        // 3. 删除数据库记录
-        this.removeByIds(ids);
     }
 
+    @Override
+    public MaterialsTextbookNameMappingReturnParam getMaterialsTextbookMappingByMaterialsId(List<Long> ids) {
+        // 1. 查出这些素材
+        List<TeachingMaterials> materialsList = this.listByIds(ids);
+        // 检查权限
+        // 0-管理员
+        if (UserUtils.get().getUserType() != 0) {
+            materialsList.forEach(materials -> {
+                if (!materials.getAuthorId().equals(UserUtils.get().getId()))
+                    throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，无权限查看");
+            });
+        }
+        // MaterialId-TextbookName
+        return baseMapper.getMaterialIdToTextbookNameMap(ids);
+    }
 }

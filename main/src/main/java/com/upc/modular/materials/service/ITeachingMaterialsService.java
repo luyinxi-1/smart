@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsPageSearchDto;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsSaveOrUpdateParam;
+import com.upc.modular.materials.controller.param.vo.MaterialsTextbookNameMappingReturnParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.entity.TeachingMaterials;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,7 +32,9 @@ public interface ITeachingMaterialsService extends IService<TeachingMaterials> {
 
     TeachingMaterialsReturnVo getTeachingMaterials(Long id, Long textbookId);
 
-    void updateTeachingMaterialsById(TeachingMaterialsSaveOrUpdateParam teachingmaterials);
+    Boolean updateTeachingMaterialsById(List<MultipartFile> files, TeachingMaterialsSaveOrUpdateParam param);
 
     void deleteTeachingMaterialsByIds(List<Long> ids);
+
+    MaterialsTextbookNameMappingReturnParam getMaterialsTextbookMappingByMaterialsId(List<Long> ids);
 }
