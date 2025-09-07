@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.datastatistics.mapper.SystemDataStatisticsMapper">
+    <!-- 今日访问人数 -->
+    <select id="getTodayVisitorCount" resultType="long">
+        SELECT COUNT(DISTINCT user_id)
+        FROM learning_log
+        WHERE add_datetime >= CURRENT_DATE AND add_datetime &lt; CURRENT_DATE + INTERVAL '1 day'
+    </select>
+
+    <!-- 按时间统计访问人数 -->
+    <select id="getVisitorCountByTime" parameterType="map" resultType="map">
+        SELECT
+            add_datetime::date as date,
+            COUNT(DISTINCT user_id) as visitorCount
+        FROM learning_log
+        WHERE add_datetime BETWEEN #{startDate} AND #{endDate}
+        GROUP BY add_datetime::date
+        ORDER BY date
+    </select>
+
+
+    <!-- 今日总学习时长 -->
+    <select id="getTodayStudyDuration" resultType="long">
+        SELECT COALESCE(SUM(duration_minutes), 0)
+        FROM student_reading_log
+        WHERE add_datetime >= CURRENT_DATE AND add_datetime &lt; CURRENT_DATE + INTERVAL '1 day'
+    </select>
+
+    <!-- 按时间统计总学习时长 -->
+    <select id="getStudyDurationByTime" parameterType="map" resultType="map">
+        SELECT
+            DATE(add_datetime) as date,
+            SUM(duration_minutes) as totalDuration
+        FROM student_reading_log
+        WHERE add_datetime BETWEEN #{startDate} AND #{endDate}
+        GROUP BY DATE(add_datetime)
+        ORDER BY date
+    </select>
+
+    <!-- 今日活跃人数 -->
+    <select id="getTodayActiveUserCount" resultType="long">
+        SELECT COUNT(DISTINCT student_id)
+        FROM student_reading_log
+        WHERE add_datetime >= CURRENT_DATE AND add_datetime &lt; CURRENT_DATE + INTERVAL '1 day'
+    </select>
+
+    <!-- 按时间统计活跃人数 -->
+    <select id="getActiveUserCountByTime" parameterType="map" resultType="map">
+        SELECT
+            DATE(add_datetime) as date,
+            COUNT(DISTINCT student_id) as activeUserCount
+        FROM student_reading_log
+        WHERE add_datetime BETWEEN #{startDate} AND #{endDate}
+        GROUP BY DATE(add_datetime)
+        ORDER BY date
+    </select>
+
+    <!-- 学生数量统计 -->
+    <select id="getStudentCount" resultType="long">
+        SELECT COUNT(*) FROM student
+    </select>
+
+    <!-- 教学思政数量统计 -->
+    <select id="getIdeologicalMaterialCount" resultType="long">
+        SELECT COUNT(*) FROM ideological_material
+    </select>
+
+    <!-- 教学活动数量统计 -->
+    <select id="getTeachingActivityCount" resultType="long">
+        SELECT COUNT(*) FROM discussion_topic
+    </select>
+
+    <!-- 题库数量统计 -->
+    <select id="getQuestionBankCount" resultType="long">
+        SELECT COUNT(*) FROM teaching_question_bank
+    </select>
+
+    <!-- 班级数量统计 -->
+    <select id="getClassCount" resultType="long">
+        SELECT COUNT(*) FROM class_group
+    </select>
+
+    <!-- 在授课程数量统计 -->
+    <select id="getTeachingCourseCount" resultType="long">
+        SELECT COUNT(*) FROM course
+    </select>
+
+    <!-- 智慧教材数量统计 -->
+    <select id="getSmartTextbookCount" resultType="long">
+        SELECT COUNT(*) FROM textbook
+    </select>
+
+    <!-- 教材类型统计 -->
+    <select id="getTextbookTypeCount" resultType="map">
+        SELECT
+            tc.classification_name as typeName,
+            COUNT(t.id) as textbookCount
+        FROM textbook_classification tc
+                 LEFT JOIN textbook t ON tc.id = t.classification
+        GROUP BY tc.id, tc.classification_name
+    </select>
+
+    <!-- 教师数量统计 -->
+    <select id="getTeacherCount" resultType="long">
+        SELECT COUNT(*) FROM teacher
+    </select>
+
+    <!-- 交流反馈数量统计 -->
+    <select id="getCommunicationFeedbackCount" resultType="long">
+        SELECT COUNT(*) FROM discussion_topic_reply
+    </select>
+
+    <!-- 教学素材数量统计 -->
+    <select id="getTeachingMaterialCount" resultType="long">
+        SELECT COUNT(*) FROM teaching_materials
+    </select>
+
+    <!-- 资源使用数据统计 -->
+    <select id="getResourceUsageData" resultType="map">
+        SELECT
+            '学生数量' as resourceName,
+            COUNT(*) as usageCount
+        FROM student
+        UNION ALL
+        SELECT
+            '教材数量' as resourceName,
+            COUNT(*) as usageCount
+        FROM textbook
+        UNION ALL
+        SELECT
+            '题库数量' as resourceName,
+            COUNT(*) as usageCount
+        FROM teaching_question_bank
+        UNION ALL
+        SELECT
+            '教学活动数量' as resourceName,
+            COUNT(*) as usageCount
+        FROM discussion_topic
+    </select>
+
+</mapper>

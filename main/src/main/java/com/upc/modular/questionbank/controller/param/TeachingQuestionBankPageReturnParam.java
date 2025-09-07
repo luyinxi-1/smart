@@ -42,4 +42,7 @@ public class TeachingQuestionBankPageReturnParam {
     @ApiModelProperty("题目数量")
     private Long questionCount;
 
+    @ApiModelProperty("创建人姓名")
+    private String creatorName;
+
 }

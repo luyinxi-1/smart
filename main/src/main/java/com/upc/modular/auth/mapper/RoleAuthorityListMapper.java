@@ -17,6 +17,5 @@ import java.util.List;
  */
 @Mapper
 public interface RoleAuthorityListMapper extends BaseMapper<RoleAuthorityList> {
-
     void myDeleteBatch(@Param("deleteList") List<RoleAuthorityList> deleteList);
 }

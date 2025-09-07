@@ -18,6 +18,7 @@
         <result column="add_datetime" property="addDatetime" />
         <result column="operator" property="operator" />
         <result column="operation_datetime" property="operationDatetime" />
+        <result column="creatorName" property="creatorName"/> <!-- 非数据库字段 -->
     </resultMap>
 
     <select id="selectQuestion"
@@ -33,7 +34,8 @@
         t.creator,
         t.add_datetime,
         t.operator,
-        t.operation_datetime
+        t.operation_datetime,
+        t.teaching_question_classification_id
         FROM teaching_question t
         <where>
             <!-- 条件1: 根据题目内容模糊查询 -->
@@ -63,5 +65,30 @@
             <otherwise>DESC</otherwise>
         </choose>
     </select>
+    <select id="selectQuestionById" resultMap="BaseResultMap">
+        SELECT
+            t.id,                                -- 题目的主键 ID
+            t.type,                              -- 题目类型
+            t.content,                           -- 题目内容
+            t.difficulty,                        -- 难度等级
+            t.status,                            -- 状态（启用/禁用）
+            t.answer,                            -- 正确答案
+            t.subject,                           -- 所属学科
+            t.creator,                           -- 创建人（外键，关联 sys_tbuser 表）
+            t.add_datetime,                      -- 创建时间
+            t.operator,                          -- 最后操作人
+            t.operation_datetime,                -- 最后操作时间
+            t.teaching_question_classification_id, -- 题目分类 ID
+            t.choice_question_options,           -- 选择题的选项（如果是选择题）
+            t.answer_analysis,                   -- 答案解析
+            u.username AS creatorName            -- 通过用户表 sys_tbuser 查出来的创建人姓名，别名为 creatorName
+        FROM teaching_question t                 -- 主表：题目表
+                 LEFT JOIN sys_tbuser u          -- 左连接用户表
+                           ON t.creator = u.id             -- 条件：题目表的 creator 对应用户表的 id
+        WHERE t.id = #{id}                       -- 只查询指定题目的数据
+    </select>
+
+
+
 
 </mapper>

@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.mapper.SysUserMapper;
+import com.upc.modular.questionbank.controller.param.QuestionsBanksListBatchParam;
 import com.upc.modular.questionbank.controller.param.QuestionsBanksListPageSearchParam;
 import com.upc.modular.questionbank.entity.QuestionsBanksList;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
@@ -18,7 +20,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -37,7 +39,8 @@ public class QuestionsBanksListServiceImpl extends ServiceImpl<QuestionsBanksLis
     TeachingQuestionBankMapper teachingQuestionBankMapper;
     @Autowired
     QuestionsBanksListMapper questionsBanksListMapper;
-
+    @Autowired
+    private SysUserMapper sysUserMapper;
     @Override
     public Void inserQuestionBankList(QuestionsBanksList param) {
         Long questionId = param.getQuestionId();
@@ -61,6 +64,51 @@ public class QuestionsBanksListServiceImpl extends ServiceImpl<QuestionsBanksLis
         this.save(param);
         return null;
     }
+   @Override
+   public void batchInsertQuestionBankList(QuestionsBanksListBatchParam param) {
+       Long bankId = param.getBankId();
+
+       // 检查题库是否存在
+       LambdaQueryWrapper<TeachingQuestionBank> queryWrapper = new LambdaQueryWrapper<>();
+       queryWrapper.eq(TeachingQuestionBank::getId, bankId);
+       boolean isTeachingQuestionBankExists = teachingQuestionBankMapper.exists(queryWrapper);
+       if (!isTeachingQuestionBankExists) {
+           throw new RuntimeException("ID为 " + bankId + " 的题库不存在！");
+       }
+
+       // 批量处理题目列表
+       List<QuestionsBanksListBatchParam.QuestionScoreParam> questionList = param.getList();
+       if (questionList != null && !questionList.isEmpty()) {
+           List<QuestionsBanksList> questionsBanksLists = questionList.stream().map(questionScoreParam -> {
+               // 检查题目是否存在
+               LambdaQueryWrapper<TeachingQuestion> questionQueryWrapper = new LambdaQueryWrapper<>();
+               questionQueryWrapper.eq(TeachingQuestion::getId, questionScoreParam.getQuestionId());
+               boolean isTeachingQuestionExists = teachingQuestionMapper.exists(questionQueryWrapper);
+               if (!isTeachingQuestionExists) {
+                   throw new RuntimeException("ID为 " + questionScoreParam.getQuestionId() + " 的题目不存在！");
+               }
+
+               // 检查是否已经存在相同的关联关系
+               LambdaQueryWrapper<QuestionsBanksList> relationQueryWrapper = new LambdaQueryWrapper<>();
+               relationQueryWrapper.eq(QuestionsBanksList::getQuestionId, questionScoreParam.getQuestionId());
+               relationQueryWrapper.eq(QuestionsBanksList::getBankId, bankId);
+               boolean isQuestionsBanksListExists = questionsBanksListMapper.exists(relationQueryWrapper);
+               if (isQuestionsBanksListExists) {
+                   throw new RuntimeException("题目ID为 " + questionScoreParam.getQuestionId() + " 和题库ID为 " + bankId + " 的关联关系已存在！");
+               }
+
+               QuestionsBanksList questionsBanksList = new QuestionsBanksList();
+               questionsBanksList.setQuestionId(questionScoreParam.getQuestionId());
+               questionsBanksList.setBankId(bankId);
+               questionsBanksList.setScore(questionScoreParam.getScore());
+               questionsBanksList.setSequence(questionScoreParam.getSequence());
+               return questionsBanksList;
+           }).collect(Collectors.toList());
+
+           // 批量保存
+           this.saveBatch(questionsBanksLists);
+       }
+   }
 
     @Override
     public void deleteQuestionsBanksListByIds(IdParam idParam) {
@@ -132,6 +180,65 @@ public class QuestionsBanksListServiceImpl extends ServiceImpl<QuestionsBanksLis
         // updateById 会根据 teachingQuestionbank 对象的ID去更新其他非空字段
         this.updateById(param);
     }
+    @Override
+    public void batchUpdateQuestionsBanksList(QuestionsBanksListBatchParam param) {
+        Long bankId = param.getBankId();
+        Long id = param.getId();
+
+        // 检查关联记录是否存在
+        if (id != null) {
+            QuestionsBanksList exists = this.getById(id);
+            if (exists == null) {
+                throw new RuntimeException("ID为 " + id + " 的题目题库关联记录不存在！");
+            }
+        }
+
+        // 检查题库是否存在
+        if (bankId != null) {
+            LambdaQueryWrapper<TeachingQuestionBank> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(TeachingQuestionBank::getId, bankId);
+            boolean isTeachingQuestionBankExists = teachingQuestionBankMapper.exists(queryWrapper);
+            if (!isTeachingQuestionBankExists) {
+                throw new RuntimeException("ID为 " + bankId + " 的题库不存在！");
+            }
+        }
+
+        // 批量处理题目列表
+        List<QuestionsBanksListBatchParam.QuestionScoreParam> questionList = param.getList();
+        if (questionList != null && !questionList.isEmpty()) {
+            List<QuestionsBanksList> questionsBanksLists = questionList.stream().map(questionScoreParam -> {
+                // 检查题目是否存在
+                LambdaQueryWrapper<TeachingQuestion> questionQueryWrapper = new LambdaQueryWrapper<>();
+                questionQueryWrapper.eq(TeachingQuestion::getId, questionScoreParam.getQuestionId());
+                boolean isTeachingQuestionExists = teachingQuestionMapper.exists(questionQueryWrapper);
+                if (!isTeachingQuestionExists) {
+                    throw new RuntimeException("ID为 " + questionScoreParam.getQuestionId() + " 的题目不存在！");
+                }
+
+                // 检查要更新的关联记录是否存在
+                if (questionScoreParam.getId() != null) {
+                    QuestionsBanksList exists = this.getById(questionScoreParam.getId());
+                    if (exists == null) {
+                        throw new RuntimeException("ID为 " + questionScoreParam.getId() + " 的题目题库关联记录不存在！");
+                    }
+                }
+
+                QuestionsBanksList questionsBanksList = new QuestionsBanksList();
+                // 正确设置关联记录的ID
+                questionsBanksList.setId(questionScoreParam.getId());
+                questionsBanksList.setQuestionId(questionScoreParam.getQuestionId());
+                questionsBanksList.setBankId(bankId);
+                questionsBanksList.setScore(questionScoreParam.getScore());
+                questionsBanksList.setSequence(questionScoreParam.getSequence());
+                return questionsBanksList;
+            }).collect(Collectors.toList());
+
+            // 批量更新
+            this.updateBatchById(questionsBanksLists);
+        }
+    }
+
+
 
     @Override
     public Page<QuestionsBanksList> selectQuestionPageList(QuestionsBanksListPageSearchParam param) {

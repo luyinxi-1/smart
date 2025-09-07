@@ -1,7 +1,9 @@
 package com.upc.modular.datastatistics.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.course.service.ICourseService;
+import com.upc.modular.datastatistics.mapper.SystemDataStatisticsMapper;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
 import com.upc.modular.group.service.IGroupService;
 import com.upc.modular.materials.entity.TeachingMaterials;
@@ -19,6 +21,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,42 +56,46 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
     @Autowired
     private IDiscussionTopicReplyService discussionTopicReplyService;
 
-    @Override
-    public Integer getTodayVisitors() {
-        // TODO: 实现今日访问人数统计逻辑
-        return null;
-    }
+    @Autowired
+    private SystemDataStatisticsMapper systemDataStatisticsMapper;
+    // 添加SysLogMapper的依赖
+    @Autowired
+    private com.upc.modular.auth.mapper.SysLogMapper userLoginLogMapper;
 
     @Override
-    public List<Map<String, Object>> getVisitorsByTime(Integer days) {
-        // TODO: 实现按时间统计访问人数逻辑
-        return null;
+    public Long getTodayVisitorCount() {
+        return systemDataStatisticsMapper.getTodayVisitorCount();
+    }
+
+
+    @Override
+    public List<Map<String, Object>> getVisitorCountByTime(Map<String, Object> param) {
+        return systemDataStatisticsMapper.getVisitorCountByTime(param);
     }
 
     @Override
     public Long getTodayStudyDuration() {
         // TODO: 实现今日总学习时长统计逻辑
-        return null;
+        return systemDataStatisticsMapper.getTodayStudyDuration();
     }
 
+
     @Override
-    public List<Map<String, Object>> getStudyDurationByTime(Integer days) {
+    public List<Map<String, Object>> getStudyDurationByTime(Map<String, Object> param) {
         // TODO: 实现按时间统计总学习时长逻辑
-        return null;
+        return systemDataStatisticsMapper.getStudyDurationByTime(param);
     }
-
     @Override
-    public Integer getTodayActiveUsers() {
-        // TODO: 实现今日活跃人数统计逻辑
-        return null;
-    }
-
-    @Override
-    public List<Map<String, Object>> getActiveUsersByTime(Integer days) {
+    public List<Map<String, Object>> getActiveUserCountByTime(Map<String, Object> param) {
         // TODO: 实现按时间统计活跃人数逻辑
-        return null;
+        return systemDataStatisticsMapper.getActiveUserCountByTime(param);
     }
 
+    @Override
+    public Long getTodayActiveUserCount() {
+        // TODO: 实现今日活跃人数统计逻辑
+        return systemDataStatisticsMapper.getTodayActiveUserCount();
+    }
     @Override
     public Long getStudentCount() {
         // TODO: 实现学生数量统计逻辑
@@ -208,5 +217,4 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
 
         return result;
     }
-
 }

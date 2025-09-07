@@ -31,6 +31,7 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
 
     @Autowired
     TeachingQuestionMapper teachingQuestionMapper;
+
     @Override
     public Void deleteCourseByIds(IdParam idParam) {
         List<Long> idList = idParam.getIdList();
@@ -63,5 +64,10 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
     public Page<TeachingQuestion> selectQuestionPage(TeachingQuestionPageSearchParam param) {
         Page<TeachingQuestion> page = new Page<>(param.getCurrent(), param.getSize());
         return teachingQuestionMapper.selectQuestion(page, param);
+    }
+
+    @Override
+    public TeachingQuestion selectQuestionById(Long id) {
+        return teachingQuestionMapper.selectQuestionById(id); // 👈 使用自定义SQL
     }
 }

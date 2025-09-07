@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.questionbank.controller.param.*;
 import com.upc.modular.questionbank.entity.QuestionsBanksList;
 import com.upc.modular.questionbank.entity.StudentExercisesContent;
@@ -74,6 +76,8 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
 
     @Autowired
     private QuestionsBanksListMapper questionsBanksListMapper;
+    @Autowired
+    private SysUserMapper sysUserMapper;
 
     @Override
     public Void deleteQuestionBankByIds(IdParam idParam) {
@@ -103,7 +107,7 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
         return null;
     }
 
-    @Override
+/*    @Override
     public Page<TeachingQuestionBankPageReturnParam> selectQuestionPage(TeachingQuestionBankPageSearchParam param) {
         // --- 第一阶段：数据库查询 ---
         // 1. 创建分页对象，注意泛型是中间结果类型
@@ -161,7 +165,67 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
         finalPage.setRecords(finalRecords);
 
         return finalPage;
+    }*/
+@Override
+public Page<TeachingQuestionBankPageReturnParam> selectQuestionPage(TeachingQuestionBankPageSearchParam param) {
+    // --- 第一阶段：数据库查询 ---
+    // 1. 创建分页对象，注意泛型是中间结果类型
+    Page<TeachingQuestionBankPageMidReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
+
+    // 2. 调用Mapper获取包含 creatorId 和 questionCount 的分页数据
+    Page<TeachingQuestionBankPageMidReturnParam> midResultPage = teachingQuestionBankMapper.selectQuestionBank(page, param);
+
+    // --- 第二阶段：Java内存中数据处理和转换 ---
+    List<TeachingQuestionBankPageMidReturnParam> midRecords = midResultPage.getRecords();
+
+    // 如果查询结果为空，直接返回一个空的最终分页对象，保留分页信息
+    if (CollectionUtils.isEmpty(midRecords)) {
+        return new Page<>(midResultPage.getCurrent(), midResultPage.getSize(), 0);
     }
+
+    // 3. 提取所有不重复的创建者ID (creator)
+    Set<Long> creatorIds = midRecords.stream()
+            .map(TeachingQuestionBankPageMidReturnParam::getCreator)
+            .filter(id -> id != null) // 过滤掉可能为null的id
+            .collect(Collectors.toSet());
+
+    // 4. 一次性查询所有相关的用户姓名（从SysTbuser表中获取username）
+    Map<Long, String> creatorIdToNameMap;
+    if (!creatorIds.isEmpty()) {
+        // 从SysTbuser表中查询用户信息
+        List<SysTbuser> users = sysUserMapper.selectList(
+                new LambdaQueryWrapper<SysTbuser>()
+                        .in(SysTbuser::getId, creatorIds)
+        );
+        // 将查询结果转为 Map<ID, username> 以便快速查找
+        creatorIdToNameMap = users.stream()
+                .collect(Collectors.toMap(SysTbuser::getId, SysTbuser::getUsername, (oldValue, newValue) -> oldValue));
+    } else {
+        creatorIdToNameMap = Collections.emptyMap();
+    }
+
+    // 5. 将中间结果(MidReturnParam)转换为最终结果(ReturnParam)
+    List<TeachingQuestionBankPageReturnParam> finalRecords = midRecords.stream().map(midParam -> {
+        TeachingQuestionBankPageReturnParam finalParam = new TeachingQuestionBankPageReturnParam();
+        // 复制所有同名属性
+        BeanUtils.copyProperties(midParam, finalParam);
+        // 单独处理 creatorName 字段，从ID转换为username
+        String creatorName = creatorIdToNameMap.getOrDefault(midParam.getCreator(), "未知用户"); // 如果找不到，给个默认值
+        finalParam.setCreatorName(creatorName);
+        return finalParam;
+    }).collect(Collectors.toList());
+
+    // 6. 构建并返回最终的分页对象
+    Page<TeachingQuestionBankPageReturnParam> finalPage = new Page<>(
+            midResultPage.getCurrent(),
+            midResultPage.getSize(),
+            midResultPage.getTotal()
+    );
+    finalPage.setRecords(finalRecords);
+
+    return finalPage;
+}
+
 
     @Override
     public Long inserQuestionBank(TeachingQuestionBank param) {
