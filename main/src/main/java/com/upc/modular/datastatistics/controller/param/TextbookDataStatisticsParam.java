@@ -28,4 +28,7 @@ public class TextbookDataStatisticsParam {
 
     @ApiModelProperty("教学思政数量")
     private Long ideologicalMaterialCount;
+
+    @ApiModelProperty("答题正确率")
+    private Double questionCorrectRate;
 }

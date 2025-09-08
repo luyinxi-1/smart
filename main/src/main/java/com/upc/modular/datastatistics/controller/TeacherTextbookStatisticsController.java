@@ -1,10 +1,7 @@
 package com.upc.modular.datastatistics.controller;
 
 import com.upc.common.responseparam.R;
-import com.upc.modular.datastatistics.controller.param.TextbookDataStatisticsParam;
-import com.upc.modular.datastatistics.controller.param.TextbookDataStatisticsRequestParam;
-import com.upc.modular.datastatistics.controller.param.TextbookTimeStatisticsReturnParam;
-import com.upc.modular.datastatistics.controller.param.TextbookTimeStatisticsSearchParam;
+import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.datastatistics.service.ITeacherTextbookStatisticsService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -47,6 +44,15 @@ public class TeacherTextbookStatisticsController {
             @RequestBody TextbookTimeStatisticsSearchParam param) {
         List<TextbookTimeStatisticsReturnParam> result = teacherTextbookStatisticsService
                 .getReadingDurationStatisticsByTime(param);
+        return R.ok(result);
+    }
+
+    @ApiOperation("获取各章节习题正确率统计")
+    @PostMapping("/chapter-question-correct-rate")
+    public R<List<ChapterQuestionCorrectRateParam>> getChapterQuestionCorrectRateStatistics(
+            @RequestBody TextbookDataStatisticsRequestParam param) {
+        List<ChapterQuestionCorrectRateParam> result = teacherTextbookStatisticsService
+                .getChapterQuestionCorrectRateStatistics(param.getTextbookId());
         return R.ok(result);
     }
 }

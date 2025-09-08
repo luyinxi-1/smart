@@ -38,5 +38,4 @@
         WHERE ucl.user_id = #{teacherId} AND ucl.type = 2
     </select>
 
-
 </mapper>

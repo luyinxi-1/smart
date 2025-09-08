@@ -1,5 +1,6 @@
 package com.upc.modular.datastatistics.service;
 
+import com.upc.modular.datastatistics.controller.param.ChapterQuestionCorrectRateParam;
 import com.upc.modular.datastatistics.controller.param.TextbookDataStatisticsParam;
 import com.upc.modular.datastatistics.controller.param.TextbookTimeStatisticsReturnParam;
 import com.upc.modular.datastatistics.controller.param.TextbookTimeStatisticsSearchParam;
@@ -31,4 +32,11 @@ public interface ITeacherTextbookStatisticsService {
      * @return 时间统计结果
      */
     List<TextbookTimeStatisticsReturnParam> getReadingDurationStatisticsByTime(TextbookTimeStatisticsSearchParam param);
+
+    /**
+     * 获取各章节习题正确率统计
+     * @param textbookId 教材ID
+     * @return 各章节习题正确率统计
+     */
+    List<ChapterQuestionCorrectRateParam> getChapterQuestionCorrectRateStatistics(Long textbookId);
 } 

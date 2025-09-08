@@ -2,120 +2,154 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.upc.modular.datastatistics.mapper.TeacherTextbookStatisticsMapper">
 
+    <!-- 各章节习题正确率统计 - 按照您的思路实现（总得分/总满分） -->
+    <select id="getChapterQuestionCorrectRateStatistics" 
+            resultType="com.upc.modular.datastatistics.controller.param.ChapterQuestionCorrectRateParam">
+        SELECT 
+            tc.id as chapterId,
+            tc.catalog_name as chapterName,
+            tc.catalog_level as chapterLevel,
+            tc.father_catalog_id as parentChapterId,
+            COALESCE(stat.questionBankCount, 0) as questionBankCount,
+            COALESCE(stat.totalAnswerCount, 0) as totalAnswerCount,
+            COALESCE(stat.correctAnswerCount, 0) as correctAnswerCount,
+            CASE 
+                WHEN COALESCE(stat.totalAnswerCount, 0) = 0 THEN 0.0
+                ELSE ROUND(COALESCE(stat.correctAnswerCount, 0) * 100.0 / stat.totalAnswerCount, 2)
+            END as correctRate
+        FROM textbook_catalog tc
+        LEFT JOIN (
+            -- 按照您的思路：先查题库，再查总分，再计算正确率
+            SELECT 
+                tqb.textbook_catalog_id,
+                COUNT(DISTINCT tqb.id) as questionBankCount,
+                COUNT(sfg.id) as totalAnswerCount,
+                -- 计算正确率：总得分 / 总满分 * 100
+                CASE 
+                    WHEN SUM(qbl.total_score) > 0 THEN 
+                        ROUND((SUM(sfg.final_score) / SUM(qbl.total_score)) * 100, 2)
+                    ELSE 0
+                END as correctRate,
+                -- 统计正确作答次数（正确率 >= 60% 视为正确）
+                SUM(CASE 
+                    WHEN qbl.total_score > 0 AND (sfg.final_score / qbl.total_score) >= 0.6 THEN 1 
+                    ELSE 0 
+                END) as correctAnswerCount
+            FROM teaching_question_bank tqb
+            -- 步骤1：查出教材对应的所有题库
+            LEFT JOIN (
+                -- 步骤2：统计每个题库的总分
+                SELECT 
+                    bank_id,
+                    SUM(score) as total_score
+                FROM questions_banks_list
+                GROUP BY bank_id
+            ) qbl ON tqb.id = qbl.bank_id
+            -- 步骤3：联查学生最终成绩表
+            LEFT JOIN student_final_grade sfg ON tqb.id = sfg.bank_id
+            WHERE tqb.textbook_id = #{textbookId} 
+                AND tqb.status = 1
+            GROUP BY tqb.textbook_catalog_id
+        ) stat ON tc.id = stat.textbook_catalog_id
+        WHERE tc.textbook_id = #{textbookId}
+        ORDER BY tc.catalog_level, tc.sort
+    </select>
+
     <!-- 按时间统计交流反馈新增数量 -->
-    <select id="getCommunicationFeedbackStatisticsByTime" resultType="com.upc.modular.datastatistics.controller.param.TextbookTimeStatisticsReturnParam">
+    <select id="getCommunicationFeedbackStatisticsByTime" 
+            resultType="com.upc.modular.datastatistics.controller.param.TextbookTimeStatisticsReturnParam">
         <choose>
             <when test="queryMethod == 1">
-                <!-- 按年统计 -->
+                <!-- 按日统计 -->
                 SELECT 
-                    TO_CHAR(dtr.add_datetime, 'YYYY') as time,
-                    COUNT(*) as count,
-                    NULL as duration
+                    DATE_FORMAT(dtr.add_datetime, '%Y-%m-%d') as timeLabel,
+                    COUNT(*) as value
                 FROM discussion_topic_reply dtr
                 INNER JOIN discussion_topic dt ON dtr.topic_id = dt.id
                 WHERE dt.textbook_id = #{textbookId}
-                <if test="startTime != null and startTime != ''">
-                    AND dtr.add_datetime >= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
-                </if>
-                <if test="endTime != null and endTime != ''">
-                    AND dtr.add_datetime &lt;= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
-                </if>
-                GROUP BY TO_CHAR(dtr.add_datetime, 'YYYY')
-                ORDER BY time
+                    <if test="startTime != null and startTime != '' and endTime != null and endTime != ''">
+                        AND dtr.add_datetime BETWEEN #{startTime} AND #{endTime}
+                    </if>
+                GROUP BY DATE_FORMAT(dtr.add_datetime, '%Y-%m-%d')
+                ORDER BY timeLabel
             </when>
             <when test="queryMethod == 2">
                 <!-- 按月统计 -->
                 SELECT 
-                    TO_CHAR(dtr.add_datetime, 'YYYY-MM') as time,
-                    COUNT(*) as count,
-                    NULL as duration
+                    DATE_FORMAT(dtr.add_datetime, '%Y-%m') as timeLabel,
+                    COUNT(*) as value
                 FROM discussion_topic_reply dtr
                 INNER JOIN discussion_topic dt ON dtr.topic_id = dt.id
                 WHERE dt.textbook_id = #{textbookId}
-                <if test="startTime != null and startTime != ''">
-                    AND dtr.add_datetime >= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
-                </if>
-                <if test="endTime != null and endTime != ''">
-                    AND dtr.add_datetime &lt;= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
-                </if>
-                GROUP BY TO_CHAR(dtr.add_datetime, 'YYYY-MM')
-                ORDER BY time
+                    <if test="startTime != null and startTime != '' and endTime != null and endTime != ''">
+                        AND dtr.add_datetime BETWEEN #{startTime} AND #{endTime}
+                    </if>
+                GROUP BY DATE_FORMAT(dtr.add_datetime, '%Y-%m')
+                ORDER BY timeLabel
             </when>
-            <when test="queryMethod == 3">
-                <!-- 按日统计 -->
+            <otherwise>
+                <!-- 按年统计 -->
                 SELECT 
-                    TO_CHAR(dtr.add_datetime, 'YYYY-MM-DD') as time,
-                    COUNT(*) as count,
-                    NULL as duration
+                    DATE_FORMAT(dtr.add_datetime, '%Y') as timeLabel,
+                    COUNT(*) as value
                 FROM discussion_topic_reply dtr
                 INNER JOIN discussion_topic dt ON dtr.topic_id = dt.id
                 WHERE dt.textbook_id = #{textbookId}
-                <if test="startTime != null and startTime != ''">
-                    AND dtr.add_datetime >= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
-                </if>
-                <if test="endTime != null and endTime != ''">
-                    AND dtr.add_datetime &lt;= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
-                </if>
-                GROUP BY TO_CHAR(dtr.add_datetime, 'YYYY-MM-DD')
-                ORDER BY time
-            </when>
+                    <if test="startTime != null and startTime != '' and endTime != null and endTime != ''">
+                        AND dtr.add_datetime BETWEEN #{startTime} AND #{endTime}
+                    </if>
+                GROUP BY DATE_FORMAT(dtr.add_datetime, '%Y')
+                ORDER BY timeLabel
+            </otherwise>
         </choose>
     </select>
 
-    <!-- 按时间统计阅读时长 - 基于learning_log表 -->
-    <select id="getReadingDurationStatisticsByTime" resultType="com.upc.modular.datastatistics.controller.param.TextbookTimeStatisticsReturnParam">
+    <!-- 按时间统计阅读时长 -->
+    <select id="getReadingDurationStatisticsByTime" 
+            resultType="com.upc.modular.datastatistics.controller.param.TextbookTimeStatisticsReturnParam">
         <choose>
             <when test="queryMethod == 1">
-                <!-- 按年统计 -->
+                <!-- 按日统计 -->
                 SELECT 
-                    TO_CHAR(ll.add_datetime, 'YYYY') as time,
-                    COUNT(DISTINCT ll.user_id) as count,
-                    COALESCE(COUNT(*), 0) as duration
-                FROM learning_log ll
-                WHERE ll.textbook_id = #{textbookId} AND ll.data_type = 0
-                <if test="startTime != null and startTime != ''">
-                    AND ll.add_datetime >= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
-                </if>
-                <if test="endTime != null and endTime != ''">
-                    AND ll.add_datetime &lt;= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
-                </if>
-                GROUP BY TO_CHAR(ll.add_datetime, 'YYYY')
-                ORDER BY time
+                    DATE_FORMAT(add_datetime, '%Y-%m-%d') as timeLabel,
+                    COUNT(*) as value
+                FROM learning_log
+                WHERE textbook_id = #{textbookId}
+                    AND data_type = 0
+                    <if test="startTime != null and startTime != '' and endTime != null and endTime != ''">
+                        AND add_datetime BETWEEN #{startTime} AND #{endTime}
+                    </if>
+                GROUP BY DATE_FORMAT(add_datetime, '%Y-%m-%d')
+                ORDER BY timeLabel
             </when>
             <when test="queryMethod == 2">
                 <!-- 按月统计 -->
                 SELECT 
-                    TO_CHAR(ll.add_datetime, 'YYYY-MM') as time,
-                    COUNT(DISTINCT ll.user_id) as count,
-                    COALESCE(COUNT(*), 0) as duration
-                FROM learning_log ll
-                WHERE ll.textbook_id = #{textbookId} AND ll.data_type = 0
-                <if test="startTime != null and startTime != ''">
-                    AND ll.add_datetime >= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
-                </if>
-                <if test="endTime != null and endTime != ''">
-                    AND ll.add_datetime &lt;= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
-                </if>
-                GROUP BY TO_CHAR(ll.add_datetime, 'YYYY-MM')
-                ORDER BY time
+                    DATE_FORMAT(add_datetime, '%Y-%m') as timeLabel,
+                    COUNT(*) as value
+                FROM learning_log
+                WHERE textbook_id = #{textbookId}
+                    AND data_type = 0
+                    <if test="startTime != null and startTime != '' and endTime != null and endTime != ''">
+                        AND add_datetime BETWEEN #{startTime} AND #{endTime}
+                    </if>
+                GROUP BY DATE_FORMAT(add_datetime, '%Y-%m')
+                ORDER BY timeLabel
             </when>
-            <when test="queryMethod == 3">
-                <!-- 按日统计 -->
+            <otherwise>
+                <!-- 按年统计 -->
                 SELECT 
-                    TO_CHAR(ll.add_datetime, 'YYYY-MM-DD') as time,
-                    COUNT(DISTINCT ll.user_id) as count,
-                    COALESCE(COUNT(*), 0) as duration
-                FROM learning_log ll
-                WHERE ll.textbook_id = #{textbookId} AND ll.data_type = 0
-                <if test="startTime != null and startTime != ''">
-                    AND ll.add_datetime >= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
-                </if>
-                <if test="endTime != null and endTime != ''">
-                    AND ll.add_datetime &lt;= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
-                </if>
-                GROUP BY TO_CHAR(ll.add_datetime, 'YYYY-MM-DD')
-                ORDER BY time
-            </when>
+                    DATE_FORMAT(add_datetime, '%Y') as timeLabel,
+                    COUNT(*) as value
+                FROM learning_log
+                WHERE textbook_id = #{textbookId}
+                    AND data_type = 0
+                    <if test="startTime != null and startTime != '' and endTime != null and endTime != ''">
+                        AND add_datetime BETWEEN #{startTime} AND #{endTime}
+                    </if>
+                GROUP BY DATE_FORMAT(add_datetime, '%Y')
+                ORDER BY timeLabel
+            </otherwise>
         </choose>
     </select>
 
