@@ -298,7 +298,11 @@ public Page<TeachingQuestionBankPageReturnParam> selectQuestionPage(TeachingQues
 
     @Override
     public List<QuestionBankWithStatusVO> getQuestionBanksWithStatusForTextbook(QuestionBankWithStatusSearchParam param) {
-        List<QuestionBankWithStatusVO> resultList = teachingQuestionBankMapper.selectQuestionBanksWithPendingStatus(param);
+        List<QuestionBankWithStatusVO> resultList = teachingQuestionBankMapper.selectQuestionBanksWithPendingStatus(
+                param.getTextbookId(),
+                param.getTextbookCatalogId(),
+                param.getTeachingQuestionBankName()
+        );
 
         if (resultList != null && !resultList.isEmpty()) {
             for (QuestionBankWithStatusVO vo : resultList) {
