@@ -19,13 +19,32 @@
         ORDER BY date
     </select>
 
-
     <!-- 今日总学习时长 -->
     <select id="getTodayStudyDuration" resultType="long">
-        SELECT COALESCE(SUM(duration_minutes), 0)
-        FROM student_reading_log
-        WHERE add_datetime >= CURRENT_DATE AND add_datetime &lt; CURRENT_DATE + INTERVAL '1 day'
+        WITH time_diffs AS (
+            SELECT
+                add_datetime,
+                LAG(add_datetime) OVER (ORDER BY add_datetime) AS prev_datetime
+            FROM learning_log
+            WHERE add_datetime >= EXTRACT(EPOCH FROM CURRENT_DATE)::BIGINT
+            AND add_datetime &lt; EXTRACT(EPOCH FROM (CURRENT_DATE + INTERVAL '1 day'))::BIGINT
+            ),
+            valid_sessions AS (
+        SELECT
+            add_datetime,
+            ABS(add_datetime - prev_datetime) AS diff_seconds
+        FROM time_diffs
+        WHERE prev_datetime IS NOT NULL
+            )
+        SELECT COALESCE(COUNT(*), 0)
+        FROM valid_sessions
+        WHERE diff_seconds BETWEEN 55 AND 65
     </select>
+
+
+
+
+
 
     <!-- 按时间统计总学习时长 -->
     <select id="getStudyDurationByTime" parameterType="map" resultType="map">

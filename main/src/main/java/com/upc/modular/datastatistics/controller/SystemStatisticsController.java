@@ -68,13 +68,7 @@ public class SystemStatisticsController {
         }
     }
 
-/*    @ApiOperation("获取今日活跃人数")
-    @GetMapping("/today-active-users")
-    public R<Integer> getTodayActiveUsers() {
-        // TODO: 实现今日活跃人数统计逻辑
-        return R.ok();
-    }*/
-// 今日活跃人数
+/*// 今日活跃人数
 @ApiOperation("今日活跃人数")
 @PostMapping("/todayActiveUserCount")
 public R<Long> getTodayActiveUserCount() {
@@ -96,7 +90,7 @@ public R<Long> getTodayActiveUserCount() {
             e.printStackTrace();
             return R.fail("按时间统计活跃人数失败: " + e.getMessage());
         }
-    }
+    }*/
 
 
     @ApiOperation("学生数量统计")
