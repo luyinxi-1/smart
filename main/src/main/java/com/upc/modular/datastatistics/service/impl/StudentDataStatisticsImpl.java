@@ -5,10 +5,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.utils.UserUtils;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.mapper.SysUserMapper;
-import com.upc.modular.datastatistics.controller.param.StudentReadingTimeByMonthReturnParam;
-import com.upc.modular.datastatistics.controller.param.StudentStudyPathReturnParam;
-import com.upc.modular.datastatistics.controller.param.StudentTextbookCompletionReturnParam;
-import com.upc.modular.datastatistics.controller.param.StudentTextbookReadingTimeTopParam;
+import com.upc.modular.datastatistics.controller.param.*;
+import org.apache.commons.math3.stat.descriptive.moment.Variance;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 import com.upc.modular.datastatistics.mapper.StudentDataStatisticsMapper;
 import com.upc.modular.datastatistics.service.IStudentDataStatistics;
@@ -373,6 +371,82 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         List<StudentTextbookReadingTimeTopParam> readingTimeTopList = calculateTextbookReadingTimeTop(userId);
         returnParam.setStudentTextbookReadingTimeTop(readingTimeTopList);
         return returnParam;
+    }
+
+    @Override
+    public StudentBehaviorReturnParam analyzeStudentBehavior(String startTime, String endTime) {
+        Long userId = UserUtils.get().getId();
+        StudentBehaviorReturnParam result = new StudentBehaviorReturnParam();
+        // 1. 分析阅读时长分布
+        List<Map<String, Object>> readingData = studentDataStatisticsMapper.groupReadingTimeByDay(userId, startTime, endTime);
+        double readingVariance = calculateVariance(readingData);
+
+        // 2. 分析笔记数量分布
+        List<Map<String, Object>> noteData = studentDataStatisticsMapper.groupNotesByDay(userId, startTime, endTime);
+        double noteVariance = calculateVariance(noteData);
+
+        // 3. 分析答题次数分布
+        List<Map<String, Object>> questionData = studentDataStatisticsMapper.groupQuestionsByDay(userId, startTime, endTime);
+        double questionVariance = calculateVariance(questionData);
+
+        // 4. 综合分析
+        double averageVariance = (readingVariance + noteVariance + questionVariance) / 3.0;
+        double score;
+        if (averageVariance == 0) {
+            score = 100; // 方差为0时得满分
+        } else {
+            // 使用指数衰减函数，可以根据需要调整衰减系数0.1
+            score = 100 * Math.exp(-0.1 * averageVariance);
+
+            // 确保分数在0-100范围内
+            score = Math.max(0, Math.min(100, score));
+        }
+
+        result.setHabitType(getBehaviorType(averageVariance));
+        result.setRegularityScore(score);
+        return result;
+    }
+
+    /**
+     * 计算给定数据集的方差
+     * @param data List of maps, each map contains 'count'
+     * @return a double value of variance
+     */
+    private double calculateVariance(List<Map<String, Object>> data) {
+        if (data == null || data.isEmpty()) {
+            return 0.0;
+        }
+
+        double[] values = data.stream()
+                .map(d -> ((Number) d.get("count")).doubleValue())
+                .mapToDouble(Double::doubleValue)
+                .toArray();
+
+        if (values.length <= 1) {
+            return 0.0; // 单个数据点或没有数据，方差为0
+        }
+
+        Variance variance = new Variance();
+        return variance.evaluate(values);
+    }
+
+    /**
+     * 根据方差值判断学习行为类型
+     * @param variance 方差
+     * @return 行为类型描述
+     */
+    private String getBehaviorType(double variance) {
+        // 这些阈值是示例，需要根据实际业务数据进行调整以达到最佳效果
+        final double CRAMMING_THRESHOLD = 10.0; // 突击型学习的方差阈值
+        final double UNIFORM_THRESHOLD = 2.0;   // 均匀型学习的方差阈值
+
+        if (variance > CRAMMING_THRESHOLD) {
+            return "突击型学习";
+        } else if (variance <= UNIFORM_THRESHOLD) {
+            return "均匀型学习";
+        } else {
+            return "波动型学习"; // 介于两者之间
+        }
     }
 
     /**

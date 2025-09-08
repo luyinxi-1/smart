@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 import com.upc.modular.textbook.entity.LearningLog;
 import com.upc.modular.textbook.entity.Textbook;
+import org.apache.ibatis.annotations.MapKey;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -31,12 +32,12 @@ public interface StudentDataStatisticsMapper  extends BaseMapper<StudentStatisti
     @Select("SELECT COUNT(DISTINCT name) FROM teaching_question_bank WHERE operator = #{currentUserId}")
     Long countQuestionsByUserId(Long currentUserId);
 
-    @Select("SELECT * FROM learning_log WHERE user_id = #{userId} AND data_type = #{dataType} ORDER BY add_datetime ASC")
+    @Select("SELECT * FROM learning_log WHERE user_id = #{userId} ORDER BY add_datetime ASC")
     List<LearningLog> findAddDatetime(
             @Param("userId") Long currentUserId,
             @Param("dataType") int dataType);
 
-    @Select("SELECT * FROM learning_log WHERE user_id = #{userId} AND data_type = #{dataType} AND EXTRACT(YEAR FROM add_datetime) = #{year} ORDER BY add_datetime ASC")
+    @Select("SELECT * FROM learning_log WHERE user_id = #{userId} AND EXTRACT(YEAR FROM add_datetime) = #{year} ORDER BY add_datetime ASC")
     List<LearningLog> findAddDatetimeByYear(
             @Param("userId") Long currentUserId,
             @Param("dataType") int dataType,
@@ -50,6 +51,12 @@ public interface StudentDataStatisticsMapper  extends BaseMapper<StudentStatisti
     @Select("SELECT COUNT(DISTINCT textbook_id) FROM learning_log WHERE user_id = #{userId} AND EXTRACT(YEAR FROM add_datetime) = #{year}")
     Long countTextbookByUserIdAndYear(Long userId, int currentYear);
 
-    @Select("SELECT * FROM learning_log WHERE user_id = #{userId} AND data_type = #{type} AND add_datetime BETWEEN #{startTime} AND #{endTime}")
+    @Select("SELECT * FROM learning_log WHERE user_id = #{userId} AND add_datetime BETWEEN #{startTime} AND #{endTime}")
     List<LearningLog> findAddDatetimeByTime(Long userId, String startTime, String endTime, int type);
+    @MapKey("date")
+    List<Map<String, Object>> groupReadingTimeByDay(Long userId, String startTime, String endTime);
+    @MapKey("date")
+    List<Map<String, Object>> groupNotesByDay(Long userId, String startTime, String endTime);
+    @MapKey("date")
+    List<Map<String, Object>> groupQuestionsByDay(Long userId, String startTime, String endTime);
 }
