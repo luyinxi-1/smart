@@ -6,7 +6,9 @@ import com.upc.common.utils.UserUtils;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.datastatistics.controller.param.StudentReadingTimeByMonthReturnParam;
+import com.upc.modular.datastatistics.controller.param.StudentStudyPathReturnParam;
 import com.upc.modular.datastatistics.controller.param.StudentTextbookCompletionReturnParam;
+import com.upc.modular.datastatistics.controller.param.StudentTextbookReadingTimeTopParam;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 import com.upc.modular.datastatistics.mapper.StudentDataStatisticsMapper;
 import com.upc.modular.datastatistics.service.IStudentDataStatistics;
@@ -325,7 +327,12 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         return sortedStatistics;
 
     }
-
+    /**
+     * 根据时间段计算学生的教材阅读时长
+     * @param  startTime 开始时间
+     * @param  endTime   结束时间
+     * @return 学生的教材阅读总时长
+     */
     @Override
     public Long countStudentTextbookReadingTimeByTime(String startTime, String endTime) {
         Long userId = UserUtils.get().getId();
@@ -349,6 +356,95 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             }
         }
         return totalReadingTime;
+    }
+
+    /**
+     * 学生个人学习路径
+     */
+    @Override
+    public StudentStudyPathReturnParam countStudentStudyPath() {
+        Long userId = UserUtils.get().getId();
+        StudentStudyPathReturnParam returnParam = new StudentStudyPathReturnParam();
+        returnParam.setTextbookReadNum(studentDataStatisticsMapper.countTextbookByUserId(userId));
+        returnParam.setFavoriteTextbookNum(studentDataStatisticsMapper.countFavoritebookByUserId(userId));
+        returnParam.setCompletionNum(this.countStudentTextbookRead());
+        returnParam.setTextbookReadingTime(this.countStudentTextbookReadingTime());
+
+        List<StudentTextbookReadingTimeTopParam> readingTimeTopList = calculateTextbookReadingTimeTop(userId);
+        returnParam.setStudentTextbookReadingTimeTop(readingTimeTopList);
+        return returnParam;
+    }
+
+    /**
+     * 计算各教材阅读时长及占比
+     * @param userId 用户ID
+     * @return 各教材阅读时长及占比列表
+     */
+    private List<StudentTextbookReadingTimeTopParam> calculateTextbookReadingTimeTop(Long userId) {
+        // 获取学习日志记录
+        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(userId, 0);
+
+        if (records == null || records.size() < 2) {
+            return new ArrayList<>();
+        }
+
+        // 容忍范围
+        final long MIN_DIFF_SECONDS = 55;
+        final long MAX_DIFF_SECONDS = 65;
+
+        // 按教材ID分组统计阅读时间
+        Map<Long, Long> textbookReadingTimeMap = new HashMap<>();
+
+        for (int i = 0; i < records.size() - 1; i++) {
+            LearningLog currentLog = records.get(i);
+            LearningLog nextLog = records.get(i + 1);
+
+            if (currentLog.getAddDatetime() == null || nextLog.getAddDatetime() == null) {
+                continue;
+            }
+
+            // 检查是否为同一教材
+            if (!Objects.equals(currentLog.getTextbookId(), nextLog.getTextbookId())) {
+                continue;
+            }
+
+            Duration duration = Duration.between(currentLog.getAddDatetime(), nextLog.getAddDatetime());
+            long seconds = duration.getSeconds();
+
+            // 符合条件的时间间隔计为1秒阅读时间
+            if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
+                Long textbookId = currentLog.getTextbookId();
+                textbookReadingTimeMap.put(textbookId, textbookReadingTimeMap.getOrDefault(textbookId, 0L) + 1);
+            }
+        }
+
+        // 计算总阅读时间
+        long totalTime = textbookReadingTimeMap.values().stream().mapToLong(Long::longValue).sum();
+
+        // 构造返回结果
+        List<StudentTextbookReadingTimeTopParam> result = new ArrayList<>();
+        for (Map.Entry<Long, Long> entry : textbookReadingTimeMap.entrySet()) {
+            Long textbookId = entry.getKey();
+            Long readingTime = entry.getValue();
+
+            // 获取教材名称
+            Textbook textbook = studentDataStatisticsMapper.getTextbookById(textbookId);
+            String textbookName = (textbook != null) ? textbook.getTextbookName() : "未知教材";
+
+            // 计算占比
+            Long proportion = (totalTime > 0) ? Math.round((double) readingTime / totalTime * 100) : 0L;
+
+            result.add(new StudentTextbookReadingTimeTopParam()
+                    .setTextbookName(textbookName)
+                    .setReadingTime(readingTime)
+                    .setProportion(proportion));
+        }
+
+        // 按阅读时长降序排序，取前10条
+        return result.stream()
+                .sorted((a, b) -> b.getReadingTime().compareTo(a.getReadingTime()))
+                .limit(10)
+                .collect(Collectors.toList());
     }
 
     /**

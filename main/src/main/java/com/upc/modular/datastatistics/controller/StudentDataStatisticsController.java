@@ -3,6 +3,7 @@ package com.upc.modular.datastatistics.controller;
 
 import com.upc.common.responseparam.R;
 import com.upc.modular.datastatistics.controller.param.StudentReadingTimeByMonthReturnParam;
+import com.upc.modular.datastatistics.controller.param.StudentStudyPathReturnParam;
 import com.upc.modular.datastatistics.controller.param.StudentTextbookCompletionReturnParam;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 import com.upc.modular.datastatistics.service.IStudentDataStatistics;
@@ -103,7 +104,9 @@ public class StudentDataStatisticsController {
 
     @ApiOperation("统计学生学习路径")
     @GetMapping("/study-path")
-    public
+    public R<StudentStudyPathReturnParam> countStudentStudyPath(){
+        return R.ok(iStudentDataStatistics.countStudentStudyPath());
+    }
 
 
 }
