@@ -19,4 +19,5 @@ public interface ITeachingQuestionService extends IService<TeachingQuestion> {
     Void deleteCourseByIds(IdParam idParam);
 
     Page<TeachingQuestion> selectQuestionPage(TeachingQuestionPageSearchParam teachingQuestion);
+    TeachingQuestion selectQuestionById(Long id);
 }

@@ -21,46 +21,83 @@ public class SystemStatisticsController {
     private ISystemStatisticsService systemStatisticsService;
 
     @ApiOperation("获取今日访问人数")
-    @GetMapping("/today-visitors")
-    public R<Integer> getTodayVisitors() {
-        // TODO: 实现今日访问人数统计逻辑
-        return R.ok();
+    @PostMapping("/todayVisitorCount")
+    public R<Long> getTodayVisitorCount() {
+        try {
+            return R.ok(systemStatisticsService.getTodayVisitorCount());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("获取今日访问人数失败: " + e.getMessage());
+        }
     }
 
+    // 按时间统计访问人数
     @ApiOperation("按时间统计访问人数")
-    @GetMapping("/visitors-by-time")
-    public R<List<Map<String, Object>>> getVisitorsByTime(@RequestParam(required = false) Integer days) {
-        // TODO: 实现按时间统计访问人数逻辑
-        return R.ok();
+    @PostMapping("/visitorCountByTime")
+    public R<List<Map<String, Object>>> getVisitorCountByTime(@RequestParam Map<String, Object> param) {
+        try {
+            return R.ok(systemStatisticsService.getVisitorCountByTime(param));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("按时间统计访问人数失败: " + e.getMessage());
+        }
     }
 
-    @ApiOperation("获取今日总学习时长")
-    @GetMapping("/today-study-duration")
+    // 今日总学习时长
+    @ApiOperation("今日总学习时长")
+    @PostMapping("/todayStudyDuration")
     public R<Long> getTodayStudyDuration() {
-        // TODO: 实现今日总学习时长统计逻辑
-        return R.ok();
+        try {
+            return R.ok(systemStatisticsService.getTodayStudyDuration());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("获取今日总学习时长失败: " + e.getMessage());
+        }
     }
 
+
+    // 按时间统计总学习时长
     @ApiOperation("按时间统计总学习时长")
-    @GetMapping("/study-duration-by-time")
-    public R<List<Map<String, Object>>> getStudyDurationByTime(@RequestParam(required = false) Integer days) {
-        // TODO: 实现按时间统计总学习时长逻辑
-        return R.ok();
+    @PostMapping("/studyDurationByTime")
+    public R<List<Map<String, Object>>> getStudyDurationByTime(@RequestBody Map<String, Object> param) {
+        try {
+            return R.ok(systemStatisticsService.getStudyDurationByTime(param));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("按时间统计总学习时长失败: " + e.getMessage());
+        }
     }
 
-    @ApiOperation("获取今日活跃人数")
+/*    @ApiOperation("获取今日活跃人数")
     @GetMapping("/today-active-users")
     public R<Integer> getTodayActiveUsers() {
         // TODO: 实现今日活跃人数统计逻辑
         return R.ok();
+    }*/
+// 今日活跃人数
+@ApiOperation("今日活跃人数")
+@PostMapping("/todayActiveUserCount")
+public R<Long> getTodayActiveUserCount() {
+    try {
+        return R.ok(systemStatisticsService.getTodayActiveUserCount());
+    } catch (Exception e) {
+        e.printStackTrace();
+        return R.fail("获取今日活跃人数失败: " + e.getMessage());
+    }
+}
+
+    // 按时间统计活跃人数
+    @ApiOperation("按时间统计活跃人数")
+    @PostMapping("/activeUserCountByTime")
+    public R<List<Map<String, Object>>> getActiveUserCountByTime(@RequestParam Map<String, Object> param) {
+        try {
+            return R.ok(systemStatisticsService.getActiveUserCountByTime(param));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("按时间统计活跃人数失败: " + e.getMessage());
+        }
     }
 
-    @ApiOperation("按时间统计活跃人数")
-    @GetMapping("/active-users-by-time")
-    public R<List<Map<String, Object>>> getActiveUsersByTime(@RequestParam(required = false) Integer days) {
-        // TODO: 实现按时间统计活跃人数逻辑
-        return R.ok();
-    }
 
     @ApiOperation("学生数量统计")
     @GetMapping("/student-count")
@@ -124,12 +161,6 @@ public class SystemStatisticsController {
         return R.ok(systemStatisticsService.getTextbookTypeCount());
     }
 
-    /*@ApiOperation("交流反馈数量统计")
-    @GetMapping("/communication-feedback-count")
-    public R<Long> getCommunicationFeedbackCount() {
-        // TODO: 实现交流反馈数量统计逻辑
-        return R.ok(systemStatisticsService.getCommunicationFeedbackCount());
-    }*/
     @ApiOperation("交流反馈数量统计")
     @GetMapping("/communication-feedback-count")
     public R<Long> getCommunicationFeedbackCount() {

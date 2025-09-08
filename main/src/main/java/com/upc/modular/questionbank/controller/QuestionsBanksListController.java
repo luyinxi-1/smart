@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.questionbank.controller.param.QuestionsBanksListBatchParam;
 import com.upc.modular.questionbank.controller.param.QuestionsBanksListPageSearchParam;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageSearchParam;
 import com.upc.modular.questionbank.entity.QuestionsBanksList;
@@ -35,12 +36,18 @@ public class QuestionsBanksListController {
     @Autowired
     IQuestionsBanksListService questionsBanksListService;
 
-    @ApiOperation("新增题目题库关联")
+/*    @ApiOperation("新增题目题库关联")
     @PostMapping("/insertQuestionsBanksList")
     public R insertQuestionsBanksList(@RequestBody QuestionsBanksList param){
         questionsBanksListService.inserQuestionBankList(param);
         return R.commonReturn(200, "新增成功", "");
-    }
+    }*/
+@ApiOperation("新增题目题库关联")
+@PostMapping("/insertQuestionsBanksList")
+public R insertQuestionsBanksList(@RequestBody QuestionsBanksListBatchParam param){
+    questionsBanksListService.batchInsertQuestionBankList(param);
+    return R.commonReturn(200, "新增成功", "");
+}
 
     @ApiOperation("删除题目题库关联")
     @PostMapping("deleteQuestionsBanksList")
@@ -49,12 +56,18 @@ public class QuestionsBanksListController {
         return R.commonReturn(200, "删除成功", "");
     }
 
-    @ApiOperation("更新题目题库关联信息")
+/*    @ApiOperation("更新题目题库关联信息")
     @PostMapping("updateQuestionsBanksList")
     public R updateQuestionsBanksList(@RequestBody QuestionsBanksList param){
         questionsBanksListService.updateQuestionsBanksList(param);
         return R.commonReturn(200, "修改成功", "");
-    }
+    }*/
+@ApiOperation("更新题目题库关联信息")
+@PostMapping("updateQuestionsBanksList")
+public R updateQuestionsBanksList(@RequestBody QuestionsBanksListBatchParam param){
+    questionsBanksListService.batchUpdateQuestionsBanksList(param);
+    return R.commonReturn(200, "修改成功", "");
+}
 
     @ApiOperation("根据id查询单个题目题库关联信息")
     @PostMapping("selectQuestionBankList")

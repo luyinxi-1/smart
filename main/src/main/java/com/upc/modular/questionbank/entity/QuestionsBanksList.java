@@ -40,6 +40,10 @@ public class QuestionsBanksList implements Serializable {
     @TableField("bank_id")
     private Long bankId;
 
+    @ApiModelProperty("创建人")
+    @TableField("creator")
+    private Long creator;
+
     @ApiModelProperty("顺序")
     @TableField("sequence")
     private Integer sequence;

@@ -6,6 +6,7 @@ import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 /**
  * <p>
@@ -24,5 +25,7 @@ public interface TeachingQuestionMapper extends BaseMapper<TeachingQuestion> {
             Page<TeachingQuestion> page,
             @Param("param") TeachingQuestionPageSearchParam param
     );
+    TeachingQuestion selectQuestionById(@Param("id") Long id);
 }
+
 

@@ -82,4 +82,8 @@ public class TeachingQuestion implements Serializable {
     @ApiModelProperty("答案解析")
     @TableField("answer_analysis")
     private String answerAnalysis;
+
+    @ApiModelProperty("创建人名称")
+    @TableField(exist = false) // 非数据库字段
+    private String creatorName;
 }

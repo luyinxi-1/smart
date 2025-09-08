@@ -1,6 +1,6 @@
 package com.upc.modular.questionbank.controller;
 
-
+import com.upc.modular.auth.entity.SysTbuser;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
@@ -9,15 +9,12 @@ import com.upc.modular.course.entity.Course;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchParam;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.upc.modular.questionbank.service.ITeachingQuestionService;
+import com.upc.modular.questionbank.controller.param.TeachingQuestionWithCreatorDto;
 import com.upc.modular.teacher.service.ITeacherService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * <p>
@@ -33,6 +30,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class TeachingQuestionController {
     @Autowired
     ITeachingQuestionService teachingQuestionService;
+    @Autowired
+    private com.upc.modular.auth.mapper.SysUserMapper sysUserMapper;
 
     @ApiOperation("新增题目")
     @PostMapping("/inserQuestion")
@@ -55,12 +54,20 @@ public class TeachingQuestionController {
         return R.commonReturn(200, "修改成功", "");
     }
 
-    @ApiOperation("根据id查询单个题目信息")
+
+/*    @ApiOperation("根据id查询单个题目信息")
     @PostMapping("selectQuestion")
     public R<TeachingQuestion> selectQuestion(@RequestBody TeachingQuestion teachingQuestion){
         TeachingQuestion result = teachingQuestionService.getById(teachingQuestion);
         return R.ok(result);
-    }
+    }*/
+@ApiOperation("根据id查询单个题目信息（含creatorName）")
+@GetMapping("/selectQuestionById")
+public R<TeachingQuestion> selectQuestionById(@RequestParam Long id) {
+    TeachingQuestion result = teachingQuestionService.selectQuestionById(id);
+    return R.ok(result);
+}
+
 
     @ApiOperation("分页查询题目信息")
     @PostMapping("selectQuestionPage")
