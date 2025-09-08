@@ -16,7 +16,7 @@ public class QuestionsBanksListPageSearchParam extends PageBaseSearchParam {
     private Long bankId;
 
     @ApiModelProperty("顺序")
-    private Integer order;
+    private Integer sequence;
 
     @ApiModelProperty("每道题目分值")
     private Double score;

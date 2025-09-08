@@ -4,6 +4,7 @@ import com.alibaba.excel.util.CollectionUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.common.utils.UserUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
@@ -338,8 +339,8 @@ public Page<TeachingQuestionBankPageReturnParam> selectQuestionPage(TeachingQues
     @Override
     public Page<PendingReviewReturnVO> selectPendingReviewPage(PendingReviewSearchParam param) {
         Page<PendingReviewReturnVO> page = new Page<>(param.getCurrent(), param.getSize());
-//        Long currentTeacherUserId = UserUtils.get().getId();
-        Long currentTeacherUserId = 16L;
+        Long currentTeacherUserId = UserUtils.get().getId();
+//        Long currentTeacherUserId = 16L;
         Long teacherId = teacherMapper.selectOne(
                 new LambdaQueryWrapper<Teacher>()
                         .eq(Teacher::getUserId,currentTeacherUserId)
