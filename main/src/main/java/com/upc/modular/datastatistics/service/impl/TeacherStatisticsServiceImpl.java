@@ -5,6 +5,8 @@ import com.upc.modular.datastatistics.controller.param.TeacherStatisticsReturnPa
 import com.upc.modular.datastatistics.entity.TeacherStatistics;
 import com.upc.modular.datastatistics.mapper.TeacherStatisticsMapper;
 import com.upc.modular.datastatistics.service.ITeacherStatisticsService;
+import com.upc.modular.teacher.service.ITeacherService;
+import com.upc.modular.teacher.vo.TeacherReturnVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,10 +22,24 @@ public class TeacherStatisticsServiceImpl extends ServiceImpl<TeacherStatisticsM
     @Autowired
     private TeacherStatisticsMapper teacherStatisticsMapper;
 
+    @Autowired
+    private ITeacherService teacherService;  // 注入教师服务
+
     @Override
     public TeacherStatisticsReturnParam getTeacherPersonalStatistics(Long teacherId) {
         TeacherStatisticsReturnParam result = new TeacherStatisticsReturnParam();
         result.setTeacherId(teacherId);
+
+        // 获取教师姓名
+        try {
+            TeacherReturnVo teacherInfo = teacherService.getInformationByTeacherId(teacherId);
+            if (teacherInfo != null) {
+                result.setTeacherName(teacherInfo.getName());
+            }
+        } catch (Exception e) {
+            // 如果获取教师信息失败，可以记录日志或设置默认值
+            result.setTeacherName("未知教师");
+        }
 
         // 统计各项数据
         result.setClassCount(countTeacherClasses(teacherId));

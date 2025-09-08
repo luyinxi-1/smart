@@ -40,9 +40,9 @@ public class DiscussionTopicController {
 
     @ApiOperation(value = "新增教学活动讨论话题")
     @PostMapping("/insertDiscussionTopic")
-    public R insertDiscussionTopic(@RequestBody DiscussionTopic discussionTopic) {
-        discussionTopicService.insertDiscussionTopic(discussionTopic);
-        return R.commonReturn(200, "新增成功", "");
+    public R<Long> insertDiscussionTopic(@RequestBody DiscussionTopic discussionTopic) {
+        Long id = discussionTopicService.insertDiscussionTopic(discussionTopic);
+        return R.ok(id);
     }
 
     @ApiOperation(value = "查询教学活动讨论话题信息")
