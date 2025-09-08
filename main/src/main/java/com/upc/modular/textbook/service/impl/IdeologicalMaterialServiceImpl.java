@@ -2,12 +2,14 @@ package com.upc.modular.textbook.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.textbook.entity.IdeologicalMaterial;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.IdeologicalMaterialMapper;
+import com.upc.modular.textbook.param.IdeologicalMaterialInsertAndUpdateParam;
 import com.upc.modular.textbook.param.IdeologicalMaterialSearchParam;
 import com.upc.modular.textbook.service.IIdeologicalMaterialService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -16,10 +18,17 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.net.InetAddress;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static com.upc.utils.Base64Decode.GenerateImage;
 
 /**
  * <p>
@@ -44,19 +53,28 @@ public class IdeologicalMaterialServiceImpl extends ServiceImpl<IdeologicalMater
     }
 
     @Override
-    public void insertIdeologicalMaterial(IdeologicalMaterial ideologicalMaterial) {
-        if (ideologicalMaterial == null) {
+    public Long insertIdeologicalMaterial(IdeologicalMaterialInsertAndUpdateParam param) {
+        if (param == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
-        this.save(ideologicalMaterial);
+        if (ObjectUtils.isNotEmpty(param.getContent())) {
+            param.setContent(replaceBase64PicToUrl(param.getContent(), param.getAddressPrefix()));
+        }
+        this.save(param);
+        return param.getId();
     }
 
     @Override
-    public void updateIdeologicalMaterialById(IdeologicalMaterial ideologicalMaterial) {
-        if (ideologicalMaterial == null || ideologicalMaterial.getId() == null) {
+    public void updateIdeologicalMaterialById(IdeologicalMaterialInsertAndUpdateParam param) {
+        if (param == null || param.getId() == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
-        this.updateById(ideologicalMaterial);
+        String processedContent = param.getContent();
+        if (processedContent.contains("data:image")) {
+            processedContent = replaceBase64PicToUrl(processedContent, param.getAddressPrefix());
+        }
+        param.setContent(processedContent);
+        this.updateById(param);
     }
 
     @Override
@@ -93,5 +111,32 @@ public class IdeologicalMaterialServiceImpl extends ServiceImpl<IdeologicalMater
         List<IdeologicalMaterial> resultIdeologicalMaterials = wrappedList.stream().map(Pair::getLeft).collect(Collectors.toList());
 
         return resultIdeologicalMaterials;
+    }
+
+    private String replaceBase64PicToUrl(String content, String addressPrefix) {
+        // 获取当前日期
+        LocalDate currentDate = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        String dateString = currentDate.format(formatter);
+
+        String path = "/upload/public/picture/" +  dateString + "/";
+        String ip = "";
+        try {
+            ip = InetAddress.getLocalHost().getHostAddress();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        String input = "src=\\s*\"?(.*?)(\"|>|\\s+)";
+        Pattern p = Pattern.compile(input);
+        Matcher matcher = p.matcher(content);
+        while (matcher.find()) {
+            String ret = matcher.group(1);
+            if (ret.contains("data:")) {
+                String filename = System.currentTimeMillis() + (int) (1 + Math.random() * 1000) + "." + ret.substring(ret.indexOf("/") + 1, ret.indexOf(";"));
+                GenerateImage(ret.substring(ret.indexOf(",")), path + filename);
+                content = content.replace(ret, addressPrefix + "/upload/public/picture/"  + dateString + "/" + filename);
+            }
+        }
+        return content;
     }
 }

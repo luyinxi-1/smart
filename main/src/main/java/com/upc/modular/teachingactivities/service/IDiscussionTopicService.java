@@ -18,7 +18,7 @@ public interface IDiscussionTopicService extends IService<DiscussionTopic> {
 
     void deleteDiscussionTopicByIds(List<Long> ids);
 
-    void insertDiscussionTopic(DiscussionTopic discussionTopic);
+    Long insertDiscussionTopic(DiscussionTopic discussionTopic);
 
     void updateDiscussionTopicById(DiscussionTopic discussionTopic);
 

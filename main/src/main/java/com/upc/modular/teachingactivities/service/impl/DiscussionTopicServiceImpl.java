@@ -55,7 +55,7 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
     }
 
     @Override
-    public void insertDiscussionTopic(DiscussionTopic discussionTopic) {
+    public Long insertDiscussionTopic(DiscussionTopic discussionTopic) {
         if (discussionTopic == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
@@ -63,6 +63,8 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "标题或内容不能为空");
         }
         this.save(discussionTopic);
+
+        return discussionTopic.getId();
     }
 
     @Override
