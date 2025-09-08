@@ -33,11 +33,12 @@ public class TeacherAnnotationServiceImpl extends ServiceImpl<TeacherAnnotationM
     public Long insertTeacherAnnotation(TeacherAnnotation param) {
         if (ObjectUtils.isEmpty(param) || ObjectUtils.isEmpty(param.getContent()) || ObjectUtils.isEmpty(param.getTextbookId()) || ObjectUtils.isEmpty(param.getCatalogueId()))
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参不能为空");
-        Long userId = UserUtils.get().getId();
-        Teacher teacher = teacherService.getOne(new LambdaQueryWrapper<Teacher>().eq(Teacher::getUserId, userId));
-        if (ObjectUtils.isEmpty(teacher))
-            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR,"，教师不存在");
-        param.setTeacherId(teacher.getId());
+        // 前端要求：请求参数不需要教师id，后续也不用校验权限，因为目前教学活动思政这些都没有限制非本人不能修改
+//        Long userId = UserUtils.get().getId();
+//        Teacher teacher = teacherService.getOne(new LambdaQueryWrapper<Teacher>().eq(Teacher::getUserId, userId));
+//        if (ObjectUtils.isEmpty(teacher))
+//            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR,"，教师不存在");
+//        param.setTeacherId(teacher.getId());
         param.setId(null);
         if (this.save(param))
             return param.getId();
@@ -49,7 +50,11 @@ public class TeacherAnnotationServiceImpl extends ServiceImpl<TeacherAnnotationM
         TeacherAnnotation teacherAnnotation = this.getById(id);
         TeacherAnnotationReturnParam returnParam = new TeacherAnnotationReturnParam();
         BeanUtils.copyProperties(teacherAnnotation, returnParam);
-        returnParam.setTeacherName(teacherService.getById(teacherAnnotation.getTeacherId()).getName());
+        if (ObjectUtils.isNotEmpty(teacherAnnotation.getTeacherId())) {
+            Teacher teacher = teacherService.getById(teacherAnnotation.getTeacherId());
+            if (ObjectUtils.isNotEmpty(teacher) && ObjectUtils.isNotEmpty(teacher.getName()))
+                returnParam.setTeacherName(teacher.getName());
+        }
 
         return returnParam;
     }

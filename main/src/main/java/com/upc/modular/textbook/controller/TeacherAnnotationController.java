@@ -39,4 +39,18 @@ public class TeacherAnnotationController {
         return R.ok(teacherAnnotation);
     }
 
+    @ApiOperation(value = "删除教师批注")
+    @PostMapping("/delete-teacher-annotation")
+    public R<Boolean> deleteTeacherAnnotation(@RequestParam Long id) {
+        boolean result = teacherAnnotationService.removeById(id);
+        return R.ok(result);
+    }
+
+    @ApiOperation(value = "修改教师批注")
+    @PostMapping("/update-teacher-annotation")
+    public R<Boolean> updateTeacherAnnotation(@RequestBody TeacherAnnotation teacherAnnotation) {
+        boolean result = teacherAnnotationService.updateById(teacherAnnotation);
+        return R.ok(result);
+    }
+
 }
