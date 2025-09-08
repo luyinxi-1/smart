@@ -101,6 +101,9 @@ public class StudentDataStatisticsController {
         return R.ok(iStudentDataStatistics.countStudentTextbookCompetion());
     }
 
+    @ApiOperation("统计学生学习路径")
+    @GetMapping("/study-path")
+    public
 
 
 }
