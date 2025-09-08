@@ -2,7 +2,9 @@ package com.upc.modular.datastatistics.controller;
 
 
 import com.upc.common.responseparam.R;
+import com.upc.modular.datastatistics.controller.param.StudentBehaviorReturnParam;
 import com.upc.modular.datastatistics.controller.param.StudentReadingTimeByMonthReturnParam;
+import com.upc.modular.datastatistics.controller.param.StudentStudyPathReturnParam;
 import com.upc.modular.datastatistics.controller.param.StudentTextbookCompletionReturnParam;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 import com.upc.modular.datastatistics.service.IStudentDataStatistics;
@@ -99,6 +101,21 @@ public class StudentDataStatisticsController {
     @GetMapping("/textbook-completion")
     public R<List<StudentTextbookCompletionReturnParam>> countStudentTextbookCompletion(){
         return R.ok(iStudentDataStatistics.countStudentTextbookCompetion());
+    }
+
+    @ApiOperation("统计学生学习路径")
+    @GetMapping("/study-path")
+    public R<StudentStudyPathReturnParam> countStudentStudyPath(){
+        return R.ok(iStudentDataStatistics.countStudentStudyPath());
+    }
+
+    @ApiOperation("学习行为分析")
+    @GetMapping("/study-behavior")
+    public R<StudentBehaviorReturnParam> countStudentBehavior(
+            @RequestParam String startTime,
+            @RequestParam String endTime
+    ){
+        return R.ok(iStudentDataStatistics.analyzeStudentBehavior(startTime,endTime));
     }
 
 

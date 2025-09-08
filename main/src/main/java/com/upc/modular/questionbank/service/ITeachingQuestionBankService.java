@@ -37,4 +37,6 @@ public interface ITeachingQuestionBankService extends IService<TeachingQuestionB
     Page<PendingReviewReturnVO> selectPendingReviewPage(PendingReviewSearchParam param);
 
     void gradeSubjectiveQuestion(GradeSubjectiveRequest request);
+
+    TeachingQuestionBankWithCreatorReturnParam getQuestionBankWithCreator(Long id);
 }

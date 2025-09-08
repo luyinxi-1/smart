@@ -20,7 +20,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
+import com.upc.modular.questionbank.controller.param.TeachingQuestionBankWithCreatorReturnParam;
 import java.util.List;
 
 /**
@@ -61,12 +61,20 @@ public class TeachingQuestionBankController {
         return R.commonReturn(200, "修改成功", "");
     }
 
-    @ApiOperation("根据id查询单个题库信息")
+ /*   @ApiOperation("根据id查询单个题库信息")
     @PostMapping("selectQuestionBank")
     public R<TeachingQuestionBank> selectQuestionBank(@RequestBody TeachingQuestionBank teachingQuestionbank){
         TeachingQuestionBank result = teachingQuestionBankService.getById(teachingQuestionbank);
         return R.ok(result);
+    }*/
+
+    @ApiOperation("根据id查询单个题库信息")
+    @PostMapping("selectQuestionBank")
+    public R<TeachingQuestionBankWithCreatorReturnParam> selectQuestionBank(@RequestBody TeachingQuestionBank teachingQuestionbank){
+        TeachingQuestionBankWithCreatorReturnParam result = teachingQuestionBankService.getQuestionBankWithCreator(teachingQuestionbank.getId());
+        return R.ok(result);
     }
+
 
     @ApiOperation("分页查询所有题库信息")
     @PostMapping("selectQuestionBankPage")

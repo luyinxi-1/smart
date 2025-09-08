@@ -8,12 +8,6 @@ import java.util.Map;
 @Mapper
 public interface SystemDataStatisticsMapper {
 
-    // 教材阅读排名
-    List<Map<String, Object>> getTextbookReadingRank();
-
-    // 类型阅读排名
-    List<Map<String, Object>> getTextbookTypeReadingRank();
-
     // 今日访问人数
     Long getTodayVisitorCount();
 
@@ -26,11 +20,11 @@ public interface SystemDataStatisticsMapper {
     // 按时间统计总学习时长
     List<Map<String, Object>> getStudyDurationByTime(Map<String, Object> param);
 
-    // 今日活跃人数
+   /* // 今日活跃人数
     Long getTodayActiveUserCount();
 
     // 按时间统计活跃人数
-    List<Map<String, Object>> getActiveUserCountByTime(Map<String, Object> param);
+    List<Map<String, Object>> getActiveUserCountByTime(Map<String, Object> param);*/
 
     // 学生数量统计
     Long getStudentCount();

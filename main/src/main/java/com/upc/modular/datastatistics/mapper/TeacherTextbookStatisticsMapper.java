@@ -1,5 +1,6 @@
 package com.upc.modular.datastatistics.mapper;
 
+import com.upc.modular.datastatistics.controller.param.ChapterQuestionCorrectRateParam;
 import com.upc.modular.datastatistics.controller.param.TextbookTimeStatisticsReturnParam;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -53,6 +54,29 @@ public interface TeacherTextbookStatisticsMapper {
     Long countIdeologicalMaterialsByTextbookId(@Param("textbookId") Long textbookId);
 
     /**
+     * 统计教材答题正确率（百分比形式）
+     * 按照您的思路：总得分 / 总满分 * 100
+     */
+    @Select("SELECT " +
+            "    CASE " +
+            "        WHEN SUM(qbl.total_score) > 0 THEN " +
+            "            ROUND((SUM(sfg.final_score) / SUM(qbl.total_score)) * 100, 2) " +
+            "        ELSE 0 " +
+            "    END as avg_correct_rate " +
+            "FROM teaching_question_bank tqb " +
+            "INNER JOIN ( " +
+            "    SELECT " +
+            "        bank_id, " +
+            "        SUM(score) as total_score " +
+            "    FROM questions_banks_list " +
+            "    GROUP BY bank_id " +
+            ") qbl ON tqb.id = qbl.bank_id " +
+            "INNER JOIN student_final_grade sfg ON tqb.id = sfg.bank_id " +
+            "WHERE tqb.textbook_id = #{textbookId} " +
+            "    AND tqb.status = 1")
+    Double getQuestionCorrectRateByTextbookId(@Param("textbookId") Long textbookId);
+
+    /**
      * 按时间统计交流反馈新增数量
      */
     List<TextbookTimeStatisticsReturnParam> getCommunicationFeedbackStatisticsByTime(@Param("textbookId") Long textbookId,
@@ -67,4 +91,9 @@ public interface TeacherTextbookStatisticsMapper {
                                                                                @Param("queryMethod") Integer queryMethod,
                                                                                @Param("startTime") String startTime,
                                                                                @Param("endTime") String endTime);
+
+    /**
+     * 获取各章节习题正确率统计
+     */
+    List<ChapterQuestionCorrectRateParam> getChapterQuestionCorrectRateStatistics(@Param("textbookId") Long textbookId);
 } 

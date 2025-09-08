@@ -90,16 +90,24 @@
         LEFT JOIN
         student_exercises_record ser ON tqb.id = ser.teaching_question_bank_id AND ser.status = 1
         <!-- 【新增】JOIN textbook 表用于权限校验 -->
-        JOIN
-        textbook tb ON tqb.textbook_id = tb.id
+--         JOIN
+--         textbook tb ON tqb.textbook_id = tb.id
+<!--        WHERE-->
+<!--        tqb.textbook_id = #{param.textbookId,jdbcType=BIGINT}-->
+<!--&#45;&#45;         AND tb.textbook_author_id = #{param.teacherId}-->
+<!--        <if test="param.textbookCatalogId != null">-->
+<!--            AND tqb.textbook_catalog_id = #{param.textbookCatalogId,jdbcType=BIGINT}-->
+<!--        </if>-->
+<!--        <if test="param.teachingQuestionBankName != null and param.teachingQuestionBankName != ''">-->
+<!--             AND tqb.name LIKE CONCAT('%', #{param.teachingQuestionBankName}, '%')-->
+<!--        </if>-->
         WHERE
-        tqb.textbook_id = #{param.textbookId}
-        AND tb.textbook_author_id = #{param.teacherId}
-        <if test="param.textbookCatalogId != null">
-            AND tqb.textbook_catalog_id = #{param.textbookCatalogId}
+        tqb.textbook_id = #{textbookId,jdbcType=BIGINT}
+        <if test="textbookCatalogId != null">
+            AND tqb.textbook_catalog_id = #{textbookCatalogId,jdbcType=BIGINT}
         </if>
-        <if test="param.teachingQuestionBankName != null and param.teachingQuestionBankName != ''">
-            AND tqb.name LIKE CONCAT('%', #{param.teachingQuestionBankName}, '%')
+        <if test="teachingQuestionBankName != null and teachingQuestionBankName != ''">
+            AND tqb.name LIKE CONCAT('%', #{teachingQuestionBankName,jdbcType=VARCHAR}, '%')
         </if>
         GROUP BY
         tqb.id, tqb.name, tqb.textbook_catalog_id, tc.catalog_name

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.datastatistics.mapper.StudentDataStatisticsMapper">
+
+    <select id="groupReadingTimeByDay" resultType="java.util.Map">
+        SELECT
+            TO_CHAR(add_datetime, 'YYYY-MM-DD') AS activity_date,
+            COUNT(*) AS count
+        FROM
+            learning_log
+        WHERE
+            creator = #{userId}
+          AND add_datetime BETWEEN #{startTime} AND #{endTime}
+        GROUP BY
+            TO_CHAR(add_datetime, 'YYYY-MM-DD')
+    </select>
+
+    <!-- 按天统计笔记数量 -->
+    <select id="groupNotesByDay" resultType="java.util.Map">
+        SELECT
+            TO_CHAR(add_datetime, 'YYYY-MM-DD') AS activity_date,
+            COUNT(*) AS count
+        FROM
+            learning_notes
+        WHERE
+            creator = #{userId}
+          AND add_datetime BETWEEN #{startTime} AND #{endTime}
+        GROUP BY
+            TO_CHAR(add_datetime, 'YYYY-MM-DD')
+    </select>
+
+    <!-- 按天统计答题次数 -->
+    <select id="groupQuestionsByDay" resultType="java.util.Map">
+        SELECT
+            TO_CHAR(add_datetime, 'YYYY-MM-DD') AS activity_date,
+            COUNT(*) AS count
+        FROM
+            teaching_question_bank-- 假设您的答题记录表是这个名字
+        WHERE
+            creator = #{userId}
+          AND add_datetime BETWEEN #{startTime} AND #{endTime}
+        GROUP BY
+            TO_CHAR(add_datetime, 'YYYY-MM-DD')
+    </select>
+</mapper>

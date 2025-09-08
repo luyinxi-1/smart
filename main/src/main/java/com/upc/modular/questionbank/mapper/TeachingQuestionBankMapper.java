@@ -23,7 +23,10 @@ public interface TeachingQuestionBankMapper extends BaseMapper<TeachingQuestionB
     Page<TeachingQuestionBankPageMidReturnParam> selectQuestionBank(Page<TeachingQuestionBankPageMidReturnParam> page, @Param("param") TeachingQuestionBankPageSearchParam param);
 
     List<QuestionBankWithStatusVO> selectQuestionBanksWithPendingStatus(
-            @Param("param") QuestionBankWithStatusSearchParam param
+//            @Param("param") QuestionBankWithStatusSearchParam param
+            @Param("textbookId") Long textbookId,
+            @Param("textbookCatalogId") Long textbookCatalogId,
+            @Param("teachingQuestionBankName") String teachingQuestionBankName
     );
 
     Page<GradingSituationReturnVO> selectGradingSituationPage(Page<GradingSituationReturnVO> page, @Param("param") GradingSituationSearchParam param);

@@ -54,9 +54,26 @@
             <if test="param.status != null">
                 AND t.status = #{param.status}
             </if>
-            <!-- 条件4: 根据题目所属学科模糊查询 -->
+            <!-- 条件5: 根据题目所属学科模糊查询 -->
             <if test="param.subject != null and param.subject != ''">
                 AND t.content LIKE CONCAT('%', #{param.subject}, '%')
+            </if>
+            <!-- 条件6: 根据题目名称模糊查询 -->
+            <if test="param.questionName != null and param.questionName != ''">
+                AND t.content LIKE CONCAT('%', #{param.questionName}, '%')
+            </if>
+            <!-- 条件7: 根据题目分类ID查询该分类及子级 -->
+            <if test="param.classificationId != null">
+                AND (t.teaching_question_classification_id = #{param.classificationId}
+                OR t.teaching_question_classification_id IN (
+                SELECT id FROM teaching_question_classification
+                WHERE parent_id = #{param.classificationId}
+                OR parent_id IN (
+                SELECT id FROM teaching_question_classification
+                WHERE parent_id = #{param.classificationId}
+                )
+                )
+                )
             </if>
         </where>
         ORDER BY t.add_datetime
@@ -65,6 +82,7 @@
             <otherwise>DESC</otherwise>
         </choose>
     </select>
+
     <select id="selectQuestionById" resultMap="BaseResultMap">
         SELECT
             t.id,                                -- 题目的主键 ID
@@ -81,7 +99,7 @@
             t.teaching_question_classification_id, -- 题目分类 ID
             t.choice_question_options,           -- 选择题的选项（如果是选择题）
             t.answer_analysis,                   -- 答案解析
-            u.username AS creatorName            -- 通过用户表 sys_tbuser 查出来的创建人姓名，别名为 creatorName
+            u.nickname AS creatorName            -- 通过用户表 sys_tbuser 查出来的创建人姓名，别名为 creatorName
         FROM teaching_question t                 -- 主表：题目表
                  LEFT JOIN sys_tbuser u          -- 左连接用户表
                            ON t.creator = u.id             -- 条件：题目表的 creator 对应用户表的 id

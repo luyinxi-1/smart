@@ -16,6 +16,9 @@ public class TeachingQuestionPageSearchParam extends PageBaseSearchParam {
     @ApiModelProperty("题目内容")
     private String content;
 
+    @ApiModelProperty("题目名称（用于模糊搜索）")
+    private String questionName;
+
     @ApiModelProperty("难度等级")
     private Integer difficulty;
 
@@ -24,5 +27,8 @@ public class TeachingQuestionPageSearchParam extends PageBaseSearchParam {
 
     @ApiModelProperty("所属学科")
     private String subject;
+
+    @ApiModelProperty("题目分类ID（查询该分类及子级）")
+    private Long classificationId;
 
 }

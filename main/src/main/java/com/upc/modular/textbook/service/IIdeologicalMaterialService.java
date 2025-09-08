@@ -2,6 +2,7 @@ package com.upc.modular.textbook.service;
 
 import com.upc.modular.textbook.entity.IdeologicalMaterial;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.textbook.param.IdeologicalMaterialInsertAndUpdateParam;
 import com.upc.modular.textbook.param.IdeologicalMaterialSearchParam;
 
 import java.util.List;
@@ -18,9 +19,9 @@ public interface IIdeologicalMaterialService extends IService<IdeologicalMateria
 
     void deleteIdeologicalMaterialByIds(List<Long> ids);
 
-    void insertIdeologicalMaterial(IdeologicalMaterial ideologicalMaterial);
+    Long insertIdeologicalMaterial(IdeologicalMaterialInsertAndUpdateParam param);
 
-    void updateIdeologicalMaterialById(IdeologicalMaterial ideologicalMaterial);
+    void updateIdeologicalMaterialById(IdeologicalMaterialInsertAndUpdateParam param);
 
     List<IdeologicalMaterial> getIdeologicalMaterialByConditions(IdeologicalMaterialSearchParam param);
 }

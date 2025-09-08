@@ -16,7 +16,6 @@
         t.id,
         t.question_id,
         t.bank_id,
-        t.order,
         t.score
         FROM
         questions_banks_list t
@@ -30,15 +29,15 @@
                 AND t.bank_id = #{param.bankId}
             </if>
             <!-- 条件3: 根据顺序精确查询 -->
-            <if test="param.order != null">
-                AND t.order = #{param.order}
+            <if test="param.sequence != null">
+                AND t.sequence = #{sequence}
             </if>
             <!-- 条件4: 根据分值精确查询 -->
             <if test="param.score != null">
                 AND t.score = #{param.score}
             </if>
         </where>
-        ORDER BY t.order
+        ORDER BY t.sequence
         <choose>
             <when test="param.isAsc != null and param.isAsc == 1">ASC</when>
             <otherwise>DESC</otherwise>

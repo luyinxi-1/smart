@@ -85,7 +85,7 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
         // TODO: 实现按时间统计总学习时长逻辑
         return systemDataStatisticsMapper.getStudyDurationByTime(param);
     }
-    @Override
+/*    @Override
     public List<Map<String, Object>> getActiveUserCountByTime(Map<String, Object> param) {
         // TODO: 实现按时间统计活跃人数逻辑
         return systemDataStatisticsMapper.getActiveUserCountByTime(param);
@@ -95,7 +95,7 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
     public Long getTodayActiveUserCount() {
         // TODO: 实现今日活跃人数统计逻辑
         return systemDataStatisticsMapper.getTodayActiveUserCount();
-    }
+    }*/
     @Override
     public Long getStudentCount() {
         // TODO: 实现学生数量统计逻辑

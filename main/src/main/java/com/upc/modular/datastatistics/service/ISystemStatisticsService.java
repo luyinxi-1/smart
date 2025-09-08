@@ -31,14 +31,18 @@ public interface ISystemStatisticsService {
      * 获取今日活跃人数
      */
 
+/*
     // 今日活跃人数
     Long getTodayActiveUserCount();
 
-    /**
+    */
+/**
      * 按时间统计活跃人数
-     */
+     *//*
+
     // 按时间统计活跃人数
     List<Map<String, Object>> getActiveUserCountByTime(Map<String, Object> param);
+*/
 
     /**
      * 学生数量统计

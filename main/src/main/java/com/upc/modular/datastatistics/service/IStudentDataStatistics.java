@@ -1,7 +1,9 @@
 package com.upc.modular.datastatistics.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.datastatistics.controller.param.StudentBehaviorReturnParam;
 import com.upc.modular.datastatistics.controller.param.StudentReadingTimeByMonthReturnParam;
+import com.upc.modular.datastatistics.controller.param.StudentStudyPathReturnParam;
 import com.upc.modular.datastatistics.controller.param.StudentTextbookCompletionReturnParam;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 
@@ -33,4 +35,8 @@ public interface IStudentDataStatistics extends IService<StudentStatisticsData> 
     List<StudentStatisticsData> countStudentCurrentTextbookRead();
 
     Long countStudentTextbookReadingTimeByTime(String startTime, String endTime);
+
+    StudentStudyPathReturnParam countStudentStudyPath();
+
+    StudentBehaviorReturnParam analyzeStudentBehavior(String startTime, String endTime);
 }
