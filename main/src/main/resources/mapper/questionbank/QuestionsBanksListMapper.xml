@@ -9,6 +9,8 @@
         <result column="bank_id" property="bankId" />
         <result column="sequence" property="sequence" />
         <result column="score" property="score" />
+        <result column="question_type" property="questionType" />
+        <result column="question_content" property="questionContent" />
     </resultMap>
 
     <select id="selectQuestionPageList" resultMap="BaseResultMap">
@@ -16,9 +18,12 @@
         t.id,
         t.question_id,
         t.bank_id,
-        t.score
+        t.score,
+        tq.type AS question_type,
+        tq.content AS question_content
         FROM
         questions_banks_list t
+        LEFT JOIN teaching_question tq ON t.question_id = tq.id
         <where>
             <!-- 条件1: 根据题目ID精确查询 -->
             <if test="param.questionId != null">

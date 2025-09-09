@@ -34,7 +34,7 @@ public class TeachingQuestionBankPageReturnParam {
     private Integer scorePolicy;
 
     @ApiModelProperty("创建人")
-    private String creator;
+    private Long creator;
 
     @ApiModelProperty("创建时间")
     private LocalDateTime addDatetime;

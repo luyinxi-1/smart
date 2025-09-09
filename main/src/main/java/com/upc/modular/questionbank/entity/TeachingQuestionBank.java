@@ -51,9 +51,9 @@ public class TeachingQuestionBank implements Serializable {
     @TableField("textbook_catalog_id")
     private Long textbookCatalogId;
 
-/*    @ApiModelProperty("是否限制答题次数（0:不限制，1:限制）")
+    @ApiModelProperty("是否限制答题次数（0:不限制，1:限制）")
     @TableField("is_limit_attempts")
-    private Integer isLimitAttempts;*/
+    private Integer isLimitAttempts;
 
     @ApiModelProperty("学生可作答的最大次数")
     @TableField("max_attempts")

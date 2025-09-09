@@ -8,6 +8,7 @@ import com.upc.common.responseparam.R;
 import com.upc.common.utils.UserUtils;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.questionbank.controller.param.*;
+import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.upc.modular.questionbank.entity.TeachingQuestionBank;
 import com.upc.modular.questionbank.service.ITeachingQuestionBankService;
 import com.upc.modular.questionbank.controller.param.GradeSubjectiveRequest;
@@ -43,8 +44,9 @@ public class TeachingQuestionBankController {
 
     @ApiOperation("新增题库")
     @PostMapping("/inserQuestionBank")
-    public R<Long> inserQuestionBank(@RequestBody TeachingQuestionBank teachingQuestionbank){
-        return R.ok(teachingQuestionBankService.inserQuestionBank(teachingQuestionbank));
+    public R<Long> inserQuestionBank(@RequestBody TeachingQuestionBank teachingQuestionBank){
+        Long result = teachingQuestionBankService.inserQuestionBank(teachingQuestionBank);
+        return R.ok(result);
     }
 
     @ApiOperation("删除题库")
@@ -79,7 +81,7 @@ public class TeachingQuestionBankController {
     @ApiOperation("分页查询所有题库信息")
     @PostMapping("selectQuestionBankPage")
     public R<PageBaseReturnParam<TeachingQuestionBankPageReturnParam>> selectQuestionBankPage(@RequestBody TeachingQuestionBankPageSearchParam param){
-        Page<TeachingQuestionBankPageReturnParam> page = teachingQuestionBankService.selectQuestionPage(param);
+        Page<TeachingQuestionBankPageReturnParam> page = teachingQuestionBankService.selectQuestionBankPage(param);
         PageBaseReturnParam<TeachingQuestionBankPageReturnParam> p = PageBaseReturnParam.ok(page);
         return R.page(p);
     }

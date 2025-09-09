@@ -22,7 +22,7 @@ public interface ITeachingQuestionBankService extends IService<TeachingQuestionB
 
     Void deleteQuestionBankByIds(IdParam idParam);
 
-    Page<TeachingQuestionBankPageReturnParam> selectQuestionPage(TeachingQuestionBankPageSearchParam param);
+    Page<TeachingQuestionBankPageReturnParam> selectQuestionBankPage(TeachingQuestionBankPageSearchParam param);
 
     Long inserQuestionBank(TeachingQuestionBank teachingQuestionbank);
 
