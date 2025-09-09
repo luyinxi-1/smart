@@ -24,6 +24,8 @@ import com.upc.modular.questionbank.service.ITeachingQuestionBankService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.questionbank.controller.param.PendingReviewReturnVO;
 import com.upc.modular.questionbank.controller.param.PendingReviewSearchParam;
+import com.upc.modular.student.entity.Student;
+import com.upc.modular.student.mapper.StudentMapper;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.textbook.entity.Textbook;
@@ -37,10 +39,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -65,6 +64,9 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
 
     @Autowired
     private TeacherMapper teacherMapper;
+
+    @Autowired
+    private StudentMapper studentMapper;
 
     @Autowired
     private StudentExercisesContentMapper studentExercisesContentMapper;
@@ -257,6 +259,53 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
 
         return result;
     }
+
+    @Override
+    public TeachingQuestionBankGetBankExerAttempAndStudentNumReturnParam getBankExerAttempAndStudentNum(TeachingQuestionBankGetBankExerAttempAndStudentNumSearchParam param) {
+        // 1. 获取当前登录的学生ID，这种方式比前端传递更安全
+        Long userId = UserUtils.get().getId();
+
+        LambdaQueryWrapper<Student> queryWrapper1 = new LambdaQueryWrapper<>();
+        queryWrapper1.eq(Student::getUserId,userId);
+        Long studentId = studentMapper.selectOne(queryWrapper1).getId();
+
+        // 2. 查询题库信息以获取最大答题次数限制
+        TeachingQuestionBank bank = teachingQuestionBankMapper.selectById(param.getBankId());
+        if (bank == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "题库不存在");
+        }
+
+        TeachingQuestionBankGetBankExerAttempAndStudentNumReturnParam result = new TeachingQuestionBankGetBankExerAttempAndStudentNumReturnParam();
+
+        // 3. 根据 is_limit_attempts 字段判断次数是否受限
+        // is_limit_attempts: 0-不限制, 1-限制
+        if (Integer.valueOf(1).equals(bank.getIsLimitAttempts())) {
+            result.setMaxAttempts(bank.getMaxAttempts());
+        } else {
+            // 不限制时，返回 -1 作为特殊标识
+            result.setMaxAttempts(-1);
+        }
+
+        // 4. 查询学生对该题库的最高答题次数记录
+        LambdaQueryWrapper<StudentExercisesRecord> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper
+                .eq(StudentExercisesRecord::getTeachingQuestionBankId, param.getBankId())
+                .eq(StudentExercisesRecord::getStudentId, studentId)
+                .orderByDesc(StudentExercisesRecord::getExerciseNum) // 按答题次数降序排序
+                .last("LIMIT 1"); // 只取最大的一条记录，提高查询效率
+
+        StudentExercisesRecord lastRecord = studentExercisesRecordMapper.selectOne(queryWrapper);
+
+        // 5. 设置学生已答题次数
+        // 如果 lastRecord 不为 null，则取其 exerciseNum；否则说明学生从未答过，次数为 0
+        int studentAttemptedNum = Optional.ofNullable(lastRecord)
+                .map(StudentExercisesRecord::getExerciseNum)
+                .orElse(0);
+        result.setStudentAttemptedNum(studentAttemptedNum);
+
+        return result;
+    }
+
     @Override
     public List<QuestionBankWithStatusVO> getQuestionBanksWithStatusForTextbook(QuestionBankWithStatusSearchParam param) {
         List<QuestionBankWithStatusVO> resultList = teachingQuestionBankMapper.selectQuestionBanksWithPendingStatus(

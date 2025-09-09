@@ -9,8 +9,6 @@
         <result column="bank_id" property="bankId" />
         <result column="sequence" property="sequence" />
         <result column="score" property="score" />
-        <result column="question_type" property="questionType" />
-        <result column="question_content" property="questionContent" />
     </resultMap>
 
     <select id="selectQuestionPageList" resultMap="BaseResultMap">

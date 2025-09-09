@@ -39,4 +39,6 @@ public interface ITeachingQuestionBankService extends IService<TeachingQuestionB
     void gradeSubjectiveQuestion(GradeSubjectiveRequest request);
 
     TeachingQuestionBankWithCreatorReturnParam getQuestionBankWithCreator(Long id);
+
+    TeachingQuestionBankGetBankExerAttempAndStudentNumReturnParam getBankExerAttempAndStudentNum(TeachingQuestionBankGetBankExerAttempAndStudentNumSearchParam param);
 }

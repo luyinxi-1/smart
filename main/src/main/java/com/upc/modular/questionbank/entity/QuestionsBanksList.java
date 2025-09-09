@@ -40,10 +40,6 @@ public class QuestionsBanksList implements Serializable {
     @TableField("bank_id")
     private Long bankId;
 
-    @ApiModelProperty("创建人")
-    @TableField("creator")
-    private Long creator;
-
     @ApiModelProperty("顺序")
     @TableField("sequence")
     private Integer sequence;
@@ -51,14 +47,6 @@ public class QuestionsBanksList implements Serializable {
     @ApiModelProperty("每道题目分值")
     @TableField("score")
     private Double score;
-
-    @ApiModelProperty("题目类型")
-    @TableField(exist = false)
-    private Integer questionType;
-
-    @ApiModelProperty("题目名称")
-    @TableField(exist = false)
-    private String questionContent;
 
 
 }

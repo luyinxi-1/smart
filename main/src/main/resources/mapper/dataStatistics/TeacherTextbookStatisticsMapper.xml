@@ -3,9 +3,9 @@
 <mapper namespace="com.upc.modular.datastatistics.mapper.TeacherTextbookStatisticsMapper">
 
     <!-- 各章节习题正确率统计 - 按照您的思路实现（总得分/总满分） -->
-    <select id="getChapterQuestionCorrectRateStatistics" 
+    <select id="getChapterQuestionCorrectRateStatistics"
             resultType="com.upc.modular.datastatistics.controller.param.ChapterQuestionCorrectRateParam">
-        SELECT 
+        SELECT
             tc.id as chapterId,
             tc.catalog_name as chapterName,
             tc.catalog_level as chapterLevel,
@@ -13,33 +13,33 @@
             COALESCE(stat.questionBankCount, 0) as questionBankCount,
             COALESCE(stat.totalAnswerCount, 0) as totalAnswerCount,
             COALESCE(stat.correctAnswerCount, 0) as correctAnswerCount,
-            CASE 
+            CASE
                 WHEN COALESCE(stat.totalAnswerCount, 0) = 0 THEN 0.0
                 ELSE ROUND(COALESCE(stat.correctAnswerCount, 0) * 100.0 / stat.totalAnswerCount, 2)
             END as correctRate
         FROM textbook_catalog tc
         LEFT JOIN (
             -- 按照您的思路：先查题库，再查总分，再计算正确率
-            SELECT 
+            SELECT
                 tqb.textbook_catalog_id,
                 COUNT(DISTINCT tqb.id) as questionBankCount,
                 COUNT(sfg.id) as totalAnswerCount,
                 -- 计算正确率：总得分 / 总满分 * 100
-                CASE 
-                    WHEN SUM(qbl.total_score) > 0 THEN 
+                CASE
+                    WHEN SUM(qbl.total_score) > 0 THEN
                         ROUND((SUM(sfg.final_score) / SUM(qbl.total_score)) * 100, 2)
                     ELSE 0
                 END as correctRate,
                 -- 统计正确作答次数（正确率 >= 60% 视为正确）
-                SUM(CASE 
-                    WHEN qbl.total_score > 0 AND (sfg.final_score / qbl.total_score) >= 0.6 THEN 1 
-                    ELSE 0 
+                SUM(CASE
+                    WHEN qbl.total_score > 0 AND (sfg.final_score / qbl.total_score) >= 0.6 THEN 1
+                    ELSE 0
                 END) as correctAnswerCount
             FROM teaching_question_bank tqb
             -- 步骤1：查出教材对应的所有题库
             LEFT JOIN (
                 -- 步骤2：统计每个题库的总分
-                SELECT 
+                SELECT
                     bank_id,
                     SUM(score) as total_score
                 FROM questions_banks_list
@@ -47,7 +47,7 @@
             ) qbl ON tqb.id = qbl.bank_id
             -- 步骤3：联查学生最终成绩表
             LEFT JOIN student_final_grade sfg ON tqb.id = sfg.bank_id
-            WHERE tqb.textbook_id = #{textbookId} 
+            WHERE tqb.textbook_id = #{textbookId}
                 AND tqb.status = 1
             GROUP BY tqb.textbook_catalog_id
         ) stat ON tc.id = stat.textbook_catalog_id
