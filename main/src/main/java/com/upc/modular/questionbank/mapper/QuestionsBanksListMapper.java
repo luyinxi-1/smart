@@ -2,10 +2,13 @@ package com.upc.modular.questionbank.mapper;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.questionbank.controller.param.QuestionsBanksListPageSearchParam;
+import com.upc.modular.questionbank.controller.param.QuestionsBanksListVO;
 import com.upc.modular.questionbank.entity.QuestionsBanksList;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * <p>
@@ -19,4 +22,5 @@ import org.apache.ibatis.annotations.Param;
 public interface QuestionsBanksListMapper extends BaseMapper<QuestionsBanksList> {
 
     Page<QuestionsBanksList> selectQuestionPageList(Page<QuestionsBanksList> page, @Param("param") QuestionsBanksListPageSearchParam param);
+    List<QuestionsBanksListVO> selectQuestionsWithTypeNameByBankId(@Param("bankId") Long bankId);
 }

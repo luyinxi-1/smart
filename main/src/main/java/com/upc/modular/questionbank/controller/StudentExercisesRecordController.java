@@ -40,6 +40,7 @@ public class StudentExercisesRecordController {
     @PostMapping("/submitQuestionBank")
     public R<Long> submitQuestionBank(@RequestBody SubmitAnswerRequest request) {
         Long userId = UserUtils.get().getId();
+//        Long userId = 16L;
         Long recordId = studentExercisesRecordService.submitAnswers(userId, request);
         return R.commonReturn(200, "提交成功，已进入判卷流程", recordId);
     }

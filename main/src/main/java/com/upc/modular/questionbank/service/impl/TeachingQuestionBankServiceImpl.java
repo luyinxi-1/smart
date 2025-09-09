@@ -382,4 +382,9 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
             studentExercisesRecordService.calculateAndUpdateFinalGrade(recordId);
         }
     }
+    //根据题库ID查询该题库下所有题目信息
+    @Override
+    public List<QuestionsBanksListVO> getQuestionsWithTypeNameByBankId(Long bankId) {
+        return questionsBanksListMapper.selectQuestionsWithTypeNameByBankId(bankId);
+    }
 }

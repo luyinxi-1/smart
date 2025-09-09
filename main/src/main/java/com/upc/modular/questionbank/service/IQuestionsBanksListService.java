@@ -31,8 +31,5 @@ public interface IQuestionsBanksListService extends IService<QuestionsBanksList>
      */
     void batchUpdateQuestionsBanksList(QuestionsBanksListBatchParam param);
     void updateQuestionsBanksList(QuestionsBanksList param);
-
-    //Page<QuestionsBanksListWithCreatorDto> selectQuestionPageList(QuestionsBanksListPageSearchParam param);
-
     Page<QuestionsBanksList> selectQuestionPageList(QuestionsBanksListPageSearchParam param);
 }

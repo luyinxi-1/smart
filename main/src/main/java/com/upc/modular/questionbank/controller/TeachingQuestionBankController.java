@@ -8,6 +8,7 @@ import com.upc.common.responseparam.R;
 import com.upc.common.utils.UserUtils;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.questionbank.controller.param.*;
+import com.upc.modular.questionbank.entity.QuestionsBanksList;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.upc.modular.questionbank.entity.TeachingQuestionBank;
 import com.upc.modular.questionbank.service.ITeachingQuestionBankService;
@@ -62,13 +63,13 @@ public class TeachingQuestionBankController {
         teachingQuestionBankService.updateQuestionBank(teachingQuestionbank);
         return R.commonReturn(200, "修改成功", "");
     }
+@ApiOperation("根据题库ID查询题目信息")
+@GetMapping("/questions/{bankId}")
+public R<List<QuestionsBanksListVO>> getQuestionsByBankId(@ApiParam("题库ID") @PathVariable Long bankId) {
+    List<QuestionsBanksListVO> questions = teachingQuestionBankService.getQuestionsWithTypeNameByBankId(bankId);
+    return R.ok(questions);
+}
 
- /*   @ApiOperation("根据id查询单个题库信息")
-    @PostMapping("selectQuestionBank")
-    public R<TeachingQuestionBank> selectQuestionBank(@RequestBody TeachingQuestionBank teachingQuestionbank){
-        TeachingQuestionBank result = teachingQuestionBankService.getById(teachingQuestionbank);
-        return R.ok(result);
-    }*/
 
     @ApiOperation("根据id查询单个题库信息")
     @PostMapping("selectQuestionBank")

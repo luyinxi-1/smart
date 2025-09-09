@@ -13,6 +13,18 @@
         <result column="question_content" property="questionContent" />
     </resultMap>
 
+    <resultMap id="QuestionsBanksListVOMap" type="com.upc.modular.questionbank.controller.param.QuestionsBanksListVO">
+        <result column="id" property="id" />
+        <result column="question_id" property="questionId" />
+        <result column="bank_id" property="bankId" />
+        <result column="sequence" property="sequence" />
+        <result column="score" property="score" />
+        <result column="question_type" property="questionType" />
+        <result column="question_type_name" property="questionTypeName" />
+        <result column="question_content" property="questionContent" />
+        <result column="question_classification_name" property="questionClassificationName" />
+    </resultMap>
+
     <select id="selectQuestionPageList" resultMap="BaseResultMap">
         SELECT
         t.id,
@@ -47,5 +59,31 @@
             <when test="param.isAsc != null and param.isAsc == 1">ASC</when>
             <otherwise>DESC</otherwise>
         </choose>
+    </select>
+
+    <select id="selectQuestionsWithTypeNameByBankId" resultMap="QuestionsBanksListVOMap">
+        SELECT
+            t.id,
+            t.question_id,
+            t.bank_id,
+            t.sequence,
+            t.score,
+            tq.type AS question_type,
+            CASE tq.type
+                WHEN 1 THEN '单选题'
+                WHEN 2 THEN '多选题'
+                WHEN 3 THEN '判断题'
+                WHEN 4 THEN '填空题'
+                WHEN 5 THEN '问答题'
+                ELSE '未知题型'
+                END AS question_type_name,
+            tq.content AS question_content,
+            tqc.teaching_question_classification_name AS question_classification_name
+        FROM
+            questions_banks_list t
+                LEFT JOIN teaching_question tq ON t.question_id = tq.id
+                LEFT JOIN teaching_question_classification tqc ON tq.teaching_question_classification_id = tqc.id
+        WHERE t.bank_id = #{bankId}
+        ORDER BY t.sequence ASC
     </select>
 </mapper>
