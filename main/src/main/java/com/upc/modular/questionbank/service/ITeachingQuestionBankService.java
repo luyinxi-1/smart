@@ -42,4 +42,6 @@ public interface ITeachingQuestionBankService extends IService<TeachingQuestionB
     TeachingQuestionBankWithCreatorReturnParam getQuestionBankWithCreator(Long id);
 
     List<QuestionsBanksListVO> getQuestionsWithTypeNameByBankId(Long bankId);
+
+    TeachingQuestionBankGetBankExerAttempAndStudentNumReturnParam getBankExerAttempAndStudentNum(TeachingQuestionBankGetBankExerAttempAndStudentNumSearchParam param);
 }

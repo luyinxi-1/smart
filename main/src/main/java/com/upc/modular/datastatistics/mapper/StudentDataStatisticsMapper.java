@@ -26,11 +26,20 @@ public interface StudentDataStatisticsMapper  extends BaseMapper<StudentStatisti
     @Select("SELECT COUNT(topic_id) FROM discussion_topic_reply WHERE creator = #{currentUserId}")
     Long countCommunicationByUserId(Long currentUserId);
 
+    @Select("SELECT COUNT(DISTINCT topic_id) FROM discussion_topic_reply WHERE creator = #{currentUserId} AND add_datetime BETWEEN #{startTime} AND #{endTime}")
+    Long countCommunicationByUserIdAndTime(Long currentUserId, String startTime, String endTime);
+
     @Select("SELECT COUNT(*) FROM learning_notes WHERE creator = #{currentUserId}")
     Long countNotesByUserId(Long currentUserId);
+    
+    @Select("SELECT COUNT(*) FROM learning_notes WHERE creator = #{currentUserId} AND add_datetime BETWEEN #{startTime} AND #{endTime}")
+    Long countNotesByUserIdAndTime(Long currentUserId, String startTime, String endTime);
 
     @Select("SELECT COUNT(DISTINCT name) FROM teaching_question_bank WHERE operator = #{currentUserId}")
     Long countQuestionsByUserId(Long currentUserId);
+
+    @Select("SELECT COUNT(DISTINCT name) FROM teaching_question_bank WHERE operator = #{currentUserId} AND add_datetime BETWEEN #{startTime} AND #{endTime}")
+    Long countQuestionsByUserIdAndTime(Long currentUserId, String startTime, String endTime);
 
     @Select("SELECT * FROM learning_log WHERE user_id = #{userId} ORDER BY add_datetime ASC")
     List<LearningLog> findAddDatetime(
@@ -46,6 +55,8 @@ public interface StudentDataStatisticsMapper  extends BaseMapper<StudentStatisti
     @Select("SELECT DISTINCT textbook_id,catalogue_id FROM learning_log WHERE user_id = #{currentUserId} AND data_type = 1")
     List<Map<String, Object>> findReadCatalogsByUserId(Long currentUserId);
 
+    @Select("SELECT * FROM learning_log WHERE user_id = #{currentUserId} AND add_datetime BETWEEN #{startTime} AND #{endTime}")
+    List<Map<String, Object>> findReadCatalogsByUserId(Long currentUserId,String startTime,String endTime);
     @Select("SELECT * FROM textbook where id = #{textbookId}")
     Textbook getTextbookById(Long textbookId);
     @Select("SELECT COUNT(DISTINCT textbook_id) FROM learning_log WHERE user_id = #{userId} AND EXTRACT(YEAR FROM add_datetime) = #{year}")
@@ -59,4 +70,9 @@ public interface StudentDataStatisticsMapper  extends BaseMapper<StudentStatisti
     List<Map<String, Object>> groupNotesByDay(Long userId, String startTime, String endTime);
     @MapKey("date")
     List<Map<String, Object>> groupQuestionsByDay(Long userId, String startTime, String endTime);
+
+    @Select("SELECT COUNT(DISTINCT textbook_id) FROM learning_log WHERE user_id = #{userId} AND add_datetime BETWEEN #{startTime} AND #{endTime}")
+    Long countStudentTextbookReadByTime(Long userId, String startTime, String endTime);
+
+
 }

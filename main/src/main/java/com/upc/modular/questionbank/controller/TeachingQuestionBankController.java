@@ -128,4 +128,11 @@ public R<List<QuestionsBanksListVO>> getQuestionsByBankId(@ApiParam("题库ID") 
         PageBaseReturnParam<PendingReviewReturnVO> p = PageBaseReturnParam.ok(pageResult);
         return R.page(p);
     }
+
+    @ApiOperation("获取题库作答次数和学生答题次数-APP")
+    @PostMapping("/getBankExerAttempAndStudentNum")
+    public R<TeachingQuestionBankGetBankExerAttempAndStudentNumReturnParam> getBankExerAttempAndStudentNum(@RequestBody TeachingQuestionBankGetBankExerAttempAndStudentNumSearchParam param){
+        TeachingQuestionBankGetBankExerAttempAndStudentNumReturnParam result = teachingQuestionBankService.getBankExerAttempAndStudentNum(param);
+        return R.ok(result);
+    }
 }
