@@ -108,7 +108,7 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
         return null;
     }
     @Override
-    public Page<TeachingQuestionBankPageReturnParam> selectQuestionPage(TeachingQuestionBankPageSearchParam param) {
+    public Page<TeachingQuestionBankPageReturnParam> selectQuestionBankPage(TeachingQuestionBankPageSearchParam param) {
         // --- 第一阶段：数据库查询 ---
         // 1. 创建分页对象，注意泛型是中间结果类型
         Page<TeachingQuestionBankPageMidReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
@@ -126,7 +126,7 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
                 .map(TeachingQuestionBankPageMidReturnParam::getCreator)
                 .filter(id -> id != null) // 过滤掉可能为null的id
                 .collect(Collectors.toSet());
-        // 4. 一次性查询所有相关的用户姓名（从SysTbuser表中获取username）
+        // 4. 一次性查询所有相关的用户姓名（从SysTbuser表中获取nickname）
         Map<Long, String> creatorIdToNameMap;
         if (!creatorIds.isEmpty()) {
             // 从SysTbuser表中查询用户信息
@@ -134,9 +134,9 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
                     new LambdaQueryWrapper<SysTbuser>()
                             .in(SysTbuser::getId, creatorIds)
             );
-            // 将查询结果转为 Map<ID, username> 以便快速查找
+            // 将查询结果转为 Map<ID, nickname> 以便快速查找
             creatorIdToNameMap = users.stream()
-                    .collect(Collectors.toMap(SysTbuser::getId, SysTbuser::getUsername, (oldValue, newValue) -> oldValue));
+                    .collect(Collectors.toMap(SysTbuser::getId, SysTbuser::getNickname, (oldValue, newValue) -> oldValue));
         } else {
             creatorIdToNameMap = Collections.emptyMap();
         }
@@ -145,7 +145,7 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
             TeachingQuestionBankPageReturnParam finalParam = new TeachingQuestionBankPageReturnParam();
             // 复制所有同名属性
             BeanUtils.copyProperties(midParam, finalParam);
-            // 单独处理 creatorName 字段，从ID转换为username
+            // 单独处理 creatorName 字段，从ID转换为nickname
             String creatorName = creatorIdToNameMap.getOrDefault(midParam.getCreator(), "未知用户"); // 如果找不到，给个默认值
             finalParam.setCreatorName(creatorName);
             return finalParam;

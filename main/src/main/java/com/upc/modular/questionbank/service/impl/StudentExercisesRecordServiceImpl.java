@@ -71,15 +71,29 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
         queryWrapper.eq(Student::getUserId,userId);
         long studentId = studentMapper.selectOne(queryWrapper).getId();
 
-        // 2. 校验作答次数
+        /*// 2. 校验作答次数
         LambdaQueryWrapper<StudentExercisesRecord> qw = new LambdaQueryWrapper<>();
         qw.eq(StudentExercisesRecord::getStudentId, studentId)
                 .eq(StudentExercisesRecord::getTeachingQuestionBankId, request.getBankId());
         long attemptCount = studentExercisesRecordMapper.selectCount(qw);
         if (bank.getMaxAttempts() != null && attemptCount >= bank.getMaxAttempts()) {
             throw new RuntimeException("作答次数已达上限！");
-        }
+        }*/
+        // --- 【核心修改】2. 校验作答次数 ---
+        // 首先，检查“是否有次数限制”这个开关是否为 true
+        LambdaQueryWrapper<StudentExercisesRecord> qw = new LambdaQueryWrapper<>();
+        qw.eq(StudentExercisesRecord::getStudentId, studentId)
+                .eq(StudentExercisesRecord::getTeachingQuestionBankId, request.getBankId());
+        long attemptCount = studentExercisesRecordMapper.selectCount(qw);
 
+        if (bank.getIsLimitAttempts() != null && bank.getIsLimitAttempts() == 1) {
+            // 只有在开启限制的情况下，才执行次数校验
+            // 只有当 max_attempts 字段不为null时，限制才真正生效
+            if (bank.getMaxAttempts() != null && attemptCount >= bank.getMaxAttempts()) {
+                throw new RuntimeException("作答次数已达上限！");
+            }
+        }
+        // 如果 bank.getIsAttemptsLimit() 为 false 或为 null，则直接跳过整个次数校验逻辑。
         // --- 流程 1.2: 创建答卷记录 ---
         StudentExercisesRecord record = new StudentExercisesRecord();
         record.setStudentId(studentId);

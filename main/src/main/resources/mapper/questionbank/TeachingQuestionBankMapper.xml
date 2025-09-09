@@ -19,23 +19,25 @@
     </resultMap>
 
 
-    <select id="selectQuestionBank" resultType="com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageMidReturnParam">
+    <select id="selectQuestionBank"
+            resultType="com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageMidReturnParam">
         SELECT
-        t.id, -- 注意：我们需要id来做GROUP BY
+        t.id, -- 主键
         t.name,
         t.description,
         t.status,
-        t.textbook_id AS textbookId, -- 使用别名直接映射到驼峰属性
+        t.textbook_id AS textbookId,
         t.textbook_catalog_id AS textbookCatalogId,
         t.max_attempts AS maxAttempts,
         t.score_policy AS scorePolicy,
         t.creator,
+        u.nickname AS creatorName,   -- ⭐ 新增：从用户表取创建人名称
         t.add_datetime AS addDatetime,
         COUNT(qbl.id) AS questionCount
         FROM
         teaching_question_bank t
-        LEFT JOIN
-        questions_banks_list qbl ON t.id = qbl.bank_id
+        LEFT JOIN questions_banks_list qbl ON t.id = qbl.bank_id
+        LEFT JOIN sys_tbuser u ON t.creator = u.id   -- ⭐ 关联用户表
         <where>
             <!-- 条件1: 根据题库名称模糊查询 -->
             <if test="param.name != null and param.name != ''">
@@ -53,7 +55,7 @@
             <if test="param.textbookId != null">
                 AND t.textbook_id = #{param.textbookId}
             </if>
-            <!-- 条件5: 根据关联教材目录ID精确查询 (这是导致你报错的关键点) -->
+            <!-- 条件5: 根据关联教材目录ID精确查询 -->
             <if test="param.textbookCatalogId != null">
                 AND t.textbook_catalog_id = #{param.textbookCatalogId}
             </if>
@@ -67,7 +69,9 @@
             </if>
         </where>
         GROUP BY
-        t.id
+        t.id, t.name, t.description, t.status, t.textbook_id,
+        t.textbook_catalog_id, t.max_attempts, t.score_policy,
+        t.creator, u.nickname, t.add_datetime  -- ⭐ GROUP BY 里要加上 u.username
         ORDER BY
         t.add_datetime
         <choose>
@@ -75,6 +79,7 @@
             <otherwise>DESC</otherwise>
         </choose>
     </select>
+
 
     <select id="selectQuestionBanksWithPendingStatus" resultType="com.upc.modular.questionbank.controller.param.QuestionBankWithStatusVO">
         SELECT
