@@ -2,10 +2,7 @@ package com.upc.modular.datastatistics.controller;
 
 
 import com.upc.common.responseparam.R;
-import com.upc.modular.datastatistics.controller.param.StudentBehaviorReturnParam;
-import com.upc.modular.datastatistics.controller.param.StudentReadingTimeByMonthReturnParam;
-import com.upc.modular.datastatistics.controller.param.StudentStudyPathReturnParam;
-import com.upc.modular.datastatistics.controller.param.StudentTextbookCompletionReturnParam;
+import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 import com.upc.modular.datastatistics.service.IStudentDataStatistics;
 import io.swagger.annotations.Api;
@@ -117,6 +114,16 @@ public class StudentDataStatisticsController {
     ){
         return R.ok(iStudentDataStatistics.analyzeStudentBehavior(startTime,endTime));
     }
+
+    @ApiOperation("个人层面分析报告")
+    @GetMapping("/personal-analysis")
+    public R<StudentAnalysisReturnParam> countStudentPersonalAnalysis(
+            @RequestParam String startTime,
+            @RequestParam String endTime
+    ){
+        return R.ok(iStudentDataStatistics.countStudentPersonalAnalysis(startTime,endTime));
+    }
+
 
 
 
