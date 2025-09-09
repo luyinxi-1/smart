@@ -75,6 +75,11 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         Long currentUserId = UserUtils.get().getId();
         return studentDataStatisticsMapper.countCommunicationByUserId(currentUserId);
     }
+
+    private Long countStudentCommunicationFeedbackByTime(String startTime, String endTime) {
+        Long currentUserId = UserUtils.get().getId();
+        return studentDataStatisticsMapper.countCommunicationByUserIdAndTime(currentUserId,startTime,endTime);
+    }
     /**
      * 统计学生笔记数量
      */
@@ -83,6 +88,11 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         Long currentUserId = UserUtils.get().getId();
         return studentDataStatisticsMapper.countNotesByUserId(currentUserId);
     }
+
+    private Long countStudentNotesByTime(String startTime, String endTime) {
+        Long currentUserId = UserUtils.get().getId();
+        return studentDataStatisticsMapper.countNotesByUserIdAndTime(currentUserId,startTime,endTime);
+    }
     /**
      * 统计学生答题数量
      */
@@ -90,6 +100,11 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
     public Long countStudentQuestions() {
         Long currentUserId = UserUtils.get().getId();
         return studentDataStatisticsMapper.countQuestionsByUserId(currentUserId);
+    }
+
+    private Long countStudentQuestionsByTime(String startTime, String endTime) {
+        Long currentUserId = UserUtils.get().getId();
+        return studentDataStatisticsMapper.countQuestionsByUserIdAndTime(currentUserId,startTime,endTime);
     }
     /**
      * 统计学生教材总阅读时间
@@ -166,11 +181,19 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
     /**
      * 统计学生教材完成度
      */
-    @Override
     public List<StudentTextbookCompletionReturnParam> countStudentTextbookCompetion() {
+        return countStudentTextbookCompetion(null, null);
+    }
+
+    @Override
+    public List<StudentTextbookCompletionReturnParam> countStudentTextbookCompetion(String startTime, String endTime) {
         Long currentUserId = UserUtils.get().getId();
         // 获取学生已读的章节信息
-        List<Map<String, Object>> readCatalogs = studentDataStatisticsMapper.findReadCatalogsByUserId(currentUserId);
+        List<Map<String, Object>> readCatalogs;
+        if (startTime == null && endTime == null) {
+            readCatalogs = studentDataStatisticsMapper.findReadCatalogsByUserId(currentUserId);
+        }else {
+            readCatalogs = studentDataStatisticsMapper.findReadCatalogsByUserId(currentUserId,startTime,endTime);}
 
         //如果没有阅读记录，返回空列表
         if (readCatalogs == null || readCatalogs.isEmpty()) {
@@ -215,12 +238,22 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         }
         return result;
     }
+
+
     /**
      * 统计学生完成阅读的教材数量
      */
-    @Override
     public Long countStudentTextbookRead() {
-        List<StudentTextbookCompletionReturnParam> completionList = countStudentTextbookCompetion();
+        return countStudentTextbookRead(null, null);
+    }
+    @Override
+    public Long countStudentTextbookRead(String startTime, String endTime) {
+        List<StudentTextbookCompletionReturnParam> completionList;
+        if(startTime == null && endTime == null){
+            completionList = countStudentTextbookCompetion();
+        }else {
+            completionList = countStudentTextbookCompetion(startTime,endTime);
+        }
 
         //统计完成度为指定值的教材数量
         long completedTextbooks = completionList.stream()
@@ -228,6 +261,16 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                 .count();
         return completedTextbooks;
     }
+
+//    public Long countStudentTextbookReadByTime(String start_time,String end_time) {
+//        List<StudentTextbookCompletionReturnParam> completionList = countStudentTextbookCompetionByTime(start_time,end_time);
+//
+//        //统计完成度为指定值的教材数量
+//        long completedTextbooks = completionList.stream()
+//                .filter(param -> param.getCompletion() != null && param.getCompletion() >= COMPLETION_THRESHOLD)
+//                .count();
+//        return completedTextbooks;
+//    }
 
     /**
      * 统计学生今年教材阅读时长
@@ -406,6 +449,29 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         result.setRegularityScore(score);
         return result;
     }
+
+    @Override
+    public StudentAnalysisReturnParam countStudentPersonalAnalysis(String startTime, String endTime) {
+        Long userId = UserUtils.get().getId();
+        StudentAnalysisReturnParam returnParam = new StudentAnalysisReturnParam();
+        //统计学生起止时间阅读时长
+        returnParam.setReadingTime(this.countStudentTextbookReadingTimeByTime(startTime, endTime));
+        //统计学生起止时间阅读数量
+        returnParam.setReadingNum(studentDataStatisticsMapper.countStudentTextbookReadByTime(userId,startTime, endTime));
+        //统计学生起止时间完成教材阅读数量
+        returnParam.setCompletionReadingNum(this.countStudentTextbookRead(startTime, endTime));
+        //统计学生起止时间笔记数量
+        returnParam.setNotesNum(this.countStudentNotesByTime(startTime, endTime));
+        //统计学生起止时间答题题库数量
+        returnParam.setQuestionBankNum(this.countStudentQuestionsByTime(startTime, endTime));
+        //统计学生起止时间交流反馈数量
+        returnParam.setCommunicationFeedbackNum(this.countStudentCommunicationFeedbackByTime(startTime, endTime));
+
+        return returnParam;
+    }
+
+
+
 
     /**
      * 计算给定数据集的方差
