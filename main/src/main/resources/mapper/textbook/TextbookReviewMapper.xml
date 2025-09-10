@@ -5,6 +5,7 @@
     <select id="selectPageWithUserNames" resultType="com.upc.modular.textbook.param.TextbookReviewReturnParam">
         SELECT
         tr.*,
+        tr.textbook_version_number AS textbookVersionNumber,
         COALESCE(t.name, s.name, su.username) AS creatorName,
         COALESCE(t2.name, s2.name, su2.username) AS operatorName
         FROM textbook_review tr
@@ -25,6 +26,7 @@
     <select id="selectByIdWithUserNames" resultType="com.upc.modular.textbook.param.TextbookReviewReturnParam">
         SELECT
             tr.*,
+            tr.textbook_version_number AS textbookVersionNumber,
             COALESCE(t.name, s.name, su.username) AS creatorName,
             COALESCE(t2.name, s2.name, su2.username) AS operatorName
         FROM textbook_review tr

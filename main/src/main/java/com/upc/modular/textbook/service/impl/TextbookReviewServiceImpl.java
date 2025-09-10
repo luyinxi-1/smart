@@ -43,6 +43,9 @@ public class TextbookReviewServiceImpl extends ServiceImpl<TextbookReviewMapper,
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "未找到ID为 " + textbookId + " 的教材");
         }
 
+        // 设置教材版本号到审核记录中
+        textbookReview.setTextbookVersionNumber(textbook.getVersionNumber());
+
         // 1. Update the textbook's review status to 2 (审核中)
         textbook.setReviewStatus(2);
         textbookService.updateById(textbook);
@@ -80,7 +83,7 @@ public class TextbookReviewServiceImpl extends ServiceImpl<TextbookReviewMapper,
             if (auditResult == 1) {
                 // 审核通过
                 textbook.setReviewStatus(1);
-                textbook.setReleaseStatus(1); // 【新增】更新发布状态为“已发布”
+                textbook.setReleaseStatus(1); // 【新增】更新发布状态为"已发布"
             } else if (auditResult == 0) {
                 // 审核未通过
                 textbook.setReviewStatus(3);
