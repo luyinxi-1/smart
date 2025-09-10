@@ -1,7 +1,10 @@
 package com.upc.modular.datastatistics.mapper;
 
+import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
 import org.apache.ibatis.annotations.Mapper;
+import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -11,6 +14,13 @@ public interface SystemDataStatisticsMapper {
     // 今日访问人数
     Long getTodayVisitorCount();
 
+    /**
+     * 按时间段统计每日访问学生人数
+     * @param params 包含 startDate 和 endDate 的 Map
+     * @return 每日访客数量的列表
+     */
+    List<VisitorCountDTO> getStudentVisitorCountByTime(Map<String, Object> params);
+
     // 按时间统计访问人数
     List<Map<String, Object>> getVisitorCountByTime(Map<String, Object> param);
 
@@ -18,16 +28,16 @@ public interface SystemDataStatisticsMapper {
     Long getTodayStudyDuration();
 
     // 按时间统计总学习时长
-    List<Map<String, Object>> getStudyDurationByTime(Map<String, Object> param);
 
-   /* // 今日活跃人数
-    Long getTodayActiveUserCount();
+    Long getStudyDurationByTimeRange(
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime
+            );
 
-    // 按时间统计活跃人数
-    List<Map<String, Object>> getActiveUserCountByTime(Map<String, Object> param);*/
+   /* List<Map<String, Object>> getStudyDurationByTime(Map<String, Object> param);*/
 
     // 学生数量统计
-    Long getStudentCount();
+    Long getStudentCount( );
 
     // 教学思政数量统计
     Long getIdeologicalMaterialCount();

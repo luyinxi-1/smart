@@ -66,6 +66,16 @@
             t.bank_id,
             t.sequence,
             t.score,
+            tq.difficulty,
+            tq.status,
+            tq.answer,
+            tq.choice_question_options,
+            tq.answer_analysis,
+            tq.subject,
+            tq.creator,
+            tq.add_datetime,
+            tq.operator,
+            tq.operation_datetime,
             tq.type AS question_type,
             CASE tq.type
                 WHEN 1 THEN '单选题'

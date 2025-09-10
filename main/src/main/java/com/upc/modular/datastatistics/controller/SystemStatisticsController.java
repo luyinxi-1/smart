@@ -1,14 +1,18 @@
 package com.upc.modular.datastatistics.controller;
 
 import com.upc.common.responseparam.R;
+import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
 import com.upc.modular.textbook.service.ITextbookService;
 import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import io.swagger.annotations.ApiOperation;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -19,7 +23,6 @@ import java.util.Map;
 public class SystemStatisticsController {
     @Autowired
     private ISystemStatisticsService systemStatisticsService;
-
     @ApiOperation("获取今日访问人数")
     @PostMapping("/todayVisitorCount")
     public R<Long> getTodayVisitorCount() {
@@ -30,11 +33,9 @@ public class SystemStatisticsController {
             return R.fail("获取今日访问人数失败: " + e.getMessage());
         }
     }
-
     // 按时间统计访问人数
-    @ApiOperation("按时间统计访问人数")
-    @PostMapping("/visitorCountByTime")
-    public R<List<Map<String, Object>>> getVisitorCountByTime(@RequestParam Map<String, Object> param) {
+
+/*    public R<List<Map<String, Object>>> getVisitorCountByTime(@RequestParam Map<String, Object> param) {
         try {
             return R.ok(systemStatisticsService.getVisitorCountByTime(param));
         } catch (Exception e) {
@@ -42,7 +43,16 @@ public class SystemStatisticsController {
             return R.fail("按时间统计访问人数失败: " + e.getMessage());
         }
     }
+    */
+@ApiOperation("按时间统计访问人数")
+@GetMapping("/visitorCountByTime")
+public ResponseEntity<List<VisitorCountDTO>> getStudentVisitorCountByTime(
+            @RequestParam String startDate,
+            @RequestParam String endDate) {
 
+        List<VisitorCountDTO> result = systemStatisticsService.getStudentVisitorCountByTime(startDate, endDate);
+        return ResponseEntity.ok(result);
+    }
     // 今日总学习时长
     @ApiOperation("今日总学习时长")
     @PostMapping("/todayStudyDuration")
@@ -54,45 +64,33 @@ public class SystemStatisticsController {
             return R.fail("获取今日总学习时长失败: " + e.getMessage());
         }
     }
-
-
     // 按时间统计总学习时长
-    @ApiOperation("按时间统计总学习时长")
+/*    @ApiOperation("按时间统计总学习时长")
     @PostMapping("/studyDurationByTime")
-    public R<List<Map<String, Object>>> getStudyDurationByTime(@RequestBody Map<String, Object> param) {
+    public R<List<Map<String, Object>>> getStudyDurationByTime(@RequestParam Map<String, Object> param) {
         try {
             return R.ok(systemStatisticsService.getStudyDurationByTime(param));
         } catch (Exception e) {
             e.printStackTrace();
             return R.fail("按时间统计总学习时长失败: " + e.getMessage());
         }
-    }
-
-/*// 今日活跃人数
-@ApiOperation("今日活跃人数")
-@PostMapping("/todayActiveUserCount")
-public R<Long> getTodayActiveUserCount() {
-    try {
-        return R.ok(systemStatisticsService.getTodayActiveUserCount());
-    } catch (Exception e) {
-        e.printStackTrace();
-        return R.fail("获取今日活跃人数失败: " + e.getMessage());
-    }
-}
-
-    // 按时间统计活跃人数
-    @ApiOperation("按时间统计活跃人数")
-    @PostMapping("/activeUserCountByTime")
-    public R<List<Map<String, Object>>> getActiveUserCountByTime(@RequestParam Map<String, Object> param) {
+    }*/
+    @ApiOperation("根据时间范围查询总学习时长(单位:秒)")
+    @GetMapping("/studyDurationByTime") // 使用 GET 请求，路径名也更通用
+    public R<Long> getStudyDurationBytime(
+            // 使用 @RequestParam 接收 URL 参数
+            // @DateTimeFormat 用于告诉 Spring 如何将字符串转换为 LocalDateTime 对象
+            @RequestParam("startTime") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+            @RequestParam("endTime") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
         try {
-            return R.ok(systemStatisticsService.getActiveUserCountByTime(param));
+            // 调用 service 层的新方法
+            Long duration = systemStatisticsService.getStudyDurationByTimeRange(startTime, endTime);
+            return R.ok(duration);
         } catch (Exception e) {
             e.printStackTrace();
-            return R.fail("按时间统计活跃人数失败: " + e.getMessage());
+            return R.fail("获取学习时长失败: " + e.getMessage());
         }
-    }*/
-
-
+    }
     @ApiOperation("学生数量统计")
     @GetMapping("/student-count")
     public R<Long> getStudentCount() {

@@ -63,12 +63,18 @@ public class TeachingQuestionBankController {
         teachingQuestionBankService.updateQuestionBank(teachingQuestionbank);
         return R.commonReturn(200, "修改成功", "");
     }
-@ApiOperation("根据题库ID查询题目信息")
+/*@ApiOperation("根据题库ID查询题目信息")
 @GetMapping("/questions/{bankId}")
 public R<List<QuestionsBanksListVO>> getQuestionsByBankId(@ApiParam("题库ID") @PathVariable Long bankId) {
     List<QuestionsBanksListVO> questions = teachingQuestionBankService.getQuestionsWithTypeNameByBankId(bankId);
     return R.ok(questions);
-}
+}*/
+    @ApiOperation("根据题库ID查询题目信息")
+    @GetMapping("/questions/{bankId}")
+    public R<List<QuestionsBanksListVO>> getQuestionsByBankId(@ApiParam("题库ID") @PathVariable Long bankId) {
+        List<QuestionsBanksListVO> questions = teachingQuestionBankService.getQuestionsWithTypeNameByBankId(bankId);
+        return R.ok(questions);
+    }
 
 
     @ApiOperation("根据id查询单个题库信息")

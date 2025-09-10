@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.questionbank.controller.param.*;
 import com.upc.modular.questionbank.entity.QuestionsBanksList;
+import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.upc.modular.questionbank.entity.TeachingQuestionBank;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.questionbank.controller.param.PendingReviewReturnVO;
@@ -42,6 +43,5 @@ public interface ITeachingQuestionBankService extends IService<TeachingQuestionB
     TeachingQuestionBankWithCreatorReturnParam getQuestionBankWithCreator(Long id);
 
     List<QuestionsBanksListVO> getQuestionsWithTypeNameByBankId(Long bankId);
-
     TeachingQuestionBankGetBankExerAttempAndStudentNumReturnParam getBankExerAttempAndStudentNum(TeachingQuestionBankGetBankExerAttempAndStudentNumSearchParam param);
 }
