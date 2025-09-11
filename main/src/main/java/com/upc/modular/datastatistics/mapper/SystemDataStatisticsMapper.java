@@ -2,7 +2,7 @@ package com.upc.modular.datastatistics.mapper;
 
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
 import org.apache.ibatis.annotations.Mapper;
-import org.springframework.data.repository.query.Param;
+import org.apache.ibatis.annotations.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -59,6 +59,18 @@ public interface SystemDataStatisticsMapper {
 
     // 教材类型统计
     List<Map<String, Object>> getTextbookTypeCount();
+
+    /**
+     * 教材阅读排名（按时长统计，支持时间范围查询）
+     * @param params 可能包含 startTime 和 endTime
+     */
+    List<Map<String, Object>> getTextbookReadingRank(Map<String, Object> params);
+
+    /**
+     * 类型阅读排名（按时长统计，支持时间范围查询）
+     * @param params 可能包含 startTime 和 endTime
+     */
+    List<Map<String, Object>> getTextbookTypeReadingRank(Map<String, Object> params);
 
     // 教师数量统计
     Long getTeacherCount();
