@@ -3,6 +3,7 @@ package com.upc.modular.datastatistics.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.course.service.ICourseService;
+import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
 import com.upc.modular.datastatistics.mapper.SystemDataStatisticsMapper;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
 import com.upc.modular.group.service.IGroupService;
@@ -20,10 +21,13 @@ import com.upc.modular.textbook.service.ITextbookService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,10 +65,64 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
     // 添加SysLogMapper的依赖
     @Autowired
     private com.upc.modular.auth.mapper.SysLogMapper userLoginLogMapper;
-
+//今日访问人数
     @Override
     public Long getTodayVisitorCount() {
+
         return systemDataStatisticsMapper.getTodayVisitorCount();
+    }
+
+    //按时间统计访问人数
+
+
+
+    @Override
+    public List<VisitorCountDTO> getStudentVisitorCountByTime(String startDate, String endDate) {
+        // 1. (可选但推荐) 参数校验
+        if (!StringUtils.hasText(startDate) || !StringUtils.hasText(endDate)) {
+            throw new IllegalArgumentException("开始日期和结束日期不能为空！");
+        }
+
+        // 校验日期格式和顺序
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        LocalDate start;
+        LocalDate end;
+
+        // 判断输入是日期格式还是日期时间格式
+        if (startDate.contains(":")) {
+            // 如果包含时间部分，使用日期时间格式解析
+            start = LocalDate.parse(startDate, dateTimeFormatter);
+        } else {
+            // 否则使用日期格式解析
+            start = LocalDate.parse(startDate, dateFormatter);
+        }
+
+        if (endDate.contains(":")) {
+            // 如果包含时间部分，使用日期时间格式解析
+            end = LocalDate.parse(endDate, dateTimeFormatter);
+        } else {
+            // 否则使用日期格式解析
+            end = LocalDate.parse(endDate, dateFormatter);
+        }
+
+        if (start.isAfter(end)) {
+            throw new IllegalArgumentException("开始日期不能晚于结束日期！");
+        }
+
+        // 2. 准备参数
+        // 为了兼容数据库可能需要 'yyyy-MM-dd HH:mm:ss' 格式
+        // KingBase/PostgreSQL 的 BETWEEN 对 'yyyy-MM-dd' 兼容性很好，但补全时间是更严谨的做法
+        String startDateTime = startDate + (startDate.contains(":") ? "" : " 00:00:00");
+        String endDateTime = endDate + (endDate.contains(":") ? "" : " 23:59:59");
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("startDate", startDateTime);
+        params.put("endDate", endDateTime);
+
+        // 3. 调用 Mapper 并返回结果
+        return systemDataStatisticsMapper.getStudentVisitorCountByTime(params);
     }
 
 
@@ -79,12 +137,17 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
         return systemDataStatisticsMapper.getTodayStudyDuration();
     }
 
-
+    // === 修改后的代码 ===
     @Override
+    public Long getStudyDurationByTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
+        // TODO: 可以在这里添加参数校验，例如 endTime 必须大于 startTime
+        return systemDataStatisticsMapper.getStudyDurationByTimeRange(startTime, endTime);
+    }
+/*    @Override
     public List<Map<String, Object>> getStudyDurationByTime(Map<String, Object> param) {
         // TODO: 实现按时间统计总学习时长逻辑
         return systemDataStatisticsMapper.getStudyDurationByTime(param);
-    }
+    }*/
 /*    @Override
     public List<Map<String, Object>> getActiveUserCountByTime(Map<String, Object> param) {
         // TODO: 实现按时间统计活跃人数逻辑

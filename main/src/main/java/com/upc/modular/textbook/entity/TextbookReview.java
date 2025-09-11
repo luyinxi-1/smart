@@ -67,6 +67,10 @@ public class TextbookReview implements Serializable {
     @TableField(value ="textbook_id")
     private Long textbookId;
 
+    @ApiModelProperty("教材版本号")
+    @TableField(value = "textbook_version_number")
+    private String textbookVersionNumber;
+
     @ApiModelProperty("主键 教材审核表的唯一id")
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;

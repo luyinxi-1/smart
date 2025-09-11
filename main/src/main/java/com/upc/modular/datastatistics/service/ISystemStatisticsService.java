@@ -1,5 +1,8 @@
 package com.upc.modular.datastatistics.service;
 
+import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -11,6 +14,13 @@ public interface ISystemStatisticsService {
     Long getTodayVisitorCount();
 
     /**
+     * 按时间段获取学生访客数量统计
+     * @param startDate 开始日期 (格式: "yyyy-MM-dd")
+     * @param endDate 结束日期 (格式: "yyyy-MM-dd")
+     * @return 访客统计列表
+     */
+    List<VisitorCountDTO> getStudentVisitorCountByTime(String startDate, String endDate);
+    /**
      * 按时间统计访问人数
      */
     // 按时间统计访问人数
@@ -21,11 +31,19 @@ public interface ISystemStatisticsService {
      */
     Long getTodayStudyDuration();
 
+    // === 修改后的代码 ===
+    /**
+     * 根据时间范围获取总学习时长
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 总学习秒数
+     */
+    Long getStudyDurationByTimeRange(LocalDateTime startTime, LocalDateTime endTime);
     /**
      * 按时间统计总学习时长
      */
     // 按时间统计总学习时长
-    List<Map<String, Object>> getStudyDurationByTime(Map<String, Object> param);
+    //List<Map<String, Object>> getStudyDurationByTime(Map<String, Object> param);
 
     /**
      * 获取今日活跃人数

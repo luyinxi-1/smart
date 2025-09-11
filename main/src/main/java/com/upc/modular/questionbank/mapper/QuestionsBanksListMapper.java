@@ -5,6 +5,7 @@ import com.upc.modular.questionbank.controller.param.QuestionsBanksListPageSearc
 import com.upc.modular.questionbank.controller.param.QuestionsBanksListVO;
 import com.upc.modular.questionbank.entity.QuestionsBanksList;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.upc.modular.questionbank.entity.TeachingQuestion;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -22,5 +23,5 @@ import java.util.List;
 public interface QuestionsBanksListMapper extends BaseMapper<QuestionsBanksList> {
 
     Page<QuestionsBanksList> selectQuestionPageList(Page<QuestionsBanksList> page, @Param("param") QuestionsBanksListPageSearchParam param);
-    List<QuestionsBanksListVO> selectQuestionsWithTypeNameByBankId(@Param("bankId") Long bankId);
+   List<QuestionsBanksListVO> selectQuestionsWithTypeNameByBankId(@Param("bankId") Long bankId);
 }
