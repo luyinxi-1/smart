@@ -31,9 +31,9 @@ public class LearningLog implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
-    @ApiModelProperty("用户id")
-    @TableField("user_id")
-    private Long userId;
+//    @ApiModelProperty("用户id")
+//    @TableField("user_id")
+//    private Long userId;
 
     @ApiModelProperty("教材id")
     @TableField("textbook_id")
