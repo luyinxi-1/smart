@@ -1,7 +1,190 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.upc.modular.datastatistics.mapper.SystemDataStatisticsMapper">
-    
+    <!-- 今日访问学生人数 -->
+    <select id="getTodayVisitorCount" resultType="long">
+        SELECT
+            COUNT(DISTINCT s.user_id)
+        FROM
+            sys_log sl
+                INNER JOIN
+            student s ON sl.user_id = s.user_id
+        WHERE
+          -- 使用 &gt;= 和 &lt; 来避免 XML 解析错误
+            sl.add_datetime &gt;= CURRENT_DATE
+          AND sl.add_datetime &lt; (CURRENT_DATE + INTERVAL '1 day')
+    </select>
+    <!-- 按时间段统计每日访问学生人数 -->
+    <!-- 注意：resultType 已修改为你的 DTO 类的完整路径 -->
+    <select id="getStudentVisitorCountByTime" parameterType="map" resultType="com.upc.modular.datastatistics.controller.param.VisitorCountDTO">
+        SELECT
+            sl.add_datetime::date as date,
+            COUNT(DISTINCT s.user_id) as visitorCount
+        FROM
+            sys_log sl
+            INNER JOIN
+            student s ON sl.user_id = s.user_id
+        WHERE
+            sl.add_datetime BETWEEN #{startDate} AND #{endDate}
+        GROUP BY
+            sl.add_datetime::date
+        ORDER BY
+            date ASC
+    </select>
+    <!-- 统计今日总阅读时长（秒）- 使用 age() 函数的最终正确版本 -->
+    <select id="getTodayStudyDuration" resultType="long">
+        WITH UserLogsWithNext AS (
+            SELECT
+                LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime,
+                    add_datetime
+            FROM
+                learning_log
+            WHERE
+                add_datetime &gt;= CURRENT_DATE
+              AND add_datetime &lt; (CURRENT_DATE + INTERVAL '1 day')
+        )
+        SELECT
+            COALESCE(SUM(
+                             CASE
+                                 -- 使用 age() 函数计算可靠的时间间隔(interval)，再用 EXTRACT 提取总秒数
+                                 WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+                                     THEN 60 -- 累加60秒
+                                 ELSE 0
+                                 END
+                     ), 0) AS total_reading_seconds
+        FROM
+            UserLogsWithNext;
+    </select>
+
+
+
+    <!-- 今日活跃人数 -->
+    <select id="getTodayActiveUserCount" resultType="long">
+        SELECT COUNT(DISTINCT student_id)
+        FROM student_reading_log
+        WHERE add_datetime >= CURRENT_DATE AND add_datetime &lt; CURRENT_DATE + INTERVAL '1 day'
+    </select>
+
+    <!-- 按时间统计活跃人数 -->
+    <select id="getActiveUserCountByTime" parameterType="map" resultType="map">
+        SELECT
+            DATE(add_datetime) as date,
+            COUNT(DISTINCT student_id) as activeUserCount
+        FROM student_reading_log
+        WHERE add_datetime BETWEEN #{startDate} AND #{endDate}
+        GROUP BY DATE(add_datetime)
+        ORDER BY date
+    </select>
+
+    <select id="getStudyDurationByTimeRange" parameterType="map" resultType="long">
+        WITH UserLogsWithNext AS (
+            -- 步骤 1: 在指定时间范围内，为每个用户的每条记录找到下一条记录的时间
+            SELECT
+                LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime,
+                    add_datetime
+            FROM
+                learning_log
+            WHERE
+              -- 使用传入的参数进行范围筛选
+                add_datetime &gt;= #{startTime}
+              AND add_datetime &lt; (#{endTime}::date + INTERVAL '1 day') -- 确保包含 endDate 整天
+        )
+        -- 步骤 2: 计算所有有效阅读时长的总和
+        SELECT
+            COALESCE(SUM(
+                             CASE
+                                 -- 核心逻辑不变: 使用 age() 和 EXTRACT() 计算秒数差
+                                 WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+                                     THEN 60 -- 累加60秒
+                                 ELSE 0
+                                 END
+                     ), 0) AS total_reading_seconds
+        FROM
+            UserLogsWithNext;
+    </select>
+    <!-- 学生数量统计 -->
+    <select id="getStudentCount" resultType="long">
+        SELECT COUNT(*) FROM student
+    </select>
+
+    <!-- 教学思政数量统计 -->
+    <select id="getIdeologicalMaterialCount" resultType="long">
+        SELECT COUNT(*) FROM ideological_material
+    </select>
+
+    <!-- 教学活动数量统计 -->
+    <select id="getTeachingActivityCount" resultType="long">
+        SELECT COUNT(*) FROM discussion_topic
+    </select>
+
+    <!-- 题库数量统计 -->
+    <select id="getQuestionBankCount" resultType="long">
+        SELECT COUNT(*) FROM teaching_question_bank
+    </select>
+
+    <!-- 班级数量统计 -->
+    <select id="getClassCount" resultType="long">
+        SELECT COUNT(*) FROM class_group
+    </select>
+
+    <!-- 在授课程数量统计 -->
+    <select id="getTeachingCourseCount" resultType="long">
+        SELECT COUNT(*) FROM course
+    </select>
+
+    <!-- 智慧教材数量统计 -->
+    <select id="getSmartTextbookCount" resultType="long">
+        SELECT COUNT(*) FROM textbook
+    </select>
+
+    <!-- 教材类型统计 -->
+    <select id="getTextbookTypeCount" resultType="map">
+        SELECT
+            tc.classification_name as typeName,
+            COUNT(t.id) as textbookCount
+        FROM textbook_classification tc
+                 LEFT JOIN textbook t ON tc.id = t.classification
+        GROUP BY tc.id, tc.classification_name
+    </select>
+
+    <!-- 教师数量统计 -->
+    <select id="getTeacherCount" resultType="long">
+        SELECT COUNT(*) FROM teacher
+    </select>
+
+    <!-- 交流反馈数量统计 -->
+    <select id="getCommunicationFeedbackCount" resultType="long">
+        SELECT COUNT(*) FROM discussion_topic_reply
+    </select>
+
+    <!-- 教学素材数量统计 -->
+    <select id="getTeachingMaterialCount" resultType="long">
+        SELECT COUNT(*) FROM teaching_materials
+    </select>
+
+    <!-- 资源使用数据统计 -->
+    <select id="getResourceUsageData" resultType="map">
+        SELECT
+            '学生数量' as resourceName,
+            COUNT(*) as usageCount
+        FROM student
+        UNION ALL
+        SELECT
+            '教材数量' as resourceName,
+            COUNT(*) as usageCount
+        FROM textbook
+        UNION ALL
+        SELECT
+            '题库数量' as resourceName,
+            COUNT(*) as usageCount
+        FROM teaching_question_bank
+        UNION ALL
+        SELECT
+            '教学活动数量' as resourceName,
+            COUNT(*) as usageCount
+        FROM discussion_topic
+    </select>
+
     <!-- 教材阅读排名（按时长统计，支持时间范围查询） -->
     <select id="getTextbookReadingRank" parameterType="map" resultType="map">
         SELECT 
@@ -71,4 +254,5 @@
         GROUP BY tc.classification_name
         ORDER BY readingDuration DESC
     </select>
+
 </mapper>
