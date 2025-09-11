@@ -31,39 +31,32 @@
         ORDER BY
             date ASC
     </select>
-    <!-- 今日总学习时长 (Kingbase DATETIME 版本, 已修复 XML 转义) -->
+    <!-- 统计今日总阅读时长（秒）- 使用 age() 函数的最终正确版本 -->
     <select id="getTodayStudyDuration" resultType="long">
-        WITH time_diffs AS (
+        WITH UserLogsWithNext AS (
             SELECT
-                EXTRACT(EPOCH FROM add_datetime) AS add_datetime_epoch,
-                LAG(EXTRACT(EPOCH FROM add_datetime)) OVER (ORDER BY add_datetime) AS prev_datetime_epoch
-            FROM learning_log
-            WHERE add_datetime &gt;= CURRENT_DATE
+                LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime,
+                    add_datetime
+            FROM
+                learning_log
+            WHERE
+                add_datetime &gt;= CURRENT_DATE
               AND add_datetime &lt; (CURRENT_DATE + INTERVAL '1 day')
-        ),
-             valid_sessions AS (
-                 SELECT
-                     ABS(add_datetime_epoch - prev_datetime_epoch) AS diff_seconds
-                 FROM time_diffs
-                 WHERE prev_datetime_epoch IS NOT NULL
-             )
-        SELECT COALESCE(COUNT(*), 0) *60
-        FROM valid_sessions
-        WHERE diff_seconds BETWEEN 55 AND 65
-    </select>
-
-
-
-    <!-- 按时间统计总学习时长 -->
-    <select id="getStudyDurationByTime" parameterType="map" resultType="map">
+        )
         SELECT
-            DATE(add_datetime) as date,
-            SUM(duration_minutes) as totalDuration
-        FROM learing_log
-        WHERE add_datetime BETWEEN #{startDate} AND #{endDate}
-        GROUP BY DATE(add_datetime)
-        ORDER BY date
+            COALESCE(SUM(
+                             CASE
+                                 -- 使用 age() 函数计算可靠的时间间隔(interval)，再用 EXTRACT 提取总秒数
+                                 WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+                                     THEN 60 -- 累加60秒
+                                 ELSE 0
+                                 END
+                     ), 0) AS total_reading_seconds
+        FROM
+            UserLogsWithNext;
     </select>
+
+
 
     <!-- 今日活跃人数 -->
     <select id="getTodayActiveUserCount" resultType="long">
@@ -83,49 +76,31 @@
         ORDER BY date
     </select>
 
-
-    <!-- 根据时间范围精确统计总学习时长 (最终版 - 避免INTERVAL运算) -->
-    <select id="getStudyDurationByTimeRange" resultType="long">
-        WITH time_epochs AS (
-            -- 步骤 1: 将所有 add_datetime 直接转换为 epoch 秒。
-            --         然后使用 LAG 函数获取上一条记录的 epoch 秒。
+    <select id="getStudyDurationByTimeRange" parameterType="map" resultType="long">
+        WITH UserLogsWithNext AS (
+            -- 步骤 1: 在指定时间范围内，为每个用户的每条记录找到下一条记录的时间
             SELECT
-                add_datetime, -- 将原始时间戳传递下去，用于最终的分组
-                EXTRACT(EPOCH FROM add_datetime::TIMESTAMP) AS current_epoch,
-                LAG(EXTRACT(EPOCH FROM add_datetime::TIMESTAMP), 1) OVER (ORDER BY add_datetime) AS prev_epoch
-            FROM learning_log
-            WHERE add_datetime &gt;= #{startTime}
-              AND add_datetime &lt; #{endTime}
-        ),
-             session_identifiers AS (
-                 -- 步骤 2: 在数字层面计算时间差，并识别新会话的开始。
-                 --         如果 prev_epoch 为 NULL (即第一行)，COALESCE 会使其差值为0。
-                 SELECT
-                     add_datetime,
-                     CASE
-                         WHEN (current_epoch - COALESCE(prev_epoch, current_epoch)) > 1800 THEN 1
-                         ELSE 0
-                         END AS is_new_session
-                 FROM time_epochs
-             ),
-             session_groups AS (
-                 -- 步骤 3: 为每个连续的学习会话分配一个唯一的ID。
-                 SELECT
-                     add_datetime,
-                     SUM(is_new_session) OVER (ORDER BY add_datetime) AS session_id
-                 FROM session_identifiers
-             )
-        -- 步骤 4: 按 session_id 分组，计算每个会话的持续时间，然后求和。
+                LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime,
+                    add_datetime
+            FROM
+                learning_log
+            WHERE
+              -- 使用传入的参数进行范围筛选
+                add_datetime &gt;= #{startTime}
+              AND add_datetime &lt; (#{endTime}::date + INTERVAL '1 day') -- 确保包含 endDate 整天
+        )
+        -- 步骤 2: 计算所有有效阅读时长的总和
         SELECT
-            COALESCE(SUM(session_duration_seconds), 0)::BIGINT
-        FROM (
-                 SELECT
-                     session_id,
-                     -- 直接用最大 epoch 减去最小 epoch，得到每个会话的秒数
-                     EXTRACT(EPOCH FROM MAX(add_datetime)::TIMESTAMP) - EXTRACT(EPOCH FROM MIN(add_datetime)::TIMESTAMP) AS session_duration_seconds
-                 FROM session_groups
-                 GROUP BY session_id
-             ) AS session_durations
+            COALESCE(SUM(
+                             CASE
+                                 -- 核心逻辑不变: 使用 age() 和 EXTRACT() 计算秒数差
+                                 WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+                                     THEN 60 -- 累加60秒
+                                 ELSE 0
+                                 END
+                     ), 0) AS total_reading_seconds
+        FROM
+            UserLogsWithNext;
     </select>
     <!-- 学生数量统计 -->
     <select id="getStudentCount" resultType="long">

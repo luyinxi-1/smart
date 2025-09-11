@@ -35,15 +35,7 @@ public class SystemStatisticsController {
     }
     // 按时间统计访问人数
 
-/*    public R<List<Map<String, Object>>> getVisitorCountByTime(@RequestParam Map<String, Object> param) {
-        try {
-            return R.ok(systemStatisticsService.getVisitorCountByTime(param));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return R.fail("按时间统计访问人数失败: " + e.getMessage());
-        }
-    }
-    */
+
 @ApiOperation("按时间统计访问人数")
 @GetMapping("/visitorCountByTime")
 public ResponseEntity<List<VisitorCountDTO>> getStudentVisitorCountByTime(
@@ -64,17 +56,7 @@ public ResponseEntity<List<VisitorCountDTO>> getStudentVisitorCountByTime(
             return R.fail("获取今日总学习时长失败: " + e.getMessage());
         }
     }
-    // 按时间统计总学习时长
-/*    @ApiOperation("按时间统计总学习时长")
-    @PostMapping("/studyDurationByTime")
-    public R<List<Map<String, Object>>> getStudyDurationByTime(@RequestParam Map<String, Object> param) {
-        try {
-            return R.ok(systemStatisticsService.getStudyDurationByTime(param));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return R.fail("按时间统计总学习时长失败: " + e.getMessage());
-        }
-    }*/
+
     @ApiOperation("根据时间范围查询总学习时长(单位:秒)")
     @GetMapping("/studyDurationByTime") // 使用 GET 请求，路径名也更通用
     public R<Long> getStudyDurationBytime(
