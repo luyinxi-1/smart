@@ -84,6 +84,31 @@ public class TextbookReviewServiceImpl extends ServiceImpl<TextbookReviewMapper,
                 // 审核通过
                 textbook.setReviewStatus(1);
                 textbook.setReleaseStatus(1); // 【新增】更新发布状态为"已发布"
+                
+                // 更新教材版本号
+                String currentVersion = textbook.getVersionNumber();
+                if (currentVersion != null && !currentVersion.isEmpty()) {
+                    // 解析当前版本号并增加修订版本号
+                    String[] parts = currentVersion.startsWith("v") ? currentVersion.substring(1).split("\\.") : currentVersion.split("\\.");
+                    if (parts.length >= 2) {
+                        try {
+                            int major = Integer.parseInt(parts[0]);
+                            int minor = Integer.parseInt(parts[1]);
+                            // 增加修订版本号
+                            String newVersion = "v" + major + "." + (minor + 1);
+                            textbook.setVersionNumber(newVersion);
+                        } catch (NumberFormatException e) {
+                            // 如果解析失败，使用默认版本号格式
+                            textbook.setVersionNumber("v1.0");
+                        }
+                    } else {
+                        // 如果版本号格式不符合预期，使用默认版本号格式
+                        textbook.setVersionNumber("v1.0");
+                    }
+                } else {
+                    // 如果当前没有版本号，设置初始版本号
+                    textbook.setVersionNumber("v1.0");
+                }
             } else if (auditResult == 0) {
                 // 审核未通过
                 textbook.setReviewStatus(3);
