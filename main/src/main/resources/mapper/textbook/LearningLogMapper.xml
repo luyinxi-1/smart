@@ -5,7 +5,6 @@
     <!-- 通用查询映射结果 -->
     <resultMap id="BaseResultMap" type="com.upc.modular.textbook.entity.LearningLog">
         <id column="id" property="id" />
-        <result column="user_id" property="userId" />
         <result column="textbook_id" property="textbookId" />
         <result column="catalogue_id" property="catalogueId" />
         <result column="client_uuid" property="clientUuid" />
@@ -44,7 +43,7 @@
                 FROM
                     learning_log
                 WHERE
-                    user_id = #{userId}
+                    creator = #{userId}
                 GROUP BY
                     textbook_id
             ) r ON r.textbook_id = t.id

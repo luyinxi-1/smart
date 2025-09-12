@@ -221,7 +221,6 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
         // 转换成 Map<String, Long>
         Map<String, Long> typeCountMap = new HashMap<>();
         for (Map<String, Object> row : result) {
-            // Deleted: String type = row.get("type").toString(); // 使用toString()方法代替强制类型转换
             Object typeObj = row.get("type");
             String type = (typeObj != null) ? typeObj.toString() : "未知类型"; // 添加空值检查
             Long count = ((Number) row.get("cnt")).longValue();
@@ -229,6 +228,145 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
         }
         return typeCountMap;
     }
+    
+    /**
+     * 处理时间参数，确保符合业务需求：
+     * 1. 如果startTime只提供了日期，默认设置为当天00:00:00
+     * 2. 如果endTime只提供了日期，默认设置为当天23:59:59
+     * 3. 如果提供了完整时间，则使用用户提供的具体时间
+     * 4. endTime必须大于等于startTime
+     * 5. 如果endTime晚于今天，就默认为今天
+     * 6. 如果不输入，就默认为所有时间
+     * 
+     * @param params 参数Map
+     */
+    private void processTimeParams(Map<String, Object> params) {
+        if (params == null) {
+            return;
+        }
+
+        String startTimeStr = null;
+        String endTimeStr = null;
+
+        // 获取原始参数
+        Object startTimeObj = params.get("startTime");
+        Object endTimeObj = params.get("endTime");
+
+        // 处理startTime参数
+        if (startTimeObj instanceof String) {
+            startTimeStr = ((String) startTimeObj).trim();
+            if (startTimeStr.isEmpty()) {
+                startTimeStr = null;
+            }
+        }
+
+        // 处理endTime参数
+        if (endTimeObj instanceof String) {
+            endTimeStr = ((String) endTimeObj).trim();
+            if (endTimeStr.isEmpty()) {
+                endTimeStr = null;
+            }
+        }
+
+        LocalDate today = LocalDate.now();
+        
+        LocalDate startDate = null;
+        LocalDate endDate = null;
+        
+        // 解析开始时间
+        if (startTimeStr != null && !startTimeStr.isEmpty()) {
+            try {
+                // 尝试解析完整的时间格式 "yyyy-MM-dd HH:mm:ss"
+                if (startTimeStr.length() == 19 && startTimeStr.charAt(4) == '-' && startTimeStr.charAt(13) == ':') {
+                    startDate = LocalDate.parse(startTimeStr.substring(0, 10));
+                } 
+                // 尝试解析日期格式 "yyyy-MM-dd"
+                else if (startTimeStr.length() == 10 && startTimeStr.charAt(4) == '-') {
+                    startDate = LocalDate.parse(startTimeStr);
+                } 
+                // 其他格式尝试解析
+                else {
+                    startDate = LocalDate.parse(startTimeStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                }
+            } catch (Exception e) {
+                log.warn("Invalid startTime format: {}", startTimeStr);
+                // 格式错误则忽略该参数
+                startDate = null;
+            }
+        }
+
+        // 解析结束时间
+        if (endTimeStr != null && !endTimeStr.isEmpty()) {
+            try {
+                // 尝试解析完整的时间格式 "yyyy-MM-dd HH:mm:ss"
+                if (endTimeStr.length() == 19 && endTimeStr.charAt(4) == '-' && endTimeStr.charAt(13) == ':') {
+                    endDate = LocalDate.parse(endTimeStr.substring(0, 10));
+                } 
+                // 尝试解析日期格式 "yyyy-MM-dd"
+                else if (endTimeStr.length() == 10 && endTimeStr.charAt(4) == '-') {
+                    endDate = LocalDate.parse(endTimeStr);
+                } 
+                // 其他格式尝试解析
+                else {
+                    endDate = LocalDate.parse(endTimeStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                }
+            } catch (Exception e) {
+                log.warn("Invalid endTime format: {}", endTimeStr);
+                // 格式错误则忽略该参数
+                endDate = null;
+            }
+        }
+
+        // 如果没有提供开始时间，默认不限制开始时间
+        if (startDate == null) {
+            params.put("startTime", null);
+        } else {
+            // 如果只提供了日期，设置为当天的00:00:00
+            if (startTimeStr != null && startTimeStr.length() <= 10) {
+                params.put("startTime", startDate.toString() + " 00:00:00");
+            } else {
+                params.put("startTime", startTimeStr);
+            }
+        }
+
+        // 如果没有提供结束时间，默认不限制结束时间
+        if (endDate == null) {
+            params.put("endTime", null);
+        } else {
+            // 如果结束时间晚于今天，设置为今天
+            if (endDate.isAfter(today)) {
+                endDate = today;
+            }
+
+            // 如果开始时间不为空且结束时间早于开始时间，设置结束时间等于开始时间
+            if (startDate != null && endDate.isBefore(startDate)) {
+                endDate = startDate;
+            }
+
+            // 如果只提供了日期，设置为当天的23:59:59
+            if (endTimeStr != null && endTimeStr.length() <= 10) {
+                params.put("endTime", endDate.toString() + " 23:59:59");
+            } else {
+                // 如果提供了完整时间，则使用用户提供的具体时间
+                params.put("endTime", endTimeStr);
+            }
+        }
+    }
+
+    @Override
+    public List<Map<String, Object>> getTextbookReadingRank(Map<String, Object> params) {
+        // 处理时间参数
+        processTimeParams(params);
+        return systemDataStatisticsMapper.getTextbookReadingRank(params);
+    }
+
+    @Override
+    public List<Map<String, Object>> getTextbookTypeReadingRank(Map<String, Object> params) {
+        // 处理时间参数
+        processTimeParams(params);
+        return systemDataStatisticsMapper.getTextbookTypeReadingRank(params);
+    }
+
     @Override
     public Long getCommunicationFeedbackCount() {
         // TODO: 实现交流反馈数量统计逻辑

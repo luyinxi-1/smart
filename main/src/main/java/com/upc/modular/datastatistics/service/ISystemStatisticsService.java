@@ -108,6 +108,16 @@ public interface ISystemStatisticsService {
     Map<String, Long> getTextbookTypeCount();
 
     /**
+     * 教材阅读排名（按时长统计，支持时间范围查询）
+     */
+    List<Map<String, Object>> getTextbookReadingRank(Map<String, Object> params);
+
+    /**
+     * 类型阅读排名（按时长统计，支持时间范围查询）
+     */
+    List<Map<String, Object>> getTextbookTypeReadingRank(Map<String, Object> params);
+
+    /**
      * 交流反馈数量统计
      */
     Long getCommunicationFeedbackCount();

@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 @Data
 @Accessors(chain = true)
 public class TeachingQuestionBankPageMidReturnParam {
+    @ApiModelProperty("主键")
+    private Long id;
     @ApiModelProperty("教学题库名称或标题")
     private String name;
 
