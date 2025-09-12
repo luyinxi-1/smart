@@ -77,7 +77,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         // 查看该作者是否有重名素材
         if (ObjectUtils.isNotEmpty(teachingMaterialsMapper.selectList(new LambdaQueryWrapper<TeachingMaterials>()
                 .eq(TeachingMaterials::getName, param.getName())
-                .eq(TeachingMaterials::getAuthorId, UserUtils.get().getId()))))
+                .eq(TeachingMaterials::getCreator, UserUtils.get().getId()))))
             throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，该命名素材已存在");
         TeachingMaterials teachingMaterials = new TeachingMaterials();
 
@@ -87,9 +87,8 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
             BeanUtils.copyProperties(param, teachingMaterials);
             teachingMaterials.setId(null);
-            teachingMaterials.setAuthorId(UserUtils.get().getId());
+            teachingMaterials.setCreator(UserUtils.get().getId());
             String urlName = UUID.randomUUID().toString();
-            teachingMaterials.setAuthorId(UserUtils.get().getId());
             teachingMaterials.setFileName(urlName);
             // 链接地址存在了filePath里，所以不需要处理
 
@@ -122,7 +121,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             }
             BeanUtils.copyProperties(param, teachingMaterials);
             teachingMaterials.setId(null);
-            teachingMaterials.setAuthorId(UserUtils.get().getId());
+            teachingMaterials.setCreator(UserUtils.get().getId());
             teachingMaterials.setFileName(imageSetName);
             teachingMaterials.setFileSize(Math.round(filesSize / (1024.0 * 1024.0) * 100) / 100.0);
             teachingMaterials.setFilePath(folderPath.toString());
@@ -152,7 +151,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
             BeanUtils.copyProperties(param, teachingMaterials);
             teachingMaterials.setId(null);
-            teachingMaterials.setAuthorId(UserUtils.get().getId());
+            teachingMaterials.setCreator(UserUtils.get().getId());
             teachingMaterials.setFileName(fileName);
             teachingMaterials.setFileSize(Math.round(file.getSize() / (1024.0 * 1024.0) * 100) / 100.0);
             teachingMaterials.setFilePath(filePath);
@@ -263,7 +262,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
         // 如果是作者本人，则拥有权限
         Long currentUserId = UserUtils.get().getId();
-        if (materials.getAuthorId().equals(currentUserId))
+        if (materials.getCreator().equals(currentUserId))
             return true;
 
         return false;
@@ -347,7 +346,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         // 用户类型（0管理员、1学生、2教师）
         Integer userType = UserUtils.get().getUserType();
         if (userType == 0) {
-            queryWrapper.eq(TeachingMaterials::getAuthorId, param.getAuthorId())
+            queryWrapper.eq(TeachingMaterials::getCreator, param.getAuthorId())
                     .like(TeachingMaterials::getName, param.getName())
                     .eq(TeachingMaterials::getType, param.getType())
                     .eq(TeachingMaterials::getIsPublic, param.getIsPublic());
@@ -359,13 +358,13 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             if (ObjectUtils.isNotEmpty(param.getIsPublic())) {
                 if (param.getIsPublic())
                     queryWrapper.eq(TeachingMaterials::getIsPublic, param.getIsPublic());
-                else queryWrapper.eq(TeachingMaterials::getAuthorId, UserUtils.get().getId());
+                else queryWrapper.eq(TeachingMaterials::getCreator, UserUtils.get().getId());
             }
         }
 
         List<TeachingMaterials> materialsList = this.list(queryWrapper);
 
-        List<Long> authorIdList = materialsList.stream().map(TeachingMaterials::getAuthorId).collect(Collectors.toList());
+        List<Long> authorIdList = materialsList.stream().map(TeachingMaterials::getCreator).collect(Collectors.toList());
         Map<Long, String> teacherIdNameMap = teacherService.list(
                         new LambdaQueryWrapper<Teacher>().in(Teacher::getId, authorIdList))
                 .stream().collect(
@@ -375,7 +374,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 .map(materials -> {
                     TeachingMaterialsReturnVo temp = new TeachingMaterialsReturnVo();
                     BeanUtils.copyProperties(materials, temp);
-                    temp.setAuthorName(teacherIdNameMap.get(materials.getAuthorId()));
+                    temp.setAuthorName(teacherIdNameMap.get(materials.getCreator()));
                     return temp;
                 })
                 .sorted(Comparator.comparing(TeachingMaterialsReturnVo::getAddDatetime).reversed())
@@ -394,7 +393,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         TeachingMaterials materials = this.getById(id);
         if (ObjectUtils.isEmpty(materials))
             throw new BusinessException(BusinessErrorEnum.FILE_NOT_EXIST);
-        if (!materials.getIsPublic() && !materials.getAuthorId().equals(UserUtils.get().getId()) && UserUtils.get().getUserType() != 0) {
+        if (!materials.getIsPublic() && !materials.getCreator().equals(UserUtils.get().getId()) && UserUtils.get().getUserType() != 0) {
             if (textbookId == null)
                 throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，没有权限查看此文件");
             List<MaterialsTextbookMapping> textbookMappingList = materialsTextbookMappingService.list(
@@ -405,7 +404,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，没有权限查看此文件");
         }
         BeanUtils.copyProperties(materials, materialsReturnVo);
-        Teacher teacher = teacherService.getById(materials.getAuthorId());
+        Teacher teacher = teacherService.getById(materials.getCreator());
         if (teacher != null && ObjectUtils.isNotEmpty(teacher.getName()))
             materialsReturnVo.setAuthorName(teacher.getName());
 
@@ -420,7 +419,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，参数 type 不能为空");
         TeachingMaterials oldData = this.getById(param.getId());
         // 验证权限：判断是否是作者或者管理员
-        if (!oldData.getAuthorId().equals(UserUtils.get().getId()) && UserUtils.get().getUserType() != 0) {
+        if (!oldData.getCreator().equals(UserUtils.get().getId()) && UserUtils.get().getUserType() != 0) {
             throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
         }
         if (!param.getType().equals(oldData.getType()))
@@ -589,7 +588,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         // 0-管理员
         if (UserUtils.get().getUserType() != 0) {
             materialsList.forEach(materials -> {
-                if (!materials.getAuthorId().equals(UserUtils.get().getId()))
+                if (!materials.getCreator().equals(UserUtils.get().getId()))
                     throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，无权限删除");
             });
         }
@@ -623,7 +622,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         // 0-管理员
         if (UserUtils.get().getUserType() != 0) {
             materialsList.forEach(materials -> {
-                if (!materials.getAuthorId().equals(UserUtils.get().getId()))
+                if (!materials.getCreator().equals(UserUtils.get().getId()))
                     throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，无权限查看");
             });
         }

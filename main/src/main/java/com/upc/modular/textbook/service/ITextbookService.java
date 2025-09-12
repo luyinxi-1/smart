@@ -32,4 +32,6 @@ public interface ITextbookService extends IService<Textbook> {
     TextbookPageReturnParam getOneTextbookDetails(Long textbookId);
 
     Page<Textbook> getpageTextbookCenter(UserFavoritesPageSearch param);
+
+    Textbook downloadTextbookInfo(Long textbookId);
 }
