@@ -85,4 +85,11 @@ public class TextbookCatalogController {
         return R.ok(result);
     }
 
+    @ApiOperation(value = "下载教材目录")
+    @GetMapping("/downloadTextbookCatalog")
+    public R<List<TextbookCatalog>> downloadTextbookCatalog(@RequestParam("textbookId") Long textbookId) {
+        List<TextbookCatalog> result = textbookCatalogService.downloadTextbookCatalog(textbookId);
+        return R.ok(result);
+    }
+
 }

@@ -33,9 +33,7 @@ public class LearningLogServiceImpl extends ServiceImpl<LearningLogMapper, Learn
         if (ObjectUtils.isEmpty(learningLog) || ObjectUtils.isEmpty(learningLog.getTextbookId()) || ObjectUtils.isEmpty(learningLog.getCatalogueId())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参不能为空");
         }
-        if (ObjectUtils.isEmpty(learningLog.getCreator())) {
-            learningLog.setCreator(UserUtils.get().getId());
-        }
+
         return this.save(learningLog);
     }
 

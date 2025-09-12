@@ -45,10 +45,6 @@ public class TeachingMaterials implements Serializable {
     @TableField("type")
     private String type;
 
-    @ApiModelProperty("作者id")
-    @TableField("author_id")
-    private Long authorId;
-
     @ApiModelProperty("是否公开")
     @TableField("is_public")
     private Boolean isPublic;
@@ -73,9 +69,17 @@ public class TeachingMaterials implements Serializable {
     @TableField("qrcode_path")
     private String qrcodePath;
 
+    @ApiModelProperty("创建人-作者id")
+    @TableField(value = "creator", fill = FieldFill.INSERT)
+    private Long creator;
+
     @ApiModelProperty("上传时间")
     @TableField(value = "add_datetime", fill = FieldFill.INSERT)
     private LocalDateTime addDatetime;
+
+    @ApiModelProperty("操作人")
+    @TableField(value = "operator", fill = FieldFill.UPDATE)
+    private Long operator;
 
     @ApiModelProperty("操作时间")
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
