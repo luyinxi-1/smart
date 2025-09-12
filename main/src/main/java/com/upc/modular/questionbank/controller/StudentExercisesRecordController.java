@@ -94,6 +94,41 @@ public class StudentExercisesRecordController {
         return R.ok(resultList);
     }
 
+    @ApiOperation("APP专用-根据题库ID查询当前学生做题记录")
+    @PostMapping("selectMyStudentExercisesRecord")
+    public R<List<StudentExercisesRecord>> selectMyStudentExercisesRecord(@RequestParam Long teachingQuestionBankId){
+        // 1. 获取当前登录用户ID
+        if (ObjectUtils.isEmpty(UserUtils.get()) || ObjectUtils.isEmpty(UserUtils.get().getId())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户未登录");
+        }
+        Long userId = UserUtils.get().getId();
+
+        // 2. 根据用户ID查询学生主键ID
+        LambdaQueryWrapper<Student> studentQueryWrapper = new LambdaQueryWrapper<>();
+        studentQueryWrapper.eq(Student::getUserId, userId);
+        Student student = studentMapper.selectOne(studentQueryWrapper);
+
+        if (student == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "当前用户不是学生或学生信息不存在");
+        }
+
+        Long studentId = student.getId();
+
+        // 3. 参数校验
+        if (teachingQuestionBankId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "题库ID不能为空");
+        }
+
+        // 4. 根据题库ID和学生ID查询做题记录
+        LambdaQueryWrapper<StudentExercisesRecord> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(StudentExercisesRecord::getTeachingQuestionBankId, teachingQuestionBankId)
+                .eq(StudentExercisesRecord::getStudentId, studentId)
+                .orderByDesc(StudentExercisesRecord::getAddDatetime); // 按创建时间倒序排列
+
+        List<StudentExercisesRecord> result = studentExercisesRecordService.list(queryWrapper);
+        return R.ok(result);
+    }
+
     @ApiOperation("分页查询学生做题记录")
     @PostMapping("selectStudentExercisesRecordPage")
     public R<PageBaseReturnParam<StudentExercisesRecord>> selectStudentExercisesRecordPage(@RequestBody StudentExercisesRecordPageSearchParam param){
