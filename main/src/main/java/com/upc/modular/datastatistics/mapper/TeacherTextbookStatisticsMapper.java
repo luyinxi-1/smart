@@ -17,7 +17,7 @@ public interface TeacherTextbookStatisticsMapper {
     /**
      * 统计教材阅读人数
      */
-    @Select("SELECT COUNT(DISTINCT user_id) FROM learning_log WHERE textbook_id = #{textbookId} AND data_type = 0")
+    @Select("SELECT COUNT(DISTINCT creator) FROM learning_log WHERE textbook_id = #{textbookId} AND data_type = 0")
     Long countReadersByTextbookId(@Param("textbookId") Long textbookId);
 
     /**
