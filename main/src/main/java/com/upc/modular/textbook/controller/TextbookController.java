@@ -84,4 +84,19 @@ public class TextbookController {
         PageBaseReturnParam<Textbook> result = PageBaseReturnParam.ok(page);
         return R.page(result);
     }
+
+    @ApiOperation(value = "下载教材信息")
+    @GetMapping("/downloadTextbookInfo")
+    public R<Textbook> downloadTextbookInfo(@RequestParam("textbookId") Long textbookId) {
+        return R.ok(textbookService.downloadTextbookInfo(textbookId));
+    }
+
+    @ApiOperation(value = "测试post")
+    @PostMapping("/testPost")
+    public R<String> testPost(@RequestBody Textbook textbook, @RequestParam("textbookId") String textbookId) {
+        System.out.println("textbookId:" + textbookId);
+        System.out.println("textbook:" + textbook);
+        return R.ok("测试成功");
+    }
+
 }

@@ -35,4 +35,6 @@ public interface ITextbookCatalogService extends IService<TextbookCatalog> {
     List<ReadTextbookReturnParam> readTextbook(Long id);
 
     List<TextbookTree> getTextbookCatalogTree(Long textbookId);
+
+    List<TextbookCatalog> downloadTextbookCatalog(Long textbookId);
 }

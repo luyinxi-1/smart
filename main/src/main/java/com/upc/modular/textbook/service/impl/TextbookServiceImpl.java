@@ -286,6 +286,21 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         return resultPage;
     }
 
+    @Override
+    public Textbook downloadTextbookInfo(Long textbookId) {
+
+        if (textbookId == null)
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+
+        Textbook textbook = textbookMapper.selectById(textbookId);
+        if (textbook == null)
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "相关教材信息有误");
+
+        if (textbook.getReleaseStatus() != 1 || textbook.getReviewStatus() != 1)
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，教材未发布");
+        return textbook;
+    }
+
     public boolean textbookAuthorityEditJudge(Long textBookId, Long userId) {
         if (textBookId == null || userId == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);

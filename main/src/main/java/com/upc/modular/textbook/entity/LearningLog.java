@@ -31,10 +31,6 @@ public class LearningLog implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
-//    @ApiModelProperty("用户id")
-//    @TableField("user_id")
-//    private Long userId;
-
     @ApiModelProperty("教材id")
     @TableField("textbook_id")
     private Long textbookId;
@@ -43,28 +39,28 @@ public class LearningLog implements Serializable {
     @TableField("catalogue_id")
     private Long catalogueId;
 
-    @ApiModelProperty("客户端生成的记录唯一ID(防重复同步)")
-    @TableField("client_uuid")
-    private String clientUuid;
-
-    @ApiModelProperty("添加时间")
-    @TableField(value = "add_datetime", fill = FieldFill.INSERT)
-    private LocalDateTime addDatetime;
-
-    @ApiModelProperty("操作时间")
-    @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
-    private LocalDateTime operationDatetime;
+    @ApiModelProperty("数据发送类型")
+    @TableField(value = "data_type")
+    private int dataType;
 
     @ApiModelProperty("创建人")
     @TableField(value = "creator", fill = FieldFill.INSERT)
     private Long creator;
 
+    @ApiModelProperty("添加时间")
+    @TableField(value = "add_datetime", fill = FieldFill.INSERT)
+    private LocalDateTime addDatetime;
+
     @ApiModelProperty("操作人")
     @TableField(value = "operator", fill = FieldFill.UPDATE)
     private Long operator;
 
-    @ApiModelProperty("数据发送类型")
-    @TableField(value = "data_type")
-    private int dataType;
+    @ApiModelProperty("操作时间")
+    @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
+    private LocalDateTime operationDatetime;
+
+    @ApiModelProperty("客户端生成的记录唯一ID(防重复同步)")
+    @TableField("client_uuid")
+    private String clientUuid;
 
 }
