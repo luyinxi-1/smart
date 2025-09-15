@@ -102,8 +102,7 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
                     .map(course -> {
                         CourseDataExportParam dto = new CourseDataExportParam();
                         // 复制字段
-                        dto.setTextbookId(course.getTextbookId())
-                                .setCourseName(course.getCourseName())
+                        dto.setCourseName(course.getCourseName())
                                 .setCredit(course.getCredit())
                                 .setDescription(course.getDescription());
                         // status 转换
@@ -132,18 +131,12 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
 
     @Override
     public Long inserCourse(Course param) {
-        Long textbookId = param.getTextbookId();
+        //Long textbookId = param.getTextbookId();
         Long teacherId = param.getTeacherId();
 
-        LambdaQueryWrapper<Textbook> queryWrapper1 = new LambdaQueryWrapper<>();
-        queryWrapper1.eq(Textbook::getId,textbookId);
-        boolean isTextbookExists = textbookMapper.exists(queryWrapper1);
-        if (!isTextbookExists) {
-            throw new RuntimeException("ID为 " + textbookId + " 的教材不存在！");
-        }
 
         LambdaQueryWrapper<Teacher> queryWrapper2 = new LambdaQueryWrapper<>();
-        queryWrapper2.eq(Teacher::getId,teacherId);
+        queryWrapper2.eq(Teacher::getId, teacherId);
         boolean isTeacherExists = teacherMapper.exists(queryWrapper2);
         if (!isTeacherExists) {
             throw new RuntimeException("ID为 " + teacherId + " 的教师不存在！");

@@ -47,7 +47,7 @@ public class TeacherTextbookStatisticsController {
         return R.ok(result);
     }
 
-/*
+
     @ApiOperation("获取各章节习题正确率统计")
     @PostMapping("/chapter-question-correct-rate")
     public R<List<ChapterQuestionCorrectRateParam>> getChapterQuestionCorrectRateStatistics(
@@ -55,5 +55,5 @@ public class TeacherTextbookStatisticsController {
         List<ChapterQuestionCorrectRateParam> result = teacherTextbookStatisticsService
                 .getChapterQuestionCorrectRateStatistics(param.getTextbookId());
         return R.ok(result);
-    }*/
+    }
 }
