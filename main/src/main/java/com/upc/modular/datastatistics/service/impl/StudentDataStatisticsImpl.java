@@ -193,7 +193,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         if (startTime == null && endTime == null) {
             readCatalogs = studentDataStatisticsMapper.findReadCatalogsByUserId(currentUserId);
         }else {
-            readCatalogs = studentDataStatisticsMapper.findReadCatalogsByUserId(currentUserId,startTime,endTime);}
+            readCatalogs = studentDataStatisticsMapper.findReadCatalogsByUserIdAndTime(currentUserId,startTime,endTime);}
 
         //如果没有阅读记录，返回空列表
         if (readCatalogs == null || readCatalogs.isEmpty()) {
