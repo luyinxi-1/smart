@@ -135,15 +135,18 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         Long textbookId = param.getTextbookId();
         Long teacherId = param.getTeacherId();
 
-        LambdaQueryWrapper<Textbook> queryWrapper1 = new LambdaQueryWrapper<>();
-        queryWrapper1.eq(Textbook::getId,textbookId);
-        boolean isTextbookExists = textbookMapper.exists(queryWrapper1);
-        if (!isTextbookExists) {
-            throw new RuntimeException("ID为 " + textbookId + " 的教材不存在！");
+        // 只有当textbookId不为空时才验证教材是否存在
+        if (textbookId != null) {
+            LambdaQueryWrapper<Textbook> queryWrapper1 = new LambdaQueryWrapper<>();
+            queryWrapper1.eq(Textbook::getId, textbookId);
+            boolean isTextbookExists = textbookMapper.exists(queryWrapper1);
+            if (!isTextbookExists) {
+                throw new RuntimeException("ID为 " + textbookId + " 的教材不存在！");
+            }
         }
 
         LambdaQueryWrapper<Teacher> queryWrapper2 = new LambdaQueryWrapper<>();
-        queryWrapper2.eq(Teacher::getId,teacherId);
+        queryWrapper2.eq(Teacher::getId, teacherId);
         boolean isTeacherExists = teacherMapper.exists(queryWrapper2);
         if (!isTeacherExists) {
             throw new RuntimeException("ID为 " + teacherId + " 的教师不存在！");
