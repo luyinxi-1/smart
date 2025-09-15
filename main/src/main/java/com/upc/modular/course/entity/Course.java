@@ -31,10 +31,6 @@ public class Course implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
-    @ApiModelProperty("教材id")
-    @TableField("textbook_id")
-    private Long textbookId;
-
     @ApiModelProperty("课程名称")
     @TableField("course_name")
     private String courseName;

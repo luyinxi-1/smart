@@ -5,7 +5,6 @@
     <!-- 通用查询映射结果 -->
     <resultMap id="BaseResultMap" type="com.upc.modular.course.entity.Course">
         <id column="id" property="id" />
-        <result column="textbook_id" property="textbookId" />
         <result column="course_name" property="courseName" />
         <result column="credit" property="credit" />
         <result column="description" property="description" />
