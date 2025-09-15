@@ -56,7 +56,7 @@ public interface StudentDataStatisticsMapper  extends BaseMapper<StudentStatisti
     List<Map<String, Object>> findReadCatalogsByUserId(Long currentUserId);
 
     @Select("SELECT * FROM learning_log WHERE creator = #{currentUserId} AND add_datetime BETWEEN #{startTime} AND #{endTime}")
-    List<Map<String, Object>> findReadCatalogsByUserId(Long currentUserId,String startTime,String endTime);
+    List<Map<String, Object>> findReadCatalogsByUserIdAndTime(Long currentUserId,String startTime,String endTime);
     @Select("SELECT * FROM textbook where id = #{textbookId}")
     Textbook getTextbookById(Long textbookId);
     @Select("SELECT COUNT(DISTINCT textbook_id) FROM learning_log WHERE creator = #{userId} AND EXTRACT(YEAR FROM add_datetime) = #{year}")
