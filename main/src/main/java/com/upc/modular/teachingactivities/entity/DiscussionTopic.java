@@ -69,5 +69,8 @@ public class DiscussionTopic implements Serializable {
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
     private LocalDateTime operationDatetime;
 
+    @ApiModelProperty("话题发起人")
+    @TableField("identity_type")
+    private Integer identityType;
 
 }

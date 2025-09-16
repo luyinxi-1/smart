@@ -1,6 +1,7 @@
 package com.upc.modular.datastatistics.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.upc.modular.datastatistics.controller.param.ChapterMasteryVO;
 import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.course.service.ICourseService;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
@@ -22,19 +23,21 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
 
+import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
 @Service
-public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
+public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
 
     @Autowired
     private ITeachingMaterialsService teachingMaterialsService;
@@ -65,7 +68,8 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
     // 添加SysLogMapper的依赖
     @Autowired
     private com.upc.modular.auth.mapper.SysLogMapper userLoginLogMapper;
-//今日访问人数
+
+    //今日访问人数
     @Override
     public Long getTodayVisitorCount() {
 
@@ -353,6 +357,57 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
         // 处理时间参数
         processTimeParams(params);
         return systemDataStatisticsMapper.getTextbookTypeReadingRank(params);
+    }
+
+    @Override
+    public List<ChapterMasteryVO> getStudentChapterMastery(Long studentId, Long textbookId) {
+        List<Map<String, Object>> rawData = systemDataStatisticsMapper.getStudentChapterMastery(studentId, textbookId);
+        List<ChapterMasteryVO> result = new ArrayList<>();
+
+        DecimalFormat df = new DecimalFormat("#.##");
+
+        for (Map<String, Object> item : rawData) {
+            ChapterMasteryVO vo = new ChapterMasteryVO();
+            vo.setChapterId((Long) item.get("chapterId"));
+
+            // 清理章节名称中的HTML标签
+            String chapterName = (String) item.get("chapterName");
+            if (chapterName != null) {
+                // 移除HTML标签
+                chapterName = chapterName.replaceAll("<[^>]+>", "");
+                // 处理HTML实体
+                chapterName = chapterName.replace("&nbsp;", " ");
+                chapterName = chapterName.replace("&amp;", "&");
+            }
+            vo.setChapterName(chapterName);
+
+            // 检查章节是否有题目
+            Object questionCountObj = item.get("questionCount");
+            Long questionCount = (questionCountObj instanceof Number) ? ((Number) questionCountObj).longValue() : 0L;
+
+            if (questionCount == null || questionCount == 0) {
+                // 该章节没有题目
+                vo.setMasteryPercentage("0");
+                vo.setMasteryDisplay("该章节没有题目");
+            } else {
+                // 章节有题目，检查是否有答题记录
+                Object masteryPercentageObj = item.get("masteryPercentage");
+                Double masteryPercentage = (masteryPercentageObj instanceof Number) ? ((Number) masteryPercentageObj).doubleValue() : -1.0;
+
+                if (masteryPercentage != null && masteryPercentage >= 0) {
+                    String percentageStr = df.format(masteryPercentage);
+                    vo.setMasteryPercentage(percentageStr);
+                    vo.setMasteryDisplay(percentageStr + "%");
+                } else {
+                    vo.setMasteryPercentage("0");
+                    vo.setMasteryDisplay("暂无做题记录");
+                }
+            }
+
+            result.add(vo);
+        }
+
+        return result;
     }
 
     @Override

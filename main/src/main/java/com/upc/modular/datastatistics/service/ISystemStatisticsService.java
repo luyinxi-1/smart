@@ -1,5 +1,6 @@
 package com.upc.modular.datastatistics.service;
 
+import com.upc.modular.datastatistics.controller.param.ChapterMasteryVO;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
 
 import java.time.LocalDateTime;
@@ -116,6 +117,14 @@ public interface ISystemStatisticsService {
      * 类型阅读排名（按时长统计，支持时间范围查询）
      */
     List<Map<String, Object>> getTextbookTypeReadingRank(Map<String, Object> params);
+    
+    /**
+     * 获取指定学生在某教材下各章节的掌握度
+     * @param studentId 学生ID
+     * @param textbookId 教材ID
+     * @return List<ChapterMasteryVO> 章节掌握度列表
+     */
+    List<ChapterMasteryVO> getStudentChapterMastery(Long studentId, Long textbookId);
 
     /**
      * 交流反馈数量统计

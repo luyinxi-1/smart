@@ -44,6 +44,7 @@
         hpn.type,
         hpn.is_top,
         hpn.add_datetime,
+        hpn.operation_datetime,
         hpn.status,
         COALESCE(t.name, s.name) AS authorName,
         COALESCE(t_op.name, s_op.name) AS operatorName
@@ -75,9 +76,10 @@
         hpn.type,
         hpn.is_top,
         hpn.add_datetime,
+        hpn.operation_datetime,
         hpn.status,
         COALESCE(t.name, s.name) AS authorName,
-        COALESCE(t_op.name, s_op.name) AS operatorName
+        COALESCE(t_op.name, s_op.name , u_op.nickname, u_op.username) AS operatorName
         FROM
         home_page_notice hpn
         LEFT JOIN sys_tbuser u ON hpn.creator = u.id

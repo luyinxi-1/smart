@@ -2,6 +2,8 @@ package com.upc.modular.datastatistics.mapper;
 
 import com.upc.modular.datastatistics.controller.param.ChapterQuestionCorrectRateParam;
 import com.upc.modular.datastatistics.controller.param.TextbookTimeStatisticsReturnParam;
+import com.upc.modular.textbook.entity.LearningLog;
+import com.upc.modular.teachingactivities.entity.DiscussionTopicReply;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -17,7 +19,7 @@ public interface TeacherTextbookStatisticsMapper {
     /**
      * 统计教材阅读人数
      */
-    @Select("SELECT COUNT(DISTINCT user_id) FROM learning_log WHERE textbook_id = #{textbookId} AND data_type = 0")
+    @Select("SELECT COUNT(DISTINCT creator) FROM learning_log WHERE textbook_id = #{textbookId} AND data_type = 0")
     Long countReadersByTextbookId(@Param("textbookId") Long textbookId);
 
     /**
@@ -77,23 +79,44 @@ public interface TeacherTextbookStatisticsMapper {
     Double getQuestionCorrectRateByTextbookId(@Param("textbookId") Long textbookId);
 
     /**
-     * 按时间统计交流反馈新增数量
-     */
-    List<TextbookTimeStatisticsReturnParam> getCommunicationFeedbackStatisticsByTime(@Param("textbookId") Long textbookId,
-                                                                                      @Param("queryMethod") Integer queryMethod,
-                                                                                      @Param("startTime") String startTime,
-                                                                                      @Param("endTime") String endTime);
-
-    /**
-     * 按时间统计阅读时长
-     */
-    List<TextbookTimeStatisticsReturnParam> getReadingDurationStatisticsByTime(@Param("textbookId") Long textbookId,
-                                                                               @Param("queryMethod") Integer queryMethod,
-                                                                               @Param("startTime") String startTime,
-                                                                               @Param("endTime") String endTime);
-
-    /**
      * 获取各章节习题正确率统计
      */
     List<ChapterQuestionCorrectRateParam> getChapterQuestionCorrectRateStatistics(@Param("textbookId") Long textbookId);
+
+    /**
+     * 获取指定教材的学习日志记录 - 用于基于时间间隔的阅读时长计算
+     */
+    @Select("SELECT * FROM learning_log WHERE textbook_id = #{textbookId} AND data_type = 0 ORDER BY creator, add_datetime ASC")
+    List<LearningLog> findLearningLogsByTextbookId(@Param("textbookId") Long textbookId);
+
+    /**
+     * 根据时间段获取指定教材的学习日志记录
+     */
+    @Select("SELECT * FROM learning_log WHERE textbook_id = #{textbookId} AND data_type = 0 " +
+            "AND add_datetime BETWEEN #{startTime} AND #{endTime} " +
+            "ORDER BY creator, add_datetime ASC")
+    List<LearningLog> findLearningLogsByTextbookIdAndTime(@Param("textbookId") Long textbookId,
+                                                          @Param("startTime") String startTime,
+                                                          @Param("endTime") String endTime);
+
+    /**
+     * 获取指定教材的交流反馈记录 - 用于按时间统计交流反馈数量
+     */
+    @Select("SELECT dtr.* FROM discussion_topic_reply dtr " +
+            "INNER JOIN discussion_topic dt ON dtr.topic_id = dt.id " +
+            "WHERE dt.textbook_id = #{textbookId} " +
+            "ORDER BY dtr.add_datetime ASC")
+    List<DiscussionTopicReply> findCommunicationFeedbackByTextbookId(@Param("textbookId") Long textbookId);
+
+    /**
+     * 根据时间段获取指定教材的交流反馈记录
+     */
+    @Select("SELECT dtr.* FROM discussion_topic_reply dtr " +
+            "INNER JOIN discussion_topic dt ON dtr.topic_id = dt.id " +
+            "WHERE dt.textbook_id = #{textbookId} " +
+            "AND dtr.add_datetime BETWEEN #{startTime} AND #{endTime} " +
+            "ORDER BY dtr.add_datetime ASC")
+    List<DiscussionTopicReply> findCommunicationFeedbackByTextbookIdAndTime(@Param("textbookId") Long textbookId,
+                                                                           @Param("startTime") String startTime,
+                                                                           @Param("endTime") String endTime);
 } 

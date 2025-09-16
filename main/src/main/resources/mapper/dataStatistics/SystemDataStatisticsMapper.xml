@@ -253,4 +253,39 @@
         ORDER BY readingDuration DESC
     </select>
 
+    <!-- 获取指定学生在某教材下各章节的掌握度 -->
+    <select id="getStudentChapterMastery" resultType="map">
+        SELECT 
+            tc.id AS "chapterId",
+            REGEXP_REPLACE(
+                REGEXP_REPLACE(tc.catalog_name, E'&lt;[^&gt;]+&gt;', '', 'g'), 
+                E'&amp;nbsp;', ' ', 'g'
+            ) AS "chapterName",
+            CASE 
+                WHEN COUNT(qbl.question_id) = 0 THEN 
+                    -1  -- 表示该章节没有题目
+                WHEN SUM(qbl.score) > 0 THEN 
+                    ROUND((SUM(sec.score) / SUM(qbl.score)) * 100, 2)
+                ELSE 0 
+            END AS "masteryPercentage",
+            COUNT(qbl.question_id) AS "questionCount"
+        FROM textbook_catalog tc
+        LEFT JOIN teaching_question_bank tqb ON tc.id = tqb.textbook_catalog_id
+        LEFT JOIN questions_banks_list qbl ON tqb.id = qbl.bank_id
+        LEFT JOIN student_final_grade sfg ON tqb.id = sfg.bank_id AND sfg.student_id = #{studentId}
+        LEFT JOIN student_exercises_content sec ON qbl.bank_id = sec.teaching_question_bank_id 
+            AND qbl.question_id = sec.teaching_question 
+            AND sec.record_id = (
+                SELECT ser.id 
+                FROM student_exercises_record ser 
+                WHERE ser.student_id = #{studentId} 
+                AND ser.teaching_question_bank_id = tqb.id 
+                AND ser.status = 2
+                ORDER BY ser.operation_datetime DESC 
+                LIMIT 1
+            )
+        WHERE tc.textbook_id = #{textbookId}
+        GROUP BY tc.id, tc.catalog_name
+        ORDER BY tc.id
+    </select>
 </mapper>
