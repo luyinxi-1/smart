@@ -1,6 +1,7 @@
 package com.upc.modular.datastatistics.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.upc.modular.datastatistics.controller.param.ChapterMasteryVO;
 import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.course.service.ICourseService;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
@@ -22,19 +23,21 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
 
+import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
 @Service
-public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
+public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
 
     @Autowired
     private ITeachingMaterialsService teachingMaterialsService;
@@ -65,7 +68,8 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
     // 添加SysLogMapper的依赖
     @Autowired
     private com.upc.modular.auth.mapper.SysLogMapper userLoginLogMapper;
-//今日访问人数
+
+    //今日访问人数
     @Override
     public Long getTodayVisitorCount() {
 
@@ -78,50 +82,39 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
 
     @Override
     public List<VisitorCountDTO> getStudentVisitorCountByTime(String startDate, String endDate) {
-        // 1. (可选但推荐) 参数校验
+        // 1. 参数非空校验
         if (!StringUtils.hasText(startDate) || !StringUtils.hasText(endDate)) {
             throw new IllegalArgumentException("开始日期和结束日期不能为空！");
         }
 
-        // 校验日期格式和顺序
+        // 2. 将传入的参数统一处理为纯日期字符串 (yyyy-MM-dd)
+        // 无论传入的是 "2025-09-12" 还是 "2025-09-12 15:30:00"，
+        // 都只截取前10位。
+        String startDateOnly = startDate.length() > 10 ? startDate.substring(0, 10) : startDate;
+        String endDateOnly = endDate.length() > 10 ? endDate.substring(0, 10) : endDate;
+
+
+        // 3. (可选但推荐) 使用处理过的纯日期字符串进行合法性校验
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        try {
+            LocalDate start = LocalDate.parse(startDateOnly, dateFormatter);
+            LocalDate end = LocalDate.parse(endDateOnly, dateFormatter);
 
-        LocalDate start;
-        LocalDate end;
-
-        // 判断输入是日期格式还是日期时间格式
-        if (startDate.contains(":")) {
-            // 如果包含时间部分，使用日期时间格式解析
-            start = LocalDate.parse(startDate, dateTimeFormatter);
-        } else {
-            // 否则使用日期格式解析
-            start = LocalDate.parse(startDate, dateFormatter);
+            if (start.isAfter(end)) {
+                throw new IllegalArgumentException("开始日期不能晚于结束日期！");
+            }
+        } catch (java.time.format.DateTimeParseException e) {
+            // 如果截取后格式依然不对，说明原始输入格式错误
+            throw new IllegalArgumentException("无效的日期格式！", e);
         }
 
-        if (endDate.contains(":")) {
-            // 如果包含时间部分，使用日期时间格式解析
-            end = LocalDate.parse(endDate, dateTimeFormatter);
-        } else {
-            // 否则使用日期格式解析
-            end = LocalDate.parse(endDate, dateFormatter);
-        }
 
-        if (start.isAfter(end)) {
-            throw new IllegalArgumentException("开始日期不能晚于结束日期！");
-        }
-
-        // 2. 准备参数
-        // 为了兼容数据库可能需要 'yyyy-MM-dd HH:mm:ss' 格式
-        // KingBase/PostgreSQL 的 BETWEEN 对 'yyyy-MM-dd' 兼容性很好，但补全时间是更严谨的做法
-        String startDateTime = startDate + (startDate.contains(":") ? "" : " 00:00:00");
-        String endDateTime = endDate + (endDate.contains(":") ? "" : " 23:59:59");
-
+        // 4. 准备参数，传入处理后的纯日期
         Map<String, Object> params = new HashMap<>();
-        params.put("startDate", startDateTime);
-        params.put("endDate", endDateTime);
+        params.put("startDate", startDateOnly);
+        params.put("endDate", endDateOnly);
 
-        // 3. 调用 Mapper 并返回结果
+        // 5. 调用 Mapper 并返回结果
         return systemDataStatisticsMapper.getStudentVisitorCountByTime(params);
     }
 
@@ -137,7 +130,6 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
         return systemDataStatisticsMapper.getTodayStudyDuration();
     }
 
-    // === 修改后的代码 ===
     @Override
     public Long getStudyDurationByTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
         // TODO: 可以在这里添加参数校验，例如 endTime 必须大于 startTime
@@ -365,6 +357,57 @@ public class SystemStatisticsServiceImpl  implements ISystemStatisticsService {
         // 处理时间参数
         processTimeParams(params);
         return systemDataStatisticsMapper.getTextbookTypeReadingRank(params);
+    }
+
+    @Override
+    public List<ChapterMasteryVO> getStudentChapterMastery(Long studentId, Long textbookId) {
+        List<Map<String, Object>> rawData = systemDataStatisticsMapper.getStudentChapterMastery(studentId, textbookId);
+        List<ChapterMasteryVO> result = new ArrayList<>();
+
+        DecimalFormat df = new DecimalFormat("#.##");
+
+        for (Map<String, Object> item : rawData) {
+            ChapterMasteryVO vo = new ChapterMasteryVO();
+            vo.setChapterId((Long) item.get("chapterId"));
+
+            // 清理章节名称中的HTML标签
+            String chapterName = (String) item.get("chapterName");
+            if (chapterName != null) {
+                // 移除HTML标签
+                chapterName = chapterName.replaceAll("<[^>]+>", "");
+                // 处理HTML实体
+                chapterName = chapterName.replace("&nbsp;", " ");
+                chapterName = chapterName.replace("&amp;", "&");
+            }
+            vo.setChapterName(chapterName);
+
+            // 检查章节是否有题目
+            Object questionCountObj = item.get("questionCount");
+            Long questionCount = (questionCountObj instanceof Number) ? ((Number) questionCountObj).longValue() : 0L;
+
+            if (questionCount == null || questionCount == 0) {
+                // 该章节没有题目
+                vo.setMasteryPercentage("0");
+                vo.setMasteryDisplay("该章节没有题目");
+            } else {
+                // 章节有题目，检查是否有答题记录
+                Object masteryPercentageObj = item.get("masteryPercentage");
+                Double masteryPercentage = (masteryPercentageObj instanceof Number) ? ((Number) masteryPercentageObj).doubleValue() : -1.0;
+
+                if (masteryPercentage != null && masteryPercentage >= 0) {
+                    String percentageStr = df.format(masteryPercentage);
+                    vo.setMasteryPercentage(percentageStr);
+                    vo.setMasteryDisplay(percentageStr + "%");
+                } else {
+                    vo.setMasteryPercentage("0");
+                    vo.setMasteryDisplay("暂无做题记录");
+                }
+            }
+
+            result.add(vo);
+        }
+
+        return result;
     }
 
     @Override

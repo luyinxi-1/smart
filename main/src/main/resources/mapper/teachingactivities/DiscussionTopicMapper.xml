@@ -49,7 +49,7 @@
         )
         SELECT
         dt.id, dt.topic_title, dt.topic_content, dt.type, dt.textbook_id,
-        dt.textbook_catalog_id, dt.creator, dt.add_datetime, dt.operator, dt.operation_datetime,
+        dt.textbook_catalog_id, dt.creator, dt.add_datetime, dt.operator, dt.operation_datetime,dt.identity_type,
         COALESCE(rc.replyCount, 0) AS replyCount,
         tb.textbook_name AS textbookName,
         tc.catalog_name AS textbookCatalogName,

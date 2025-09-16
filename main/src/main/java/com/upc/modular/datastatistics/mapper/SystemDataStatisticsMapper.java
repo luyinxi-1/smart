@@ -83,4 +83,12 @@ public interface SystemDataStatisticsMapper {
 
     // 资源使用数据统计
     List<Map<String, Object>> getResourceUsageData();
+    
+    /**
+     * 获取指定学生在某教材下各章节的掌握度
+     * @param studentId 学生ID
+     * @param textbookId 教材ID
+     * @return List<Map> 章节掌握度列表
+     */
+    List<Map<String, Object>> getStudentChapterMastery(@Param("studentId") Long studentId, @Param("textbookId") Long textbookId);
 }

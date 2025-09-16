@@ -21,10 +21,6 @@ public class CourseDataExportParam {
 //    @ExcelProperty("教材名称")
 //    private String textbookName;
 
-    @ApiModelProperty("教材id")
-    @ExcelProperty("教材id")
-    private Long textbookId;
-
     @ApiModelProperty("课程名称")
     @ExcelProperty("课程名称")
     private String courseName;
