@@ -28,4 +28,7 @@ public class StudentAnswerDetailVO {
 
     @ApiModelProperty("是否正确(0:错误；1:正确)")
     private Boolean isCorrect;
+
+    @ApiModelProperty("选择题选项")
+    private String choiceQuestionOptions;
 }

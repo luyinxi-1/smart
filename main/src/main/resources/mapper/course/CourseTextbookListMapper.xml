@@ -29,5 +29,8 @@
             </if>
         </where>
     </select>
-
+    <!-- 自定义物理删除SQL -->
+    <delete id="physicalDeleteByCourseId">
+        DELETE FROM course_textbook_list WHERE course_id = #{courseId}
+    </delete>
 </mapper>
