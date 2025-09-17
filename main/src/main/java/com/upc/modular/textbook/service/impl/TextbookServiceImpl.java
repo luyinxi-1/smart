@@ -293,6 +293,20 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
 
         Textbook textbook = textbookMapper.selectById(textbookId);
+        // ++++++++++++++++++++++++ 添加这些调试日志 ++++++++++++++++++++++++
+        System.out.println("====== 下载接口内部状态调试 ======");
+        System.out.println("从数据库获取到的教材ID: " + textbook.getId());
+        System.out.println("获取到的 release_status 的值: " + textbook.getReleaseStatus());
+
+// 这行代码非常重要，它会告诉你真实的数据类型
+        if (textbook.getReleaseStatus() != null) {
+            System.out.println("获取到的 release_status 的数据类型: " + textbook.getReleaseStatus().getClass().getName());
+        }
+
+// 如果还有其他判断条件，也一并打印出来，例如：
+// System.out.println("获取到的 is_deleted 的值: " + textbook.getIsDeleted());
+        System.out.println("===============================");
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         if (textbook == null)
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "相关教材信息有误");
 

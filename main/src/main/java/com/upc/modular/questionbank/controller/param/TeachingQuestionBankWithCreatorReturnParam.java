@@ -34,6 +34,9 @@ public class TeachingQuestionBankWithCreatorReturnParam implements Serializable 
     @ApiModelProperty("关联的教材目录")
     private Long textbookCatalogId;
 
+    @ApiModelProperty("是否限制答题次数（0:不限制，1:限制）")
+    private Integer isLimitAttempts;
+
     @ApiModelProperty("学生可作答的最大次数")
     private Integer maxAttempts;
 

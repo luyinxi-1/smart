@@ -48,5 +48,18 @@ public class QuestionsBanksList implements Serializable {
     @TableField("score")
     private Double score;
 
+    // 新增字段：题目类型
+    @ApiModelProperty("题目类型")
+    @TableField(exist = false)
+    private Integer questionType;
+
+    @ApiModelProperty("题目类型名称")
+    @TableField(exist = false)
+    private String questionTypeName;
+    // 新增字段：题目名称/内容
+    @ApiModelProperty("题目名称")
+    @TableField(exist = false)
+    private String questionContent;
+
 
 }

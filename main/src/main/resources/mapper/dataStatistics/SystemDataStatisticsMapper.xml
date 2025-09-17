@@ -19,13 +19,13 @@
     <select id="getStudentVisitorCountByTime" parameterType="map" resultType="com.upc.modular.datastatistics.controller.param.VisitorCountDTO">
         SELECT
             sl.add_datetime::date as date,
-            COUNT(DISTINCT s.user_id) as visitorCount
+        COUNT(DISTINCT s.user_id) as visitorCount
         FROM
             sys_log sl
             INNER JOIN
             student s ON sl.user_id = s.user_id
         WHERE
-            sl.add_datetime BETWEEN #{startDate} AND #{endDate}
+            sl.add_datetime::date BETWEEN #{startDate} AND #{endDate}
         GROUP BY
             sl.add_datetime::date
         ORDER BY
@@ -55,8 +55,6 @@
         FROM
             UserLogsWithNext;
     </select>
-
-
 
     <!-- 今日活跃人数 -->
     <select id="getTodayActiveUserCount" resultType="long">
