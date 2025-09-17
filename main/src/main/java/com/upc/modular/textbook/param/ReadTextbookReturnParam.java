@@ -16,4 +16,7 @@ public class ReadTextbookReturnParam extends TextbookCatalog {
 
     @ApiModelProperty("目录的名称(纯文字，不带html样式)")
     private String catalogNameWithoutHtml;
+
+    @ApiModelProperty("创建人姓名")
+    private String creatorName;
 }
