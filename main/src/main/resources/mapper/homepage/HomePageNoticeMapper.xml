@@ -19,7 +19,7 @@
         SELECT
         hpn.*,
         COALESCE(t.name, s.name) AS authorName,
-        COALESCE(t_op.name, s_op.name) AS operatorName
+        COALESCE(t_op.name, s_op.name, u_op.nickname, u_op.username) AS operatorName
         FROM
         home_page_notice hpn
         LEFT JOIN sys_tbuser u ON hpn.creator = u.id
@@ -46,8 +46,9 @@
         hpn.add_datetime,
         hpn.operation_datetime,
         hpn.status,
+        hpn.operator,
         COALESCE(t.name, s.name) AS authorName,
-        COALESCE(t_op.name, s_op.name) AS operatorName
+        COALESCE(t_op.name, s_op.name, u_op.nickname, u_op.username) AS operatorName
         FROM
         home_page_notice hpn
         LEFT JOIN sys_tbuser u ON hpn.creator = u.id
@@ -78,6 +79,7 @@
         hpn.add_datetime,
         hpn.operation_datetime,
         hpn.status,
+        hpn.operator,
         COALESCE(t.name, s.name) AS authorName,
         COALESCE(t_op.name, s_op.name , u_op.nickname, u_op.username) AS operatorName
         FROM
@@ -98,6 +100,9 @@
             <if test="param.status != null">
                 AND hpn.status = #{param.status}
             </if>
+            <if test="param.deadlineBefore != null">
+                AND hpn.deadline &lt; #{param.deadlineBefore}
+            </if>
         </where>
         ORDER BY
         hpn.is_top DESC,
@@ -105,3 +110,4 @@
     </select>
 
 </mapper>
+
