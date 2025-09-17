@@ -18,5 +18,5 @@ import java.util.List;
 @Mapper
 public interface DiscussionTopicMapper extends BaseMapper<DiscussionTopic> {
 
-    List<MyJoinDiscussionTopicDiscussionTopicReturnParam> selectWithDetailsByTextbookIds(List<Long> textbookIdList,Integer identityId);
+    List<MyJoinDiscussionTopicDiscussionTopicReturnParam> selectWithDetailsByTextbookIds(List<Long> textbookIdList,Integer identityType);
 }
