@@ -78,6 +78,9 @@
         <foreach item="item" collection="textbookIdList" open="(" separator="," close=")">
             #{item}
         </foreach>
+        <if test="identityType != null">
+            AND dt.identity_type = #{identityType}
+        </if>
     </select>
 
 

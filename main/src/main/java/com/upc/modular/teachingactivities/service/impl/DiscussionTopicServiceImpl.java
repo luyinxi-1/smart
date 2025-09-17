@@ -134,7 +134,6 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
 
         return returnList;
     }
-/*
     @Override
     public List<MyJoinDiscussionTopicDiscussionTopicReturnParam> selectMyJoinDiscussionTopic(MyJoinDiscussionTopicSearchParam param) {
         Long userId = UserUtils.get().getId();
@@ -158,115 +157,16 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
         }
 
         if (ObjectUtils.isEmpty(param.getTextbookId())) {
-            return discussionTopicMapper.selectWithDetailsByTextbookIds(textbookIdList);
+            return discussionTopicMapper.selectWithDetailsByTextbookIds(textbookIdList, param.getIdentityType());
         } else {
             if (textbookIdList.contains(param.getTextbookId())) {
                 List<Long> newTextbookIdList = new ArrayList<>();
                 newTextbookIdList.add(param.getTextbookId());
-                return discussionTopicMapper.selectWithDetailsByTextbookIds(newTextbookIdList);
+                return discussionTopicMapper.selectWithDetailsByTextbookIds(newTextbookIdList, param.getIdentityType());
             }
         }
         return Collections.emptyList();
     }
-*/
-@Override
-public List<MyJoinDiscussionTopicDiscussionTopicReturnParam> selectMyJoinDiscussionTopic(MyJoinDiscussionTopicSearchParam param) {
-    Long userId = UserUtils.get().getId();
-    if (ObjectUtils.isEmpty(param.getClassificationId())) {
-        param.setClassificationId(0L);
-    }
-    List<Long> classificationIdList = textbookClassificationService.selectTextbookClassificationSubtreeIdList(param.getClassificationId());
-
-    List<Long> textbookIdList = textbookService.list(
-                    new LambdaQueryWrapper<Textbook>().select(Textbook::getId)
-                            .like(ObjectUtils.isNotEmpty(param.getTextbookName()), Textbook::getTextbookName, param.getTextbookName())
-                            .in(ObjectUtils.isNotEmpty(classificationIdList), Textbook::getClassification, classificationIdList)
-            ).stream()
-            .map(Textbook::getId)
-            .filter(Objects::nonNull)
-            .filter(id -> textbookAuthorityService.textbookAuthorityJudge(id, userId))
-            .collect(Collectors.toList());
-
-    if (CollectionUtils.isEmpty(textbookIdList)) {
-        return Collections.emptyList();
-    }
-
-    List<MyJoinDiscussionTopicDiscussionTopicReturnParam> result;
-    if (ObjectUtils.isEmpty(param.getTextbookId())) {
-        result = discussionTopicMapper.selectWithDetailsByTextbookIds(textbookIdList);
-    } else {
-        if (textbookIdList.contains(param.getTextbookId())) {
-            List<Long> newTextbookIdList = new ArrayList<>();
-            newTextbookIdList.add(param.getTextbookId());
-            result = discussionTopicMapper.selectWithDetailsByTextbookIds(newTextbookIdList);
-        } else {
-            result = Collections.emptyList();
-        }
-    }
-
-    // 如果提供了identityId，则进行额外筛选
-    if (ObjectUtils.isNotEmpty(param.getIdentityId()) && CollectionUtils.isNotEmpty(result)) {
-        // 从结果中获取所有唯一的创建者ID
-        Set<Long> creatorIds = result.stream()
-                .map(DiscussionTopic::getCreator)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        if (!creatorIds.isEmpty()) {
-            // 查询这些创建者的用户类型信息
-            List<SysTbuser> users = sysTbuserService.list(
-                    new LambdaQueryWrapper<SysTbuser>()
-                            .in(SysTbuser::getId, creatorIds)
-            );
-            // 分别处理教师和学生用户
-            Set<Long> matchingUserIds = new HashSet<>();
-            // 获取教师用户ID列表
-            List<Long> teacherUserIds = users.stream()
-                    .filter(user -> user.getUserType() != null && user.getUserType() == 2) // 2表示教师
-                    .map(SysTbuser::getId)
-                    .collect(Collectors.toList());
-            // 获取学生用户ID列表
-            List<Long> studentUserIds = users.stream()
-                    .filter(user -> user.getUserType() != null && user.getUserType() == 1) // 1表示学生
-                    .map(SysTbuser::getId)
-                    .collect(Collectors.toList());
-
-            // 查询匹配identityId的教师
-            if (!teacherUserIds.isEmpty()) {
-                List<Teacher> matchingTeachers = teacherService.list(
-                        new LambdaQueryWrapper<Teacher>()
-                                .in(Teacher::getUserId, teacherUserIds)
-                                .eq(Teacher::getIdentityId, param.getIdentityId())
-                );
-
-                matchingUserIds.addAll(matchingTeachers.stream()
-                        .map(Teacher::getUserId)
-                        .collect(Collectors.toSet()));
-            }
-
-            // 查询匹配identityId的学生
-            if (!studentUserIds.isEmpty()) {
-                List<Student> matchingStudents = studentService.list(
-                        new LambdaQueryWrapper<Student>()
-                                .in(Student::getUserId, studentUserIds)
-                                .eq(Student::getIdentityId, param.getIdentityId())
-                );
-
-                matchingUserIds.addAll(matchingStudents.stream()
-                        .map(Student::getUserId)
-                        .collect(Collectors.toSet()));
-            }
-            // 过滤结果，只保留匹配identityId的记录
-            return result.stream()
-                    .filter(topic -> matchingUserIds.contains(topic.getCreator()))
-                    .collect(Collectors.toList());
-        } else {
-            return Collections.emptyList();
-        }
-    }
-
-    return result;
-}
-// ... existing code ...
 
 
     @Override
