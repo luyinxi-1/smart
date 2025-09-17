@@ -17,8 +17,8 @@ public class TeachingMaterialsSaveOrUpdateParam {
     private String name;
 
     //  image imageSet video audio 3DModel link pdf word excel ppt other
-//  图片   图集      视频  音频   3D模型   链接 pdf word excel ppt 其他类型
-    @ApiModelProperty("素材类型：image imageSet video audio 3DModel link pdf word excel ppt other")
+    //  图片   图集      视频  音频   3D模型   链接 pdf word excel ppt 其他类型
+    @ApiModelProperty("素材类型：image imageSet video audio 3DModel link file(pdf/word/excel/ppt) other")
     private String type;
 
     @ApiModelProperty("是否公开")

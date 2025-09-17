@@ -7,7 +7,7 @@
         tr.*,
         tr.textbook_version_number AS textbookVersionNumber,
         COALESCE(t.name, s.name, su.username) AS creatorName,
-        COALESCE(t2.name, s2.name, su2.username) AS operatorName
+        COALESCE(t2.name, s2.name, su2.nickname) AS operatorName
         FROM textbook_review tr
         LEFT JOIN teacher t ON tr.creator = t.user_id
         LEFT JOIN student s ON tr.creator = s.user_id
@@ -28,7 +28,7 @@
             tr.*,
             tr.textbook_version_number AS textbookVersionNumber,
             COALESCE(t.name, s.name, su.username) AS creatorName,
-            COALESCE(t2.name, s2.name, su2.username) AS operatorName
+            COALESCE(t2.name, s2.name, su2.nickname) AS operatorName
         FROM textbook_review tr
                  LEFT JOIN teacher t ON tr.creator = t.user_id
                  LEFT JOIN student s ON tr.creator = s.user_id
