@@ -33,6 +33,7 @@
         t.classification,
         t.executive_editor,
         t.textbook_english_name,
+        t.textbook_picture,
         t.textbook_author_id,
         t.creator,
         t.add_datetime,
