@@ -8,12 +8,9 @@ import lombok.experimental.Accessors;
 
 @Data
 @Accessors(chain = true)
-public class PendingReviewSearchParam extends PageBaseSearchParam {
+public class PendingReviewSearchParam {
 
     @ApiModelProperty(value = "题库ID", required = true)
     private Long bankId;
 
-    // 这个字段由后端服务层自动填充，不对外暴露
-    @JsonIgnore
-    private Long teacherId;
 }
