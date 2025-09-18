@@ -25,10 +25,7 @@ import com.upc.modular.textbook.entity.TextbookClassification;
 import com.upc.modular.textbook.entity.UserFavorites;
 import com.upc.modular.textbook.mapper.TextbookAuthorityMapper;
 import com.upc.modular.textbook.mapper.TextbookMapper;
-import com.upc.modular.textbook.param.TextbookAuthoritySearchParam;
-import com.upc.modular.textbook.param.TextbookPageReturnParam;
-import com.upc.modular.textbook.param.TextbookPageSearchParam;
-import com.upc.modular.textbook.param.UserFavoritesPageSearch;
+import com.upc.modular.textbook.param.*;
 import com.upc.modular.textbook.service.ITextbookAuthorityService;
 import com.upc.modular.textbook.service.ITextbookClassificationService;
 import com.upc.modular.textbook.service.ITextbookService;
@@ -233,29 +230,55 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         List<Textbook> filteredTextbooks;
         final Long classification = param.getClassification();
         final String textbookName = param.getTextbookName();
+        final String authorName = param.getAuthorName();
 
         final boolean isClassificationEmpty = (classification == null);
         final boolean isTextbookNameEmpty = (textbookName == null || textbookName.trim().isEmpty());
+        final boolean isAuthorNameEmpty = (authorName == null || authorName.trim().isEmpty());
         filteredTextbooks = authorizedTextbooks.stream()
                 .filter(textbook -> {
-                    // 情况一：两个查询条件都为空，不过滤，全部返回
-                    if (isClassificationEmpty && isTextbookNameEmpty) {
+                    // 情况一：所有查询条件都为空，不过滤，全部返回
+                    if (isClassificationEmpty && isTextbookNameEmpty && isAuthorNameEmpty) {
                         return true;
                     }
-                    // 情况二：分类不为空，名称为空
-                    if (!isClassificationEmpty && isTextbookNameEmpty) {
+                    // 情况二：只有分类不为空
+                    if (!isClassificationEmpty && isTextbookNameEmpty && isAuthorNameEmpty) {
                         return classification.equals(textbook.getClassification());
                     }
-                    // 情况三：分类为空，名称不为空
-                    if (isClassificationEmpty && !isTextbookNameEmpty) {
+                    // 情况三：只有教材名称不为空
+                    if (isClassificationEmpty && !isTextbookNameEmpty && isAuthorNameEmpty) {
                         // contains 实现模糊查询
                         return textbook.getTextbookName() != null && textbook.getTextbookName().contains(textbookName.trim());
                     }
-                    // 情况四：两个查询条件都不为空，必须同时满足
-                    if (!isClassificationEmpty && !isTextbookNameEmpty) {
+                    // 情况四：只有作者姓名不为空
+                    if (isClassificationEmpty && isTextbookNameEmpty && !isAuthorNameEmpty) {
+                        // contains 实现模糊查询
+                        return textbook.getAuthorName() != null && textbook.getAuthorName().contains(authorName.trim());
+                    }
+                    // 情况五：分类和教材名称不为空
+                    if (!isClassificationEmpty && !isTextbookNameEmpty && isAuthorNameEmpty) {
                         boolean classificationMatch = classification.equals(textbook.getClassification());
                         boolean nameMatch = textbook.getTextbookName() != null && textbook.getTextbookName().contains(textbookName.trim());
                         return classificationMatch && nameMatch;
+                    }
+                    // 情况六：分类和作者姓名不为空
+                    if (!isClassificationEmpty && isTextbookNameEmpty && !isAuthorNameEmpty) {
+                        boolean classificationMatch = classification.equals(textbook.getClassification());
+                        boolean authorMatch = textbook.getAuthorName() != null && textbook.getAuthorName().contains(authorName.trim());
+                        return classificationMatch && authorMatch;
+                    }
+                    // 情况七：教材名称和作者姓名不为空
+                    if (isClassificationEmpty && !isTextbookNameEmpty && !isAuthorNameEmpty) {
+                        boolean nameMatch = textbook.getTextbookName() != null && textbook.getTextbookName().contains(textbookName.trim());
+                        boolean authorMatch = textbook.getAuthorName() != null && textbook.getAuthorName().contains(authorName.trim());
+                        return nameMatch && authorMatch;
+                    }
+                    // 情况八：所有条件都不为空
+                    if (!isClassificationEmpty && !isTextbookNameEmpty && !isAuthorNameEmpty) {
+                        boolean classificationMatch = classification.equals(textbook.getClassification());
+                        boolean nameMatch = textbook.getTextbookName() != null && textbook.getTextbookName().contains(textbookName.trim());
+                        boolean authorMatch = textbook.getAuthorName() != null && textbook.getAuthorName().contains(authorName.trim());
+                        return classificationMatch && nameMatch && authorMatch;
                     }
                     return false;
                 })
@@ -287,6 +310,62 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     }
 
     @Override
+    public VersionCheckResultDto checkStatusAndVersion(Long textbookId, String clientVersion) {
+        System.out.println("Service层收到版本校验请求 - 教材ID: " + textbookId);
+
+        // 1. 从数据库获取教材的完整信息 (可以直接调用 IService 提供的方法)
+        Textbook serverTextbook = this.getById(textbookId);
+
+        // 2. 检查教材是否存在
+        if (serverTextbook == null) {
+
+            throw new BusinessException(BusinessErrorEnum.NO_EXIT, "服务器未找到ID为 " + textbookId + " 的教材");
+        }
+
+        Integer releaseStatus = serverTextbook.getReleaseStatus();
+        Integer reviewStatus = serverTextbook.getReviewStatus();
+
+        System.out.println("资格审查 - 发布状态: " + releaseStatus + ", 审查状态: " + reviewStatus);
+
+        // 3. 判断是否满足前置条件 (我们假设状态为 1 代表 "已发布" 和 "已审查")
+        boolean isAvailable = (releaseStatus != null && releaseStatus.equals(1)) &&
+                (reviewStatus != null && reviewStatus.equals(1));
+
+        if (!isAvailable) {
+            // **情况A：资格审查不通过**
+            System.out.println("资格审查不通过，教材当前不可用。");
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "UNAVAILABLE",
+                    "该教材当前未发布或未通过审查，无法进行版本比较。",
+                    null // serverVersion 为 null
+            );
+        }
+        // 4. **只有在资格审查通过后，才执行原有的版本比较逻辑**
+        System.out.println("资格审查通过，开始进行版本比较...");
+        String serverVersion = serverTextbook.getTextbookVersion();
+
+        if (serverVersion.equals(clientVersion)) {
+            // **情况B：资格审查通过，且版本一致**
+            System.out.println("版本号一致。");
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "MATCH",
+                    "版本一致，无需更新。",
+                    null // serverVersion 为 null
+            );
+        } else {
+            // **情况C：资格审查通过，但版本不一致**
+            System.out.println("版本号不一致！服务器版本: " + serverVersion + ", 客户端版本: " + clientVersion);
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "MISMATCH",
+                    "版本不一致，建议更新。",
+                    serverVersion // 附带服务器的最新版本号
+            );
+        }
+    }
+    @Override
     public Textbook downloadTextbookInfo(Long textbookId) {
 
         if (textbookId == null)
@@ -298,15 +377,13 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         System.out.println("从数据库获取到的教材ID: " + textbook.getId());
         System.out.println("获取到的 release_status 的值: " + textbook.getReleaseStatus());
 
-// 这行代码非常重要，它会告诉你真实的数据类型
+
         if (textbook.getReleaseStatus() != null) {
             System.out.println("获取到的 release_status 的数据类型: " + textbook.getReleaseStatus().getClass().getName());
         }
 
-// 如果还有其他判断条件，也一并打印出来，例如：
-// System.out.println("获取到的 is_deleted 的值: " + textbook.getIsDeleted());
         System.out.println("===============================");
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
         if (textbook == null)
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "相关教材信息有误");
 

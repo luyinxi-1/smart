@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.textbook.param.TextbookPageReturnParam;
 import com.upc.modular.textbook.param.TextbookPageSearchParam;
 import com.upc.modular.textbook.param.UserFavoritesPageSearch;
+import com.upc.modular.textbook.param.VersionCheckResultDto;
 
 import java.util.List;
 /**
@@ -34,4 +35,6 @@ public interface ITextbookService extends IService<Textbook> {
     Page<Textbook> getpageTextbookCenter(UserFavoritesPageSearch param);
 
     Textbook downloadTextbookInfo(Long textbookId);
+
+    VersionCheckResultDto checkStatusAndVersion(Long textbookId, String clientVersion);
 }

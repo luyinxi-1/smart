@@ -159,30 +159,34 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
         finalPage.setRecords(finalRecords);
         return finalPage;
     }
+@Override
+public Long inserQuestionBank(TeachingQuestionBank param) {
+    Long textbookId = param.getTextbookId();
+    Long textbookCatalogId = param.getTextbookCatalogId();
 
-    @Override
-    public Long inserQuestionBank(TeachingQuestionBank param) {
-        Long textbookId = param.getTextbookId();
-        Long textbookCatalogId = param.getTextbookCatalogId();
-
-        // 教材ID和教材目录ID是外键，需要判断是否存在
+    // 教材ID和教材目录ID是外键，需要判断是否存在
+    if (textbookId != null) {
         LambdaQueryWrapper<Textbook> queryWrapper1 = new LambdaQueryWrapper<>();
         queryWrapper1.eq(Textbook::getId, textbookId);
         boolean isTextbookExists = textbookMapper.exists(queryWrapper1);
         if (!isTextbookExists) {
             throw new RuntimeException("ID为 " + textbookId + " 的教材不存在！");
         }
+    }
 
+    if (textbookCatalogId != null) {
         LambdaQueryWrapper<TextbookCatalog> queryWrapper2 = new LambdaQueryWrapper<>();
         queryWrapper2.eq(TextbookCatalog::getId, textbookCatalogId);
         boolean isTextbookCatalogExists = textbookCatalogMapper.exists(queryWrapper2);
         if (!isTextbookCatalogExists) {
             throw new RuntimeException("ID为 " + textbookCatalogId + " 的教材目录不存在！");
         }
-
-        this.save(param);
-        return param.getId();
     }
+
+    this.save(param);
+    return param.getId();
+}
+
 
     @Override
     public void updateQuestionBank(TeachingQuestionBank teachingQuestionbank) {
