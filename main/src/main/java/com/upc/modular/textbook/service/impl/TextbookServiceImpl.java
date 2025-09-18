@@ -25,10 +25,7 @@ import com.upc.modular.textbook.entity.TextbookClassification;
 import com.upc.modular.textbook.entity.UserFavorites;
 import com.upc.modular.textbook.mapper.TextbookAuthorityMapper;
 import com.upc.modular.textbook.mapper.TextbookMapper;
-import com.upc.modular.textbook.param.TextbookAuthoritySearchParam;
-import com.upc.modular.textbook.param.TextbookPageReturnParam;
-import com.upc.modular.textbook.param.TextbookPageSearchParam;
-import com.upc.modular.textbook.param.UserFavoritesPageSearch;
+import com.upc.modular.textbook.param.*;
 import com.upc.modular.textbook.service.ITextbookAuthorityService;
 import com.upc.modular.textbook.service.ITextbookClassificationService;
 import com.upc.modular.textbook.service.ITextbookService;
@@ -287,6 +284,62 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     }
 
     @Override
+    public VersionCheckResultDto checkStatusAndVersion(Long textbookId, String clientVersion) {
+        System.out.println("Service层收到版本校验请求 - 教材ID: " + textbookId);
+
+        // 1. 从数据库获取教材的完整信息 (可以直接调用 IService 提供的方法)
+        Textbook serverTextbook = this.getById(textbookId);
+
+        // 2. 检查教材是否存在
+        if (serverTextbook == null) {
+
+            throw new BusinessException(BusinessErrorEnum.NO_EXIT, "服务器未找到ID为 " + textbookId + " 的教材");
+        }
+
+        Integer releaseStatus = serverTextbook.getReleaseStatus();
+        Integer reviewStatus = serverTextbook.getReviewStatus();
+
+        System.out.println("资格审查 - 发布状态: " + releaseStatus + ", 审查状态: " + reviewStatus);
+
+        // 3. 判断是否满足前置条件 (我们假设状态为 1 代表 "已发布" 和 "已审查")
+        boolean isAvailable = (releaseStatus != null && releaseStatus.equals(1)) &&
+                (reviewStatus != null && reviewStatus.equals(1));
+
+        if (!isAvailable) {
+            // **情况A：资格审查不通过**
+            System.out.println("资格审查不通过，教材当前不可用。");
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "UNAVAILABLE",
+                    "该教材当前未发布或未通过审查，无法进行版本比较。",
+                    null // serverVersion 为 null
+            );
+        }
+        // 4. **只有在资格审查通过后，才执行原有的版本比较逻辑**
+        System.out.println("资格审查通过，开始进行版本比较...");
+        String serverVersion = serverTextbook.getTextbookVersion();
+
+        if (serverVersion.equals(clientVersion)) {
+            // **情况B：资格审查通过，且版本一致**
+            System.out.println("版本号一致。");
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "MATCH",
+                    "版本一致，无需更新。",
+                    null // serverVersion 为 null
+            );
+        } else {
+            // **情况C：资格审查通过，但版本不一致**
+            System.out.println("版本号不一致！服务器版本: " + serverVersion + ", 客户端版本: " + clientVersion);
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "MISMATCH",
+                    "版本不一致，建议更新。",
+                    serverVersion // 附带服务器的最新版本号
+            );
+        }
+    }
+    @Override
     public Textbook downloadTextbookInfo(Long textbookId) {
 
         if (textbookId == null)
@@ -298,15 +351,13 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         System.out.println("从数据库获取到的教材ID: " + textbook.getId());
         System.out.println("获取到的 release_status 的值: " + textbook.getReleaseStatus());
 
-// 这行代码非常重要，它会告诉你真实的数据类型
+
         if (textbook.getReleaseStatus() != null) {
             System.out.println("获取到的 release_status 的数据类型: " + textbook.getReleaseStatus().getClass().getName());
         }
 
-// 如果还有其他判断条件，也一并打印出来，例如：
-// System.out.println("获取到的 is_deleted 的值: " + textbook.getIsDeleted());
         System.out.println("===============================");
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
         if (textbook == null)
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "相关教材信息有误");
 
