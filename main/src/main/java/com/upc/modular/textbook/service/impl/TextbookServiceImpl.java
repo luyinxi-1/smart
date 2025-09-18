@@ -233,29 +233,55 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         List<Textbook> filteredTextbooks;
         final Long classification = param.getClassification();
         final String textbookName = param.getTextbookName();
+        final String authorName = param.getAuthorName();
 
         final boolean isClassificationEmpty = (classification == null);
         final boolean isTextbookNameEmpty = (textbookName == null || textbookName.trim().isEmpty());
+        final boolean isAuthorNameEmpty = (authorName == null || authorName.trim().isEmpty());
         filteredTextbooks = authorizedTextbooks.stream()
                 .filter(textbook -> {
-                    // 情况一：两个查询条件都为空，不过滤，全部返回
-                    if (isClassificationEmpty && isTextbookNameEmpty) {
+                    // 情况一：所有查询条件都为空，不过滤，全部返回
+                    if (isClassificationEmpty && isTextbookNameEmpty && isAuthorNameEmpty) {
                         return true;
                     }
-                    // 情况二：分类不为空，名称为空
-                    if (!isClassificationEmpty && isTextbookNameEmpty) {
+                    // 情况二：只有分类不为空
+                    if (!isClassificationEmpty && isTextbookNameEmpty && isAuthorNameEmpty) {
                         return classification.equals(textbook.getClassification());
                     }
-                    // 情况三：分类为空，名称不为空
-                    if (isClassificationEmpty && !isTextbookNameEmpty) {
+                    // 情况三：只有教材名称不为空
+                    if (isClassificationEmpty && !isTextbookNameEmpty && isAuthorNameEmpty) {
                         // contains 实现模糊查询
                         return textbook.getTextbookName() != null && textbook.getTextbookName().contains(textbookName.trim());
                     }
-                    // 情况四：两个查询条件都不为空，必须同时满足
-                    if (!isClassificationEmpty && !isTextbookNameEmpty) {
+                    // 情况四：只有作者姓名不为空
+                    if (isClassificationEmpty && isTextbookNameEmpty && !isAuthorNameEmpty) {
+                        // contains 实现模糊查询
+                        return textbook.getAuthorName() != null && textbook.getAuthorName().contains(authorName.trim());
+                    }
+                    // 情况五：分类和教材名称不为空
+                    if (!isClassificationEmpty && !isTextbookNameEmpty && isAuthorNameEmpty) {
                         boolean classificationMatch = classification.equals(textbook.getClassification());
                         boolean nameMatch = textbook.getTextbookName() != null && textbook.getTextbookName().contains(textbookName.trim());
                         return classificationMatch && nameMatch;
+                    }
+                    // 情况六：分类和作者姓名不为空
+                    if (!isClassificationEmpty && isTextbookNameEmpty && !isAuthorNameEmpty) {
+                        boolean classificationMatch = classification.equals(textbook.getClassification());
+                        boolean authorMatch = textbook.getAuthorName() != null && textbook.getAuthorName().contains(authorName.trim());
+                        return classificationMatch && authorMatch;
+                    }
+                    // 情况七：教材名称和作者姓名不为空
+                    if (isClassificationEmpty && !isTextbookNameEmpty && !isAuthorNameEmpty) {
+                        boolean nameMatch = textbook.getTextbookName() != null && textbook.getTextbookName().contains(textbookName.trim());
+                        boolean authorMatch = textbook.getAuthorName() != null && textbook.getAuthorName().contains(authorName.trim());
+                        return nameMatch && authorMatch;
+                    }
+                    // 情况八：所有条件都不为空
+                    if (!isClassificationEmpty && !isTextbookNameEmpty && !isAuthorNameEmpty) {
+                        boolean classificationMatch = classification.equals(textbook.getClassification());
+                        boolean nameMatch = textbook.getTextbookName() != null && textbook.getTextbookName().contains(textbookName.trim());
+                        boolean authorMatch = textbook.getAuthorName() != null && textbook.getAuthorName().contains(authorName.trim());
+                        return classificationMatch && nameMatch && authorMatch;
                     }
                     return false;
                 })

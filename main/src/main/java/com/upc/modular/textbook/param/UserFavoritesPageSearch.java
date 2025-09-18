@@ -17,4 +17,7 @@ public class UserFavoritesPageSearch extends PageBaseSearchParam {
 
     @ApiModelProperty("书籍名称")
     private String textbookName = null;
+    
+    @ApiModelProperty("作者姓名")
+    private String authorName = null;
 }
