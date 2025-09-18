@@ -1,6 +1,6 @@
 package com.upc.modular.datastatistics.service;
 
-import com.upc.modular.datastatistics.controller.param.TeacherStatisticsReturnParam;
+import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.datastatistics.entity.TeacherStatistics;
 
 /**
@@ -37,4 +37,32 @@ public interface ITeacherStatisticsService {
      * 保存教师统计数据
      */
     void saveTeacherStatistics(TeacherStatistics statistics);
+
+    // ========== 智能化分析功能 ==========
+
+    /**
+     * 班级章节掌握情况分析
+     * @param classId 班级ID
+     * @param textbookId 教材ID
+     * @return 班级章节掌握情况
+     */
+    ClassChapterMasteryReturnParam analyzeClassChapterMastery(Long classId, Long textbookId);
+
+    /**
+     * 班级分析报告
+     * @param classId 班级ID
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 班级分析报告
+     */
+    ClassAnalysisReturnParam generateClassAnalysisReport(Long classId, String startTime, String endTime);
+
+    /**
+     * 班级学习行为分析
+     * @param classId 班级ID
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 班级学习行为分析
+     */
+    ClassBehaviorAnalysisReturnParam analyzeClassLearningBehavior(Long classId, String startTime, String endTime);
 }

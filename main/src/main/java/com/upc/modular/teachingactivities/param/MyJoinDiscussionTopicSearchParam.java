@@ -17,8 +17,8 @@ public class MyJoinDiscussionTopicSearchParam {
     @ApiModelProperty("教材id")
     private Long textbookId;
 
-    @ApiModelProperty("身份ID（学号或工号）")
-    private String identityId;
+    @ApiModelProperty("活动类型")
+    private Integer identityType;
 
 
 }
