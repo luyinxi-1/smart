@@ -77,7 +77,12 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
 //        }
         this.updateById(discussionTopic);
     }
-
+    @Autowired
+    private ISysUserService sysTbuserService;
+    @Autowired
+    private ITeacherService teacherService;
+    @Autowired
+    private IStudentService studentService;
     @Autowired
     private ITextbookService textbookService;
     @Autowired
@@ -90,8 +95,6 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
     private ITextbookAuthorityService textbookAuthorityService;
     @Autowired
     private DiscussionTopicMapper discussionTopicMapper;
-    @Autowired
-    private ISysUserService sysTbuserService;
 
     @Override
     public List<DiscussionTopicReturnParam> getDiscussionTopicList(DiscussionTopicSearchParam param) {
@@ -131,7 +134,6 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
 
         return returnList;
     }
-
     @Override
     public List<MyJoinDiscussionTopicDiscussionTopicReturnParam> selectMyJoinDiscussionTopic(MyJoinDiscussionTopicSearchParam param) {
         Long userId = UserUtils.get().getId();
@@ -155,16 +157,17 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
         }
 
         if (ObjectUtils.isEmpty(param.getTextbookId())) {
-            return discussionTopicMapper.selectWithDetailsByTextbookIds(textbookIdList);
+            return discussionTopicMapper.selectWithDetailsByTextbookIds(textbookIdList, param.getIdentityType());
         } else {
             if (textbookIdList.contains(param.getTextbookId())) {
                 List<Long> newTextbookIdList = new ArrayList<>();
                 newTextbookIdList.add(param.getTextbookId());
-                return discussionTopicMapper.selectWithDetailsByTextbookIds(newTextbookIdList);
+                return discussionTopicMapper.selectWithDetailsByTextbookIds(newTextbookIdList, param.getIdentityType());
             }
         }
         return Collections.emptyList();
     }
+
 
     @Override
     public DiscussionTopicSecondReturnParam getSecondTextbookById(Long id) {

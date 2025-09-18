@@ -152,7 +152,8 @@
             sec.content AS studentAnswer,
             tq.answer AS correctAnswer,
             sec.score AS studentScore,
-            qbl.score AS maxScore
+            qbl.score AS maxScore,
+            tq.choice_question_options AS choiceQuestionOptions
         FROM
             student_exercises_content sec
                 JOIN

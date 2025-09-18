@@ -27,7 +27,7 @@
         c.status,
         t.id AS teacherId,
         t.name AS teacherName,
-        u.username AS creatorName,
+        u.nickname AS creatorName,
         c.add_datetime AS addDatetime,
         c.course_picture AS coursePicture
         FROM course c

@@ -68,7 +68,6 @@ public R updateQuestionsBanksList(@RequestBody QuestionsBanksListBatchParam para
     questionsBanksListService.batchUpdateQuestionsBanksList(param);
     return R.commonReturn(200, "修改成功", "");
 }
-
     @ApiOperation("根据id查询单个题目题库关联信息")
     @PostMapping("selectQuestionBankList")
     public R<QuestionsBanksList> selectQuestionBankList(@RequestBody QuestionsBanksList param){

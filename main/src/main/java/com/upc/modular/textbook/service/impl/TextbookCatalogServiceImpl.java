@@ -10,6 +10,8 @@ import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
@@ -69,6 +71,9 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
     private TextbookCatalogMapper textbookCatalogMapper;
     @Autowired
     private ILearningAnnotationsAndLabelsService labelsService;
+
+    @Autowired
+    private SysUserMapper sysUserMapper;
 
     @Override
     public void processAndSaveHtml(MultipartFile file, Long textbookId) {
@@ -509,6 +514,18 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
                 catalogToUpdate.setContent(annotationsAndLabel.getContent());
             }
         }
+
+        //返回用户姓名
+        Textbook textbook = textbookMapper.selectById(id);
+        if(textbook != null){
+            SysTbuser sysTbuser = sysUserMapper.selectById(textbook.getCreator());
+            if(sysTbuser != null){
+                for (ReadTextbookReturnParam readTextbookReturnParam : result) {
+                    readTextbookReturnParam.setCreatorName(sysTbuser.getNickname());
+                }
+            }
+        }
+
 
         return result;
     }

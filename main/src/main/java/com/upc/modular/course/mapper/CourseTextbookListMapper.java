@@ -18,6 +18,10 @@ import java.util.List;
  */
 @Mapper
 public interface CourseTextbookListMapper extends BaseMapper<CourseTextbookList> {
-
+    /**
+     * 根据课程ID物理删除关联关系
+     * @param courseId 课程ID
+     */
+    void physicalDeleteByCourseId(@Param("courseId") Long courseId);
     List<CourseTextbookListReturnParam> selectCourseTextbookList(@Param("courseId") Long courseId);
 }

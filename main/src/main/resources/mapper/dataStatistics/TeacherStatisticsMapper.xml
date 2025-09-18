@@ -6,7 +6,7 @@
     <select id="countTeacherClasses" resultType="java.lang.Integer">
         SELECT COUNT(DISTINCT g.id)
         FROM `group` g
-        INNER JOIN user_class_list ucl ON g.id = ucl.class_id
+                 INNER JOIN user_class_list ucl ON g.id = ucl.class_id
         WHERE ucl.user_id = #{teacherId} AND ucl.type = 2
     </select>
 
@@ -14,7 +14,7 @@
     <select id="countTeacherStudents" resultType="java.lang.Integer">
         SELECT COUNT(DISTINCT s.id)
         FROM student s
-        INNER JOIN user_class_list ucl ON s.class_id = ucl.class_id
+                 INNER JOIN user_class_list ucl ON s.class_id = ucl.class_id
         WHERE ucl.user_id = #{teacherId} AND ucl.type = 2
     </select>
 
@@ -22,10 +22,10 @@
     <select id="countTeacherTextbooks" resultType="java.lang.Integer">
         SELECT COUNT(DISTINCT t.id)
         FROM textbook t
-        INNER JOIN course_textbook_list ctl ON t.id = ctl.textbook_id
-        INNER JOIN course c ON ctl.course_id = c.id
-        INNER JOIN course_class_list ccl ON c.id = ccl.course_id
-        INNER JOIN user_class_list ucl ON ccl.class_id = ucl.class_id
+                 INNER JOIN course_textbook_list ctl ON t.id = ctl.textbook_id
+                 INNER JOIN course c ON ctl.course_id = c.id
+                 INNER JOIN course_class_list ccl ON c.id = ccl.course_id
+                 INNER JOIN user_class_list ucl ON ccl.class_id = ucl.class_id
         WHERE ucl.user_id = #{teacherId} AND ucl.type = 2
     </select>
 
@@ -33,9 +33,68 @@
     <select id="countTeacherCourses" resultType="java.lang.Integer">
         SELECT COUNT(DISTINCT c.id)
         FROM course c
-        INNER JOIN course_class_list ccl ON c.id = ccl.course_id
-        INNER JOIN user_class_list ucl ON ccl.class_id = ucl.class_id
+                 INNER JOIN course_class_list ccl ON c.id = ccl.course_id
+                 INNER JOIN user_class_list ucl ON ccl.class_id = ucl.class_id
         WHERE ucl.user_id = #{teacherId} AND ucl.type = 2
+    </select>
+
+    <!-- 获取班级学生ID列表 -->
+    <select id="getClassStudentIds" resultType="java.lang.Long">
+        SELECT user_id FROM user_class_list WHERE class_id = #{classId} AND type = 1
+    </select>
+
+    <!-- 获取班级学生详细信息 -->
+    <select id="getClassStudentDetails" resultType="java.util.Map">
+        SELECT s.id, s.name, s.identity_id
+        FROM student s
+                 INNER JOIN user_class_list ucl ON s.user_id = ucl.user_id
+        WHERE ucl.class_id = #{classId} AND ucl.type = 1
+    </select>
+
+    <!-- 统计班级学生在指定时间范围内的阅读时长 -->
+    <select id="getClassTotalReadingTime" resultType="java.lang.Long">
+        SELECT COALESCE(SUM(ll.reading_duration), 0) as total_reading_time
+        FROM learning_log ll
+                 INNER JOIN user_class_list ucl ON ll.creator = ucl.user_id
+        WHERE ucl.class_id = #{classId} AND ucl.type = 1
+          AND ll.add_datetime BETWEEN #{startTime} AND #{endTime}
+    </select>
+
+    <!-- 统计班级学生在指定时间范围内的阅读数量 -->
+    <select id="getClassTotalReadingNum" resultType="java.lang.Long">
+        SELECT COUNT(DISTINCT ll.textbook_id) as total_reading_num
+        FROM learning_log ll
+                 INNER JOIN user_class_list ucl ON ll.creator = ucl.user_id
+        WHERE ucl.class_id = #{classId} AND ucl.type = 1
+          AND ll.add_datetime BETWEEN #{startTime} AND #{endTime}
+    </select>
+
+    <!-- 统计班级学生在指定时间范围内的笔记数量 -->
+    <select id="getClassTotalNotesNum" resultType="java.lang.Long">
+        SELECT COUNT(*) as total_notes_num
+        FROM learning_notes ln
+                 INNER JOIN user_class_list ucl ON ln.creator = ucl.user_id
+        WHERE ucl.class_id = #{classId} AND ucl.type = 1
+          AND ln.add_datetime BETWEEN #{startTime} AND #{endTime}
+    </select>
+
+    <!-- 统计班级学生在指定时间范围内的答题数量 -->
+    <select id="getClassTotalQuestionBankNum" resultType="java.lang.Long">
+        SELECT COUNT(DISTINCT tqb.id) as total_question_bank_num
+        FROM teaching_question_bank tqb
+                 INNER JOIN student_exercises_record ser ON tqb.id = ser.teaching_question_bank_id
+                 INNER JOIN user_class_list ucl ON ser.student_id = ucl.user_id
+        WHERE ucl.class_id = #{classId} AND ucl.type = 1
+          AND ser.add_datetime BETWEEN #{startTime} AND #{endTime}
+    </select>
+
+    <!-- 统计班级学生在指定时间范围内的交流反馈数量 -->
+    <select id="getClassTotalCommunicationFeedbackNum" resultType="java.lang.Long">
+        SELECT COUNT(*) as total_communication_feedback_num
+        FROM discussion_topic_reply dtr
+                 INNER JOIN user_class_list ucl ON dtr.creator = ucl.user_id
+        WHERE ucl.class_id = #{classId} AND ucl.type = 1
+          AND dtr.add_datetime BETWEEN #{startTime} AND #{endTime}
     </select>
 
 </mapper>
