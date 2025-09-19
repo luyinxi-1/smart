@@ -19,6 +19,7 @@ import com.upc.modular.questionbank.service.IQuestionsBanksListService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -239,9 +240,9 @@ public class QuestionsBanksListServiceImpl extends ServiceImpl<QuestionsBanksLis
 //    }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void batchUpdateQuestionsBanksList(QuestionsBanksListBatchParam param) {
         Long bankId = param.getBankId();
-        Long id = param.getId();
 
         // 检查题库是否存在
         if (bankId != null) {
@@ -270,43 +271,24 @@ public class QuestionsBanksListServiceImpl extends ServiceImpl<QuestionsBanksLis
                     throw new RuntimeException("ID为 " + questionScoreParam.getQuestionId() + " 的题目不存在！");
                 }
 
+                // 检查是否已经存在相同的关联关系
+                LambdaQueryWrapper<QuestionsBanksList> relationQueryWrapper = new LambdaQueryWrapper<>();
+                relationQueryWrapper.eq(QuestionsBanksList::getQuestionId, questionScoreParam.getQuestionId());
+                relationQueryWrapper.eq(QuestionsBanksList::getBankId, bankId);
+                QuestionsBanksList existingRecord = questionsBanksListMapper.selectOne(relationQueryWrapper);
+
                 QuestionsBanksList questionsBanksList = new QuestionsBanksList();
                 questionsBanksList.setQuestionId(questionScoreParam.getQuestionId());
                 questionsBanksList.setBankId(bankId);
                 questionsBanksList.setScore(questionScoreParam.getScore());
                 questionsBanksList.setSequence(questionScoreParam.getSequence());
 
-                // 判断是新增还是更新：id为null或0都视为新增
-                Long questionId = questionScoreParam.getId();
-                if (questionId != null && questionId > 0) {
-                    // 更新操作：检查记录是否存在
-                    QuestionsBanksList exists = this.getById(questionId);
-                    if (exists == null) {
-                        throw new RuntimeException("ID为 " + questionId + " 的题目题库关联记录不存在！");
-                    }
-
-                    // 检查是否重复关联（排除当前记录）
-                    LambdaQueryWrapper<QuestionsBanksList> relationQueryWrapper = new LambdaQueryWrapper<>();
-                    relationQueryWrapper.eq(QuestionsBanksList::getQuestionId, questionScoreParam.getQuestionId());
-                    relationQueryWrapper.eq(QuestionsBanksList::getBankId, bankId);
-                    relationQueryWrapper.ne(QuestionsBanksList::getId, questionId);
-                    boolean isDuplicateRelation = questionsBanksListMapper.exists(relationQueryWrapper);
-                    if (isDuplicateRelation) {
-                        throw new RuntimeException("题目ID为 " + questionScoreParam.getQuestionId() + " 和题库ID为 " + bankId + " 的关联关系已存在！");
-                    }
-
-                    questionsBanksList.setId(questionId);
+                if (existingRecord != null) {
+                    // 更新操作：使用已存在记录的ID
+                    questionsBanksList.setId(existingRecord.getId());
                     updateList.add(questionsBanksList);
                 } else {
-                    // 新增操作：检查是否已经存在相同的关联关系
-                    LambdaQueryWrapper<QuestionsBanksList> relationQueryWrapper = new LambdaQueryWrapper<>();
-                    relationQueryWrapper.eq(QuestionsBanksList::getQuestionId, questionScoreParam.getQuestionId());
-                    relationQueryWrapper.eq(QuestionsBanksList::getBankId, bankId);
-                    boolean isQuestionsBanksListExists = questionsBanksListMapper.exists(relationQueryWrapper);
-                    if (isQuestionsBanksListExists) {
-                        throw new RuntimeException("题目ID为 " + questionScoreParam.getQuestionId() + " 和题库ID为 " + bankId + " 的关联关系已存在！");
-                    }
-
+                    // 新增操作
                     insertList.add(questionsBanksList);
                 }
             }

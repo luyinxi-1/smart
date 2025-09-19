@@ -127,12 +127,19 @@ public R<List<QuestionsBanksListVO>> getQuestionsByBankId(@ApiParam("题库ID") 
         return R.commonReturn(200, "评分成功", null);
     }
 
+//    @ApiOperation("点击教材题库-点击批阅-题库批阅-分页查询待批改题目列表")
+//    @PostMapping("/getPendingReviewPage")
+//    public R<PageBaseReturnParam<PendingReviewReturnVO>> getPendingReviewPage(@RequestBody PendingReviewSearchParam param) {
+//        Page<PendingReviewReturnVO> pageResult = teachingQuestionBankService.selectPendingReviewPage(param);
+//        PageBaseReturnParam<PendingReviewReturnVO> p = PageBaseReturnParam.ok(pageResult);
+//        return R.page(p);
+//    }
+
     @ApiOperation("点击教材题库-点击批阅-题库批阅-分页查询待批改题目列表")
     @PostMapping("/getPendingReviewPage")
-    public R<PageBaseReturnParam<PendingReviewReturnVO>> getPendingReviewPage(@RequestBody PendingReviewSearchParam param) {
-        Page<PendingReviewReturnVO> pageResult = teachingQuestionBankService.selectPendingReviewPage(param);
-        PageBaseReturnParam<PendingReviewReturnVO> p = PageBaseReturnParam.ok(pageResult);
-        return R.page(p);
+    public R<List<PendingReviewQuestionVO>> getPendingReviewPage(@RequestBody PendingReviewSearchParam param) {
+        List<PendingReviewQuestionVO> result = teachingQuestionBankService.getPendingReviewByQuestion(param);
+        return R.ok(result);
     }
 
     @ApiOperation("获取题库作答次数和学生答题次数-APP")
