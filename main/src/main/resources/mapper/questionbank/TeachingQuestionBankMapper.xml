@@ -159,7 +159,8 @@
             tq.id AS questionId,
             tq.content AS questionContent,
             tq.answer AS correctAnswer,
-            tq.answer_analysis AS answerAnalysis, -- 假设 teaching_question 表有 analysis 字段
+            tq.answer_analysis AS answerAnalysis,
+            qbl.score AS maxScore,
             sec.id AS contentId,
             sec.record_id AS recordId,
             s.name AS studentName,
@@ -169,11 +170,13 @@
                 JOIN
             student_exercises_record ser ON sec.record_id = ser.id
                 JOIN
-            teaching_question tq ON sec.teaching_question = tq.id -- 假设字段名为 question_id
+            teaching_question tq ON sec.teaching_question = tq.id
                 JOIN
             teaching_question_bank tqb ON ser.teaching_question_bank_id = tqb.id
                 JOIN
             textbook tb ON tqb.textbook_id = tb.id
+                LEFT JOIN
+            questions_banks_list qbl ON tq.id = qbl.question_id AND tqb.id = qbl.bank_id
                 LEFT JOIN
             student s ON ser.student_id = s.id
         WHERE
