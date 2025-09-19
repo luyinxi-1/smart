@@ -1,6 +1,7 @@
 package com.upc.modular.teachingactivities.controller;
 
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
@@ -64,8 +65,8 @@ public class DiscussionTopicController {
 
     @ApiOperation(value = "按条件查询教学活动讨论话题")
     @PostMapping("/getDiscussionTopicList")
-    public R<List<DiscussionTopicReturnParam>> getDiscussionTopicList(@RequestBody DiscussionTopicSearchParam param) {
-        List<DiscussionTopicReturnParam> discussionTopicList = discussionTopicService.getDiscussionTopicList(param);
+    public R<Page<DiscussionTopicReturnParam>> getDiscussionTopicList(@RequestBody DiscussionTopicSearchParam param) {
+        Page<DiscussionTopicReturnParam> discussionTopicList = discussionTopicService.getDiscussionTopicList(param);
         return R.ok(discussionTopicList);
     }
 

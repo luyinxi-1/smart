@@ -1,5 +1,6 @@
 package com.upc.modular.teachingactivities.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.teachingactivities.param.*;
 import com.upc.modular.teachingactivities.entity.DiscussionTopic;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -22,7 +23,7 @@ public interface IDiscussionTopicService extends IService<DiscussionTopic> {
 
     void updateDiscussionTopicById(DiscussionTopic discussionTopic);
 
-    List<DiscussionTopicReturnParam> getDiscussionTopicList(DiscussionTopicSearchParam param);
+    Page<DiscussionTopicReturnParam> getDiscussionTopicList(DiscussionTopicSearchParam param);
 
     List<MyJoinDiscussionTopicDiscussionTopicReturnParam> selectMyJoinDiscussionTopic(MyJoinDiscussionTopicSearchParam param);
 
