@@ -9,6 +9,7 @@ public class PendingReviewRawDataVO {
     private String questionContent;
     private String correctAnswer;
     private String answerAnalysis;
+    private Double maxScore;
     // 学生回答信息
     private Long contentId;
     private Long recordId;

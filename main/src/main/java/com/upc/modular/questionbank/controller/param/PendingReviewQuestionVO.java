@@ -19,6 +19,9 @@ public class PendingReviewQuestionVO {
     @ApiModelProperty("题目解析")
     private String answerAnalysis;
 
+    @ApiModelProperty("该题目满分")
+    private Double maxScore;
+
     @ApiModelProperty("该题目下所有学生的待批改回答列表")
     private List<StudentAnswerForReviewVO> studentAnswers;
 }

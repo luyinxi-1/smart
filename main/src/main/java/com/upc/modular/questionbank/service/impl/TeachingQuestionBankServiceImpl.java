@@ -401,6 +401,7 @@ public Long inserQuestionBank(TeachingQuestionBank param) {
             questionVO.setQuestionContent(firstRecord.getQuestionContent());
             questionVO.setCorrectAnswer(firstRecord.getCorrectAnswer());
             questionVO.setAnswerAnalysis(firstRecord.getAnswerAnalysis());
+            questionVO.setMaxScore(firstRecord.getMaxScore());
 
             // 遍历该题下的所有学生回答，组装成内层列表
             List<StudentAnswerForReviewVO> studentAnswers = answersForThisQuestion.stream().map(rawData -> {
