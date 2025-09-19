@@ -71,5 +71,10 @@ public class IdeologicalMaterial implements Serializable {
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
     private LocalDateTime operationDatetime;
 
+    @ApiModelProperty("教材创建人姓名")
+    @TableField(value = "nickname")
+    private String nickname;
+
+
 
 }
