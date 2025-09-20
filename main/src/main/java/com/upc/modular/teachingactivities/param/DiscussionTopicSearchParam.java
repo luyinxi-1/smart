@@ -24,4 +24,13 @@ public class DiscussionTopicSearchParam {
 
     @ApiModelProperty("留言的类型")
     private Integer messageType;
+
+    @ApiModelProperty("发起人类型")
+    private Integer identityType;
+
+    @ApiModelProperty("当前页码")
+    private Long current = 1L;
+
+    @ApiModelProperty("每页条数")
+    private Long size = 10L;
 }

@@ -6,9 +6,13 @@ import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.textbook.entity.IdeologicalMaterial;
+import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.IdeologicalMaterialMapper;
+import com.upc.modular.textbook.mapper.TextbookMapper;
 import com.upc.modular.textbook.param.IdeologicalMaterialInsertAndUpdateParam;
 import com.upc.modular.textbook.param.IdeologicalMaterialSearchParam;
 import com.upc.modular.textbook.service.IIdeologicalMaterialService;
@@ -43,6 +47,12 @@ public class IdeologicalMaterialServiceImpl extends ServiceImpl<IdeologicalMater
 
     @Autowired
     private ITextbookCatalogService textbookCatalogService;
+
+    @Autowired
+    private TextbookMapper textbookMapper;
+
+    @Autowired
+    private SysUserMapper sysUserMapper;
 
     @Override
     public void deleteIdeologicalMaterialByIds(List<Long> ids) {
@@ -109,6 +119,20 @@ public class IdeologicalMaterialServiceImpl extends ServiceImpl<IdeologicalMater
         wrappedList.sort(Comparator.comparingInt(Pair::getRight));
 
         List<IdeologicalMaterial> resultIdeologicalMaterials = wrappedList.stream().map(Pair::getLeft).collect(Collectors.toList());
+        for (IdeologicalMaterial resultIdeologicalMaterial : resultIdeologicalMaterials) {
+            Textbook textbook = textbookMapper.selectById(resultIdeologicalMaterial.getTextbookId());
+            if(textbook != null){
+                SysTbuser sysTbuser = sysUserMapper.selectById(textbook.getCreator());
+                if(sysTbuser != null){
+                    resultIdeologicalMaterial.setNickname(sysTbuser.getNickname());
+                }
+                else {
+                    resultIdeologicalMaterial.setNickname("");
+                }
+            }else {
+                resultIdeologicalMaterial.setNickname("");
+            }
+        }
 
         return resultIdeologicalMaterials;
     }

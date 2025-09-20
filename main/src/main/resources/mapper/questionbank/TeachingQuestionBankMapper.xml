@@ -37,7 +37,7 @@
         FROM
         teaching_question_bank t
         LEFT JOIN questions_banks_list qbl ON t.id = qbl.bank_id
-        LEFT JOIN sys_tbuser u ON t.creator = u.id   -- ⭐ 关联用户表
+        LEFT JOIN sys_tbuser u ON t.creator = u.id
         <where>
             <!-- 条件1: 根据题库名称模糊查询 -->
             <if test="param.name != null and param.name != ''">
@@ -94,18 +94,6 @@
         textbook_catalog tc ON tqb.textbook_catalog_id = tc.id
         LEFT JOIN
         student_exercises_record ser ON tqb.id = ser.teaching_question_bank_id AND ser.status = 1
-        <!-- 【新增】JOIN textbook 表用于权限校验 -->
---         JOIN
---         textbook tb ON tqb.textbook_id = tb.id
-<!--        WHERE-->
-<!--        tqb.textbook_id = #{param.textbookId,jdbcType=BIGINT}-->
-<!--&#45;&#45;         AND tb.textbook_author_id = #{param.teacherId}-->
-<!--        <if test="param.textbookCatalogId != null">-->
-<!--            AND tqb.textbook_catalog_id = #{param.textbookCatalogId,jdbcType=BIGINT}-->
-<!--        </if>-->
-<!--        <if test="param.teachingQuestionBankName != null and param.teachingQuestionBankName != ''">-->
-<!--             AND tqb.name LIKE CONCAT('%', #{param.teachingQuestionBankName}, '%')-->
-<!--        </if>-->
         WHERE
         tqb.textbook_id = #{textbookId,jdbcType=BIGINT}
         <if test="textbookCatalogId != null">
@@ -166,12 +154,16 @@
             qbl.sequence ASC, qbl.id ASC
     </select>
 
-    <select id="selectPendingReviewPage" resultType="com.upc.modular.questionbank.controller.param.PendingReviewReturnVO">
+    <select id="selectPendingReviewRawDataForBank" resultType="com.upc.modular.questionbank.controller.param.PendingReviewRawDataVO">
         SELECT
-            sec.record_id AS recordId,
-            sec.id AS contentId,
-            s.name AS studentName,
+            tq.id AS questionId,
             tq.content AS questionContent,
+            tq.answer AS correctAnswer,
+            tq.answer_analysis AS answerAnalysis,
+            qbl.score AS maxScore,
+            sec.id AS contentId,
+            sec.record_id AS recordId,
+            s.name AS studentName,
             sec.content AS studentAnswer
         FROM
             student_exercises_content sec
@@ -184,20 +176,17 @@
                 JOIN
             textbook tb ON tqb.textbook_id = tb.id
                 LEFT JOIN
+            questions_banks_list qbl ON tq.id = qbl.question_id AND tqb.id = qbl.bank_id
+                LEFT JOIN
             student s ON ser.student_id = s.id
         WHERE
-          -- 核心条件1: 查询指定的题库
             ser.teaching_question_bank_id = #{param.bankId}
-          -- 核心条件2: 只查询待批改的答卷
           AND ser.status = 1
-          -- 核心条件3: 只查询主观题 (type=5)
           AND tq.type = 5
-          -- 核心条件4: 只查询未评分的题目
           AND sec.score IS NULL
-          -- 核心条件5: 权限校验，确保只有教材作者才能批改
-          AND tb.textbook_author_id = #{param.teacherId}
         ORDER BY
-            -- 按学生ID排序，再按题目顺序排序
-            ser.student_id ASC, sec.id ASC
+            -- 必须先按题目ID排序，便于后续分组
+            tq.id ASC,
+            s.id ASC
     </select>
 </mapper>

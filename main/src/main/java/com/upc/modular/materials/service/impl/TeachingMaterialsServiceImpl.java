@@ -369,11 +369,13 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         List<TeachingMaterials> materialsList = this.list(queryWrapper);
 
         List<Long> authorIdList = materialsList.stream().map(TeachingMaterials::getCreator).collect(Collectors.toList());
-        Map<Long, String> teacherIdNameMap = teacherService.list(
-                        new LambdaQueryWrapper<Teacher>().in(Teacher::getId, authorIdList))
-                .stream().collect(
-                        Collectors.toMap(Teacher::getId, Teacher::getName));
-
+        Map<Long, String> teacherIdNameMap;
+        if (ObjectUtils.isNotEmpty(authorIdList))
+            teacherIdNameMap = teacherService.list(
+                            new LambdaQueryWrapper<Teacher>().in(Teacher::getId, authorIdList))
+                    .stream().collect(
+                            Collectors.toMap(Teacher::getId, Teacher::getName));
+        else teacherIdNameMap = new HashMap<>();
         List<TeachingMaterialsReturnVo> pageRecordsVO = materialsList.stream()
                 .map(materials -> {
                     TeachingMaterialsReturnVo temp = new TeachingMaterialsReturnVo();

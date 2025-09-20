@@ -33,5 +33,7 @@ public interface TeachingQuestionBankMapper extends BaseMapper<TeachingQuestionB
 
     List<StudentAnswerDetailVO> selectStudentAnswerDetailsByRecordId(@Param("recordId") Long recordId);
 
-    Page<PendingReviewReturnVO> selectPendingReviewPage(Page<PendingReviewReturnVO> page, @Param("param") PendingReviewSearchParam param);
+    List<PendingReviewRawDataVO> selectPendingReviewRawDataForBank(@Param("param") PendingReviewSearchParam param);
+
+
 }

@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 
 /**
  * <p>
- *  服务实现类
+ * 服务实现类
  * </p>
  *
  * @author byh
@@ -106,6 +106,7 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
 
         return null;
     }
+
     @Override
     public Page<TeachingQuestionBankPageReturnParam> selectQuestionBankPage(TeachingQuestionBankPageSearchParam param) {
         // --- 第一阶段：数据库查询 ---
@@ -166,7 +167,7 @@ public Long inserQuestionBank(TeachingQuestionBank param) {
     // 教材ID和教材目录ID是外键，需要判断是否存在
     if (textbookId != null) {
         LambdaQueryWrapper<Textbook> queryWrapper1 = new LambdaQueryWrapper<>();
-        queryWrapper1.eq(Textbook::getId,textbookId);
+        queryWrapper1.eq(Textbook::getId, textbookId);
         boolean isTextbookExists = textbookMapper.exists(queryWrapper1);
         if (!isTextbookExists) {
             throw new RuntimeException("ID为 " + textbookId + " 的教材不存在！");
@@ -175,7 +176,7 @@ public Long inserQuestionBank(TeachingQuestionBank param) {
 
     if (textbookCatalogId != null) {
         LambdaQueryWrapper<TextbookCatalog> queryWrapper2 = new LambdaQueryWrapper<>();
-        queryWrapper2.eq(TextbookCatalog::getId,textbookCatalogId);
+        queryWrapper2.eq(TextbookCatalog::getId, textbookCatalogId);
         boolean isTextbookCatalogExists = textbookCatalogMapper.exists(queryWrapper2);
         if (!isTextbookCatalogExists) {
             throw new RuntimeException("ID为 " + textbookCatalogId + " 的教材目录不存在！");
@@ -202,7 +203,7 @@ public Long inserQuestionBank(TeachingQuestionBank param) {
 
         // 2. 校验外键（教材ID）是否存在
         Long textbookId = teachingQuestionbank.getTextbookId();
-        if(ObjectUtils.isNotEmpty(textbookId) && ObjectUtils.isNotNull(textbookId)){
+        if (ObjectUtils.isNotEmpty(textbookId) && ObjectUtils.isNotNull(textbookId)) {
             if (!textbookId.equals(oldQuestionBank.getTextbookId())) {
                 boolean isTextbookExists = textbookMapper.exists(
                         new LambdaQueryWrapper<Textbook>().eq(Textbook::getId, textbookId)
@@ -230,6 +231,7 @@ public Long inserQuestionBank(TeachingQuestionBank param) {
         // updateById 会根据 teachingQuestionbank 对象的ID去更新其他非空字段
         this.updateById(teachingQuestionbank);
     }
+
     public TeachingQuestionBankWithCreatorReturnParam getQuestionBankWithCreator(Long id) {
         TeachingQuestionBank questionBank = this.getById(id);
         if (questionBank == null) {
@@ -269,7 +271,7 @@ public Long inserQuestionBank(TeachingQuestionBank param) {
         Long userId = UserUtils.get().getId();
 
         LambdaQueryWrapper<Student> queryWrapper1 = new LambdaQueryWrapper<>();
-        queryWrapper1.eq(Student::getUserId,userId);
+        queryWrapper1.eq(Student::getUserId, userId);
         Long studentId = studentMapper.selectOne(queryWrapper1).getId();
 
         // 2. 查询题库信息以获取最大答题次数限制
@@ -353,18 +355,72 @@ public Long inserQuestionBank(TeachingQuestionBank param) {
         return details;
     }
 
+//    @Override
+//    public Page<PendingReviewReturnVO> selectPendingReviewPage(PendingReviewSearchParam param) {
+//        Page<PendingReviewReturnVO> page = new Page<>(param.getCurrent(), param.getSize());
+//        Long currentTeacherUserId = UserUtils.get().getId();
+
+    /// /        Long currentTeacherUserId = 16L;
+//        Long teacherId = teacherMapper.selectOne(
+//                new LambdaQueryWrapper<Teacher>()
+//                        .eq(Teacher::getUserId,currentTeacherUserId)
+//        ).getId();
+//        param.setTeacherId(teacherId);
+//        return teachingQuestionBankMapper.selectPendingReviewPage(page, param);
+//    }
     @Override
-    public Page<PendingReviewReturnVO> selectPendingReviewPage(PendingReviewSearchParam param) {
-        Page<PendingReviewReturnVO> page = new Page<>(param.getCurrent(), param.getSize());
-        Long currentTeacherUserId = UserUtils.get().getId();
-//        Long currentTeacherUserId = 16L;
-        Long teacherId = teacherMapper.selectOne(
-                new LambdaQueryWrapper<Teacher>()
-                        .eq(Teacher::getUserId,currentTeacherUserId)
-        ).getId();
-        param.setTeacherId(teacherId);
-        return teachingQuestionBankMapper.selectPendingReviewPage(page, param);
+    public List<PendingReviewQuestionVO> getPendingReviewByQuestion(PendingReviewSearchParam param) {
+//        // 1. 设置权限信息
+//        Long currentUserId = UserUtils.get().getId();
+//        Teacher teacher = teacherMapper.selectOne(new LambdaQueryWrapper<Teacher>().eq(Teacher::getUserId, currentUserId));
+//        if (teacher == null) return new ArrayList<>(); // 不是老师，返回空
+//        param.setTeacherId(teacher.getId());
+
+        // 2. 从数据库获取扁平化的原始数据列表
+        List<PendingReviewRawDataVO> rawDataList = baseMapper.selectPendingReviewRawDataForBank(param);
+        if (rawDataList.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 3. 在Java内存中进行数据聚合
+        // 使用 Stream API 的 groupingBy 将列表按 questionId 分组
+        Map<Long, List<PendingReviewRawDataVO>> groupedByQuestion = rawDataList.stream()
+                .collect(Collectors.groupingBy(PendingReviewRawDataVO::getQuestionId));
+
+        // 4. 遍历分组，组装成最终的嵌套结构
+        List<PendingReviewQuestionVO> finalResult = new ArrayList<>();
+
+        for (Map.Entry<Long, List<PendingReviewRawDataVO>> entry : groupedByQuestion.entrySet()) {
+            PendingReviewQuestionVO questionVO = new PendingReviewQuestionVO();
+
+            List<PendingReviewRawDataVO> answersForThisQuestion = entry.getValue();
+            PendingReviewRawDataVO firstRecord = answersForThisQuestion.get(0);
+
+            // 填充题目信息
+            questionVO.setQuestionId(firstRecord.getQuestionId());
+            questionVO.setQuestionContent(firstRecord.getQuestionContent());
+            questionVO.setCorrectAnswer(firstRecord.getCorrectAnswer());
+            questionVO.setAnswerAnalysis(firstRecord.getAnswerAnalysis());
+            questionVO.setMaxScore(firstRecord.getMaxScore());
+
+            // 遍历该题下的所有学生回答，组装成内层列表
+            List<StudentAnswerForReviewVO> studentAnswers = answersForThisQuestion.stream().map(rawData -> {
+                StudentAnswerForReviewVO answerVO = new StudentAnswerForReviewVO();
+                answerVO.setContentId(rawData.getContentId());
+                answerVO.setRecordId(rawData.getRecordId());
+                answerVO.setStudentName(rawData.getStudentName());
+                answerVO.setStudentAnswer(rawData.getStudentAnswer());
+                return answerVO;
+            }).collect(Collectors.toList());
+
+            questionVO.setStudentAnswers(studentAnswers);
+
+            finalResult.add(questionVO);
+        }
+
+        return finalResult;
     }
+
 
     @Override
     @Transactional
@@ -434,6 +490,7 @@ public Long inserQuestionBank(TeachingQuestionBank param) {
             studentExercisesRecordService.calculateAndUpdateFinalGrade(recordId);
         }
     }
+
     //根据题库ID查询该题库下所有题目信息
     @Override
     public List<QuestionsBanksListVO> getQuestionsWithTypeNameByBankId(Long bankId) {
