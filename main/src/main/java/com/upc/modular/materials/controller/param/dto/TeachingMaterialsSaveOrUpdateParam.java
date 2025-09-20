@@ -27,6 +27,7 @@ public class TeachingMaterialsSaveOrUpdateParam {
     @ApiModelProperty("文件路径（仅供链接用）")
     private String filePath;
 
+
     @ApiModelProperty("封面图片路径")
     @TableField("cover_image_path")
     private String coverImagePath;
