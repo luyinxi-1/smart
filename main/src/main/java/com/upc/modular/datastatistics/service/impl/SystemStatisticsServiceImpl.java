@@ -77,23 +77,54 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
     }
 
     //按时间统计访问人数
-
-
-
     @Override
+    public List<VisitorCountDTO> getStudentVisitorCountByTime(String startDateStr, String endDateStr) {
+        // 1. 参数非空校验 (来自您最初的代码)
+        if (startDateStr == null || startDateStr.trim().isEmpty() || endDateStr == null || endDateStr.trim().isEmpty()) {
+            throw new IllegalArgumentException("开始日期和结束日期不能为空！");
+        }
+        // 2. 将字符串转换为 LocalDate 对象
+        LocalDate startDate;
+        LocalDate endDate;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        try {
+            // 只截取前10位，增强容错性
+            startDate = LocalDate.parse(startDateStr.substring(0, 10), formatter);
+            endDate = LocalDate.parse(endDateStr.substring(0, 10), formatter);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("无效的日期格式！请使用 yyyy-MM-dd 格式。", e);
+        }
+
+        // 3. 业务逻辑校验
+        if (startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("开始日期不能晚于结束日期！");
+        }
+
+        log.info("Service Layer: Calling mapper with strongly-typed dates: startDate='{}', endDate='{}'", startDate, endDate);
+        List<VisitorCountDTO> result = systemDataStatisticsMapper.getStudentVisitorCountByTime(startDate, endDate);
+        // 4. 调用 Mapper
+        if (result == null) {
+            log.warn("CRITICAL DIAGNOSIS: Mapper returned a NULL list!");
+        } else if (result.isEmpty()) {
+            log.info("CRITICAL DIAGNOSIS: Mapper returned an EMPTY list. (Size: 0)");
+        } else {
+            log.info("CRITICAL DIAGNOSIS: Mapper returned a list with {} items. First item's date is: '{}'",
+                    result.size(), result.get(0).getDate());
+        }
+        return result;
+
+    }
+/*    @Override
     public List<VisitorCountDTO> getStudentVisitorCountByTime(String startDate, String endDate) {
         // 1. 参数非空校验
         if (!StringUtils.hasText(startDate) || !StringUtils.hasText(endDate)) {
             throw new IllegalArgumentException("开始日期和结束日期不能为空！");
         }
-
         // 2. 将传入的参数统一处理为纯日期字符串 (yyyy-MM-dd)
         // 无论传入的是 "2025-09-12" 还是 "2025-09-12 15:30:00"，
         // 都只截取前10位。
         String startDateOnly = startDate.length() > 10 ? startDate.substring(0, 10) : startDate;
         String endDateOnly = endDate.length() > 10 ? endDate.substring(0, 10) : endDate;
-
-
         // 3. (可选但推荐) 使用处理过的纯日期字符串进行合法性校验
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         try {
@@ -107,22 +138,13 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
             // 如果截取后格式依然不对，说明原始输入格式错误
             throw new IllegalArgumentException("无效的日期格式！", e);
         }
-
-
         // 4. 准备参数，传入处理后的纯日期
         Map<String, Object> params = new HashMap<>();
         params.put("startDate", startDateOnly);
         params.put("endDate", endDateOnly);
-
         // 5. 调用 Mapper 并返回结果
         return systemDataStatisticsMapper.getStudentVisitorCountByTime(params);
-    }
-
-
-    @Override
-    public List<Map<String, Object>> getVisitorCountByTime(Map<String, Object> param) {
-        return systemDataStatisticsMapper.getVisitorCountByTime(param);
-    }
+    }*/
 
     @Override
     public Long getTodayStudyDuration() {

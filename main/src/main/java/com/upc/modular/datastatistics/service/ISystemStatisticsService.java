@@ -3,6 +3,7 @@ package com.upc.modular.datastatistics.service;
 import com.upc.modular.datastatistics.controller.param.ChapterMasteryVO;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -14,19 +15,7 @@ public interface ISystemStatisticsService {
      */
     Long getTodayVisitorCount();
 
-    /**
-     * 按时间段获取学生访客数量统计
-     * @param startDate 开始日期 (格式: "yyyy-MM-dd")
-     * @param endDate 结束日期 (格式: "yyyy-MM-dd")
-     * @return 访客统计列表
-     */
     List<VisitorCountDTO> getStudentVisitorCountByTime(String startDate, String endDate);
-    /**
-     * 按时间统计访问人数
-     */
-    // 按时间统计访问人数
-    List<Map<String, Object>> getVisitorCountByTime(Map<String, Object> param);
-
     /**
      * 获取今日总学习时长
      */
