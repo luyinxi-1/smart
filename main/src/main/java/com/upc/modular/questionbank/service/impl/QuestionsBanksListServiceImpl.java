@@ -257,10 +257,14 @@ public class QuestionsBanksListServiceImpl extends ServiceImpl<QuestionsBanksLis
         // 批量处理题目列表
         List<QuestionsBanksListBatchParam.QuestionScoreParam> questionList = param.getList();
         if (questionList != null && !questionList.isEmpty()) {
+            
+            // 1. 先删除该题库的所有现有关联
+            LambdaQueryWrapper<QuestionsBanksList> deleteWrapper = new LambdaQueryWrapper<>();
+            deleteWrapper.eq(QuestionsBanksList::getBankId, bankId);
+            this.remove(deleteWrapper);
 
-            // 分离新增和更新的记录
+            // 2. 准备新的关联记录
             List<QuestionsBanksList> insertList = new ArrayList<>();
-            List<QuestionsBanksList> updateList = new ArrayList<>();
 
             for (QuestionsBanksListBatchParam.QuestionScoreParam questionScoreParam : questionList) {
                 // 检查题目是否存在
@@ -271,11 +275,13 @@ public class QuestionsBanksListServiceImpl extends ServiceImpl<QuestionsBanksLis
                     throw new RuntimeException("ID为 " + questionScoreParam.getQuestionId() + " 的题目不存在！");
                 }
 
-                // 检查是否已经存在相同的关联关系
-                LambdaQueryWrapper<QuestionsBanksList> relationQueryWrapper = new LambdaQueryWrapper<>();
-                relationQueryWrapper.eq(QuestionsBanksList::getQuestionId, questionScoreParam.getQuestionId());
-                relationQueryWrapper.eq(QuestionsBanksList::getBankId, bankId);
-                QuestionsBanksList existingRecord = questionsBanksListMapper.selectOne(relationQueryWrapper);
+                // 检查是否有重复的题目ID（在本次提交的列表中）
+                boolean isDuplicateInList = questionList.stream()
+                    .filter(q -> !q.equals(questionScoreParam))
+                    .anyMatch(q -> q.getQuestionId().equals(questionScoreParam.getQuestionId()));
+                if (isDuplicateInList) {
+                    throw new RuntimeException("题目ID为 " + questionScoreParam.getQuestionId() + " 在本次提交中重复！");
+                }
 
                 QuestionsBanksList questionsBanksList = new QuestionsBanksList();
                 questionsBanksList.setQuestionId(questionScoreParam.getQuestionId());
@@ -283,25 +289,18 @@ public class QuestionsBanksListServiceImpl extends ServiceImpl<QuestionsBanksLis
                 questionsBanksList.setScore(questionScoreParam.getScore());
                 questionsBanksList.setSequence(questionScoreParam.getSequence());
 
-                if (existingRecord != null) {
-                    // 更新操作：使用已存在记录的ID
-                    questionsBanksList.setId(existingRecord.getId());
-                    updateList.add(questionsBanksList);
-                } else {
-                    // 新增操作
-                    insertList.add(questionsBanksList);
-                }
+                insertList.add(questionsBanksList);
             }
 
-            // 执行批量新增
+            // 3. 批量插入新的关联记录
             if (!insertList.isEmpty()) {
                 this.saveBatch(insertList);
             }
-
-            // 执行批量更新
-            if (!updateList.isEmpty()) {
-                this.updateBatchById(updateList);
-            }
+        } else {
+            // 如果题目列表为空，只删除现有关联
+            LambdaQueryWrapper<QuestionsBanksList> deleteWrapper = new LambdaQueryWrapper<>();
+            deleteWrapper.eq(QuestionsBanksList::getBankId, bankId);
+            this.remove(deleteWrapper);
         }
     }
 
