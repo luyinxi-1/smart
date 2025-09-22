@@ -12,6 +12,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -33,18 +34,18 @@ public class SystemStatisticsController {
             return R.fail("获取今日访问人数失败: " + e.getMessage());
         }
     }
-    // 按时间统计访问人数
-
-
 @ApiOperation("按时间统计访问人数")
 @GetMapping("/visitorCountByTime")
 public ResponseEntity<List<VisitorCountDTO>> getStudentVisitorCountByTime(
-            @RequestParam String startDate,
-            @RequestParam String endDate) {
+        @RequestParam String startDate,
+        @RequestParam String endDate) {
 
-        List<VisitorCountDTO> result = systemStatisticsService.getStudentVisitorCountByTime(startDate, endDate);
-        return ResponseEntity.ok(result);
-    }
+    log.info("API Request: Count visitors from startDate='{}' to endDate='{}'", startDate, endDate);
+
+    // 将字符串传递给 Service 层
+    List<VisitorCountDTO> result = systemStatisticsService.getStudentVisitorCountByTime(startDate, endDate);
+    return ResponseEntity.ok(result);
+}
     // 今日总学习时长
     @ApiOperation("今日总学习时长")
     @PostMapping("/todayStudyDuration")
@@ -58,10 +59,8 @@ public ResponseEntity<List<VisitorCountDTO>> getStudentVisitorCountByTime(
     }
 
     @ApiOperation("根据时间范围查询总学习时长(单位:秒)")
-    @GetMapping("/studyDurationByTime") // 使用 GET 请求，路径名也更通用
+    @GetMapping("/studyDurationByTime")
     public R<Long> getStudyDurationBytime(
-            // 使用 @RequestParam 接收 URL 参数
-            // @DateTimeFormat 用于告诉 Spring 如何将字符串转换为 LocalDateTime 对象
             @RequestParam("startTime") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
             @RequestParam("endTime") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
         try {
