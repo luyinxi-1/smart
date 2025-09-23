@@ -119,6 +119,12 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
                 .map(discussionTopic -> {
                     DiscussionTopicReturnParam discussionTopicReturnParam = new DiscussionTopicReturnParam();
 
+                    if(discussionTopic.getId() != null){
+                        discussionTopicReturnParam.setId(discussionTopic.getId());
+                    }else{
+                        discussionTopicReturnParam.setId(0L);
+                    }
+
                     if (discussionTopic.getTextbookId() != null) {
                         Textbook textbook = textbookService.getById(discussionTopic.getTextbookId());
                         if (textbook != null) {
