@@ -49,6 +49,14 @@ public class UserFavoritesController {
         userFavoritesService.deleteUserFavorites(idParam);
         return R.commonReturn(200, "删除成功", "");
     }
+
+    @ApiOperation(value = "根据教材ID删除收藏")
+    @PostMapping("/deleteUserFavoritesByTextbookId")
+    public R deleteUserFavoritesByTextbookId(@RequestParam("textbookId") Long textbookId) {
+        userFavoritesService.deleteUserFavoritesByTextbookId(textbookId);
+        return R.commonReturn(200, "删除成功", "");
+    }
+
     @ApiOperation(value = "分页查询收藏")
     @PostMapping("/getPage")
     public R<PageBaseReturnParam<UserFavoritesVO>> getPage(@RequestBody UserFavoritesPageSearch param) {

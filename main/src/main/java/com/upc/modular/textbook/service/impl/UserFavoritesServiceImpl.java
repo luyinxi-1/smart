@@ -75,6 +75,27 @@ public class UserFavoritesServiceImpl extends ServiceImpl<UserFavoritesMapper, U
     }
 
     @Override
+    public void deleteUserFavoritesByTextbookId(Long textbookId) {
+        UserInfoToRedis userInfoToRedis = UserUtils.get();
+        if (ObjectUtils.isEmpty(userInfoToRedis)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户未登录");
+        }
+        if (ObjectUtils.isEmpty(textbookId)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材ID不能为空");
+        }
+
+        // 根据用户ID和教材ID删除收藏记录
+        LambdaQueryWrapper<UserFavorites> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(UserFavorites::getUserId, userInfoToRedis.getId())
+                .eq(UserFavorites::getTextbookId, textbookId);
+
+        boolean deleteResult = this.remove(queryWrapper);
+        if (!deleteResult) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "删除收藏失败，可能该教材未被收藏");
+        }
+    }
+
+    @Override
     public Page<UserFavoritesVO> getPage(UserFavoritesPageSearch param) {
         UserInfoToRedis userInfoToRedis = UserUtils.get();
         if (ObjectUtils.isEmpty(userInfoToRedis)) {
