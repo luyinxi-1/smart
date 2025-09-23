@@ -8,10 +8,7 @@ import com.upc.modular.datastatistics.service.IStudentDataStatistics;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -124,6 +121,13 @@ public class StudentDataStatisticsController {
         return R.ok(iStudentDataStatistics.countStudentPersonalAnalysis(startTime,endTime));
     }
 
+    @ApiOperation("统计指定教材的阅读情况")
+    @GetMapping("/textbook-situation")
+    public R<StudentTextbookSituationReturnParam> countStudentTextbookSituation(
+            @RequestParam Long textbookId
+    ){
+        return R.ok(iStudentDataStatistics.countStudentTextbookSituation(textbookId));
+    }
 
 
 
