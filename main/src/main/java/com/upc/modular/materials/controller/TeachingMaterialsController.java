@@ -34,14 +34,27 @@ public class TeachingMaterialsController {
     @Autowired
     private ITeachingMaterialsService teachingMaterialsService;
 
-    @ApiOperation(value = "添加教学素材")
+
+
+/*    @ApiOperation(value = "添加教学素材")
     @PostMapping("/insert-materials")
     public R<String> insertMaterials(@RequestParam(value = "file") List<MultipartFile> files, @ModelAttribute TeachingMaterialsSaveOrUpdateParam param) {
         String result = teachingMaterialsService.insertMaterials(files, param);
         if (result==null)
             return R.fail("修改失败");
         else return R.ok(result);
-    }
+    }*/
+@ApiOperation(value = "添加教学素材(JSON格式)") // 更新一下接口描述
+@PostMapping("/insert-materials")
+// --- 这是修改后的方法签名 ---
+public R<String> insertMaterials(@RequestBody TeachingMaterialsSaveOrUpdateParam param) {
+    // --- Service方法签名也需要同步修改 ---
+    String result = teachingMaterialsService.insertMaterials(param);
+    if (result == null)
+        return R.fail("修改失败");
+    else
+        return R.ok(result);
+}
 
     @ApiOperation(value = "下载教学素材")
     @GetMapping("/download-file-materials")
