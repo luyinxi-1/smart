@@ -17,4 +17,7 @@ public class HomePageNoticeReturnParam extends HomePageNotice {
     @ApiModelProperty("修改者姓名")
     private String operatorName;
 
+    @ApiModelProperty("创建者姓名")
+    private String creatorName;
+
 }
