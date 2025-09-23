@@ -147,10 +147,12 @@ public class CourseClassListServiceImpl extends ServiceImpl<CourseClassListMappe
         List<GetMyCourseReturnParam> resultList = new ArrayList<>();
         Long id = UserUtils.get().getId();
         if (UserUtils.get().getUserType() == 1) {
-            resultList = courseClassListMapper.getMyCourseTeacher(id, param);
+            // 修复：userType == 1 是学生，应该调用学生方法
+            resultList = courseClassListMapper.getMyCourseStudent(id, param);
         }
         if (UserUtils.get().getUserType() == 2) {
-            resultList = courseClassListMapper.getMyCourseStudent(id, param);
+            // 修复：userType == 2 是教师，应该调用教师方法
+            resultList = courseClassListMapper.getMyCourseTeacher(id, param);
         }
         if (UserUtils.get().getUserType() == 0) {
             resultList = courseClassListMapper.getMyCourseAdmin(id, param);

@@ -37,10 +37,10 @@ public class TeachingMaterialsController {
     @ApiOperation(value = "添加教学素材")
     @PostMapping("/insert-materials")
     public R<String> insertMaterials(@RequestParam(value = "file") List<MultipartFile> files, @ModelAttribute TeachingMaterialsSaveOrUpdateParam param) {
-        Boolean result = teachingMaterialsService.insertMaterials(files, param);
-        if (!result)
-            return R.fail("添加失败");
-        else return R.ok("添加成功");
+        String result = teachingMaterialsService.insertMaterials(files, param);
+        if (result==null)
+            return R.fail("修改失败");
+        else return R.ok(result);
     }
 
     @ApiOperation(value = "下载教学素材")
@@ -55,7 +55,6 @@ public class TeachingMaterialsController {
         String url = teachingMaterialsService.getLinkMaterials(id, textbookId);
         return R.ok(url);
     }
-
     @ApiOperation(value = "分页查询教学素材")
     @PostMapping("/getPage")
     public R<PageBaseReturnParam<TeachingMaterialsReturnVo>> getPage(@RequestBody TeachingMaterialsPageSearchDto param) {
@@ -63,7 +62,6 @@ public class TeachingMaterialsController {
         PageBaseReturnParam<TeachingMaterialsReturnVo> result = PageBaseReturnParam.ok(page);
         return R.page(result);
     }
-
     // 查看教学素材
     @ApiOperation(value = "查看教学素材(学生查看时用到textbookId)")
     @GetMapping("/get-teaching-materials")
@@ -72,14 +70,16 @@ public class TeachingMaterialsController {
         return R.ok(teachingMaterials);
     }
 
-    @ApiOperation(value = "修改教学素材信息")
+   @ApiOperation(value = "修改教学素材信息")
     @PostMapping("/updateTeachingMaterialsById")
     public R<String> updateInstitutionById(@RequestParam(value = "file") List<MultipartFile> files, @ModelAttribute TeachingMaterialsSaveOrUpdateParam param) {
-        Boolean result = teachingMaterialsService.updateTeachingMaterialsById(files, param);
-        if (!result)
+        String result = teachingMaterialsService.updateTeachingMaterialsById(files, param);
+        if (result==null)
             return R.fail("修改失败");
-        else return R.ok("修改成功");
+        else return R.ok(result);
     }
+
+
 
     @ApiOperation(value = "删除教学素材信息")
     @PostMapping("/deleteTeachingMaterialsByIds")

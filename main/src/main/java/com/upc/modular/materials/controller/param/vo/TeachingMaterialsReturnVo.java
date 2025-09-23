@@ -38,4 +38,7 @@ public class TeachingMaterialsReturnVo {
 
     @ApiModelProperty("上传时间")
     private LocalDateTime addDatetime;
+
+    @ApiModelProperty("文件路径")
+    private String filePath;
 }

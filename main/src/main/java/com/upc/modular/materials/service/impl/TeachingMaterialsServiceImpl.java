@@ -73,14 +73,13 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
      * @return
      */
     @Override
-    public Boolean insertMaterials(List<MultipartFile> files, TeachingMaterialsSaveOrUpdateParam param) {
+    public String insertMaterials(List<MultipartFile> files, TeachingMaterialsSaveOrUpdateParam param) {
         // 查看该作者是否有重名素材
         if (ObjectUtils.isNotEmpty(teachingMaterialsMapper.selectList(new LambdaQueryWrapper<TeachingMaterials>()
                 .eq(TeachingMaterials::getName, param.getName())
                 .eq(TeachingMaterials::getCreator, UserUtils.get().getId()))))
             throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，该命名素材已存在");
         TeachingMaterials teachingMaterials = new TeachingMaterials();
-
         if (param.getType().equals("link")) {
             // 处理链接素材：链接地址存在了filePath里，所以不需要处理
             if (ObjectUtils.isEmpty(param.getFilePath()))
@@ -157,7 +156,12 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             teachingMaterials.setFilePath(filePath);
 
         }
-        return this.save(teachingMaterials);
+        if(this.save(teachingMaterials)){
+            if(teachingMaterials.getType().equals("link")){
+                return teachingMaterials.getFilePath();
+            }
+            return teachingMaterials.getFileName();
+        }else return null;
     }
 
     /**
@@ -406,6 +410,8 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，没有权限查看此文件");
         }
         BeanUtils.copyProperties(materials, materialsReturnVo);
+        // 新增代码：设置文件名
+        materialsReturnVo.setFileName(materials.getFileName());
         Teacher teacher = teacherService.getById(materials.getCreator());
         if (teacher != null && ObjectUtils.isNotEmpty(teacher.getName()))
             materialsReturnVo.setAuthorName(teacher.getName());
@@ -414,7 +420,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
     }
 
     @Override
-    public Boolean updateTeachingMaterialsById(List<MultipartFile> files, TeachingMaterialsSaveOrUpdateParam param) {
+    public String updateTeachingMaterialsById(List<MultipartFile> files, TeachingMaterialsSaveOrUpdateParam param) {
         if (ObjectUtils.isEmpty(param) || ObjectUtils.isEmpty(param.getId()))
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         if (ObjectUtils.isEmpty(param.getType()))
@@ -462,6 +468,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 Path newfolderPath;
                 String imageSetLength = String.valueOf(files.size());
                 String imageSetName = UUID.randomUUID() + "_" + imageSetLength;
+
                 Boolean isPublic = oldData.getIsPublic();
                 if (ObjectUtils.isNotEmpty(param.getIsPublic()))
                     isPublic = param.getIsPublic();
@@ -534,6 +541,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 }
                 // 添加新文件
                 Path newfolderPath;
+
                 if (param.getIsPublic())
                     newfolderPath = Paths.get("upload", "teaching_materials", "public",
                             param.getType(), FileManageUtil.yyyyMMddStr());
@@ -542,7 +550,6 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                             UserUtils.get().getId().toString(),
                             param.getType(), FileManageUtil.yyyyMMddStr());
                 String fileName = FileManageUtil.createFileName(file);
-
                 String filePath = FileManageUtil.uploadFile(file, newfolderPath, fileName);
                 if (ObjectUtils.isEmpty(filePath))
                     throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，上传失败");
@@ -578,7 +585,15 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 }
             }
         }
-        return this.updateById(oldData);
+        if(this.updateById(oldData)){
+            if(oldData.getType().equals("link"))
+            {
+                return oldData.getFilePath();
+            }
+            return oldData.getFileName();
+        }
+        else
+            return null;
     }
 
 

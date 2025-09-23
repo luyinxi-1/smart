@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.upc.modular.datastatistics.mapper.SystemDataStatisticsMapper">
+    <resultMap id="visitorCountResultMap" type="com.upc.modular.datastatistics.controller.param.VisitorCountDTO">
+        <!--
+          将数据库查询出的'date'列，映射到DTO的'date'属性上。
+          使用 javaType="java.sql.Date" 来告诉MyBatis期望一个纯日期类型。
+        -->
+        <result column="date" property="date" javaType="java.sql.Date"/>
+        <result column="visitorCount" property="visitorCount"/>
+    </resultMap>
     <!-- 今日访问学生人数 -->
     <select id="getTodayVisitorCount" resultType="long">
         SELECT
@@ -14,22 +22,25 @@
             sl.add_datetime &gt;= CURRENT_DATE
           AND sl.add_datetime &lt; (CURRENT_DATE + INTERVAL '1 day')
     </select>
-    <!-- 按时间段统计每日访问学生人数 -->
-    <!-- 注意：resultType 已修改为你的 DTO 类的完整路径 -->
-    <select id="getStudentVisitorCountByTime" parameterType="map" resultType="com.upc.modular.datastatistics.controller.param.VisitorCountDTO">
+    <select id="getStudentVisitorCountByTime" resultMap="visitorCountResultMap">
+        <!--
+          这里的SQL语句保持不变！它本身是完全正确的，
+          我们必须保留时区转换逻辑来解决核心的日期偏差问题。
+        -->
         SELECT
-            sl.add_datetime::date as date,
+        ((sl.add_datetime AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Shanghai')::date as date,
         COUNT(DISTINCT s.user_id) as visitorCount
         FROM
-            sys_log sl
-            INNER JOIN
-            student s ON sl.user_id = s.user_id
+        sys_log sl
+        INNER JOIN
+        student s ON sl.user_id = s.user_id
         WHERE
-            sl.add_datetime::date BETWEEN #{startDate} AND #{endDate}
+        ((sl.add_datetime AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Shanghai')::date
+        BETWEEN #{startDate} AND #{endDate}
         GROUP BY
-            sl.add_datetime::date
+        date
         ORDER BY
-            date ASC
+        date ASC
     </select>
     <!-- 统计今日总阅读时长（秒）- 使用 age() 函数的最终正确版本 -->
     <select id="getTodayStudyDuration" resultType="long">
@@ -54,24 +65,6 @@
                      ), 0) AS total_reading_seconds
         FROM
             UserLogsWithNext;
-    </select>
-
-    <!-- 今日活跃人数 -->
-    <select id="getTodayActiveUserCount" resultType="long">
-        SELECT COUNT(DISTINCT student_id)
-        FROM student_reading_log
-        WHERE add_datetime >= CURRENT_DATE AND add_datetime &lt; CURRENT_DATE + INTERVAL '1 day'
-    </select>
-
-    <!-- 按时间统计活跃人数 -->
-    <select id="getActiveUserCountByTime" parameterType="map" resultType="map">
-        SELECT
-            DATE(add_datetime) as date,
-            COUNT(DISTINCT student_id) as activeUserCount
-        FROM student_reading_log
-        WHERE add_datetime BETWEEN #{startDate} AND #{endDate}
-        GROUP BY DATE(add_datetime)
-        ORDER BY date
     </select>
 
     <select id="getStudyDurationByTimeRange" parameterType="map" resultType="long">
@@ -100,110 +93,29 @@
         FROM
             UserLogsWithNext;
     </select>
-    <!-- 学生数量统计 -->
-    <select id="getStudentCount" resultType="long">
-        SELECT COUNT(*) FROM student
-    </select>
 
-    <!-- 教学思政数量统计 -->
-    <select id="getIdeologicalMaterialCount" resultType="long">
-        SELECT COUNT(*) FROM ideological_material
-    </select>
-
-    <!-- 教学活动数量统计 -->
-    <select id="getTeachingActivityCount" resultType="long">
-        SELECT COUNT(*) FROM discussion_topic
-    </select>
-
-    <!-- 题库数量统计 -->
-    <select id="getQuestionBankCount" resultType="long">
-        SELECT COUNT(*) FROM teaching_question_bank
-    </select>
-
-    <!-- 班级数量统计 -->
-    <select id="getClassCount" resultType="long">
-        SELECT COUNT(*) FROM class_group
-    </select>
-
-    <!-- 在授课程数量统计 -->
-    <select id="getTeachingCourseCount" resultType="long">
-        SELECT COUNT(*) FROM course
-    </select>
-
-    <!-- 智慧教材数量统计 -->
-    <select id="getSmartTextbookCount" resultType="long">
-        SELECT COUNT(*) FROM textbook
-    </select>
-
-    <!-- 教材类型统计 -->
-    <select id="getTextbookTypeCount" resultType="map">
-        SELECT
-            tc.classification_name as typeName,
-            COUNT(t.id) as textbookCount
-        FROM textbook_classification tc
-                 LEFT JOIN textbook t ON tc.id = t.classification
-        GROUP BY tc.id, tc.classification_name
-    </select>
-
-    <!-- 教师数量统计 -->
-    <select id="getTeacherCount" resultType="long">
-        SELECT COUNT(*) FROM teacher
-    </select>
-
-    <!-- 交流反馈数量统计 -->
-    <select id="getCommunicationFeedbackCount" resultType="long">
-        SELECT COUNT(*) FROM discussion_topic_reply
-    </select>
-
-    <!-- 教学素材数量统计 -->
-    <select id="getTeachingMaterialCount" resultType="long">
-        SELECT COUNT(*) FROM teaching_materials
-    </select>
-
-    <!-- 资源使用数据统计 -->
-    <select id="getResourceUsageData" resultType="map">
-        SELECT
-            '学生数量' as resourceName,
-            COUNT(*) as usageCount
-        FROM student
-        UNION ALL
-        SELECT
-            '教材数量' as resourceName,
-            COUNT(*) as usageCount
-        FROM textbook
-        UNION ALL
-        SELECT
-            '题库数量' as resourceName,
-            COUNT(*) as usageCount
-        FROM teaching_question_bank
-        UNION ALL
-        SELECT
-            '教学活动数量' as resourceName,
-            COUNT(*) as usageCount
-        FROM discussion_topic
-    </select>
 
     <!-- 教材阅读排名（按时长统计，支持时间范围查询） -->
     <select id="getTextbookReadingRank" parameterType="map" resultType="map">
-        SELECT 
+        SELECT
             t.id AS textbookId,
             t.textbook_name AS textbookName,
-            COUNT(CASE 
-                WHEN (EXTRACT(EPOCH FROM l2.add_datetime::timestamp) - EXTRACT(EPOCH FROM l1.add_datetime::timestamp)) BETWEEN 55 AND 65 
-                THEN 1 
-                ELSE NULL 
+            COUNT(CASE
+                WHEN (EXTRACT(EPOCH FROM l2.add_datetime::timestamp) - EXTRACT(EPOCH FROM l1.add_datetime::timestamp)) BETWEEN 55 AND 65
+                THEN 1
+                ELSE NULL
             END) AS readingDuration
         FROM textbook t
         LEFT JOIN learning_log l1 ON t.id = l1.textbook_id
-        LEFT JOIN learning_log l2 ON l1.creator = l2.creator 
-            AND l1.textbook_id = l2.textbook_id 
-            AND l2.add_datetime > l1.add_datetime 
+        LEFT JOIN learning_log l2 ON l1.creator = l2.creator
+            AND l1.textbook_id = l2.textbook_id
+            AND l2.add_datetime > l1.add_datetime
             AND l2.id = (
-                SELECT id FROM learning_log 
-                WHERE creator = l1.creator 
-                AND textbook_id = l1.textbook_id 
-                AND add_datetime > l1.add_datetime 
-                ORDER BY add_datetime ASC 
+                SELECT id FROM learning_log
+                WHERE creator = l1.creator
+                AND textbook_id = l1.textbook_id
+                AND add_datetime > l1.add_datetime
+                ORDER BY add_datetime ASC
                 LIMIT 1
             )
         <where>
@@ -220,25 +132,25 @@
 
     <!-- 类型阅读排名（按时长统计，支持时间范围查询） -->
     <select id="getTextbookTypeReadingRank" parameterType="map" resultType="map">
-        SELECT 
+        SELECT
             tc.classification_name AS typeName,
-            COUNT(CASE 
-                WHEN (EXTRACT(EPOCH FROM l2.add_datetime::timestamp) - EXTRACT(EPOCH FROM l1.add_datetime::timestamp)) BETWEEN 55 AND 65 
-                THEN 1 
-                ELSE NULL 
+            COUNT(CASE
+                WHEN (EXTRACT(EPOCH FROM l2.add_datetime::timestamp) - EXTRACT(EPOCH FROM l1.add_datetime::timestamp)) BETWEEN 55 AND 65
+                THEN 1
+                ELSE NULL
             END) AS readingDuration
         FROM textbook t
         LEFT JOIN textbook_classification tc ON t.classification = tc.id
         LEFT JOIN learning_log l1 ON t.id = l1.textbook_id
-        LEFT JOIN learning_log l2 ON l1.creator = l2.creator 
-            AND l1.textbook_id = l2.textbook_id 
-            AND l2.add_datetime > l1.add_datetime 
+        LEFT JOIN learning_log l2 ON l1.creator = l2.creator
+            AND l1.textbook_id = l2.textbook_id
+            AND l2.add_datetime > l1.add_datetime
             AND l2.id = (
-                SELECT id FROM learning_log 
-                WHERE creator = l1.creator 
-                AND textbook_id = l1.textbook_id 
-                AND add_datetime > l1.add_datetime 
-                ORDER BY add_datetime ASC 
+                SELECT id FROM learning_log
+                WHERE creator = l1.creator
+                AND textbook_id = l1.textbook_id
+                AND add_datetime > l1.add_datetime
+                ORDER BY add_datetime ASC
                 LIMIT 1
             )
         <where>
@@ -255,33 +167,33 @@
 
     <!-- 获取指定学生在某教材下各章节的掌握度 -->
     <select id="getStudentChapterMastery" resultType="map">
-        SELECT 
+        SELECT
             tc.id AS "chapterId",
             REGEXP_REPLACE(
-                REGEXP_REPLACE(tc.catalog_name, E'&lt;[^&gt;]+&gt;', '', 'g'), 
+                REGEXP_REPLACE(tc.catalog_name, E'&lt;[^&gt;]+&gt;', '', 'g'),
                 E'&amp;nbsp;', ' ', 'g'
             ) AS "chapterName",
-            CASE 
-                WHEN COUNT(qbl.question_id) = 0 THEN 
+            CASE
+                WHEN COUNT(qbl.question_id) = 0 THEN
                     -1  -- 表示该章节没有题目
-                WHEN SUM(qbl.score) > 0 THEN 
+                WHEN SUM(qbl.score) > 0 THEN
                     ROUND((SUM(sec.score) / SUM(qbl.score)) * 100, 2)
-                ELSE 0 
+                ELSE 0
             END AS "masteryPercentage",
             COUNT(qbl.question_id) AS "questionCount"
         FROM textbook_catalog tc
         LEFT JOIN teaching_question_bank tqb ON tc.id = tqb.textbook_catalog_id
         LEFT JOIN questions_banks_list qbl ON tqb.id = qbl.bank_id
         LEFT JOIN student_final_grade sfg ON tqb.id = sfg.bank_id AND sfg.student_id = #{studentId}
-        LEFT JOIN student_exercises_content sec ON qbl.bank_id = sec.teaching_question_bank_id 
-            AND qbl.question_id = sec.teaching_question 
+        LEFT JOIN student_exercises_content sec ON qbl.bank_id = sec.teaching_question_bank_id
+            AND qbl.question_id = sec.teaching_question
             AND sec.record_id = (
-                SELECT ser.id 
-                FROM student_exercises_record ser 
-                WHERE ser.student_id = #{studentId} 
-                AND ser.teaching_question_bank_id = tqb.id 
+                SELECT ser.id
+                FROM student_exercises_record ser
+                WHERE ser.student_id = #{studentId}
+                AND ser.teaching_question_bank_id = tqb.id
                 AND ser.status = 2
-                ORDER BY ser.operation_datetime DESC 
+                ORDER BY ser.operation_datetime DESC
                 LIMIT 1
             )
         WHERE tc.textbook_id = #{textbookId}
