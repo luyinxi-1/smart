@@ -1,18 +1,21 @@
 package com.upc.modular.textbook.controller;
 
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.textbook.entity.TeacherAnnotation;
+import com.upc.modular.textbook.param.TeacherAnnotationPageSearchParam;
 import com.upc.modular.textbook.param.TeacherAnnotationReturnParam;
 import com.upc.modular.textbook.service.ITeacherAnnotationService;
-import com.upc.modular.textbook.service.impl.TeacherAnnotationServiceImpl;
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 /**
  * <p>
- *  前端控制器
+ * 前端控制器
  * </p>
  *
  * @author mjh
@@ -20,10 +23,19 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/teacher-annotation")
+@Api(tags = "教师批注管理")
 public class TeacherAnnotationController {
 
     @Autowired
     private ITeacherAnnotationService teacherAnnotationService;
+
+    @ApiOperation(value = "教师批注分页查询-by textbookId")
+    @PostMapping("/get-teacher-annotation-page")
+    public R<PageBaseReturnParam<TeacherAnnotationReturnParam>> getTeacherAnnotationPage(@RequestBody TeacherAnnotationPageSearchParam param) {
+        Page<TeacherAnnotationReturnParam> result = teacherAnnotationService.getTeacherAnnotationPage(param);
+        PageBaseReturnParam<TeacherAnnotationReturnParam> pageBaseReturnParam = PageBaseReturnParam.ok(result);
+        return R.page(pageBaseReturnParam);
+    }
 
     @ApiOperation(value = "添加教师批注")
     @PostMapping("/insert-teacher-annotation")

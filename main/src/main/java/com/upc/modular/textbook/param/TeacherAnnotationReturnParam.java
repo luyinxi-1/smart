@@ -4,6 +4,8 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.time.LocalDateTime;
+
 @Data
 @Accessors(chain = true)
 public class TeacherAnnotationReturnParam {
@@ -28,5 +30,11 @@ public class TeacherAnnotationReturnParam {
 
     @ApiModelProperty("教师名")
     private String teacherName;
+
+    @ApiModelProperty("教师头像")
+    private String teacherPhoto;
+
+    @ApiModelProperty("添加时间")
+    private LocalDateTime addDatetime;
 
 }
