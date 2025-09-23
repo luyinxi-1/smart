@@ -545,6 +545,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
                 plainText = Jsoup.parse(record.getCatalogName()).text();
             }
             TextbookTree node = new TextbookTree()
+                    .setCatalogId(record.getId())  // 添加这一行
                     .setTextbookId(record.getTextbookId())
                     .setCatalogName(plainText)
                     .setCatalogLevel(record.getCatalogLevel())

@@ -10,6 +10,9 @@ import java.util.List;
 @Data
 @Accessors(chain = true)
 public class TextbookTree {
+    @ApiModelProperty("目录id")
+    private Long catalogId;
+
     @ApiModelProperty("教材主表的id")
     private Long textbookId;
 
