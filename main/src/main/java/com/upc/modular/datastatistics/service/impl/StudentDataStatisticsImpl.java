@@ -470,7 +470,21 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         return returnParam;
     }
 
+    @Override
+    public StudentTextbookSituationReturnParam countStudentTextbookSituation(Long textbookId) {
+        Long userId = UserUtils.get().getId();
+        StudentTextbookSituationReturnParam returnParam = new StudentTextbookSituationReturnParam();
+        //统计该学生对于该教材学习次数
+        returnParam.setStudyCount(studentDataStatisticsMapper.countStudentTextbookReading(userId, textbookId));
 
+        //统计最后阅读的目录id
+        returnParam.setLastReadingCatalogueId(studentDataStatisticsMapper.findLastReadingCatalogueId(userId, textbookId));
+
+        //阅读过的目录id列表
+        returnParam.setReadingCatalogueIdList(studentDataStatisticsMapper.findCatalogueIdList(userId,textbookId));
+
+        return returnParam;
+    }
 
 
     /**

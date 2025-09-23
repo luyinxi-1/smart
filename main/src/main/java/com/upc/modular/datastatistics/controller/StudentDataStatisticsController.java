@@ -121,6 +121,14 @@ public class StudentDataStatisticsController {
         return R.ok(iStudentDataStatistics.countStudentPersonalAnalysis(startTime,endTime));
     }
 
+    @ApiOperation("统计指定教材的阅读情况")
+    @GetMapping("/textbook-situation")
+    public R<StudentTextbookSituationReturnParam> countStudentTextbookSituation(
+            @RequestParam Long textbookId
+    ){
+        return R.ok(iStudentDataStatistics.countStudentTextbookSituation(textbookId));
+    }
+
 
 
 }
