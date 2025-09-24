@@ -215,7 +215,7 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
                     new LambdaQueryWrapper<Student>().in(Student::getUserId, creatorIds)
             );
             students.forEach(student -> {
-                nameMap.put(student.getUserId(), student.getName());
+//                nameMap.put(student.getUserId(), student.getName());
                 roleMap.put(student.getUserId(), "学生");
             });
 
@@ -228,16 +228,19 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
                         new LambdaQueryWrapper<Teacher>().in(Teacher::getUserId, missingIds)
                 );
                 teachers.forEach(teacher -> {
-                    nameMap.put(teacher.getUserId(), teacher.getName());
+//                    nameMap.put(teacher.getUserId(), teacher.getName());
                     roleMap.put(teacher.getUserId(), "教师");
                 });
             }
 
+            // 从sys_tbuser表获取nickname
             List<SysTbuser> users = sysTbUserMapper.selectList(
                     new LambdaQueryWrapper<SysTbuser>().in(SysTbuser::getId, creatorIds)
             );
-            // 将用户列表转换为 UserId -> UserPicture 的 Map
+            // 将用户列表转换为 UserId -> UserPicture 和 UserId -> Nickname 的 Map
             users.forEach(user -> {
+                // 使用nickname作为用户名
+                nameMap.put(user.getId(), user.getNickname());
                 if (user.getUserPicture() != null) {
                     pictureMap.put(user.getId(), user.getUserPicture());
                 }
