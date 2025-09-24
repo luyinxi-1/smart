@@ -15,7 +15,13 @@ public interface ISystemStatisticsService {
      */
     Long getTodayVisitorCount();
 
-    List<VisitorCountDTO> getStudentVisitorCountByTime(String startDate, String endDate);
+    /**
+     * 根据时间范围标识符获取学生访客数量
+     *
+     * @param timeRange 时间范围标识符 (例如 "week", "month", "year")
+     * @return 包含每天访客数量的 DTO 列表
+     */
+    List<VisitorCountDTO> getStudentVisitorCountByTime(String timeRange);
     /**
      * 获取今日总学习时长
      */
