@@ -93,7 +93,7 @@
         r.replyContent,
         r.likeNumber,
         COALESCE(dc.replyNumber, 0)        AS replyNumber,
-        COALESCE(s.name, t.name, '【匿名】') AS creatorName,
+        COALESCE(u.nickname, '【匿名】') AS creatorName,
         CASE
         WHEN s.user_id IS NOT NULL THEN '学生'
         WHEN t.user_id IS NOT NULL THEN '教师'
