@@ -44,9 +44,8 @@ public class TeachingMaterialsController {
             return R.fail("修改失败");
         else return R.ok(result);
     }*/
-@ApiOperation(value = "添加教学素材(JSON格式)") // 更新一下接口描述
+@ApiOperation(value = "添加教学素材")
 @PostMapping("/insert-materials")
-// --- 这是修改后的方法签名 ---
 public R<String> insertMaterials(@RequestBody TeachingMaterialsSaveOrUpdateParam param) {
     // --- Service方法签名也需要同步修改 ---
     String result = teachingMaterialsService.insertMaterials(param);
@@ -61,7 +60,6 @@ public R<String> insertMaterials(@RequestBody TeachingMaterialsSaveOrUpdateParam
     public void downloadFileMaterials(@RequestParam Long id, @RequestParam Integer imageSetId, @RequestParam Long textbookId, @RequestParam String action, HttpServletResponse response) {
         teachingMaterialsService.getFileMaterials(id, imageSetId, textbookId, action, response);
     }
-
     @ApiOperation(value = "查看链接素材")
     @GetMapping("/get-link-materials")
     public R<String> getLinkMaterials(@RequestParam Long id, @RequestParam Long textbookId) {
@@ -82,7 +80,6 @@ public R<String> insertMaterials(@RequestBody TeachingMaterialsSaveOrUpdateParam
         TeachingMaterialsReturnVo teachingMaterials = teachingMaterialsService.getTeachingMaterials(id, textbookId);
         return R.ok(teachingMaterials);
     }
-
    @ApiOperation(value = "修改教学素材信息")
     @PostMapping("/updateTeachingMaterialsById")
     public R<String> updateInstitutionById(@RequestParam(value = "file") List<MultipartFile> files, @ModelAttribute TeachingMaterialsSaveOrUpdateParam param) {
@@ -91,9 +88,6 @@ public R<String> insertMaterials(@RequestBody TeachingMaterialsSaveOrUpdateParam
             return R.fail("修改失败");
         else return R.ok(result);
     }
-
-
-
     @ApiOperation(value = "删除教学素材信息")
     @PostMapping("/deleteTeachingMaterialsByIds")
     public R deleteTeachingMaterialsByIds(@RequestBody List<Long> ids) {

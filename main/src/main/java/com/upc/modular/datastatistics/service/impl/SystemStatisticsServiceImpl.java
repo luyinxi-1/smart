@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.upc.modular.datastatistics.controller.param.ChapterMasteryVO;
 import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.course.service.ICourseService;
+import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
 import com.upc.modular.datastatistics.mapper.SystemDataStatisticsMapper;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
@@ -39,6 +40,12 @@ import java.util.stream.Stream;
 @Slf4j
 @Service
 public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
+    private static final Set<String> ALLOWED_TYPES = Collections.unmodifiableSet(new HashSet<String>() {{
+        add("day");
+        add("week");
+        add("month");
+    }});
+
 
     @Autowired
     private ITeachingMaterialsService teachingMaterialsService;
@@ -125,15 +132,22 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
     }
     //按时间统计总学习时长
     @Override
-    public Long getStudyDurationByTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
-        // TODO: 可以在这里添加参数校验，例如 endTime 必须大于 startTime
-        return systemDataStatisticsMapper.getStudyDurationByTimeRange(startTime, endTime);
+    public List<StudyTrendDTO> getStudyTrendByDateRange(LocalDate startDate, LocalDate endDate, String type) {
+        // 安全校验
+        if (type == null || !ALLOWED_TYPES.contains(type.toLowerCase())) {
+            throw new IllegalArgumentException("无效的统计类型: " + type);
+        }
+
+        // 核心逻辑：将日期转换为一整天的时间范围
+        // 开始时间 = 开始日期的 00:00:00
+        LocalDateTime startTime = startDate.atStartOfDay();
+
+        // 结束时间 = 结束日期的 23:59:59.999... (或者直接用第二天的开始时间，更精确)
+        LocalDateTime endTime = endDate.plusDays(1).atStartOfDay();
+
+        // 调用 Mapper，传入转换后的 LocalDateTime
+        return systemDataStatisticsMapper.getStudyTrendByTimeRange(startTime, endTime, type);
     }
-/*    @Override
-    public List<Map<String, Object>> getStudyDurationByTime(Map<String, Object> param) {
-        // TODO: 实现按时间统计总学习时长逻辑
-        return systemDataStatisticsMapper.getStudyDurationByTime(param);
-    }*/
 /*    @Override
     public List<Map<String, Object>> getActiveUserCountByTime(Map<String, Object> param) {
         // TODO: 实现按时间统计活跃人数逻辑

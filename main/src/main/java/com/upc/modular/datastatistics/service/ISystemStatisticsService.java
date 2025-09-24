@@ -1,6 +1,7 @@
 package com.upc.modular.datastatistics.service;
 
 import com.upc.modular.datastatistics.controller.param.ChapterMasteryVO;
+import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
 
 import java.time.LocalDate;
@@ -27,23 +28,14 @@ public interface ISystemStatisticsService {
      */
     Long getTodayStudyDuration();
 
-    // === 修改后的代码 ===
     /**
-     * 根据时间范围获取总学习时长
-     * @param startTime 开始时间
-     * @param endTime 结束时间
-     * @return 总学习秒数
+     * 根据日期范围和统计类型获取学习趋势数据
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param type 统计类型 ('day', 'week', 'month')
+     * @return 学习趋势数据列表
      */
-    Long getStudyDurationByTimeRange(LocalDateTime startTime, LocalDateTime endTime);
-    /**
-     * 按时间统计总学习时长
-     */
-    // 按时间统计总学习时长
-    //List<Map<String, Object>> getStudyDurationByTime(Map<String, Object> param);
-
-    /**
-     * 获取今日活跃人数
-     */
+    List<StudyTrendDTO> getStudyTrendByDateRange(LocalDate startDate, LocalDate endDate, String type);
 
 /*
     // 今日活跃人数

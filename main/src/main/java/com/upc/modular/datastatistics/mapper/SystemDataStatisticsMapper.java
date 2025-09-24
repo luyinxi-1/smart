@@ -1,5 +1,6 @@
 package com.upc.modular.datastatistics.mapper;
 
+import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -23,11 +24,18 @@ List<VisitorCountDTO> getStudentVisitorCountByTime(
     // 今日总学习时长
     Long getTodayStudyDuration();
 
-    // 按时间统计总学习时长
-    Long getStudyDurationByTimeRange(
+    /**
+     * 根据时间范围和统计类型获取学习趋势数据
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @param type 统计类型 ('day', 'week', 'month')
+     * @return 学习趋势数据列表
+     */
+    List<StudyTrendDTO> getStudyTrendByTimeRange(
             @Param("startTime") LocalDateTime startTime,
-            @Param("endTime") LocalDateTime endTime
-            );
+            @Param("endTime") LocalDateTime endTime,
+            @Param("type") String type
+    );
     /**
      * 教材阅读排名（按时长统计，支持时间范围查询）
      * @param params 可能包含 startTime 和 endTime

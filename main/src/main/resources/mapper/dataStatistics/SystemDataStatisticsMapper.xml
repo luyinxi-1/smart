@@ -62,34 +62,56 @@
             UserLogsWithNext;
     </select>
 
-    <select id="getStudyDurationByTimeRange" parameterType="map" resultType="long">
+    <select id="getStudyTrendByTimeRange" resultType="com.upc.modular.datastatistics.controller.param.StudyTrendDTO">
+    <![CDATA[
         WITH UserLogsWithNext AS (
-            -- 步骤 1: 在指定时间范围内，为每个用户的每条记录找到下一条记录的时间
+            -- 步骤 1: (不变) 获取下一条日志时间
             SELECT
-                LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime,
-                    add_datetime
+                creator,
+                add_datetime,
+                LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime
             FROM
                 learning_log
             WHERE
-              -- 使用传入的参数进行范围筛选
-                add_datetime &gt;= #{startTime}
-              AND add_datetime &lt; (#{endTime}::date + INTERVAL '1 day') -- 确保包含 endDate 整天
-        )
-        -- 步骤 2: 计算所有有效阅读时长的总和
+                add_datetime >= #{startTime}
+              AND add_datetime < #{endTime}
+        ),
+             DurationCalculated AS (
+                 -- 步骤 2: (不变) 计算每条日志的有效时长
+                 SELECT
+                     add_datetime,
+                     CASE
+                         WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+                             THEN 60
+                         ELSE 0
+                         END AS duration_seconds
+                 FROM
+                     UserLogsWithNext
+             ),
+             GroupedDurations AS (
+                 -- 步骤 3: (新增) 先进行分组和聚合
+                 SELECT
+                     DATE_TRUNC('${type}', add_datetime) AS grouped_date,
+                     SUM(duration_seconds) AS total_duration
+                 FROM
+                     DurationCalculated
+                 GROUP BY
+                     grouped_date -- 直接按上一步的截断日期分组
+             )
+        -- 步骤 4: (修改) 对已聚合的结果进行最终的格式化输出
         SELECT
-            COALESCE(SUM(
-                             CASE
-                                 -- 核心逻辑不变: 使用 age() 和 EXTRACT() 计算秒数差
-                                 WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
-                                     THEN 60 -- 累加60秒
-                                 ELSE 0
-                                 END
-                     ), 0) AS total_reading_seconds
+            CASE
+                WHEN #{type} = 'day' THEN TO_CHAR(grouped_date, 'YYYY-MM-DD')
+                WHEN #{type} = 'month' THEN TO_CHAR(grouped_date, 'YYYY-MM')
+                WHEN #{type} = 'week' THEN TO_CHAR(grouped_date, 'YYYY-WW')
+                END AS dateLabel,
+            COALESCE(total_duration, 0) AS duration
         FROM
-            UserLogsWithNext;
-    </select>
-
-
+            GroupedDurations
+        ORDER BY
+            grouped_date;
+        ]]>
+</select>
     <!-- 教材阅读排名（按时长统计，支持时间范围查询） -->
     <select id="getTextbookReadingRank" parameterType="map" resultType="map">
         SELECT

@@ -72,97 +72,6 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
      * @param param
      * @return
      */
-   /* @Override
-    public String insertMaterials(List<MultipartFile> files, TeachingMaterialsSaveOrUpdateParam param) {
-        // 查看该作者是否有重名素材
-        if (ObjectUtils.isNotEmpty(teachingMaterialsMapper.selectList(new LambdaQueryWrapper<TeachingMaterials>()
-                .eq(TeachingMaterials::getName, param.getName())
-                .eq(TeachingMaterials::getCreator, UserUtils.get().getId()))))
-            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，该命名素材已存在");
-        TeachingMaterials teachingMaterials = new TeachingMaterials();
-        if (param.getType().equals("link")) {
-            // 处理链接素材：链接地址存在了filePath里，所以不需要处理
-            if (ObjectUtils.isEmpty(param.getFilePath()))
-                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
-            BeanUtils.copyProperties(param, teachingMaterials);
-            teachingMaterials.setId(null);
-            teachingMaterials.setCreator(UserUtils.get().getId());
-            String urlName = UUID.randomUUID().toString();
-            teachingMaterials.setFileName(urlName);
-            // 链接地址存在了filePath里，所以不需要处理
-
-        } else if (param.getType().equals("imageSet")) {
-            // 处理图集素材
-            // 公共素材路径：upload/teaching_materials/public/imageSet/yyyyMMdd/[uuid]_[length]/图片
-            // 私有素材路径：upload/teaching_materials/private/用户id/imageSet/yyyyMMdd/[uuid]_[length]/图片
-            Path folderPath;
-            if (files.isEmpty() || files.get(0).isEmpty())
-                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，请上传图片");
-            String imageSetLength = String.valueOf(files.size());
-            String imageSetName = UUID.randomUUID() + "_" + imageSetLength;
-            if (param.getIsPublic())
-                folderPath = Paths.get("upload", "teaching_materials", "public",
-                        "imageSet", FileManageUtil.yyyyMMddStr(), imageSetName);
-            else
-                folderPath = Paths.get("upload", "teaching_materials", "private",
-                        UserUtils.get().getId().toString(),
-                        "imageSet", FileManageUtil.yyyyMMddStr(), imageSetName);
-
-            Long filesSize = 0L;
-            for (int i = 0; i < files.size(); i++) {
-                MultipartFile file = files.get(i);
-                String fileName = FileManageUtil.createFileName(file, String.valueOf(i + 1));
-                String filePath = FileManageUtil.uploadFile(file, folderPath, fileName);
-                if (ObjectUtils.isEmpty(filePath))
-                    throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，上传失败");
-
-                filesSize += file.getSize();
-            }
-            BeanUtils.copyProperties(param, teachingMaterials);
-            teachingMaterials.setId(null);
-            teachingMaterials.setCreator(UserUtils.get().getId());
-            teachingMaterials.setFileName(imageSetName);
-            teachingMaterials.setFileSize(Math.round(filesSize / (1024.0 * 1024.0) * 100) / 100.0);
-            teachingMaterials.setFilePath(folderPath.toString());
-
-        } else {
-            // 处理其他文件类型素材
-            // 公共素材路径：upload/teaching_materials/public/文件类型/yyyyMMdd/文件名
-            // 私有素材路径：upload/teaching_materials/private/用户id/文件类型/yyyyMMdd/文件名
-            if (!TeachingMaterials.SUPPORTED_TYPES.contains(param.getType()))
-                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，不支持该素材类型");
-            Path folderPath;
-            if (param.getIsPublic())
-                folderPath = Paths.get("upload", "teaching_materials", "public",
-                        param.getType(), FileManageUtil.yyyyMMddStr());
-            else
-                folderPath = Paths.get("upload", "teaching_materials", "private",
-                        UserUtils.get().getId().toString(),
-                        param.getType(), FileManageUtil.yyyyMMddStr());
-            if (files.size() != 1 || files.get(0).isEmpty())
-                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
-            MultipartFile file = files.get(0);
-            String fileName = FileManageUtil.createFileName(file);
-
-            String filePath = FileManageUtil.uploadFile(file, folderPath, fileName);
-            if (ObjectUtils.isEmpty(filePath))
-                throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，上传失败");
-
-            BeanUtils.copyProperties(param, teachingMaterials);
-            teachingMaterials.setId(null);
-            teachingMaterials.setCreator(UserUtils.get().getId());
-            teachingMaterials.setFileName(fileName);
-            teachingMaterials.setFileSize(Math.round(file.getSize() / (1024.0 * 1024.0) * 100) / 100.0);
-            teachingMaterials.setFilePath(filePath);
-
-        }
-        if(this.save(teachingMaterials)){
-            if(teachingMaterials.getType().equals("link")){
-                return teachingMaterials.getFilePath();
-            }
-            return teachingMaterials.getFileName();
-        }else return null;
-    }*/
     @Override
     public String insertMaterials(TeachingMaterialsSaveOrUpdateParam param) {
         // 1. 重名检查逻辑 (不变)
@@ -176,14 +85,11 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         teachingMaterials.setId(null);
         teachingMaterials.setCreator(UserUtils.get().getId());
 
-        // 2. 根据类型设置核心的文件信息 (现在非常简单)
         if ("link".equals(param.getType())) {
             // 链接类型，路径由前端直接在JSON中提供
             teachingMaterials.setFileName(UUID.randomUUID().toString()); // 生成一个虚拟文件名
 
         } else if ("imageSet".equals(param.getType())) {
-            // 图集类型，路径信息来自文件上传接口的返回
-            // 我们需要决定是存目录路径还是第一个文件的路径，这里我们存目录路径
             Path firstImagePath = Paths.get(param.getFileListPaths().get(0));
             String directoryPath = firstImagePath.getParent().toString();
 
