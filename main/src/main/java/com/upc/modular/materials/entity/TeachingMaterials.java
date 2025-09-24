@@ -27,8 +27,9 @@ import java.util.List;
 @ApiModel(value = "TeachingMaterials对象", description = "")
 public class TeachingMaterials implements Serializable {
 
-    public static final List<String> SUPPORTED_TYPES = Arrays.asList("image", "imageSet", "video", "audio", "3DModel", "link", "file", "other");
-
+    //public static final List<String> SUPPORTED_TYPES = Arrays.asList("image", "imageSet", "video", "audio", "3DModel", "link", "file", "other");
+    public static final List<String> SUPPORTED_TYPES = Arrays.asList("image", "imageSet", "video", "audio", "3DModel",
+            "link", "pdf", "word", "excel", "ppt", "other" );
     private static final long serialVersionUID = 1L;
 
     @ApiModelProperty("主键")

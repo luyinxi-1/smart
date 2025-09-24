@@ -28,12 +28,13 @@ import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -78,80 +79,51 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
 
     //按时间统计访问人数
     @Override
-    public List<VisitorCountDTO> getStudentVisitorCountByTime(String startDateStr, String endDateStr) {
-        // 1. 参数非空校验 (来自您最初的代码)
-        if (startDateStr == null || startDateStr.trim().isEmpty() || endDateStr == null || endDateStr.trim().isEmpty()) {
-            throw new IllegalArgumentException("开始日期和结束日期不能为空！");
-        }
-        // 2. 将字符串转换为 LocalDate 对象
+    public List<VisitorCountDTO> getStudentVisitorCountByTime(String timeRange) {
+        // 这部分日期计算逻辑不变
+        LocalDate endDate = LocalDate.now();
         LocalDate startDate;
-        LocalDate endDate;
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        try {
-            // 只截取前10位，增强容错性
-            startDate = LocalDate.parse(startDateStr.substring(0, 10), formatter);
-            endDate = LocalDate.parse(endDateStr.substring(0, 10), formatter);
-        } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException("无效的日期格式！请使用 yyyy-MM-dd 格式。", e);
+        switch (timeRange.toLowerCase()) {
+            case "month": startDate = endDate.minusMonths(1).plusDays(1); break;
+            case "year": startDate = endDate.minusYears(1).plusDays(1); break;
+            default: startDate = endDate.minusDays(6); break;
         }
 
-        // 3. 业务逻辑校验
-        if (startDate.isAfter(endDate)) {
-            throw new IllegalArgumentException("开始日期不能晚于结束日期！");
-        }
+        // 从数据库获取数据
+        List<VisitorCountDTO> dbResults = systemDataStatisticsMapper.getStudentVisitorCountByTime(startDate, endDate);
 
-        log.info("Service Layer: Calling mapper with strongly-typed dates: startDate='{}', endDate='{}'", startDate, endDate);
-        List<VisitorCountDTO> result = systemDataStatisticsMapper.getStudentVisitorCountByTime(startDate, endDate);
-        // 4. 调用 Mapper
-        if (result == null) {
-            log.warn("CRITICAL DIAGNOSIS: Mapper returned a NULL list!");
-        } else if (result.isEmpty()) {
-            log.info("CRITICAL DIAGNOSIS: Mapper returned an EMPTY list. (Size: 0)");
-        } else {
-            log.info("CRITICAL DIAGNOSIS: Mapper returned a list with {} items. First item's date is: '{}'",
-                    result.size(), result.get(0).getDate());
-        }
-        return result;
+        // 将包含 java.util.Date 的列表转换为以 LocalDate 为键的 Map
+        Map<LocalDate, VisitorCountDTO> resultsMap = dbResults.stream()
+                .collect(Collectors.toMap(
+                        // 关键：将 java.util.Date 转换为 LocalDate
+                        dto -> dto.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
+                        dto -> dto,
+                        (existing, replacement) -> existing // 用于处理重复的键，虽然这里不太可能发生
+                ));
 
+        // 生成完整日期范围并补全数据
+        long numOfDays = startDate.until(endDate, ChronoUnit.DAYS) + 1;
+
+        return Stream.iterate(startDate, date -> date.plusDays(1))
+                .limit(numOfDays)
+                .map(date -> {
+                    VisitorCountDTO foundDto = resultsMap.get(date);
+                    if (foundDto != null) {
+                        return foundDto;
+                    } else {
+                        // 关键：创建 DTO 时，将 LocalDate 转换回 java.util.Date
+                        Date missingDate = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
+                        return new VisitorCountDTO(missingDate, 0L);
+                    }
+                })
+                .collect(Collectors.toList());
     }
-/*    @Override
-    public List<VisitorCountDTO> getStudentVisitorCountByTime(String startDate, String endDate) {
-        // 1. 参数非空校验
-        if (!StringUtils.hasText(startDate) || !StringUtils.hasText(endDate)) {
-            throw new IllegalArgumentException("开始日期和结束日期不能为空！");
-        }
-        // 2. 将传入的参数统一处理为纯日期字符串 (yyyy-MM-dd)
-        // 无论传入的是 "2025-09-12" 还是 "2025-09-12 15:30:00"，
-        // 都只截取前10位。
-        String startDateOnly = startDate.length() > 10 ? startDate.substring(0, 10) : startDate;
-        String endDateOnly = endDate.length() > 10 ? endDate.substring(0, 10) : endDate;
-        // 3. (可选但推荐) 使用处理过的纯日期字符串进行合法性校验
-        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        try {
-            LocalDate start = LocalDate.parse(startDateOnly, dateFormatter);
-            LocalDate end = LocalDate.parse(endDateOnly, dateFormatter);
-
-            if (start.isAfter(end)) {
-                throw new IllegalArgumentException("开始日期不能晚于结束日期！");
-            }
-        } catch (java.time.format.DateTimeParseException e) {
-            // 如果截取后格式依然不对，说明原始输入格式错误
-            throw new IllegalArgumentException("无效的日期格式！", e);
-        }
-        // 4. 准备参数，传入处理后的纯日期
-        Map<String, Object> params = new HashMap<>();
-        params.put("startDate", startDateOnly);
-        params.put("endDate", endDateOnly);
-        // 5. 调用 Mapper 并返回结果
-        return systemDataStatisticsMapper.getStudentVisitorCountByTime(params);
-    }*/
-
     @Override
     public Long getTodayStudyDuration() {
         // TODO: 实现今日总学习时长统计逻辑
         return systemDataStatisticsMapper.getTodayStudyDuration();
     }
-
+    //按时间统计总学习时长
     @Override
     public Long getStudyDurationByTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
         // TODO: 可以在这里添加参数校验，例如 endTime 必须大于 startTime

@@ -1,25 +1,25 @@
 package com.upc.modular.datastatistics.controller.param;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonFormat; // 关键：导入这个注解
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import java.util.Date; // 重要的引用变更：从 java.time.LocalDate 变为 java.util.Date
+import lombok.NoArgsConstructor;
+import java.util.Date;
 
-/**
- * 访客统计数据传输对象
- */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class VisitorCountDTO {
 
         /**
          * 统计日期
-         * 使用 java.util.Date 作为妥协方案，以兼容旧的JDBC驱动。
-         * 必须使用 @JsonFormat 注解来确保返回给前端的JSON字符串是正确的日期且没有时区偏差。
+         * 使用 @JsonFormat 注解来指定输出到前端的格式
          */
-        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "Asia/Shanghai")
+        @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8") // <-- 添加这一行
         private Date date;
 
         /**
          * 访客数量
          */
-        private int visitorCount;
+        private Long visitorCount;
 }

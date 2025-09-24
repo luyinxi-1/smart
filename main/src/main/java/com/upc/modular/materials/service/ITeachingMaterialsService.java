@@ -22,8 +22,8 @@ import java.util.List;
  */
 public interface ITeachingMaterialsService extends IService<TeachingMaterials> {
 
-    String insertMaterials(List<MultipartFile> files, TeachingMaterialsSaveOrUpdateParam param);
-
+   /* String insertMaterials(List<MultipartFile> files, TeachingMaterialsSaveOrUpdateParam param);*/
+   String insertMaterials(TeachingMaterialsSaveOrUpdateParam param);
     void getFileMaterials(Long id, Integer imageSetId, Long textbookId, String action, HttpServletResponse response);
 
     String getLinkMaterials(Long id, Long textbookId);

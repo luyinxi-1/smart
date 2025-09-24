@@ -2,12 +2,10 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.upc.modular.datastatistics.mapper.SystemDataStatisticsMapper">
     <resultMap id="visitorCountResultMap" type="com.upc.modular.datastatistics.controller.param.VisitorCountDTO">
-        <!--
-          将数据库查询出的'date'列，映射到DTO的'date'属性上。
-          使用 javaType="java.sql.Date" 来告诉MyBatis期望一个纯日期类型。
-        -->
-        <result column="date" property="date" javaType="java.sql.Date"/>
-        <result column="visitorCount" property="visitorCount"/>
+        <result property="visitorCount" column="visitorCount"/>
+
+        <!-- 关键修改：将 javaType 改为 java.util.Date，并指定 jdbcType -->
+        <result property="date" column="date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
     </resultMap>
     <!-- 今日访问学生人数 -->
     <select id="getTodayVisitorCount" resultType="long">
@@ -23,12 +21,9 @@
           AND sl.add_datetime &lt; (CURRENT_DATE + INTERVAL '1 day')
     </select>
     <select id="getStudentVisitorCountByTime" resultMap="visitorCountResultMap">
-        <!--
-          这里的SQL语句保持不变！它本身是完全正确的，
-          我们必须保留时区转换逻辑来解决核心的日期偏差问题。
-        -->
         SELECT
-        ((sl.add_datetime AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Shanghai')::date as date,
+        <!-- 将 ::date 的结果再次转换为 timestamp -->
+        (((sl.add_datetime AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Shanghai')::date)::timestamp as date,
         COUNT(DISTINCT s.user_id) as visitorCount
         FROM
         sys_log sl

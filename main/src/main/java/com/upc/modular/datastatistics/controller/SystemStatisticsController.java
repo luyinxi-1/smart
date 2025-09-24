@@ -34,18 +34,18 @@ public class SystemStatisticsController {
             return R.fail("获取今日访问人数失败: " + e.getMessage());
         }
     }
-@ApiOperation("按时间统计访问人数")
-@GetMapping("/visitorCountByTime")
-public ResponseEntity<List<VisitorCountDTO>> getStudentVisitorCountByTime(
-        @RequestParam String startDate,
-        @RequestParam String endDate) {
+    @ApiOperation("按时间统计访问人数")
+    @GetMapping("/visitorCountByTime")
+    public ResponseEntity<List<VisitorCountDTO>> getStudentVisitorCountByTime(
+            @RequestParam(defaultValue = "week") String timeRange) {
 
-    log.info("API Request: Count visitors from startDate='{}' to endDate='{}'", startDate, endDate);
+        log.info("API Request: Count visitors for timeRange='{}'", timeRange);
 
-    // 将字符串传递给 Service 层
-    List<VisitorCountDTO> result = systemStatisticsService.getStudentVisitorCountByTime(startDate, endDate);
-    return ResponseEntity.ok(result);
-}
+        // 直接将参数传递给 Service 层，由 Service 层处理所有业务逻辑
+        List<VisitorCountDTO> result = systemStatisticsService.getStudentVisitorCountByTime(timeRange);
+
+        return ResponseEntity.ok(result);
+    }
     // 今日总学习时长
     @ApiOperation("今日总学习时长")
     @PostMapping("/todayStudyDuration")

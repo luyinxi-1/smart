@@ -68,11 +68,11 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
     /**
      * 添加教学素材
      *
-     * @param files
+    // * @param files
      * @param param
      * @return
      */
-    @Override
+   /* @Override
     public String insertMaterials(List<MultipartFile> files, TeachingMaterialsSaveOrUpdateParam param) {
         // 查看该作者是否有重名素材
         if (ObjectUtils.isNotEmpty(teachingMaterialsMapper.selectList(new LambdaQueryWrapper<TeachingMaterials>()
@@ -162,6 +162,53 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             }
             return teachingMaterials.getFileName();
         }else return null;
+    }*/
+    @Override
+    public String insertMaterials(TeachingMaterialsSaveOrUpdateParam param) {
+        // 1. 重名检查逻辑 (不变)
+        if (ObjectUtils.isNotEmpty(teachingMaterialsMapper.selectList(new LambdaQueryWrapper<TeachingMaterials>()
+                .eq(TeachingMaterials::getName, param.getName())
+                .eq(TeachingMaterials::getCreator, UserUtils.get().getId()))))
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，该命名素材已存在");
+
+        TeachingMaterials teachingMaterials = new TeachingMaterials();
+        BeanUtils.copyProperties(param, teachingMaterials); // 拷贝基础属性
+        teachingMaterials.setId(null);
+        teachingMaterials.setCreator(UserUtils.get().getId());
+
+        // 2. 根据类型设置核心的文件信息 (现在非常简单)
+        if ("link".equals(param.getType())) {
+            // 链接类型，路径由前端直接在JSON中提供
+            teachingMaterials.setFileName(UUID.randomUUID().toString()); // 生成一个虚拟文件名
+
+        } else if ("imageSet".equals(param.getType())) {
+            // 图集类型，路径信息来自文件上传接口的返回
+            // 我们需要决定是存目录路径还是第一个文件的路径，这里我们存目录路径
+            Path firstImagePath = Paths.get(param.getFileListPaths().get(0));
+            String directoryPath = firstImagePath.getParent().toString();
+
+            String imageSetLength = String.valueOf(param.getFileListPaths().size());
+            String imageSetName = Paths.get(directoryPath).getFileName().toString(); // 从目录路径中获取 [uuid]_[length]
+
+            teachingMaterials.setFileName(imageSetName);
+            teachingMaterials.setFilePath(directoryPath);
+
+        } else {
+            // 其他文件类型
+            // filePath 已经是完整的、最终的路径了
+            Path filePathObj = Paths.get(param.getFilePath());
+            teachingMaterials.setFileName(filePathObj.getFileName().toString());
+        }
+
+        // 3. 保存到数据库
+        if (this.save(teachingMaterials)) {
+            if (teachingMaterials.getType().equals("link")) {
+                return teachingMaterials.getFilePath();
+            }
+            return teachingMaterials.getFileName();
+        } else {
+            return null;
+        }
     }
 
     /**
