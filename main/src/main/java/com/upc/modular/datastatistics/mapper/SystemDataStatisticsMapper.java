@@ -3,6 +3,7 @@ package com.upc.modular.datastatistics.mapper;
 import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
 import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
+import com.upc.modular.datastatistics.controller.param.TextbookUpdateApplicationParam;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -63,4 +64,9 @@ List<VisitorCountDTO> getStudentVisitorCountByTime(
      * @return List<Map> 章节掌握度列表
      */
     List<Map<String, Object>> getStudentChapterMastery(@Param("studentId") Long studentId, @Param("textbookId") Long textbookId);
+
+    /**
+     * 获取教材更新申请记录
+     */
+    List<TextbookUpdateApplicationParam> getTextbookUpdateApplications();
 }

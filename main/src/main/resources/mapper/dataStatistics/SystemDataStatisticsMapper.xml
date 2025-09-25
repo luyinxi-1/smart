@@ -249,4 +249,21 @@
         ORDER BY
             value DESC
     </select>
+
+    <!-- 获取教材更新申请记录 -->
+    <select id="getTextbookUpdateApplications" resultType="com.upc.modular.datastatistics.controller.param.TextbookUpdateApplicationParam">
+        SELECT
+            t.id AS textbookId,
+            t.textbook_name AS textbookName,
+            tr.add_datetime AS applicationSubmitTime,
+            tr.reason_for_review AS reasonForReview,
+            tr.submit_for_review_description AS submitForReviewDescription,
+            COALESCE(tch.name, s.name, su.username) AS applicantName
+        FROM textbook_review tr
+        LEFT JOIN textbook t ON tr.textbook_id = t.id
+        LEFT JOIN teacher tch ON tr.creator = tch.user_id
+        LEFT JOIN student s ON tr.creator = s.user_id
+        LEFT JOIN sys_tbuser su ON tr.creator = su.id
+        ORDER BY tr.add_datetime DESC
+    </select>
 </mapper>

@@ -4,6 +4,7 @@ import com.upc.modular.datastatistics.controller.param.ChapterMasteryVO;
 import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
 import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
+import com.upc.modular.datastatistics.controller.param.TextbookUpdateApplicationParam;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -93,5 +94,10 @@ public interface ISystemStatisticsService {
      * 资源使用数据统计
      */
     Map<String, Object> getResourceUsageStatistics();
+
+    /**
+     * 获取教材更新申请记录
+     */
+    List<TextbookUpdateApplicationParam> getTextbookUpdateApplications();
 
 }

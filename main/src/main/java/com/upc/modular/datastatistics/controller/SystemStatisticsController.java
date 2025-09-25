@@ -4,6 +4,7 @@ import com.upc.common.responseparam.R;
 import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
 import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
+import com.upc.modular.datastatistics.controller.param.TextbookUpdateApplicationParam;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
 import com.upc.modular.textbook.service.ITextbookService;
 import io.swagger.annotations.Api;
@@ -130,5 +131,12 @@ public class SystemStatisticsController {
     public R<Map<String, Object>> getResourceUsageStatistics() {
         Map<String, Object> statistics = systemStatisticsService.getResourceUsageStatistics();
         return R.ok(statistics);
+    }
+
+    @ApiOperation("获取教材更新申请记录")
+    @GetMapping("/textbook-update-applications")
+    public R<List<TextbookUpdateApplicationParam>> getTextbookUpdateApplications() {
+        List<TextbookUpdateApplicationParam> applications = systemStatisticsService.getTextbookUpdateApplications();
+        return R.ok(applications);
     }
 }
