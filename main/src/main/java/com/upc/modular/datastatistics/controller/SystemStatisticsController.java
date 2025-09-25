@@ -2,6 +2,7 @@ package com.upc.modular.datastatistics.controller;
 
 import com.upc.common.responseparam.R;
 import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
+import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
 import com.upc.modular.textbook.service.ITextbookService;
@@ -40,10 +41,10 @@ public class SystemStatisticsController {
     }
     @ApiOperation("按时间统计访问人数")
     @GetMapping("/visitorCountByTime")
-    public ResponseEntity<List<VisitorCountDTO>> getStudentVisitorCountByTime(
+    public R<List<VisitorCountDTO>> getStudentVisitorCountByTime(
             @RequestParam(defaultValue = "week") String timeRange) {
         List<VisitorCountDTO> result = systemStatisticsService.getStudentVisitorCountByTime(timeRange);
-        return ResponseEntity.ok(result);
+        return R.ok(result);
     }
     // 今日总学习时长
     @ApiOperation("今日总学习时长")
@@ -56,7 +57,6 @@ public class SystemStatisticsController {
             return R.fail("获取今日总学习时长失败: " + e.getMessage());
         }
     }
-
     @ApiOperation("根据日期范围查询学习趋势(单位:秒)")
     @GetMapping("/studyTrendByDate")
     public R<List<StudyTrendDTO>> getStudyTrendByDate(
@@ -80,12 +80,14 @@ public class SystemStatisticsController {
         List<StudyTrendDTO> trendData = systemStatisticsService.getStudyTrendByDateRange(startDate, endDate, type);
         return R.ok(trendData);
     }
-    @ApiOperation("学生数量统计")
-    @GetMapping("/student-count")
-    public R<Long> getStudentCount() {
-        // TODO: 实现学生数量统计逻辑
-        return R.ok(systemStatisticsService.getStudentCount());
+    @ApiOperation("获取系统所有核心数据统计")
+    @GetMapping("/all-counts")
+    public R<Map<String, Long>> getAllCounts() {
+        return R.ok(systemStatisticsService.getAllCounts());
     }
+
+
+
 
     @ApiOperation("教师数量统计")
     @GetMapping("/teacher-count")
@@ -93,28 +95,12 @@ public class SystemStatisticsController {
         // TODO: 实现教师数量统计逻辑
         return R.ok(systemStatisticsService.getTeacherCount());
     }
+    @ApiOperation("教学素材数量统计")
+    @GetMapping("/teaching-materials-count")
+    public R<Long> getTeachingMaterialsCount() {
 
-    @ApiOperation("教学思政数量统计")
-    @GetMapping("/ideological-education-count")
-    public R<Long> getIdeologicalEducationCount() {
-        // TODO: 实现教学思政数量统计逻辑
-        return R.ok(systemStatisticsService.getIdeologicalEducationCount());
+        return R.ok(systemStatisticsService.getTeachingMaterialsCount());
     }
-
-    @ApiOperation("教学活动数量统计")
-    @GetMapping("/teaching-activities-count")
-    public R<Long> getTeachingActivitiesCount() {
-        // TODO: 实现教学活动数量统计逻辑
-        return R.ok(systemStatisticsService.getTeachingActivitiesCount());
-    }
-
-    @ApiOperation("题库数量统计")
-    @GetMapping("/question-bank-count")
-    public R<Long> getQuestionBankCount() {
-        // TODO: 实现题库数量统计逻辑
-        return R.ok(systemStatisticsService.getQuestionBankCount());
-    }
-
     @ApiOperation("班级数量统计")
     @GetMapping("/class-count")
     public R<Long> getClassCount() {
@@ -122,36 +108,22 @@ public class SystemStatisticsController {
         return R.ok(systemStatisticsService.getClassCount());
     }
 
-    @ApiOperation("在授课程数量统计")
-    @GetMapping("/teaching-course-count")
-    public R<Long> getTeachingCourseCount() {
-        // TODO: 实现在授课程数量统计逻辑
-        return R.ok(systemStatisticsService.getTeachingCourseCount());
-    }
-
-    @ApiOperation("智慧教材数量统计")
-    @GetMapping("/smart-textbook-count")
-    public R<Long> getSmartTextbookCount() {
-        // TODO: 实现智慧教材数量统计逻辑
-        return R.ok(systemStatisticsService.getSmartTextbookCount());
-    }
-
     @ApiOperation("教材类型统计")
     @GetMapping("/textbook-type-count")
-    public R<Map<String, Long>> getTextbookTypeCount() {
+    public R<List<TextbookTypeCountDto>> getTextbookTypeCount() {
         return R.ok(systemStatisticsService.getTextbookTypeCount());
     }
+
+
+
+
 
     @ApiOperation("交流反馈数量统计")
     @GetMapping("/communication-feedback-count")
     public R<Long> getCommunicationFeedbackCount() {
         return R.ok(systemStatisticsService.getCommunicationFeedbackCount());
     }
-    @ApiOperation("教学素材数量统计")
-    @GetMapping("/teaching-materials-count")
-    public R<Long> getTeachingMaterialsCount() {
-        return R.ok(systemStatisticsService.getTeachingMaterialsCount());
-    }
+
 
     @ApiOperation("资源使用数据统计")
     @GetMapping("/resource-usage-statistics")

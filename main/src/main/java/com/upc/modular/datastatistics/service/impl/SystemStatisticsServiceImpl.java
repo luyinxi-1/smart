@@ -5,6 +5,7 @@ import com.upc.modular.datastatistics.controller.param.ChapterMasteryVO;
 import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.course.service.ICourseService;
 import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
+import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
 import com.upc.modular.datastatistics.mapper.SystemDataStatisticsMapper;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
@@ -18,6 +19,7 @@ import com.upc.modular.teacher.service.ITeacherService;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicReplyService;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
 import com.upc.modular.textbook.entity.Textbook;
+import com.upc.modular.textbook.mapper.TextbookMapper;
 import com.upc.modular.textbook.service.IIdeologicalMaterialService;
 import com.upc.modular.textbook.service.ITextbookService;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +48,8 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         add("month");
     }});
 
+    @Autowired
+    private TextbookMapper textbookMapper;
 
     @Autowired
     private ITeachingMaterialsService teachingMaterialsService;
@@ -151,9 +155,17 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
     }
 
     @Override
-    public Long getStudentCount() {
-        // TODO: 实现学生数量统计逻辑
-        return studentService.count();
+    public Map<String, Long> getAllCounts() {
+        Map<String, Long> countsMap = new LinkedHashMap<>();
+
+        countsMap.put("StudentCount", studentService.count());
+        countsMap.put("TeachingideologicalMaterialCount", ideologicalMaterialService.count());
+        countsMap.put("DiscussionTopicCount", discussionTopicService.count());
+        countsMap.put("TeachingQuestionCount", teachingQuestionService.count());
+        countsMap.put("CourseCount", courseService.count());
+        countsMap.put("TextbookCount", textbookService.count());
+
+        return countsMap;
     }
 
     @Override
@@ -163,61 +175,15 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
     }
 
     @Override
-    public Long getIdeologicalEducationCount() {
-        // TODO: 实现教学思政数量统计逻辑
-        return ideologicalMaterialService.count();
-    }
-
-    @Override
-    public Long getTeachingActivitiesCount() {
-        // TODO: 实现教学活动数量统计逻辑
-        return discussionTopicService.count();
-    }
-
-    @Override
-    public Long getQuestionBankCount() {     //teaching_question表
-        // TODO: 实现题库数量统计逻辑
-        return teachingQuestionService.count() ;
-    }
-
-    @Override
     public Long getClassCount() {
         // TODO: 实现班级数量统计逻辑
         return groupService.count();
     }
-
-    @Override
-    public Long getTeachingCourseCount() {
-        // TODO: 实现在授课程数量统计逻辑
-        return courseService.count();
-    }
-
-    @Override
-    public Long getSmartTextbookCount() {
-        // TODO: 实现智慧教材数量统计逻辑
-
-        return textbookService.count();
-    }
-
     //教材类型统计
     @Override
-    public Map<String, Long> getTextbookTypeCount() {
-        // 使用 MyBatis-Plus 的链式查询 + 分组统计
-        List<Map<String, Object>> result = textbookService.listMaps(
-                new QueryWrapper<Textbook>()
-                        .select("type, COUNT(*) as cnt")
-                        .groupBy("type")
-        );
-
-        // 转换成 Map<String, Long>
-        Map<String, Long> typeCountMap = new HashMap<>();
-        for (Map<String, Object> row : result) {
-            Object typeObj = row.get("type");
-            String type = (typeObj != null) ? typeObj.toString() : "未知类型"; // 添加空值检查
-            Long count = ((Number) row.get("cnt")).longValue();
-            typeCountMap.put(type, count);
-        }
-        return typeCountMap;
+    public List<TextbookTypeCountDto> getTextbookTypeCount() {
+        // 【关键】调用新 Mapper 中的方法
+        return systemDataStatisticsMapper.countPublishedTextbookByType();
     }
     
     /**

@@ -1,6 +1,7 @@
 package com.upc.modular.datastatistics.mapper;
 
 import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
+import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -23,6 +24,12 @@ List<VisitorCountDTO> getStudentVisitorCountByTime(
 );
     // 今日总学习时长
     Long getTodayStudyDuration();
+
+    /**
+     * 按类型统计已发布的教材数量 (关联查询)
+     * @return List<TextbookTypeCountDto>
+     */
+    List<TextbookTypeCountDto> countPublishedTextbookByType();
 
     /**
      * 根据时间范围和统计类型获取学习趋势数据

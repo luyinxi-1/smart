@@ -2,6 +2,7 @@ package com.upc.modular.datastatistics.service;
 
 import com.upc.modular.datastatistics.controller.param.ChapterMasteryVO;
 import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
+import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
 
 import java.time.LocalDate;
@@ -37,51 +38,28 @@ public interface ISystemStatisticsService {
      */
     List<StudyTrendDTO> getStudyTrendByDateRange(LocalDate startDate, LocalDate endDate, String type);
 
+    /**
+     * 获取系统所有核心数据统计
+     * 返回一个Map，其中key是统计项的名称，value是对应的数量
+     * @return Map<String, Long>
+     */
+    Map<String, Long> getAllCounts();
+
 
     /**
-     * 学生数量统计
+     * 教材类型统计
+     * @return List<TextbookTypeCountDto>
      */
-    Long getStudentCount();
-
+    List<TextbookTypeCountDto> getTextbookTypeCount();
     /**
      * 教师数量统计
      */
     Long getTeacherCount();
 
     /**
-     * 教学思政数量统计
-     */
-    Long getIdeologicalEducationCount();
-
-    /**
-     * 教学活动数量统计
-     */
-    Long getTeachingActivitiesCount();
-
-    /**
-     * 题库数量统计
-     */
-    Long getQuestionBankCount();
-
-    /**
      * 班级数量统计
      */
     Long getClassCount();
-
-    /**
-     * 在授课程数量统计
-     */
-    Long getTeachingCourseCount();
-
-    /**
-     * 智慧教材数量统计
-     */
-    Long getSmartTextbookCount();
-
-    /**
-     * 教材类型统计
-     */
-    Map<String, Long> getTextbookTypeCount();
 
     /**
      * 教材阅读排名（按时长统计，支持时间范围查询）

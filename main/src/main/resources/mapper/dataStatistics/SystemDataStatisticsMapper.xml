@@ -233,4 +233,20 @@
         GROUP BY tc.id, tc.catalog_name
         ORDER BY tc.id
     </select>
+
+    <select id="countPublishedTextbookByType" resultType="com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto">
+        SELECT
+            tc.classification_name AS name,
+            COUNT(t.id) AS value
+        FROM
+            textbook t
+            LEFT JOIN
+            textbook_classification tc ON t.classification = tc.id
+        WHERE
+            t.release_status = '1'
+        GROUP BY
+            tc.classification_name
+        ORDER BY
+            value DESC
+    </select>
 </mapper>
