@@ -6,6 +6,7 @@ import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.course.service.ICourseService;
 import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
+import com.upc.modular.datastatistics.controller.param.TextbookUpdateApplicationParam;
 import com.upc.modular.datastatistics.mapper.SystemDataStatisticsMapper;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
 import com.upc.modular.group.service.IGroupService;
@@ -459,5 +460,13 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         result.put("totalSizeMB", totalSize);
 
         return result;
+    }
+
+    /**
+     * 获取教材更新申请记录
+     */
+    @Override
+    public List<TextbookUpdateApplicationParam> getTextbookUpdateApplications() {
+        return systemDataStatisticsMapper.getTextbookUpdateApplications();
     }
 }
