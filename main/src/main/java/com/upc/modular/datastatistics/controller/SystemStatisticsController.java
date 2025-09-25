@@ -61,35 +61,24 @@ public class SystemStatisticsController {
     @GetMapping("/studyTrendByDate")
     public R<List<StudyTrendDTO>> getStudyTrendByDate(
             @ApiParam(value = "查询开始日期 (格式: yyyy-MM-dd)", required = true, example = "2022-01-01")
-            @RequestParam("startDate") String startDateStr, // <-- 3. 接收参数为 String 类型
-
+            @RequestParam("startDate") String startDateStr,
             @ApiParam(value = "查询结束日期 (格式: yyyy-MM-dd)", required = true, example = "2022-01-10")
-            @RequestParam("endDate") String endDateStr, // <-- 3. 接收参数为 String 类型
-
+            @RequestParam("endDate") String endDateStr,
             @ApiParam(value = "统计类型: day(按日), week(按周), month(按月)", required = true)
             @RequestParam("type") String type) {
-
         LocalDate startDate;
         LocalDate endDate;
-
         try {
-            // 4. 在方法内部，手动将字符串解析为 LocalDate 对象
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             startDate = LocalDate.parse(startDateStr, formatter);
             endDate = LocalDate.parse(endDateStr, formatter);
         } catch (DateTimeParseException e) {
-            // 5. 如果格式错误，返回一个友好的提示给前端
-            return R.fail("日期格式不正确，请使用 yyyy-MM-dd 格式。");
+            // 3. 如果格式错误，返回一个友好的错误提示
+            return R.fail("日期格式不正确，请确保使用 yyyy-MM-dd 格式。");
         }
-
-        try {
-            // 6. 调用 Service 层 (这里的逻辑保持不变)
-            List<StudyTrendDTO> trendData = systemStatisticsService.getStudyTrendByDateRange(startDate, endDate, type);
-            return R.ok(trendData);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return R.fail("获取学习趋势失败: " + e.getMessage());
-        }
+        // 4. 调用 Service 层，传入已经成功转换的 LocalDate 对象
+        List<StudyTrendDTO> trendData = systemStatisticsService.getStudyTrendByDateRange(startDate, endDate, type);
+        return R.ok(trendData);
     }
     @ApiOperation("学生数量统计")
     @GetMapping("/student-count")

@@ -38,8 +38,7 @@ public class FileCleanupTask {
      * "0 0 3 * * ?" 表示每天的 3:00:00 执行
      */
     @Scheduled(cron = "0 0 3 * * ?") // <-- 启用这一行
-// @Scheduled(cron = "0/30 * * * * ?") // 测试每30秒删除一次
-// @Scheduled(initialDelay = 5000, fixedRate = 30000) // <-- 注释掉或删除测试用的注解
+//@Scheduled(cron = "0/30 * * * * ?") // 测试每30秒删除一次
     public void cleanupUnusedTeachingMaterials() {
         log.info("--- [定时任务] 开始执行无用教学素材文件清理 ---");
 
@@ -48,7 +47,6 @@ public class FileCleanupTask {
             log.warn("[定时任务] 清理终止：根目录 '{}' 不存在。", rootDirectory);
             return;
         }
-
         try {
             // 2. 从数据库获取所有有效的 "文件路径" 和 "目录路径"
             Set<String> validFilePaths = getValidFilePathsFromDatabase();

@@ -134,31 +134,22 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
     @Override
     public List<StudyTrendDTO> getStudyTrendByDateRange(LocalDate startDate, LocalDate endDate, String type) {
         // 安全校验
-        if (type == null || !ALLOWED_TYPES.contains(type.toLowerCase())) {
-            throw new IllegalArgumentException("无效的统计类型: " + type);
+        String lowerCaseType = type.toLowerCase();
+        if (!ALLOWED_TYPES.contains(lowerCaseType)) {
+            throw new IllegalArgumentException("无效的统计类型: " + type + ". 只允许 'day', 'week', 'month'。");
         }
-
-        // 核心逻辑：将日期转换为一整天的时间范围
-        // 开始时间 = 开始日期的 00:00:00
+        // 日期顺序的校验
+        if (startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("开始日期不能晚于结束日期。");
+        }
+        // 将日期转换为一整天的时间范围
         LocalDateTime startTime = startDate.atStartOfDay();
-
-        // 结束时间 = 结束日期的 23:59:59.999... (或者直接用第二天的开始时间，更精确)
         LocalDateTime endTime = endDate.plusDays(1).atStartOfDay();
 
         // 调用 Mapper，传入转换后的 LocalDateTime
-        return systemDataStatisticsMapper.getStudyTrendByTimeRange(startTime, endTime, type);
-    }
-/*    @Override
-    public List<Map<String, Object>> getActiveUserCountByTime(Map<String, Object> param) {
-        // TODO: 实现按时间统计活跃人数逻辑
-        return systemDataStatisticsMapper.getActiveUserCountByTime(param);
+        return systemDataStatisticsMapper.getStudyTrendByTimeRange(startTime, endTime, lowerCaseType);
     }
 
-    @Override
-    public Long getTodayActiveUserCount() {
-        // TODO: 实现今日活跃人数统计逻辑
-        return systemDataStatisticsMapper.getTodayActiveUserCount();
-    }*/
     @Override
     public Long getStudentCount() {
         // TODO: 实现学生数量统计逻辑

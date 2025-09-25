@@ -64,20 +64,29 @@
 
     <select id="getStudyTrendByTimeRange" resultType="com.upc.modular.datastatistics.controller.param.StudyTrendDTO">
     <![CDATA[
-        WITH UserLogsWithNext AS (
-            -- 步骤 1: (不变) 获取下一条日志时间
+        WITH DateSeries AS (
+            -- 步骤 1: 生成一个完整的日期/周/月序列
             SELECT
-                creator,
-                add_datetime,
-                LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime
+                DATE_TRUNC(#{type}, series_date) AS date_group
             FROM
-                learning_log
-            WHERE
-                add_datetime >= #{startTime}
-              AND add_datetime < #{endTime}
+                -- 使用 generate_series 生成从开始到结束的每一天
+                generate_series(#{startTime}::date, #{endTime}::date, '1 day'::interval) AS series_date
+            GROUP BY
+                date_group -- 按指定的类型(day/week/month)对序列进行分组，确保唯一性
         ),
+             UserLogsWithNext AS (
+                 -- 步骤 2: (不变) 计算每条日志的下一条日志时间
+                 SELECT
+                     creator,
+                     add_datetime,
+                     LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime
+                 FROM
+                     learning_log
+                 WHERE
+                     add_datetime >= #{startTime} AND add_datetime < #{endTime}
+             ),
              DurationCalculated AS (
-                 -- 步骤 2: (不变) 计算每条日志的有效时长
+                 -- 步骤 3: (不变) 计算每条日志的有效时长
                  SELECT
                      add_datetime,
                      CASE
@@ -87,29 +96,36 @@
                          END AS duration_seconds
                  FROM
                      UserLogsWithNext
+                 WHERE
+                     next_add_datetime IS NOT NULL
              ),
-             GroupedDurations AS (
-                 -- 步骤 3: (新增) 先进行分组和聚合
+             AggregatedDurations AS (
+                 -- 步骤 4: 按指定类型(day/week/month)聚合实际的学习时长
                  SELECT
-                     DATE_TRUNC('${type}', add_datetime) AS grouped_date,
+                     DATE_TRUNC(#{type}, add_datetime) AS date_group,
                      SUM(duration_seconds) AS total_duration
                  FROM
                      DurationCalculated
                  GROUP BY
-                     grouped_date -- 直接按上一步的截断日期分组
+                     date_group
              )
-        -- 步骤 4: (修改) 对已聚合的结果进行最终的格式化输出
+        -- 步骤 5: 将完整日期序列与有数据的学习时长进行左连接
         SELECT
+            -- 根据统计类型格式化日期标签
             CASE
-                WHEN #{type} = 'day' THEN TO_CHAR(grouped_date, 'YYYY-MM-DD')
-                WHEN #{type} = 'month' THEN TO_CHAR(grouped_date, 'YYYY-MM')
-                WHEN #{type} = 'week' THEN TO_CHAR(grouped_date, 'YYYY-WW')
+                WHEN #{type} = 'day' THEN TO_CHAR(ds.date_group, 'YYYY-MM-DD')
+                WHEN #{type} = 'month' THEN TO_CHAR(ds.date_group, 'YYYY-MM')
+                WHEN #{type} = 'week' THEN TO_CHAR(ds.date_group, 'YYYY-WW') -- 'WW' 代表一年中的第几周
                 END AS dateLabel,
-            COALESCE(total_duration, 0) AS duration
+
+            -- 如果 ad.total_duration 为 NULL (即当天无记录), 则返回 0
+            COALESCE(ad.total_duration, 0) AS duration
         FROM
-            GroupedDurations
+            DateSeries ds
+                LEFT JOIN
+            AggregatedDurations ad ON ds.date_group = ad.date_group
         ORDER BY
-            grouped_date;
+            ds.date_group ASC;
         ]]>
 </select>
     <!-- 教材阅读排名（按时长统计，支持时间范围查询） -->

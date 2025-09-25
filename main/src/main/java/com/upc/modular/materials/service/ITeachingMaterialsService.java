@@ -30,9 +30,8 @@ public interface ITeachingMaterialsService extends IService<TeachingMaterials> {
     Page<TeachingMaterialsReturnVo> getPage(TeachingMaterialsPageSearchDto param);
 
     TeachingMaterialsReturnVo getTeachingMaterials(Long id, Long textbookId);
-
-   String updateTeachingMaterialsById(List<MultipartFile> files, TeachingMaterialsSaveOrUpdateParam param);
-
+    List<TeachingMaterials> getMaterialsByTextbookId(Long textbookId);
+    String updateTeachingMaterialsById(TeachingMaterialsSaveOrUpdateParam param);
     void deleteTeachingMaterialsByIds(List<Long> ids);
 
     MaterialsTextbookNameMappingReturnParam getMaterialsTextbookMappingByMaterialsId(List<Long> ids);
