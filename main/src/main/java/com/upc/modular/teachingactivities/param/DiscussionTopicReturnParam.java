@@ -11,6 +11,9 @@ import lombok.Data;
 @Data
 public class DiscussionTopicReturnParam {
 
+    @ApiModelProperty("话题的id")
+    private Long id;
+
     @ApiModelProperty("讨论关联的教材名称")
     private String textbookName;
 

@@ -74,5 +74,12 @@ public interface StudentDataStatisticsMapper  extends BaseMapper<StudentStatisti
     @Select("SELECT COUNT(DISTINCT textbook_id) FROM learning_log WHERE creator = #{userId} AND add_datetime BETWEEN #{startTime} AND #{endTime}")
     Long countStudentTextbookReadByTime(Long userId, String startTime, String endTime);
 
+    @Select("SELECT COUNT(DISTINCT start_tag) FROM learning_log WHERE creator = #{userId} AND textbook_id = #{textbookId}")
+    Long countStudentTextbookReading(Long userId, Long textbookId);
 
+    @Select("SELECT min_catalogue from learning_log where creator = #{userId} and textbook_id = #{textbookId} order by add_datetime desc limit 1")
+    Long findLastReadingCatalogueId(Long userId, Long textbookId);
+
+    @Select("SELECT catalogue_id FROM learning_log WHERE creator = #{userId} AND textbook_id = #{textbookId}")
+    List<Long> findCatalogueIdList(Long userId, Long textbookId);
 }

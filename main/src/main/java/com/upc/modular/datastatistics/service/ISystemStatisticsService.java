@@ -1,7 +1,11 @@
 package com.upc.modular.datastatistics.service;
-
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.datastatistics.controller.param.ChapterMasteryVO;
+import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
+import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
+import com.upc.modular.datastatistics.controller.param.TextbookUpdateApplicationParam;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,87 +19,49 @@ public interface ISystemStatisticsService {
      */
     Long getTodayVisitorCount();
 
-    List<VisitorCountDTO> getStudentVisitorCountByTime(String startDate, String endDate);
+    /**
+     * 根据时间范围标识符获取学生访客数量
+     *
+     * @param timeRange 时间范围标识符 (例如 "week", "month", "year")
+     * @return 包含每天访客数量的 DTO 列表
+     */
+    List<VisitorCountDTO> getStudentVisitorCountByTime(String timeRange);
     /**
      * 获取今日总学习时长
      */
     Long getTodayStudyDuration();
 
-    // === 修改后的代码 ===
     /**
-     * 根据时间范围获取总学习时长
-     * @param startTime 开始时间
-     * @param endTime 结束时间
-     * @return 总学习秒数
+     * 根据日期范围和统计类型获取学习趋势数据
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param type 统计类型 ('day', 'week', 'month')
+     * @return 学习趋势数据列表
      */
-    Long getStudyDurationByTimeRange(LocalDateTime startTime, LocalDateTime endTime);
-    /**
-     * 按时间统计总学习时长
-     */
-    // 按时间统计总学习时长
-    //List<Map<String, Object>> getStudyDurationByTime(Map<String, Object> param);
+    List<StudyTrendDTO> getStudyTrendByDateRange(LocalDate startDate, LocalDate endDate, String type);
 
     /**
-     * 获取今日活跃人数
+     * 获取系统所有核心数据统计
+     * 返回一个Map，其中key是统计项的名称，value是对应的数量
+     * @return Map<String, Long>
      */
+    Map<String, Long> getAllCounts();
 
-/*
-    // 今日活跃人数
-    Long getTodayActiveUserCount();
-
-    */
-/**
-     * 按时间统计活跃人数
-     *//*
-
-    // 按时间统计活跃人数
-    List<Map<String, Object>> getActiveUserCountByTime(Map<String, Object> param);
-*/
 
     /**
-     * 学生数量统计
+     * 教材类型统计
+     * @return List<TextbookTypeCountDto>
      */
-    Long getStudentCount();
-
+    List<TextbookTypeCountDto> getTextbookTypeCount();
     /**
      * 教师数量统计
      */
     Long getTeacherCount();
 
     /**
-     * 教学思政数量统计
-     */
-    Long getIdeologicalEducationCount();
-
-    /**
-     * 教学活动数量统计
-     */
-    Long getTeachingActivitiesCount();
-
-    /**
-     * 题库数量统计
-     */
-    Long getQuestionBankCount();
-
-    /**
      * 班级数量统计
      */
     Long getClassCount();
-
-    /**
-     * 在授课程数量统计
-     */
-    Long getTeachingCourseCount();
-
-    /**
-     * 智慧教材数量统计
-     */
-    Long getSmartTextbookCount();
-
-    /**
-     * 教材类型统计
-     */
-    Map<String, Long> getTextbookTypeCount();
 
     /**
      * 教材阅读排名（按时长统计，支持时间范围查询）
@@ -129,5 +95,7 @@ public interface ISystemStatisticsService {
      * 资源使用数据统计
      */
     Map<String, Object> getResourceUsageStatistics();
+
+    IPage<TextbookUpdateApplicationParam> getTextbookUpdateApplications(Page<TextbookUpdateApplicationParam> page);
 
 }

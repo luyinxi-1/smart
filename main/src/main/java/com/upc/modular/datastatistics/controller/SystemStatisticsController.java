@@ -1,10 +1,15 @@
 package com.upc.modular.datastatistics.controller;
-
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
+import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
+import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
+import com.upc.modular.datastatistics.controller.param.TextbookUpdateApplicationParam;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
 import com.upc.modular.textbook.service.ITextbookService;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiParam;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import io.swagger.annotations.ApiOperation;
@@ -14,6 +19,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
@@ -24,6 +31,7 @@ import java.util.Map;
 public class SystemStatisticsController {
     @Autowired
     private ISystemStatisticsService systemStatisticsService;
+
     @ApiOperation("获取今日访问人数")
     @PostMapping("/todayVisitorCount")
     public R<Long> getTodayVisitorCount() {
@@ -34,18 +42,15 @@ public class SystemStatisticsController {
             return R.fail("获取今日访问人数失败: " + e.getMessage());
         }
     }
-@ApiOperation("按时间统计访问人数")
-@GetMapping("/visitorCountByTime")
-public ResponseEntity<List<VisitorCountDTO>> getStudentVisitorCountByTime(
-        @RequestParam String startDate,
-        @RequestParam String endDate) {
 
-    log.info("API Request: Count visitors from startDate='{}' to endDate='{}'", startDate, endDate);
+    @ApiOperation("按时间统计访问人数")
+    @GetMapping("/visitorCountByTime")
+    public R<List<VisitorCountDTO>> getStudentVisitorCountByTime(
+            @RequestParam(defaultValue = "week") String timeRange) {
+        List<VisitorCountDTO> result = systemStatisticsService.getStudentVisitorCountByTime(timeRange);
+        return R.ok(result);
+    }
 
-    // 将字符串传递给 Service 层
-    List<VisitorCountDTO> result = systemStatisticsService.getStudentVisitorCountByTime(startDate, endDate);
-    return ResponseEntity.ok(result);
-}
     // 今日总学习时长
     @ApiOperation("今日总学习时长")
     @PostMapping("/todayStudyDuration")
@@ -58,25 +63,34 @@ public ResponseEntity<List<VisitorCountDTO>> getStudentVisitorCountByTime(
         }
     }
 
-    @ApiOperation("根据时间范围查询总学习时长(单位:秒)")
-    @GetMapping("/studyDurationByTime")
-    public R<Long> getStudyDurationBytime(
-            @RequestParam("startTime") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
-            @RequestParam("endTime") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
+    @ApiOperation("根据日期范围查询学习趋势(单位:秒)")
+    @GetMapping("/studyTrendByDate")
+    public R<List<StudyTrendDTO>> getStudyTrendByDate(
+            @ApiParam(value = "查询开始日期 (格式: yyyy-MM-dd)", required = true, example = "2022-01-01")
+            @RequestParam("startDate") String startDateStr,
+            @ApiParam(value = "查询结束日期 (格式: yyyy-MM-dd)", required = true, example = "2022-01-10")
+            @RequestParam("endDate") String endDateStr,
+            @ApiParam(value = "统计类型: day(按日), week(按周), month(按月)", required = true)
+            @RequestParam("type") String type) {
+        LocalDate startDate;
+        LocalDate endDate;
         try {
-            // 调用 service 层的新方法
-            Long duration = systemStatisticsService.getStudyDurationByTimeRange(startTime, endTime);
-            return R.ok(duration);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return R.fail("获取学习时长失败: " + e.getMessage());
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            startDate = LocalDate.parse(startDateStr, formatter);
+            endDate = LocalDate.parse(endDateStr, formatter);
+        } catch (DateTimeParseException e) {
+            // 3. 如果格式错误，返回一个友好的错误提示
+            return R.fail("日期格式不正确，请确保使用 yyyy-MM-dd 格式。");
         }
+        // 4. 调用 Service 层，传入已经成功转换的 LocalDate 对象
+        List<StudyTrendDTO> trendData = systemStatisticsService.getStudyTrendByDateRange(startDate, endDate, type);
+        return R.ok(trendData);
     }
-    @ApiOperation("学生数量统计")
-    @GetMapping("/student-count")
-    public R<Long> getStudentCount() {
-        // TODO: 实现学生数量统计逻辑
-        return R.ok(systemStatisticsService.getStudentCount());
+
+    @ApiOperation("获取系统所有核心数据统计")
+    @GetMapping("/all-counts")
+    public R<Map<String, Long>> getAllCounts() {
+        return R.ok(systemStatisticsService.getAllCounts());
     }
 
     @ApiOperation("教师数量统计")
@@ -86,25 +100,11 @@ public ResponseEntity<List<VisitorCountDTO>> getStudentVisitorCountByTime(
         return R.ok(systemStatisticsService.getTeacherCount());
     }
 
-    @ApiOperation("教学思政数量统计")
-    @GetMapping("/ideological-education-count")
-    public R<Long> getIdeologicalEducationCount() {
-        // TODO: 实现教学思政数量统计逻辑
-        return R.ok(systemStatisticsService.getIdeologicalEducationCount());
-    }
+    @ApiOperation("教学素材数量统计")
+    @GetMapping("/teaching-materials-count")
+    public R<Long> getTeachingMaterialsCount() {
 
-    @ApiOperation("教学活动数量统计")
-    @GetMapping("/teaching-activities-count")
-    public R<Long> getTeachingActivitiesCount() {
-        // TODO: 实现教学活动数量统计逻辑
-        return R.ok(systemStatisticsService.getTeachingActivitiesCount());
-    }
-
-    @ApiOperation("题库数量统计")
-    @GetMapping("/question-bank-count")
-    public R<Long> getQuestionBankCount() {
-        // TODO: 实现题库数量统计逻辑
-        return R.ok(systemStatisticsService.getQuestionBankCount());
+        return R.ok(systemStatisticsService.getTeachingMaterialsCount());
     }
 
     @ApiOperation("班级数量统计")
@@ -114,41 +114,34 @@ public ResponseEntity<List<VisitorCountDTO>> getStudentVisitorCountByTime(
         return R.ok(systemStatisticsService.getClassCount());
     }
 
-    @ApiOperation("在授课程数量统计")
-    @GetMapping("/teaching-course-count")
-    public R<Long> getTeachingCourseCount() {
-        // TODO: 实现在授课程数量统计逻辑
-        return R.ok(systemStatisticsService.getTeachingCourseCount());
-    }
-
-    @ApiOperation("智慧教材数量统计")
-    @GetMapping("/smart-textbook-count")
-    public R<Long> getSmartTextbookCount() {
-        // TODO: 实现智慧教材数量统计逻辑
-        return R.ok(systemStatisticsService.getSmartTextbookCount());
-    }
-
     @ApiOperation("教材类型统计")
     @GetMapping("/textbook-type-count")
-    public R<Map<String, Long>> getTextbookTypeCount() {
+    public R<List<TextbookTypeCountDto>> getTextbookTypeCount() {
         return R.ok(systemStatisticsService.getTextbookTypeCount());
     }
+
 
     @ApiOperation("交流反馈数量统计")
     @GetMapping("/communication-feedback-count")
     public R<Long> getCommunicationFeedbackCount() {
         return R.ok(systemStatisticsService.getCommunicationFeedbackCount());
     }
-    @ApiOperation("教学素材数量统计")
-    @GetMapping("/teaching-materials-count")
-    public R<Long> getTeachingMaterialsCount() {
-        return R.ok(systemStatisticsService.getTeachingMaterialsCount());
-    }
+
 
     @ApiOperation("资源使用数据统计")
     @GetMapping("/resource-usage-statistics")
     public R<Map<String, Object>> getResourceUsageStatistics() {
         Map<String, Object> statistics = systemStatisticsService.getResourceUsageStatistics();
         return R.ok(statistics);
+    }
+
+    @ApiOperation("获取教材更新申请记录")
+    @GetMapping("/textbook-update-applications")
+    public R<IPage<TextbookUpdateApplicationParam>> getTextbookUpdateApplications(
+            @RequestParam(value = "current", defaultValue = "1") long current,
+            @RequestParam(value = "size", defaultValue = "10") long size) {
+        Page<TextbookUpdateApplicationParam> page = new Page<>(current, size);
+        IPage<TextbookUpdateApplicationParam> applications = systemStatisticsService.getTextbookUpdateApplications(page);
+        return R.ok(applications);
     }
 }

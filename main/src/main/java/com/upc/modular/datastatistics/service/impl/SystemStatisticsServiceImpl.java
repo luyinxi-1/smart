@@ -1,22 +1,30 @@
 package com.upc.modular.datastatistics.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.datastatistics.controller.param.ChapterMasteryVO;
 import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.course.service.ICourseService;
+import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
+import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
+import com.upc.modular.datastatistics.controller.param.TextbookUpdateApplicationParam;
 import com.upc.modular.datastatistics.mapper.SystemDataStatisticsMapper;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
 import com.upc.modular.group.service.IGroupService;
 import com.upc.modular.materials.entity.TeachingMaterials;
 import com.upc.modular.materials.mapper.TeachingMaterialsMapper;
 import com.upc.modular.materials.service.ITeachingMaterialsService;
+import com.upc.modular.questionbank.service.ITeachingQuestionBankService;
 import com.upc.modular.questionbank.service.ITeachingQuestionService;
 import com.upc.modular.student.service.IStudentService;
 import com.upc.modular.teacher.service.ITeacherService;
+import com.upc.modular.teachingactivities.entity.DiscussionTopic;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicReplyService;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
 import com.upc.modular.textbook.entity.Textbook;
+import com.upc.modular.textbook.mapper.TextbookMapper;
 import com.upc.modular.textbook.service.IIdeologicalMaterialService;
 import com.upc.modular.textbook.service.ITextbookService;
 import lombok.extern.slf4j.Slf4j;
@@ -28,16 +36,25 @@ import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
 public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
+    private static final Set<String> ALLOWED_TYPES = Collections.unmodifiableSet(new HashSet<String>() {{
+        add("day");
+        add("week");
+        add("month");
+    }});
+
+    @Autowired
+    private TextbookMapper textbookMapper;
 
     @Autowired
     private ITeachingMaterialsService teachingMaterialsService;
@@ -54,6 +71,8 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
     private IGroupService groupService;
     @Autowired
     private ITeachingQuestionService teachingQuestionService;
+    @Autowired
+    private ITeachingQuestionBankService teachingQuestionbankService;
     @Autowired
     private IDiscussionTopicService discussionTopicService;
     @Autowired
@@ -78,73 +97,51 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
 
     //按时间统计访问人数
     @Override
-    public List<VisitorCountDTO> getStudentVisitorCountByTime(String startDateStr, String endDateStr) {
-        // 1. 参数非空校验 (来自您最初的代码)
-        if (startDateStr == null || startDateStr.trim().isEmpty() || endDateStr == null || endDateStr.trim().isEmpty()) {
-            throw new IllegalArgumentException("开始日期和结束日期不能为空！");
-        }
-        // 2. 将字符串转换为 LocalDate 对象
+    public List<VisitorCountDTO> getStudentVisitorCountByTime(String timeRange) {
+        // 这部分日期计算逻辑不变
+        LocalDate endDate = LocalDate.now();
         LocalDate startDate;
-        LocalDate endDate;
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        try {
-            // 只截取前10位，增强容错性
-            startDate = LocalDate.parse(startDateStr.substring(0, 10), formatter);
-            endDate = LocalDate.parse(endDateStr.substring(0, 10), formatter);
-        } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException("无效的日期格式！请使用 yyyy-MM-dd 格式。", e);
+        switch (timeRange.toLowerCase()) {
+            case "month":
+                startDate = endDate.minusMonths(1).plusDays(1);
+                break;
+            case "year":
+                startDate = endDate.minusYears(1).plusDays(1);
+                break;
+            default:
+                startDate = endDate.minusDays(6);
+                break;
         }
 
-        // 3. 业务逻辑校验
-        if (startDate.isAfter(endDate)) {
-            throw new IllegalArgumentException("开始日期不能晚于结束日期！");
-        }
+        // 从数据库获取数据
+        List<VisitorCountDTO> dbResults = systemDataStatisticsMapper.getStudentVisitorCountByTime(startDate, endDate);
 
-        log.info("Service Layer: Calling mapper with strongly-typed dates: startDate='{}', endDate='{}'", startDate, endDate);
-        List<VisitorCountDTO> result = systemDataStatisticsMapper.getStudentVisitorCountByTime(startDate, endDate);
-        // 4. 调用 Mapper
-        if (result == null) {
-            log.warn("CRITICAL DIAGNOSIS: Mapper returned a NULL list!");
-        } else if (result.isEmpty()) {
-            log.info("CRITICAL DIAGNOSIS: Mapper returned an EMPTY list. (Size: 0)");
-        } else {
-            log.info("CRITICAL DIAGNOSIS: Mapper returned a list with {} items. First item's date is: '{}'",
-                    result.size(), result.get(0).getDate());
-        }
-        return result;
+        // 将包含 java.util.Date 的列表转换为以 LocalDate 为键的 Map
+        Map<LocalDate, VisitorCountDTO> resultsMap = dbResults.stream()
+                .collect(Collectors.toMap(
+                        // 关键：将 java.util.Date 转换为 LocalDate
+                        dto -> dto.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
+                        dto -> dto,
+                        (existing, replacement) -> existing // 用于处理重复的键，虽然这里不太可能发生
+                ));
 
+        // 生成完整日期范围并补全数据
+        long numOfDays = startDate.until(endDate, ChronoUnit.DAYS) + 1;
+
+        return Stream.iterate(startDate, date -> date.plusDays(1))
+                .limit(numOfDays)
+                .map(date -> {
+                    VisitorCountDTO foundDto = resultsMap.get(date);
+                    if (foundDto != null) {
+                        return foundDto;
+                    } else {
+                        // 关键：创建 DTO 时，将 LocalDate 转换回 java.util.Date
+                        Date missingDate = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
+                        return new VisitorCountDTO(missingDate, 0L);
+                    }
+                })
+                .collect(Collectors.toList());
     }
-/*    @Override
-    public List<VisitorCountDTO> getStudentVisitorCountByTime(String startDate, String endDate) {
-        // 1. 参数非空校验
-        if (!StringUtils.hasText(startDate) || !StringUtils.hasText(endDate)) {
-            throw new IllegalArgumentException("开始日期和结束日期不能为空！");
-        }
-        // 2. 将传入的参数统一处理为纯日期字符串 (yyyy-MM-dd)
-        // 无论传入的是 "2025-09-12" 还是 "2025-09-12 15:30:00"，
-        // 都只截取前10位。
-        String startDateOnly = startDate.length() > 10 ? startDate.substring(0, 10) : startDate;
-        String endDateOnly = endDate.length() > 10 ? endDate.substring(0, 10) : endDate;
-        // 3. (可选但推荐) 使用处理过的纯日期字符串进行合法性校验
-        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        try {
-            LocalDate start = LocalDate.parse(startDateOnly, dateFormatter);
-            LocalDate end = LocalDate.parse(endDateOnly, dateFormatter);
-
-            if (start.isAfter(end)) {
-                throw new IllegalArgumentException("开始日期不能晚于结束日期！");
-            }
-        } catch (java.time.format.DateTimeParseException e) {
-            // 如果截取后格式依然不对，说明原始输入格式错误
-            throw new IllegalArgumentException("无效的日期格式！", e);
-        }
-        // 4. 准备参数，传入处理后的纯日期
-        Map<String, Object> params = new HashMap<>();
-        params.put("startDate", startDateOnly);
-        params.put("endDate", endDateOnly);
-        // 5. 调用 Mapper 并返回结果
-        return systemDataStatisticsMapper.getStudentVisitorCountByTime(params);
-    }*/
 
     @Override
     public Long getTodayStudyDuration() {
@@ -152,32 +149,51 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         return systemDataStatisticsMapper.getTodayStudyDuration();
     }
 
+    //按时间统计总学习时长
     @Override
-    public Long getStudyDurationByTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
-        // TODO: 可以在这里添加参数校验，例如 endTime 必须大于 startTime
-        return systemDataStatisticsMapper.getStudyDurationByTimeRange(startTime, endTime);
-    }
-/*    @Override
-    public List<Map<String, Object>> getStudyDurationByTime(Map<String, Object> param) {
-        // TODO: 实现按时间统计总学习时长逻辑
-        return systemDataStatisticsMapper.getStudyDurationByTime(param);
-    }*/
-/*    @Override
-    public List<Map<String, Object>> getActiveUserCountByTime(Map<String, Object> param) {
-        // TODO: 实现按时间统计活跃人数逻辑
-        return systemDataStatisticsMapper.getActiveUserCountByTime(param);
+    public List<StudyTrendDTO> getStudyTrendByDateRange(LocalDate startDate, LocalDate endDate, String type) {
+        // 安全校验
+        String lowerCaseType = type.toLowerCase();
+        if (!ALLOWED_TYPES.contains(lowerCaseType)) {
+            throw new IllegalArgumentException("无效的统计类型: " + type + ". 只允许 'day', 'week', 'month'。");
+        }
+        // 日期顺序的校验
+        if (startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("开始日期不能晚于结束日期。");
+        }
+        // 将日期转换为一整天的时间范围
+        LocalDateTime startTime = startDate.atStartOfDay();
+        LocalDateTime endTime = endDate.plusDays(1).atStartOfDay();
+
+        // 调用 Mapper，传入转换后的 LocalDateTime
+        return systemDataStatisticsMapper.getStudyTrendByTimeRange(startTime, endTime, lowerCaseType);
     }
 
     @Override
-    public Long getTodayActiveUserCount() {
-        // TODO: 实现今日活跃人数统计逻辑
-        return systemDataStatisticsMapper.getTodayActiveUserCount();
-    }*/
-    @Override
-    public Long getStudentCount() {
-        // TODO: 实现学生数量统计逻辑
-        return studentService.count();
+    public Map<String, Long> getAllCounts() {
+        Map<String, Long> countsMap = new LinkedHashMap<>();
+
+        countsMap.put("StudentCount", studentService.count());
+        countsMap.put("TeachingideologicalMaterialCount", ideologicalMaterialService.count());
+
+        // 修改 DiscussionTopicCount，只统计 identity_type 为 1 的教学活动数量
+        Long discussionTopicCount = discussionTopicService.lambdaQuery()
+                .eq(DiscussionTopic::getIdentityType, 1)
+                .count();
+        countsMap.put("DiscussionTopicCount", discussionTopicCount);
+
+        countsMap.put("TeachingQuestionBankCount", teachingQuestionbankService.count());
+        countsMap.put("CourseCount", courseService.count());
+
+        // 修改 TextbookCount，只统计 release_status 为 '1' 的教材数量
+        Long textbookCount = textbookService.lambdaQuery()
+                .eq(Textbook::getReleaseStatus, "1")
+                .count();
+        countsMap.put("TextbookCount", textbookCount);
+
+        return countsMap;
     }
+
 
     @Override
     public Long getTeacherCount() {
@@ -186,63 +202,18 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
     }
 
     @Override
-    public Long getIdeologicalEducationCount() {
-        // TODO: 实现教学思政数量统计逻辑
-        return ideologicalMaterialService.count();
-    }
-
-    @Override
-    public Long getTeachingActivitiesCount() {
-        // TODO: 实现教学活动数量统计逻辑
-        return discussionTopicService.count();
-    }
-
-    @Override
-    public Long getQuestionBankCount() {     //teaching_question表
-        // TODO: 实现题库数量统计逻辑
-        return teachingQuestionService.count() ;
-    }
-
-    @Override
     public Long getClassCount() {
         // TODO: 实现班级数量统计逻辑
         return groupService.count();
     }
 
-    @Override
-    public Long getTeachingCourseCount() {
-        // TODO: 实现在授课程数量统计逻辑
-        return courseService.count();
-    }
-
-    @Override
-    public Long getSmartTextbookCount() {
-        // TODO: 实现智慧教材数量统计逻辑
-
-        return textbookService.count();
-    }
-
     //教材类型统计
     @Override
-    public Map<String, Long> getTextbookTypeCount() {
-        // 使用 MyBatis-Plus 的链式查询 + 分组统计
-        List<Map<String, Object>> result = textbookService.listMaps(
-                new QueryWrapper<Textbook>()
-                        .select("type, COUNT(*) as cnt")
-                        .groupBy("type")
-        );
-
-        // 转换成 Map<String, Long>
-        Map<String, Long> typeCountMap = new HashMap<>();
-        for (Map<String, Object> row : result) {
-            Object typeObj = row.get("type");
-            String type = (typeObj != null) ? typeObj.toString() : "未知类型"; // 添加空值检查
-            Long count = ((Number) row.get("cnt")).longValue();
-            typeCountMap.put(type, count);
-        }
-        return typeCountMap;
+    public List<TextbookTypeCountDto> getTextbookTypeCount() {
+        // 【关键】调用新 Mapper 中的方法
+        return systemDataStatisticsMapper.countPublishedTextbookByType();
     }
-    
+
     /**
      * 处理时间参数，确保符合业务需求：
      * 1. 如果startTime只提供了日期，默认设置为当天00:00:00
@@ -251,7 +222,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
      * 4. endTime必须大于等于startTime
      * 5. 如果endTime晚于今天，就默认为今天
      * 6. 如果不输入，就默认为所有时间
-     * 
+     *
      * @param params 参数Map
      */
     private void processTimeParams(Map<String, Object> params) {
@@ -283,21 +254,21 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         }
 
         LocalDate today = LocalDate.now();
-        
+
         LocalDate startDate = null;
         LocalDate endDate = null;
-        
+
         // 解析开始时间
         if (startTimeStr != null && !startTimeStr.isEmpty()) {
             try {
                 // 尝试解析完整的时间格式 "yyyy-MM-dd HH:mm:ss"
                 if (startTimeStr.length() == 19 && startTimeStr.charAt(4) == '-' && startTimeStr.charAt(13) == ':') {
                     startDate = LocalDate.parse(startTimeStr.substring(0, 10));
-                } 
+                }
                 // 尝试解析日期格式 "yyyy-MM-dd"
                 else if (startTimeStr.length() == 10 && startTimeStr.charAt(4) == '-') {
                     startDate = LocalDate.parse(startTimeStr);
-                } 
+                }
                 // 其他格式尝试解析
                 else {
                     startDate = LocalDate.parse(startTimeStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
@@ -315,11 +286,11 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
                 // 尝试解析完整的时间格式 "yyyy-MM-dd HH:mm:ss"
                 if (endTimeStr.length() == 19 && endTimeStr.charAt(4) == '-' && endTimeStr.charAt(13) == ':') {
                     endDate = LocalDate.parse(endTimeStr.substring(0, 10));
-                } 
+                }
                 // 尝试解析日期格式 "yyyy-MM-dd"
                 else if (endTimeStr.length() == 10 && endTimeStr.charAt(4) == '-') {
                     endDate = LocalDate.parse(endTimeStr);
-                } 
+                }
                 // 其他格式尝试解析
                 else {
                     endDate = LocalDate.parse(endTimeStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
@@ -443,6 +414,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         // TODO: 实现教学素材数量统计逻辑
         return teachingMaterialsService.count();
     }
+
     // TODO:资源使用数据统计
     @Override
     public Map<String, Object> getResourceUsageStatistics() {
@@ -460,7 +432,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         Long privateCount = totalCount - publicCount;
 
         // 4. 按类型统计（假设 TeachingMaterials 有 type 字段）
-        List<Map<String, Object>> typeStatistics =teachingMaterialsMapper.selectMaps(
+        List<Map<String, Object>> typeStatistics = teachingMaterialsMapper.selectMaps(
                 new QueryWrapper<TeachingMaterials>()
                         .select("type, COUNT(*) as count")
                         .groupBy("type")
@@ -482,5 +454,14 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         result.put("totalSizeMB", totalSize);
 
         return result;
+    }
+
+    /**
+     * 获取教材更新申请记录
+     */
+    @Override
+    public IPage<TextbookUpdateApplicationParam> getTextbookUpdateApplications(Page<TextbookUpdateApplicationParam> page) {
+        // 直接将分页参数传递给 Mapper 层
+        return systemDataStatisticsMapper.getTextbookUpdateApplications(page);
     }
 }
