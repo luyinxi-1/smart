@@ -1,6 +1,8 @@
 package com.upc.modular.datastatistics.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.datastatistics.controller.param.ChapterMasteryVO;
 import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.course.service.ICourseService;
@@ -14,9 +16,11 @@ import com.upc.modular.group.service.IGroupService;
 import com.upc.modular.materials.entity.TeachingMaterials;
 import com.upc.modular.materials.mapper.TeachingMaterialsMapper;
 import com.upc.modular.materials.service.ITeachingMaterialsService;
+import com.upc.modular.questionbank.service.ITeachingQuestionBankService;
 import com.upc.modular.questionbank.service.ITeachingQuestionService;
 import com.upc.modular.student.service.IStudentService;
 import com.upc.modular.teacher.service.ITeacherService;
+import com.upc.modular.teachingactivities.entity.DiscussionTopic;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicReplyService;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
 import com.upc.modular.textbook.entity.Textbook;
@@ -68,6 +72,8 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
     @Autowired
     private ITeachingQuestionService teachingQuestionService;
     @Autowired
+    private ITeachingQuestionBankService teachingQuestionbankService;
+    @Autowired
     private IDiscussionTopicService discussionTopicService;
     @Autowired
     private IIdeologicalMaterialService ideologicalMaterialService;
@@ -96,9 +102,15 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         LocalDate endDate = LocalDate.now();
         LocalDate startDate;
         switch (timeRange.toLowerCase()) {
-            case "month": startDate = endDate.minusMonths(1).plusDays(1); break;
-            case "year": startDate = endDate.minusYears(1).plusDays(1); break;
-            default: startDate = endDate.minusDays(6); break;
+            case "month":
+                startDate = endDate.minusMonths(1).plusDays(1);
+                break;
+            case "year":
+                startDate = endDate.minusYears(1).plusDays(1);
+                break;
+            default:
+                startDate = endDate.minusDays(6);
+                break;
         }
 
         // 从数据库获取数据
@@ -130,11 +142,13 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
                 })
                 .collect(Collectors.toList());
     }
+
     @Override
     public Long getTodayStudyDuration() {
         // TODO: 实现今日总学习时长统计逻辑
         return systemDataStatisticsMapper.getTodayStudyDuration();
     }
+
     //按时间统计总学习时长
     @Override
     public List<StudyTrendDTO> getStudyTrendByDateRange(LocalDate startDate, LocalDate endDate, String type) {
@@ -161,13 +175,25 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
 
         countsMap.put("StudentCount", studentService.count());
         countsMap.put("TeachingideologicalMaterialCount", ideologicalMaterialService.count());
-        countsMap.put("DiscussionTopicCount", discussionTopicService.count());
-        countsMap.put("TeachingQuestionCount", teachingQuestionService.count());
+
+        // 修改 DiscussionTopicCount，只统计 identity_type 为 1 的教学活动数量
+        Long discussionTopicCount = discussionTopicService.lambdaQuery()
+                .eq(DiscussionTopic::getIdentityType, 1)
+                .count();
+        countsMap.put("DiscussionTopicCount", discussionTopicCount);
+
+        countsMap.put("TeachingQuestionBankCount", teachingQuestionbankService.count());
         countsMap.put("CourseCount", courseService.count());
-        countsMap.put("TextbookCount", textbookService.count());
+
+        // 修改 TextbookCount，只统计 release_status 为 '1' 的教材数量
+        Long textbookCount = textbookService.lambdaQuery()
+                .eq(Textbook::getReleaseStatus, "1")
+                .count();
+        countsMap.put("TextbookCount", textbookCount);
 
         return countsMap;
     }
+
 
     @Override
     public Long getTeacherCount() {
@@ -180,13 +206,14 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         // TODO: 实现班级数量统计逻辑
         return groupService.count();
     }
+
     //教材类型统计
     @Override
     public List<TextbookTypeCountDto> getTextbookTypeCount() {
         // 【关键】调用新 Mapper 中的方法
         return systemDataStatisticsMapper.countPublishedTextbookByType();
     }
-    
+
     /**
      * 处理时间参数，确保符合业务需求：
      * 1. 如果startTime只提供了日期，默认设置为当天00:00:00
@@ -195,7 +222,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
      * 4. endTime必须大于等于startTime
      * 5. 如果endTime晚于今天，就默认为今天
      * 6. 如果不输入，就默认为所有时间
-     * 
+     *
      * @param params 参数Map
      */
     private void processTimeParams(Map<String, Object> params) {
@@ -227,21 +254,21 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         }
 
         LocalDate today = LocalDate.now();
-        
+
         LocalDate startDate = null;
         LocalDate endDate = null;
-        
+
         // 解析开始时间
         if (startTimeStr != null && !startTimeStr.isEmpty()) {
             try {
                 // 尝试解析完整的时间格式 "yyyy-MM-dd HH:mm:ss"
                 if (startTimeStr.length() == 19 && startTimeStr.charAt(4) == '-' && startTimeStr.charAt(13) == ':') {
                     startDate = LocalDate.parse(startTimeStr.substring(0, 10));
-                } 
+                }
                 // 尝试解析日期格式 "yyyy-MM-dd"
                 else if (startTimeStr.length() == 10 && startTimeStr.charAt(4) == '-') {
                     startDate = LocalDate.parse(startTimeStr);
-                } 
+                }
                 // 其他格式尝试解析
                 else {
                     startDate = LocalDate.parse(startTimeStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
@@ -259,11 +286,11 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
                 // 尝试解析完整的时间格式 "yyyy-MM-dd HH:mm:ss"
                 if (endTimeStr.length() == 19 && endTimeStr.charAt(4) == '-' && endTimeStr.charAt(13) == ':') {
                     endDate = LocalDate.parse(endTimeStr.substring(0, 10));
-                } 
+                }
                 // 尝试解析日期格式 "yyyy-MM-dd"
                 else if (endTimeStr.length() == 10 && endTimeStr.charAt(4) == '-') {
                     endDate = LocalDate.parse(endTimeStr);
-                } 
+                }
                 // 其他格式尝试解析
                 else {
                     endDate = LocalDate.parse(endTimeStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
@@ -387,6 +414,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         // TODO: 实现教学素材数量统计逻辑
         return teachingMaterialsService.count();
     }
+
     // TODO:资源使用数据统计
     @Override
     public Map<String, Object> getResourceUsageStatistics() {
@@ -404,7 +432,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         Long privateCount = totalCount - publicCount;
 
         // 4. 按类型统计（假设 TeachingMaterials 有 type 字段）
-        List<Map<String, Object>> typeStatistics =teachingMaterialsMapper.selectMaps(
+        List<Map<String, Object>> typeStatistics = teachingMaterialsMapper.selectMaps(
                 new QueryWrapper<TeachingMaterials>()
                         .select("type, COUNT(*) as count")
                         .groupBy("type")
@@ -432,7 +460,8 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
      * 获取教材更新申请记录
      */
     @Override
-    public List<TextbookUpdateApplicationParam> getTextbookUpdateApplications() {
-        return systemDataStatisticsMapper.getTextbookUpdateApplications();
+    public IPage<TextbookUpdateApplicationParam> getTextbookUpdateApplications(Page<TextbookUpdateApplicationParam> page) {
+        // 直接将分页参数传递给 Mapper 层
+        return systemDataStatisticsMapper.getTextbookUpdateApplications(page);
     }
 }

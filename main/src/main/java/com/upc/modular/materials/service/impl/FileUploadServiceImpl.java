@@ -20,66 +20,38 @@ import java.util.UUID;
 @Service
 public class FileUploadServiceImpl implements IFileUploadService {
 
+    // 假设 basePath 是您在类中定义的上传根目录，例如: @Value("${file.upload-path}")
+    private final String basePath = "upload";
+
     @Override
-    // 1. 更新方法签名，移除 isPublic
-    public FileUploadResultDTO uploadMaterialFiles(List<MultipartFile> files, String type) {
-        if (files == null || files.isEmpty()) {
+    public String uploadMaterialFile(MultipartFile file, String type) {
+        // 1. 输入参数校验
+        if (file == null || file.isEmpty()) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "上传文件不能为空");
         }
 
-        List<String> savedFilePaths = new ArrayList<>();
-        String finalDirectoryPath = "";
-        long totalFilesSize = 0L;
-
-        // 2. 定义一个统一的基础路径，不再区分 public/private
-        Path basePath = Paths.get("upload", "teaching_materials", type, FileManageUtil.yyyyMMddStr());
-        Path folderPath; // 最终用于保存文件的目录
-
-        if ("imageSet".equals(type)) {
-            // 对于图集，在基础路径下再创建一个唯一的子目录
-            String imageSetName = UUID.randomUUID() + "_" + files.size();
-            folderPath = basePath.resolve(imageSetName); // resolve 用于拼接路径
-            finalDirectoryPath = folderPath.toString().replace("\\", "/");
-
-            for (int i = 0; i < files.size(); i++) {
-                MultipartFile file = files.get(i);
-                totalFilesSize += file.getSize();
-                // 文件名使用序号 (1, 2, 3...)
-                String fileName = FileManageUtil.createFileName(file, String.valueOf(i + 1));
-                String filePath = FileManageUtil.uploadFile(file, folderPath, fileName);
-
-                if (ObjectUtils.isEmpty(filePath))
-                    throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "上传失败");
-                savedFilePaths.add(filePath);
-            }
-
-        } else if (!"link".equals(type)) {
-            // 对于其他单文件类型
-            if (!TeachingMaterials.SUPPORTED_TYPES.contains(type))
-                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "不支持该素材类型");
-            if (files.size() != 1)
-                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "该类型只支持单文件上传");
-
-            // 直接使用基础路径作为保存目录
-            folderPath = basePath;
-
-            MultipartFile file = files.get(0);
-            totalFilesSize += file.getSize();
-            // 文件名使用UUID
-            String fileName = FileManageUtil.createFileName(file);
-            String filePath = FileManageUtil.uploadFile(file, folderPath, fileName);
-
-            if (ObjectUtils.isEmpty(filePath))
-                throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "上传失败");
-            savedFilePaths.add(filePath);
+        // 校验素材类型是否受支持 (假设您有一个支持的类型列表)
+        // 注意：这里不再需要判断 "imageSet" 和 "link"
+        if (!TeachingMaterials.SUPPORTED_TYPES.contains(type)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "不支持该素材类型: " + type);
         }
 
-        FileUploadResultDTO result = new FileUploadResultDTO();
-        result.setFilePaths(savedFilePaths);
-        result.setDirectoryPath(finalDirectoryPath);
-        // 计算总大小的逻辑保持不变
-        result.setTotalSizeMB(Math.round(totalFilesSize / (1024.0 * 1024.0) * 100) / 100.0);
+        // 2. 构建文件存储路径
+        // 路径结构： basePath/teaching_materials/{type}/{yyyyMMdd}
+        Path folderPath = Paths.get(basePath, "teaching_materials", type, FileManageUtil.yyyyMMddStr());
 
-        return result;
+        // 3. 生成唯一文件名
+        String fileName = FileManageUtil.createFileName(file);
+
+        // 4. 执行文件上传（假设 FileManageUtil.uploadFile 是您工具类中的方法）
+        // public static String uploadFile(MultipartFile file, Path folderPath, String fileName) { ... }
+        String filePath = FileManageUtil.uploadFile(file, folderPath, fileName);
+
+        // 5. 结果处理和返回
+        if (ObjectUtils.isEmpty(filePath)) {
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "文件上传失败");
+        }
+
+        return filePath;
     }
 }

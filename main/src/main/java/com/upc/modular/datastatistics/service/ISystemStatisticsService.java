@@ -1,5 +1,6 @@
 package com.upc.modular.datastatistics.service;
-
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.datastatistics.controller.param.ChapterMasteryVO;
 import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
 import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
@@ -95,9 +96,6 @@ public interface ISystemStatisticsService {
      */
     Map<String, Object> getResourceUsageStatistics();
 
-    /**
-     * 获取教材更新申请记录
-     */
-    List<TextbookUpdateApplicationParam> getTextbookUpdateApplications();
+    IPage<TextbookUpdateApplicationParam> getTextbookUpdateApplications(Page<TextbookUpdateApplicationParam> page);
 
 }

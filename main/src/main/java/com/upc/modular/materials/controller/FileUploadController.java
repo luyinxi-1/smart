@@ -21,12 +21,12 @@ public class FileUploadController {
 
     @PostMapping("/upload-material")
     @ApiOperation(value = "上传教学素材文件")
-    public R<FileUploadResultDTO> uploadMaterialFiles(
-            @RequestParam("files") List<MultipartFile> files,
-            @ApiParam(value = "素材文件类型。例如: image,imageSet, video, audio,pdf,3DModel ,link,word ,pdf,excel,other", required = true)
+    public R<String> uploadMaterialFile(
+            @RequestParam("file") MultipartFile file,
+            @ApiParam(value = "素材文件类型。例如: image, video, audio, pdf, word, excel, other", required = true)
             @RequestParam("type") String type) {
 
-        FileUploadResultDTO result = fileUploadService.uploadMaterialFiles(files, type);
-        return R.ok(result);
+        String filePath = fileUploadService.uploadMaterialFile(file, type);
+        return R.ok(filePath);
     }
 }

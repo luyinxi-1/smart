@@ -1,5 +1,6 @@
 package com.upc.modular.datastatistics.controller;
-
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
 import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
 import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
@@ -30,6 +31,7 @@ import java.util.Map;
 public class SystemStatisticsController {
     @Autowired
     private ISystemStatisticsService systemStatisticsService;
+
     @ApiOperation("获取今日访问人数")
     @PostMapping("/todayVisitorCount")
     public R<Long> getTodayVisitorCount() {
@@ -40,6 +42,7 @@ public class SystemStatisticsController {
             return R.fail("获取今日访问人数失败: " + e.getMessage());
         }
     }
+
     @ApiOperation("按时间统计访问人数")
     @GetMapping("/visitorCountByTime")
     public R<List<VisitorCountDTO>> getStudentVisitorCountByTime(
@@ -47,6 +50,7 @@ public class SystemStatisticsController {
         List<VisitorCountDTO> result = systemStatisticsService.getStudentVisitorCountByTime(timeRange);
         return R.ok(result);
     }
+
     // 今日总学习时长
     @ApiOperation("今日总学习时长")
     @PostMapping("/todayStudyDuration")
@@ -58,6 +62,7 @@ public class SystemStatisticsController {
             return R.fail("获取今日总学习时长失败: " + e.getMessage());
         }
     }
+
     @ApiOperation("根据日期范围查询学习趋势(单位:秒)")
     @GetMapping("/studyTrendByDate")
     public R<List<StudyTrendDTO>> getStudyTrendByDate(
@@ -81,14 +86,12 @@ public class SystemStatisticsController {
         List<StudyTrendDTO> trendData = systemStatisticsService.getStudyTrendByDateRange(startDate, endDate, type);
         return R.ok(trendData);
     }
+
     @ApiOperation("获取系统所有核心数据统计")
     @GetMapping("/all-counts")
     public R<Map<String, Long>> getAllCounts() {
         return R.ok(systemStatisticsService.getAllCounts());
     }
-
-
-
 
     @ApiOperation("教师数量统计")
     @GetMapping("/teacher-count")
@@ -96,12 +99,14 @@ public class SystemStatisticsController {
         // TODO: 实现教师数量统计逻辑
         return R.ok(systemStatisticsService.getTeacherCount());
     }
+
     @ApiOperation("教学素材数量统计")
     @GetMapping("/teaching-materials-count")
     public R<Long> getTeachingMaterialsCount() {
 
         return R.ok(systemStatisticsService.getTeachingMaterialsCount());
     }
+
     @ApiOperation("班级数量统计")
     @GetMapping("/class-count")
     public R<Long> getClassCount() {
@@ -114,9 +119,6 @@ public class SystemStatisticsController {
     public R<List<TextbookTypeCountDto>> getTextbookTypeCount() {
         return R.ok(systemStatisticsService.getTextbookTypeCount());
     }
-
-
-
 
 
     @ApiOperation("交流反馈数量统计")
@@ -135,8 +137,11 @@ public class SystemStatisticsController {
 
     @ApiOperation("获取教材更新申请记录")
     @GetMapping("/textbook-update-applications")
-    public R<List<TextbookUpdateApplicationParam>> getTextbookUpdateApplications() {
-        List<TextbookUpdateApplicationParam> applications = systemStatisticsService.getTextbookUpdateApplications();
+    public R<IPage<TextbookUpdateApplicationParam>> getTextbookUpdateApplications(
+            @RequestParam(value = "current", defaultValue = "1") long current,
+            @RequestParam(value = "size", defaultValue = "10") long size) {
+        Page<TextbookUpdateApplicationParam> page = new Page<>(current, size);
+        IPage<TextbookUpdateApplicationParam> applications = systemStatisticsService.getTextbookUpdateApplications(page);
         return R.ok(applications);
     }
 }

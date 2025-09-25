@@ -1,5 +1,7 @@
 package com.upc.modular.datastatistics.mapper;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
 import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
@@ -68,5 +70,9 @@ List<VisitorCountDTO> getStudentVisitorCountByTime(
     /**
      * 获取教材更新申请记录
      */
-    List<TextbookUpdateApplicationParam> getTextbookUpdateApplications();
+    /**
+     * 获取教材更新申请记录 (分页)
+     */
+// 修改点①: Mapper 方法的第一个参数必须是 Page 对象, 返回 IPage
+    IPage<TextbookUpdateApplicationParam> getTextbookUpdateApplications(Page<TextbookUpdateApplicationParam> page);
 }

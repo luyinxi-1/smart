@@ -6,12 +6,11 @@ import java.util.List;
 public interface IFileUploadService {
 
     /**
-     * 上传教学素材文件
+     * 上传单个教学素材文件
      *
-     * @param files 上传的文件列表
-     * @param type  素材类型
-     * @return 包含文件路径和大小等信息的 DTO
+     * @param file 上传的文件
+     * @param type 素材类型
+     * @return 文件保存的相对路径
      */
-    // 移除 isPublic 参数
-    FileUploadResultDTO uploadMaterialFiles(List<MultipartFile> files, String type);
+    String uploadMaterialFile(MultipartFile file, String type);
 }
