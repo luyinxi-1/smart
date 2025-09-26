@@ -40,7 +40,7 @@ public class LearningNotes implements Serializable {
     private Long textbookId;
 
     @ApiModelProperty("笔记名称")
-    @TableField("note_id")
+    @TableField("note_name")
     private String noteName;
 
     @ApiModelProperty("关联的目录ID")
@@ -67,5 +67,7 @@ public class LearningNotes implements Serializable {
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
     private LocalDateTime operationDatetime;
 
-
+    @ApiModelProperty("笔记在文档中的位置信息")
+    @TableField("position_info")
+    private String positionInfo;
 }

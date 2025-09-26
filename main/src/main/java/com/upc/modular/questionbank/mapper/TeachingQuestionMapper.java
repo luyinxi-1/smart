@@ -23,7 +23,8 @@ public interface TeachingQuestionMapper extends BaseMapper<TeachingQuestion> {
 
     Page<TeachingQuestion> selectQuestion(
             Page<TeachingQuestion> page,
-            @Param("param") TeachingQuestionPageSearchParam param
+            @Param("param") TeachingQuestionPageSearchParam param,
+            @Param("userId") Long userId
     );
     TeachingQuestion selectQuestionById(@Param("id") Long id);
 }

@@ -95,6 +95,8 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
 
     @Override
     public Page<DiscussionTopicReturnParam> getDiscussionTopicList(DiscussionTopicSearchParam param) {
+        Long userId = UserUtils.get().getId();
+
         Page<DiscussionTopic> page = new Page<>(param.getCurrent(), param.getSize());
 
         LambdaQueryWrapper<DiscussionTopic> queryWrapper = new LambdaQueryWrapper<>();
@@ -152,6 +154,8 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
                         if (sysTbuser != null) {
                             discussionTopicReturnParam.setCreatorName(sysTbuser.getNickname());
                         }
+                        // 添加判断是否为当前用户创建
+                        discussionTopicReturnParam.setIsCreatedByCurrentUser(discussionTopic.getCreator().equals(userId));
                     }
                     if (discussionTopic.getAddDatetime() != null) {
                         discussionTopicReturnParam.setAddDatetime(discussionTopic.getAddDatetime().toString());
@@ -165,7 +169,7 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
                 })
                 .collect(Collectors.toList());
 
-        // 添加：对结果列表进行二次筛选，基于ActivityName（即topicTitle）进行模糊查询
+        // 对结果列表进行二次筛选，基于ActivityName（即topicTitle）进行模糊查询
         if (StringUtils.isNotBlank(param.getTopicTitle())) {
             returnList = returnList.stream()
                     .filter(item -> item.getActivityName() != null &&

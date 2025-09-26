@@ -3,9 +3,12 @@ package com.upc.modular.questionbank.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.common.utils.UserUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.course.controller.param.CoursePageReturnParam;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchParam;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
@@ -31,6 +34,8 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
 
     @Autowired
     TeachingQuestionMapper teachingQuestionMapper;
+    @Autowired
+    private SysUserMapper sysUserMapper;
 
     @Override
     public Void deleteCourseByIds(IdParam idParam) {
@@ -62,8 +67,20 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
 
     @Override
     public Page<TeachingQuestion> selectQuestionPage(TeachingQuestionPageSearchParam param) {
+        Long userId = UserUtils.get().getId();
         Page<TeachingQuestion> page = new Page<>(param.getCurrent(), param.getSize());
-        return teachingQuestionMapper.selectQuestion(page, param);
+        Page<TeachingQuestion> resultPage = teachingQuestionMapper.selectQuestion(page, param, userId);
+
+        // 设置是否为当前用户创建的字段
+        resultPage.getRecords().forEach(question -> {
+            if (question.getCreator() != null) {
+                question.setIsCreatedByCurrentUser(question.getCreator().equals(userId));
+            } else {
+                question.setIsCreatedByCurrentUser(false);
+            }
+        });
+
+        return resultPage;
     }
 
     @Override
