@@ -18,4 +18,6 @@ public interface ILearningAnnotationsAndLabelsService extends IService<LearningA
     Boolean saveOrUpdateLabels(LearningAnnotationsAndLabels param);
 
     List<LearningAnnotationsAndLabels> selectLabels(Long textbookId);
+
+    List<LearningAnnotationsAndLabels> selectLabelsByCatalogId(Long textbookId, Long catalogId);
 }

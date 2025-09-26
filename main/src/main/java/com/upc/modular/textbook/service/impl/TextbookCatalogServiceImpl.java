@@ -581,6 +581,53 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         return this.list(new LambdaQueryWrapper<TextbookCatalog>().eq(TextbookCatalog::getTextbookId, textbookId));
     }
 
+    @Override
+    public ReadTextbookReturnParam readTextbookCatalog(Long textbookId, Long catalogId) {
+        if (textbookId == null || catalogId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+
+        // 查询指定的目录项
+        TextbookCatalog textbookCatalog = this.getOne(new LambdaQueryWrapper<TextbookCatalog>()
+                .eq(TextbookCatalog::getTextbookId, textbookId)
+                .eq(TextbookCatalog::getId, catalogId));
+
+        if (textbookCatalog == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "未找到指定的目录项");
+        }
+
+        // 转换为返回参数
+        ReadTextbookReturnParam textbookReturnParam = new ReadTextbookReturnParam();
+        BeanUtils.copyProperties(textbookCatalog, textbookReturnParam);
+
+        // 处理目录名称（去除HTML标签）
+        String rawHtml = textbookCatalog.getCatalogName();
+        if (rawHtml != null) {
+            String plainText = Jsoup.parse(rawHtml).text();
+            textbookReturnParam.setCatalogNameWithoutHtml(plainText);
+        }
+
+        // 获取批注内容
+        List<LearningAnnotationsAndLabels> learningAnnotationsAndLabels =
+                labelsService.selectLabelsByCatalogId(textbookId, catalogId);
+
+        if (learningAnnotationsAndLabels != null && !learningAnnotationsAndLabels.isEmpty()) {
+            // 如果有批注，则更新内容
+            textbookReturnParam.setContent(learningAnnotationsAndLabels.get(0).getContent());
+        }
+
+        // 返回用户姓名
+        Textbook textbook = textbookMapper.selectById(textbookId);
+        if (textbook != null) {
+            SysTbuser sysTbuser = sysUserMapper.selectById(textbook.getCreator());
+            if (sysTbuser != null) {
+                textbookReturnParam.setCreatorName(sysTbuser.getNickname());
+            }
+        }
+
+        return textbookReturnParam;
+    }
+
 
     /**
      * 将HTML内容解析为具有层级结构的TextbookCatalog对象列表
