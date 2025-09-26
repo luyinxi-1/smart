@@ -1,6 +1,7 @@
 package com.upc.modular.materials.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.utils.FileManageUtil;
@@ -453,23 +454,26 @@ public String updateTeachingMaterialsById(TeachingMaterialsSaveOrUpdateParam par
     }
 }
     @Override
-    public List<TeachingMaterials> getMaterialsByTextbookId(Long textbookId) {
-
-        // 1. 根据 textbookId 查出所有的映射关系
+    public List<TeachingMaterials> getMaterialsByTextbookId(Long textbookId, String materialName) {
         List<MaterialsTextbookMapping> mappings = materialsTextbookMappingService.list(
                 new LambdaQueryWrapper<MaterialsTextbookMapping>().eq(MaterialsTextbookMapping::getTextbookId, textbookId)
         );
-        // 2. 如果没有找到任何映射关系，直接返回一个空列表，避免后续操作出错
+
         if (mappings == null || mappings.isEmpty()) {
             return Collections.emptyList();
         }
-        // 3. 从映射关系列表中提取出所有 material_id
         List<Long> materialIds = mappings.stream()
                 .map(MaterialsTextbookMapping::getMaterialId)
                 .collect(Collectors.toList());
-
-        // 4. 使用 material_id 列表一次性查询出所有的教学素材信息
-        return teachingMaterialsMapper.selectBatchIds(materialIds);
+        if (materialIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        LambdaQueryWrapper<TeachingMaterials> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.in(TeachingMaterials::getId, materialIds);
+        if (StringUtils.isNotBlank(materialName)) {
+            queryWrapper.like(TeachingMaterials::getName, materialName);
+        }
+        return teachingMaterialsMapper.selectList(queryWrapper);
     }
     @Override
     public void deleteTeachingMaterialsByIds(List<Long> ids) {

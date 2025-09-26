@@ -35,7 +35,8 @@
         t.add_datetime,
         t.operator,
         t.operation_datetime,
-        t.teaching_question_classification_id
+        t.teaching_question_classification_id,
+        #{userId} as currentUserId
         FROM teaching_question t
         <where>
             <!-- 条件1: 根据题目内容模糊查询 -->

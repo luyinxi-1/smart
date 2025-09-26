@@ -109,11 +109,12 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
 
     @Override
     public Page<TeachingQuestionBankPageReturnParam> selectQuestionBankPage(TeachingQuestionBankPageSearchParam param) {
+        Long userId = UserUtils.get().getId();
         // --- 第一阶段：数据库查询 ---
         // 1. 创建分页对象，注意泛型是中间结果类型
         Page<TeachingQuestionBankPageMidReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
         // 2. 调用Mapper获取包含 creatorId 和 questionCount 的分页数据
-        Page<TeachingQuestionBankPageMidReturnParam> midResultPage = teachingQuestionBankMapper.selectQuestionBank(page, param);
+        Page<TeachingQuestionBankPageMidReturnParam> midResultPage = teachingQuestionBankMapper.selectQuestionBank(page, param,userId);
         // --- 第二阶段：Java内存中数据处理和转换 ---
         List<TeachingQuestionBankPageMidReturnParam> midRecords = midResultPage.getRecords();
         // 如果查询结果为空，直接返回一个空的最终分页对象，保留分页信息
@@ -148,6 +149,8 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
             // 单独处理 creatorName 字段，从ID转换为nickname
             String creatorName = creatorIdToNameMap.getOrDefault(midParam.getCreator(), "未知用户"); // 如果找不到，给个默认值
             finalParam.setCreatorName(creatorName);
+            // 添加是否为当前用户创建的标识
+            finalParam.setIsCreatedByCurrentUser(midParam.getCreator() != null && midParam.getCreator().equals(userId));
             return finalParam;
         }).collect(Collectors.toList());
         // 6. 构建并返回最终的分页对象

@@ -1,5 +1,6 @@
 package com.upc.modular.textbook.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.upc.common.utils.UserUtils;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
@@ -14,6 +15,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -67,4 +69,15 @@ public class LearningAnnotationsAndLabelsServiceImpl extends ServiceImpl<Learnin
         lambdaQueryWrapper.eq(LearningAnnotationsAndLabels::getCreator, UserUtils.get().getId());
         return learningAnnotationsAndLabelsMapper.selectList(lambdaQueryWrapper);
     }
+
+    @Override
+    public List<LearningAnnotationsAndLabels> selectLabelsByCatalogId(Long textbookId, Long catalogId) {
+        if (ObjectUtils.isEmpty(textbookId) || ObjectUtils.isEmpty(catalogId)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材ID和目录ID不能为空");
+        }
+        return this.list(new LambdaQueryWrapper<LearningAnnotationsAndLabels>()
+                .eq(LearningAnnotationsAndLabels::getTextbookId, textbookId)
+                .eq(LearningAnnotationsAndLabels::getCatalogId, catalogId));
+    }
+
 }

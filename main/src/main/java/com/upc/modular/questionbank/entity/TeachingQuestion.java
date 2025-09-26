@@ -86,4 +86,8 @@ public class TeachingQuestion implements Serializable {
     @ApiModelProperty("创建人名称")
     @TableField(exist = false) // 非数据库字段
     private String creatorName;
+
+    @ApiModelProperty("是否为当前用户创建")
+    @TableField(exist = false) // 非数据库字段
+    private Boolean isCreatedByCurrentUser;
 }
