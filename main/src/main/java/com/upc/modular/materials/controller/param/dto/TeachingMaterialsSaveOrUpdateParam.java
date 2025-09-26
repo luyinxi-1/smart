@@ -20,13 +20,13 @@ public class TeachingMaterialsSaveOrUpdateParam {
 
     //  image imageSet video audio 3DModel link pdf word excel ppt other
     //  图片   图集      视频  音频   3D模型   链接 pdf word excel ppt 其他类型
-    @ApiModelProperty("素材类型：image imageSet video audio 3DModel link file(pdf/word/excel/ppt) other")
+    @ApiModelProperty("素材类型：image imageSet video audio 3DModel link pdf word excel ppt other")
     private String type;
 
     @ApiModelProperty("是否公开")
     private Boolean isPublic;
 
-    @ApiModelProperty("文件路径")// 对于单文件或链接类型，存放它的路径
+    @ApiModelProperty("文件路径(除图集外使用")// 对于单文件或链接类型，存放它的路径
     private String filePath;
 
 
@@ -37,8 +37,8 @@ public class TeachingMaterialsSaveOrUpdateParam {
     @ApiModelProperty("素材二维码路径")
     @TableField("qrcode_path")
     private String qrcodePath;
-    // --- 新增字段 ---
 
+    @ApiModelProperty("图集使用")
     private List<String> fileListPaths; // 对于图集，存放所有图片的路径
     private Double fileSize;      // 文件大小(MB)
 

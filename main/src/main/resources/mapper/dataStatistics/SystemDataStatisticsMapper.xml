@@ -62,34 +62,72 @@
             UserLogsWithNext;
     </select>
 
-    <select id="getStudyDurationByTimeRange" parameterType="map" resultType="long">
-        WITH UserLogsWithNext AS (
-            -- 步骤 1: 在指定时间范围内，为每个用户的每条记录找到下一条记录的时间
+    <select id="getStudyTrendByTimeRange" resultType="com.upc.modular.datastatistics.controller.param.StudyTrendDTO">
+    <![CDATA[
+        WITH DateSeries AS (
+            -- 步骤 1: 生成一个完整的日期/周/月序列
             SELECT
-                LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime,
-                    add_datetime
+                DATE_TRUNC(#{type}, series_date) AS date_group
             FROM
-                learning_log
-            WHERE
-              -- 使用传入的参数进行范围筛选
-                add_datetime &gt;= #{startTime}
-              AND add_datetime &lt; (#{endTime}::date + INTERVAL '1 day') -- 确保包含 endDate 整天
-        )
-        -- 步骤 2: 计算所有有效阅读时长的总和
+                -- 使用 generate_series 生成从开始到结束的每一天
+                generate_series(#{startTime}::date, #{endTime}::date, '1 day'::interval) AS series_date
+            GROUP BY
+                date_group -- 按指定的类型(day/week/month)对序列进行分组，确保唯一性
+        ),
+             UserLogsWithNext AS (
+                 -- 步骤 2: (不变) 计算每条日志的下一条日志时间
+                 SELECT
+                     creator,
+                     add_datetime,
+                     LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime
+                 FROM
+                     learning_log
+                 WHERE
+                     add_datetime >= #{startTime} AND add_datetime < #{endTime}
+             ),
+             DurationCalculated AS (
+                 -- 步骤 3: (不变) 计算每条日志的有效时长
+                 SELECT
+                     add_datetime,
+                     CASE
+                         WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+                             THEN 60
+                         ELSE 0
+                         END AS duration_seconds
+                 FROM
+                     UserLogsWithNext
+                 WHERE
+                     next_add_datetime IS NOT NULL
+             ),
+             AggregatedDurations AS (
+                 -- 步骤 4: 按指定类型(day/week/month)聚合实际的学习时长
+                 SELECT
+                     DATE_TRUNC(#{type}, add_datetime) AS date_group,
+                     SUM(duration_seconds) AS total_duration
+                 FROM
+                     DurationCalculated
+                 GROUP BY
+                     date_group
+             )
+        -- 步骤 5: 将完整日期序列与有数据的学习时长进行左连接
         SELECT
-            COALESCE(SUM(
-                             CASE
-                                 -- 核心逻辑不变: 使用 age() 和 EXTRACT() 计算秒数差
-                                 WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
-                                     THEN 60 -- 累加60秒
-                                 ELSE 0
-                                 END
-                     ), 0) AS total_reading_seconds
+            -- 根据统计类型格式化日期标签
+            CASE
+                WHEN #{type} = 'day' THEN TO_CHAR(ds.date_group, 'YYYY-MM-DD')
+                WHEN #{type} = 'month' THEN TO_CHAR(ds.date_group, 'YYYY-MM')
+                WHEN #{type} = 'week' THEN TO_CHAR(ds.date_group, 'YYYY-WW') -- 'WW' 代表一年中的第几周
+                END AS dateLabel,
+
+            -- 如果 ad.total_duration 为 NULL (即当天无记录), 则返回 0
+            COALESCE(ad.total_duration, 0) AS duration
         FROM
-            UserLogsWithNext;
-    </select>
-
-
+            DateSeries ds
+                LEFT JOIN
+            AggregatedDurations ad ON ds.date_group = ad.date_group
+        ORDER BY
+            ds.date_group ASC;
+        ]]>
+</select>
     <!-- 教材阅读排名（按时长统计，支持时间范围查询） -->
     <select id="getTextbookReadingRank" parameterType="map" resultType="map">
         SELECT
@@ -194,5 +232,42 @@
         WHERE tc.textbook_id = #{textbookId}
         GROUP BY tc.id, tc.catalog_name
         ORDER BY tc.id
+    </select>
+
+    <select id="countPublishedTextbookByType" resultType="com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto">
+        SELECT
+            tc.classification_name AS name,
+            COUNT(t.id) AS value
+        FROM
+            textbook t
+            LEFT JOIN
+            textbook_classification tc ON t.classification = tc.id
+        WHERE
+            t.release_status = '1'
+        GROUP BY
+            tc.classification_name
+        ORDER BY
+            value DESC
+    </select>
+
+    <select id="getTextbookUpdateApplications" resultType="com.upc.modular.datastatistics.controller.param.TextbookUpdateApplicationParam">
+        SELECT
+        t.id AS textbookId,
+        tr.id AS textbookReviewId,
+        t.textbook_name AS textbookName,
+        tr.add_datetime AS applicationSubmitTime,
+        tr.reason_for_review AS reasonForReview,
+        tr.submit_for_review_description AS submitForReviewDescription,
+        COALESCE(tch.name, s.name, su.username) AS applicantName
+        FROM
+        textbook_review tr
+        LEFT JOIN textbook t ON tr.textbook_id = t.id
+        LEFT JOIN teacher tch ON tr.creator = tch.user_id
+        LEFT JOIN student s ON tr.creator = s.user_id
+        LEFT JOIN sys_tbuser su ON tr.creator = su.id
+        <!-- 修改点②: 添加 WHERE 条件, 筛选 reason_for_review 为 2 的记录 -->
+        WHERE tr.reason_for_review = 2
+        ORDER BY
+        tr.add_datetime DESC
     </select>
 </mapper>

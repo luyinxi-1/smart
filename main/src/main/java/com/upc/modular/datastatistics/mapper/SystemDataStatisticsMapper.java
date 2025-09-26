@@ -1,6 +1,11 @@
 package com.upc.modular.datastatistics.mapper;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
+import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
 import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
+import com.upc.modular.datastatistics.controller.param.TextbookUpdateApplicationParam;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -23,11 +28,24 @@ List<VisitorCountDTO> getStudentVisitorCountByTime(
     // 今日总学习时长
     Long getTodayStudyDuration();
 
-    // 按时间统计总学习时长
-    Long getStudyDurationByTimeRange(
+    /**
+     * 按类型统计已发布的教材数量 (关联查询)
+     * @return List<TextbookTypeCountDto>
+     */
+    List<TextbookTypeCountDto> countPublishedTextbookByType();
+
+    /**
+     * 根据时间范围和统计类型获取学习趋势数据
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @param type 统计类型 ('day', 'week', 'month')
+     * @return 学习趋势数据列表
+     */
+    List<StudyTrendDTO> getStudyTrendByTimeRange(
             @Param("startTime") LocalDateTime startTime,
-            @Param("endTime") LocalDateTime endTime
-            );
+            @Param("endTime") LocalDateTime endTime,
+            @Param("type") String type
+    );
     /**
      * 教材阅读排名（按时长统计，支持时间范围查询）
      * @param params 可能包含 startTime 和 endTime
@@ -48,4 +66,13 @@ List<VisitorCountDTO> getStudentVisitorCountByTime(
      * @return List<Map> 章节掌握度列表
      */
     List<Map<String, Object>> getStudentChapterMastery(@Param("studentId") Long studentId, @Param("textbookId") Long textbookId);
+
+    /**
+     * 获取教材更新申请记录
+     */
+    /**
+     * 获取教材更新申请记录 (分页)
+     */
+// 修改点①: Mapper 方法的第一个参数必须是 Page 对象, 返回 IPage
+    IPage<TextbookUpdateApplicationParam> getTextbookUpdateApplications(Page<TextbookUpdateApplicationParam> page);
 }

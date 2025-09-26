@@ -96,11 +96,7 @@ public R<List<QuestionsBanksListVO>> getQuestionsByBankId(@ApiParam("题库ID") 
     @ApiOperation("点击教材题库后的页面")
     @PostMapping("/listWithStatus")
     public R<List<QuestionBankWithStatusVO>> getQuestionBanksWithStatus(@RequestBody QuestionBankWithStatusSearchParam param) {
-        Long userId = UserUtils.get().getId();
-        Long teacherId = teacherMapper.selectOne(
-                new LambdaQueryWrapper<Teacher>().eq(Teacher::getUserId, userId)
-        ).getId();
-        param.setTeacherId(teacherId);
+        // 移除不必要的teacherId获取逻辑，因为SQL查询中并未使用此参数
         List<QuestionBankWithStatusVO> result = teachingQuestionBankService.getQuestionBanksWithStatusForTextbook(param);
         return R.ok(result);
     }
