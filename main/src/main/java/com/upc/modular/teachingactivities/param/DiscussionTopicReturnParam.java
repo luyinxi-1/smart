@@ -34,4 +34,7 @@ public class DiscussionTopicReturnParam {
 
     @ApiModelProperty("讨论下的回复数")
     private Integer replyCount;
+
+    @ApiModelProperty("是否为当前用户创建")
+    private Boolean isCreatedByCurrentUser;
 }

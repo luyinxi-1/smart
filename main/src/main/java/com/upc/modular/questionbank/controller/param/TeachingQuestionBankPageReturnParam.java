@@ -47,4 +47,8 @@ public class TeachingQuestionBankPageReturnParam {
     @ApiModelProperty("创建人姓名")
     private String creatorName;
 
+    @ApiModelProperty("是否为当前用户创建")
+    private Boolean isCreatedByCurrentUser;
+
+
 }

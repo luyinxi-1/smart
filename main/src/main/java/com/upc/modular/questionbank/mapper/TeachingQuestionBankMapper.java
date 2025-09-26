@@ -20,7 +20,11 @@ import java.util.List;
 @Mapper
 public interface TeachingQuestionBankMapper extends BaseMapper<TeachingQuestionBank> {
 
-    Page<TeachingQuestionBankPageMidReturnParam> selectQuestionBank(Page<TeachingQuestionBankPageMidReturnParam> page, @Param("param") TeachingQuestionBankPageSearchParam param);
+    Page<TeachingQuestionBankPageMidReturnParam> selectQuestionBank(
+            Page<TeachingQuestionBankPageMidReturnParam> page,
+            @Param("param") TeachingQuestionBankPageSearchParam param,
+            @Param("userId") Long userId
+    );
 
     List<QuestionBankWithStatusVO> selectQuestionBanksWithPendingStatus(
 //            @Param("param") QuestionBankWithStatusSearchParam param
