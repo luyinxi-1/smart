@@ -7,12 +7,14 @@
         <id column="id" property="id" />
         <result column="content" property="content" />
         <result column="textbook_id" property="textbookId" />
+        <result column="note_name" property="noteName" />
         <result column="catalogue_id" property="catalogueId" />
         <result column="client_uuid" property="clientUuid" />
         <result column="creator" property="creator" />
         <result column="add_datetime" property="addDatetime" />
         <result column="operator" property="operator" />
         <result column="operation_datetime" property="operationDatetime" />
+        <result column="position_info" property="positionInfo" />
     </resultMap>
     <select id="getPage" resultType="com.upc.modular.textbook.param.LearningNotesPageReturnParam">
         SELECT

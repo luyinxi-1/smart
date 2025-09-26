@@ -38,7 +38,6 @@ public class TeachingMaterialsController {
 @ApiOperation(value = "添加教学素材")
 @PostMapping("/insert-materials")
 public R<String> insertMaterials(@RequestBody TeachingMaterialsSaveOrUpdateParam param) {
-    // --- Service方法签名也需要同步修改 ---
     String result = teachingMaterialsService.insertMaterials(param);
     if (result == null)
         return R.fail("修改失败");
