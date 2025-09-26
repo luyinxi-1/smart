@@ -79,10 +79,10 @@ public class TextbookCatalogController {
     }
     @ApiOperation(value = "查看教材指定目录")
     @PostMapping("/readTextbookCatalog")
-    public R<ReadTextbookReturnParam> readTextbookCatalog(
+    public R<List<ReadTextbookReturnParam>> readTextbookCatalog(
             @RequestParam("textbookId") Long textbookId,
             @RequestParam("catalogId") Long catalogId) {
-        ReadTextbookReturnParam result = textbookCatalogService.readTextbookCatalog(textbookId, catalogId);
+        List<ReadTextbookReturnParam> result = textbookCatalogService.readTextbookCatalog(textbookId, catalogId);
         return R.ok(result);
     }
 

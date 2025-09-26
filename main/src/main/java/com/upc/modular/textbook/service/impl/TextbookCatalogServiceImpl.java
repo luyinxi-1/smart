@@ -582,50 +582,90 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
     }
 
     @Override
-    public ReadTextbookReturnParam readTextbookCatalog(Long textbookId, Long catalogId) {
+    public List<ReadTextbookReturnParam> readTextbookCatalog(Long textbookId, Long catalogId) {
         if (textbookId == null || catalogId == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
 
-        // 查询指定的目录项
-        TextbookCatalog textbookCatalog = this.getOne(new LambdaQueryWrapper<TextbookCatalog>()
-                .eq(TextbookCatalog::getTextbookId, textbookId)
-                .eq(TextbookCatalog::getId, catalogId));
+        // 1. 收集指定目录及其所有子目录的ID
+        Set<Long> allCatalogIds = new HashSet<>();
+        allCatalogIds.add(catalogId);
+        collectAllChildCatalogIds(textbookId, catalogId, allCatalogIds);
 
-        if (textbookCatalog == null) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "未找到指定的目录项");
+        // 2. 查询指定目录及其所有子目录，按sort字段升序排序
+        LambdaQueryWrapper<TextbookCatalog> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TextbookCatalog::getTextbookId, textbookId);
+        queryWrapper.in(TextbookCatalog::getId, allCatalogIds);
+        queryWrapper.orderByAsc(TextbookCatalog::getSort);
+
+        List<TextbookCatalog> textbookCatalogList = this.list(queryWrapper);
+
+        if (textbookCatalogList == null || textbookCatalogList.isEmpty()) {
+            return new ArrayList<>();
         }
 
-        // 转换为返回参数
-        ReadTextbookReturnParam textbookReturnParam = new ReadTextbookReturnParam();
-        BeanUtils.copyProperties(textbookCatalog, textbookReturnParam);
-
-        // 处理目录名称（去除HTML标签）
-        String rawHtml = textbookCatalog.getCatalogName();
-        if (rawHtml != null) {
-            String plainText = Jsoup.parse(rawHtml).text();
-            textbookReturnParam.setCatalogNameWithoutHtml(plainText);
+        // 3. 转换为返回参数（仿照readTextbook方法）
+        List<ReadTextbookReturnParam> result = new ArrayList<>();
+        for (TextbookCatalog textbookCatalog : textbookCatalogList) {
+            ReadTextbookReturnParam textbookReturnParam = new ReadTextbookReturnParam();
+            BeanUtils.copyProperties(textbookCatalog, textbookReturnParam);
+            result.add(textbookReturnParam);
         }
 
-        // 获取批注内容
-        List<LearningAnnotationsAndLabels> learningAnnotationsAndLabels =
-                labelsService.selectLabelsByCatalogId(textbookId, catalogId);
+        // 4. 处理目录名称（去除HTML标签）（仿照readTextbook方法）
+        for (ReadTextbookReturnParam textbookCatalog : result) {
+            String rawHtml = textbookCatalog.getCatalogName();
+            if (rawHtml != null) {
+                String plainText = Jsoup.parse(rawHtml).text();
+                textbookCatalog.setCatalogNameWithoutHtml(plainText);
+            }
+        }
 
+        // 5. 获取需要应用的批注内容（仿照readTextbook方法）
+        List<LearningAnnotationsAndLabels> learningAnnotationsAndLabels = labelsService.selectLabels(textbookId);
         if (learningAnnotationsAndLabels != null && !learningAnnotationsAndLabels.isEmpty()) {
-            // 如果有批注，则更新内容
-            textbookReturnParam.setContent(learningAnnotationsAndLabels.get(0).getContent());
+            // 创建一个仅用于快速查找的Map
+            Map<Long, TextbookCatalog> lookupMap = result.stream()
+                    .collect(Collectors.toMap(TextbookCatalog::getId, catalog -> catalog));
+
+            // 遍历批注，通过lookupMap快速找到并更新原始列表中的对象
+            for (LearningAnnotationsAndLabels annotationsAndLabel : learningAnnotationsAndLabels) {
+                Long catalogIdToUpdate = annotationsAndLabel.getCatalogId();
+                TextbookCatalog catalogToUpdate = lookupMap.get(catalogIdToUpdate);
+
+                if (catalogToUpdate != null) {
+                    catalogToUpdate.setContent(annotationsAndLabel.getContent());
+                }
+            }
         }
 
-        // 返回用户姓名
+        // 6. 返回用户姓名（仿照readTextbook方法）
         Textbook textbook = textbookMapper.selectById(textbookId);
         if (textbook != null) {
             SysTbuser sysTbuser = sysUserMapper.selectById(textbook.getCreator());
             if (sysTbuser != null) {
-                textbookReturnParam.setCreatorName(sysTbuser.getNickname());
+                for (ReadTextbookReturnParam readTextbookReturnParam : result) {
+                    readTextbookReturnParam.setCreatorName(sysTbuser.getNickname());
+                }
             }
         }
 
-        return textbookReturnParam;
+        return result;
+    }
+    //递归手机指定目录所有子目录的ID
+    private void collectAllChildCatalogIds(Long textbookId, Long parentId, Set<Long> catalogIds) {
+        // 查询直接子目录
+        List<TextbookCatalog> childCatalogs = this.list(new LambdaQueryWrapper<TextbookCatalog>()
+                .eq(TextbookCatalog::getTextbookId, textbookId)
+                .eq(TextbookCatalog::getFatherCatalogId, parentId));
+
+        // 递归收集子目录的子目录
+        for (TextbookCatalog child : childCatalogs) {
+            Long childId = child.getId();
+            if (catalogIds.add(childId)) { // 避免重复添加
+                collectAllChildCatalogIds(textbookId, childId, catalogIds);
+            }
+        }
     }
 
 
