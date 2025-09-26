@@ -40,6 +40,8 @@ public class TeachingMaterialsSaveOrUpdateParam {
 
     @ApiModelProperty("图集使用")
     private List<String> fileListPaths; // 对于图集，存放所有图片的路径
+
+    @ApiModelProperty("文件大小")
     private Double fileSize;      // 文件大小(MB)
 
 }

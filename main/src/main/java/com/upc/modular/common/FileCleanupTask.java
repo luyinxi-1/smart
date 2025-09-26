@@ -31,17 +31,15 @@ public class FileCleanupTask {
     public FileCleanupTask(TeachingMaterialsMapper teachingMaterialsMapper) {
         this.teachingMaterialsMapper = teachingMaterialsMapper;
     }
-
     /**
-     * 定时任务，每天凌晨3点执行，用于清理无用的教学素材文件。
+     * 定时任务，每月1号凌晨3点执行，用于清理无用的教学素材文件。
      * cron表达式: 秒 分 时 日 月 周
-     * "0 0 3 * * ?" 表示每天的 3:00:00 执行
+     * "0 0 3 1 * ?" 表示在每个月的1号的凌晨3点0分0秒执行
      */
-    @Scheduled(cron = "0 0 3 * * ?") // <-- 启用这一行
+    @Scheduled(cron = "0 0 3 1 * ?") //
 //@Scheduled(cron = "0/30 * * * * ?") // 测试每30秒删除一次
     public void cleanupUnusedTeachingMaterials() {
         log.info("--- [定时任务] 开始执行无用教学素材文件清理 ---");
-
         Path rootDirectory = Paths.get("upload", "teaching_materials");
         if (!Files.exists(rootDirectory)) {
             log.warn("[定时任务] 清理终止：根目录 '{}' 不存在。", rootDirectory);
@@ -52,7 +50,6 @@ public class FileCleanupTask {
             Set<String> validFilePaths = getValidFilePathsFromDatabase();
             Set<String> validDirectoryPaths = getValidDirectoryPathsFromDatabase();
             log.info("[定时任务] 数据库中共有 {} 个有效的文件记录和 {} 个有效的目录记录。", validFilePaths.size(), validDirectoryPaths.size());
-
             // --- 步骤 A: 优先清理孤立的目录（如图集） ---
             cleanupOrphanDirectories(rootDirectory, validDirectoryPaths);
 
@@ -65,19 +62,16 @@ public class FileCleanupTask {
             log.error("--- [定时任务] 执行过程中发生严重错误 ---", e);
         }
     }
-
     /**
      * 扫描并清理孤立的目录。
      */
     private void cleanupOrphanDirectories(Path rootDirectory, Set<String> validDirectoryPaths) {
-        log.info("[定时任务] 开始扫描孤立目录...");
-        // 我们只关心 imageSet 目录，因为目前只有它以目录形式存储
+        //log.info("[定时任务] 开始扫描孤立目录...");
         Path imageSetBaseDir = rootDirectory.resolve("imageSet");
         if (!Files.exists(imageSetBaseDir) || !Files.isDirectory(imageSetBaseDir)) {
-            log.info("[定时任务] imageSet 目录不存在，跳过目录清理。");
+            //log.info("[定时任务] imageSet 目录不存在，跳过目录清理。");
             return;
         }
-
         try (Stream<Path> dateDirs = Files.list(imageSetBaseDir)) {
             dateDirs.filter(Files::isDirectory).forEach(dateDir -> {
                 try (Stream<Path> imageSetDirs = Files.list(dateDir)) {
@@ -86,18 +80,18 @@ public class FileCleanupTask {
                         if (!validDirectoryPaths.contains(normalizedDir)) {
                             try {
                                 FileSystemUtils.deleteRecursively(imageSetDir);
-                                log.info("[定时任务] 已删除孤立的图集目录: {}", normalizedDir);
+                                //log.info("[定时任务] 已删除孤立的图集目录: {}", normalizedDir);
                             } catch (IOException e) {
-                                log.error("[定时任务] 删除图集目录失败: {}", normalizedDir, e);
+                                //log.error("[定时任务] 删除图集目录失败: {}", normalizedDir, e);
                             }
                         }
                     });
                 } catch (IOException e) {
-                    log.error("[定时任务] 遍历图集子目录失败: {}", dateDir, e);
+                   // log.error("[定时任务] 遍历图集子目录失败: {}", dateDir, e);
                 }
             });
         } catch (IOException e) {
-            log.error("[定时任务] 遍历图集日期目录失败: {}", imageSetBaseDir, e);
+           // log.error("[定时任务] 遍历图集日期目录失败: {}", imageSetBaseDir, e);
         }
     }
 
