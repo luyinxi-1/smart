@@ -12,6 +12,9 @@ import java.time.LocalDateTime;
 @ApiModel(value = "教材更新申请信息参数")
 public class TextbookUpdateApplicationParam {
 
+    @ApiModelProperty("教材审核ID")
+    private Long textbookReviewId;
+
     @ApiModelProperty("教材ID")
     private Long textbookId;
 

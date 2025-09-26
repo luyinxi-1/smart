@@ -253,6 +253,7 @@
     <select id="getTextbookUpdateApplications" resultType="com.upc.modular.datastatistics.controller.param.TextbookUpdateApplicationParam">
         SELECT
         t.id AS textbookId,
+        tr.id AS textbookReviewId,
         t.textbook_name AS textbookName,
         tr.add_datetime AS applicationSubmitTime,
         tr.reason_for_review AS reasonForReview,
