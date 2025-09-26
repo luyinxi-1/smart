@@ -64,12 +64,14 @@ public R<String> insertMaterials(@RequestBody TeachingMaterialsSaveOrUpdateParam
         PageBaseReturnParam<TeachingMaterialsReturnVo> result = PageBaseReturnParam.ok(page);
         return R.page(result);
     }
-    @ApiOperation(value = "查看课本所绑定的教学素材")
-    @GetMapping("/{textbookId}/materials")
-    public R<List<TeachingMaterials>> getMaterialsForTextbook(@PathVariable Long textbookId) {
-        List<TeachingMaterials> materials = teachingMaterialsService.getMaterialsByTextbookId(textbookId);
-        return R.ok(materials);
-    }
+@ApiOperation(value = "查看课本所绑定的教学素材")
+@GetMapping("/{textbookId}/materials")
+public R<List<TeachingMaterials>> getMaterialsForTextbook(
+        @PathVariable Long textbookId,
+        @RequestParam(required = false) String materialName) {
+    List<TeachingMaterials> materials = teachingMaterialsService.getMaterialsByTextbookId(textbookId, materialName);
+    return R.ok(materials);
+}
     @ApiOperation(value = "查看教学素材(学生查看时用到textbookId)")
     @GetMapping("/get-teaching-materials")
     public R<TeachingMaterialsReturnVo> get(@RequestParam Long id, @RequestParam Long textbookId) {
