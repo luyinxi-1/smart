@@ -349,11 +349,16 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
     public TeachingMaterialsReturnVo getTeachingMaterials(Long id, Long textbookId) {
         if (id == null)
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，参数 id 不能为空");
-        TeachingMaterialsReturnVo materialsReturnVo = new TeachingMaterialsReturnVo();
+
         TeachingMaterials materials = this.getById(id);
         if (ObjectUtils.isEmpty(materials))
             throw new BusinessException(BusinessErrorEnum.FILE_NOT_EXIST);
-        if (!materials.getIsPublic() && !materials.getCreator().equals(UserUtils.get().getId()) && UserUtils.get().getUserType() != 0) {
+
+        Long currentUserId = UserUtils.get().getId();
+        Integer userType = UserUtils.get().getUserType();
+
+        // 权限检查逻辑
+        if (!materials.getIsPublic() && !materials.getCreator().equals(currentUserId) && userType != 0) {
             if (textbookId == null)
                 throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，没有权限查看此文件");
             List<MaterialsTextbookMapping> textbookMappingList = materialsTextbookMappingService.list(
@@ -363,12 +368,24 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             if (textbookMappingList.size() == 0)
                 throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，没有权限查看此文件");
         }
+
+        TeachingMaterialsReturnVo materialsReturnVo = new TeachingMaterialsReturnVo();
         BeanUtils.copyProperties(materials, materialsReturnVo);
-        // 新增代码：设置文件名
+
+        // 设置文件名
         materialsReturnVo.setFileName(materials.getFileName());
+
+        // 设置作者名
         Teacher teacher = teacherService.getById(materials.getCreator());
-        if (teacher != null && ObjectUtils.isNotEmpty(teacher.getName()))
+        if (teacher != null && ObjectUtils.isNotEmpty(teacher.getName())) {
             materialsReturnVo.setAuthorName(teacher.getName());
+        }
+
+        if (materials.getCreator() != null) {
+            materialsReturnVo.setIsCreator(materials.getCreator().equals(currentUserId));
+        } else {
+            materialsReturnVo.setIsCreator(false);
+        }
 
         return materialsReturnVo;
     }
