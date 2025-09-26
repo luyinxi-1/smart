@@ -32,7 +32,9 @@ public interface ITeachingMaterialsService extends IService<TeachingMaterials> {
     TeachingMaterialsReturnVo getTeachingMaterials(Long id, Long textbookId);
 
    List<TeachingMaterials> getMaterialsByTextbookId(Long textbookId, String materialName);
+
     String updateTeachingMaterialsById(TeachingMaterialsSaveOrUpdateParam param);
+
     void deleteTeachingMaterialsByIds(List<Long> ids);
 
     MaterialsTextbookNameMappingReturnParam getMaterialsTextbookMappingByMaterialsId(List<Long> ids);

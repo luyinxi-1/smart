@@ -416,10 +416,9 @@ public String updateTeachingMaterialsById(TeachingMaterialsSaveOrUpdateParam par
         oldData.setIsPublic(param.getIsPublic());
     }
 
-    // 5. 【核心修改】根据不同类型处理文件路径和文件名的更新
     String materialType = oldData.getType();
 
-    // 5.1 如果是图集类型 (逻辑不变)
+    // 5.1 如果是图集类型
     if ("imageSet".equals(materialType)) {
         if (ObjectUtils.isNotEmpty(param.getFileListPaths())) {
             List<String> fileListPaths = param.getFileListPaths();
@@ -439,13 +438,13 @@ public String updateTeachingMaterialsById(TeachingMaterialsSaveOrUpdateParam par
     }
     // 5.2 如果是链接类型
     else if ("link".equals(materialType)) {
-        // 更新链接的URL (存储在filePath字段)
+        // 更新链接的URL
         if (ObjectUtils.isNotEmpty(param.getFilePath())) {
             oldData.setFilePath(param.getFilePath());
         }
         oldData.setFileName(UUID.randomUUID().toString());
     }
-    // 5.3 如果是其他文件类型 (逻辑不变)
+    // 5.3 如果是其他文件类型
     else {
         if (ObjectUtils.isNotEmpty(param.getFilePath())) {
             String newFilePath = param.getFilePath();

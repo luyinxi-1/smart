@@ -62,19 +62,16 @@ public class FileCleanupTask {
             log.error("--- [定时任务] 执行过程中发生严重错误 ---", e);
         }
     }
-
     /**
      * 扫描并清理孤立的目录。
      */
     private void cleanupOrphanDirectories(Path rootDirectory, Set<String> validDirectoryPaths) {
-        log.info("[定时任务] 开始扫描孤立目录...");
-        // 我们只关心 imageSet 目录，因为目前只有它以目录形式存储
+        //log.info("[定时任务] 开始扫描孤立目录...");
         Path imageSetBaseDir = rootDirectory.resolve("imageSet");
         if (!Files.exists(imageSetBaseDir) || !Files.isDirectory(imageSetBaseDir)) {
-            log.info("[定时任务] imageSet 目录不存在，跳过目录清理。");
+            //log.info("[定时任务] imageSet 目录不存在，跳过目录清理。");
             return;
         }
-
         try (Stream<Path> dateDirs = Files.list(imageSetBaseDir)) {
             dateDirs.filter(Files::isDirectory).forEach(dateDir -> {
                 try (Stream<Path> imageSetDirs = Files.list(dateDir)) {
@@ -83,18 +80,18 @@ public class FileCleanupTask {
                         if (!validDirectoryPaths.contains(normalizedDir)) {
                             try {
                                 FileSystemUtils.deleteRecursively(imageSetDir);
-                                log.info("[定时任务] 已删除孤立的图集目录: {}", normalizedDir);
+                                //log.info("[定时任务] 已删除孤立的图集目录: {}", normalizedDir);
                             } catch (IOException e) {
-                                log.error("[定时任务] 删除图集目录失败: {}", normalizedDir, e);
+                                //log.error("[定时任务] 删除图集目录失败: {}", normalizedDir, e);
                             }
                         }
                     });
                 } catch (IOException e) {
-                    log.error("[定时任务] 遍历图集子目录失败: {}", dateDir, e);
+                   // log.error("[定时任务] 遍历图集子目录失败: {}", dateDir, e);
                 }
             });
         } catch (IOException e) {
-            log.error("[定时任务] 遍历图集日期目录失败: {}", imageSetBaseDir, e);
+           // log.error("[定时任务] 遍历图集日期目录失败: {}", imageSetBaseDir, e);
         }
     }
 

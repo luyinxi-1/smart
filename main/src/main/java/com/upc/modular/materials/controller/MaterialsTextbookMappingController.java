@@ -6,6 +6,7 @@ import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.materials.controller.param.dto.MaterialsTextbookMappingPageSearchParam;
 import com.upc.modular.materials.controller.param.vo.MaterialsTextbookMappingReturnParam;
+import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.service.IMaterialsTextbookMappingService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -38,13 +39,20 @@ public class MaterialsTextbookMappingController {
         PageBaseReturnParam<MaterialsTextbookMappingReturnParam> result = PageBaseReturnParam.ok(page);
         return R.page(result);
     }
-
     @ApiOperation(value = "添加素材到教材")
     @PostMapping("/insert-mapping")
     public R insertMapping(Long textbookId, Long materialId, String chapterName, Integer chapterId) {
-        if (materialsTextbookMappingService.insertMapping(textbookId, materialId, chapterName, chapterId))
-            return R.ok("添加成功");
+        Long newId =materialsTextbookMappingService.insertMapping(textbookId, materialId, chapterName, chapterId);
+        if (newId != null)
+            return R.ok(newId);
         return R.fail("添加失败");
+    }
+
+    @ApiOperation(value = "教材素材绑定ID查询教学素材详细信息")
+    @PostMapping("/get-materials-by-mappingid")
+    public R<TeachingMaterialsReturnVo> getMaterialsByMappingId(Long id) {
+        TeachingMaterialsReturnVo result = materialsTextbookMappingService.getMaterialsByMappingId(id);
+        return R.ok(result);
     }
 
     @ApiOperation(value = "删除教材素材绑定")
