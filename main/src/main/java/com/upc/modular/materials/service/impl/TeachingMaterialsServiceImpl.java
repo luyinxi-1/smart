@@ -453,53 +453,26 @@ public String updateTeachingMaterialsById(TeachingMaterialsSaveOrUpdateParam par
         return null;
     }
 }
-/*    @Override
-    public List<TeachingMaterials> getMaterialsByTextbookId(Long textbookId) {
-
-        // 1. 根据 textbookId 查出所有的映射关系
-        List<MaterialsTextbookMapping> mappings = materialsTextbookMappingService.list(
-                new LambdaQueryWrapper<MaterialsTextbookMapping>().eq(MaterialsTextbookMapping::getTextbookId, textbookId)
-        );
-        // 2. 如果没有找到任何映射关系，直接返回一个空列表，避免后续操作出错
-        if (mappings == null || mappings.isEmpty()) {
-            return Collections.emptyList();
-        }
-        // 3. 从映射关系列表中提取出所有 material_id
-        List<Long> materialIds = mappings.stream()
-                .map(MaterialsTextbookMapping::getMaterialId)
-                .collect(Collectors.toList());
-
-        // 4. 使用 material_id 列表一次性查询出所有的教学素材信息
-        return teachingMaterialsMapper.selectBatchIds(materialIds);
-    }*/
     @Override
     public List<TeachingMaterials> getMaterialsByTextbookId(Long textbookId, String materialName) {
-        // 1. 根据 textbookId 查出所有的映射关系 (逻辑不变)
         List<MaterialsTextbookMapping> mappings = materialsTextbookMappingService.list(
                 new LambdaQueryWrapper<MaterialsTextbookMapping>().eq(MaterialsTextbookMapping::getTextbookId, textbookId)
         );
 
-        // 2. 如果没有找到任何映射关系，直接返回一个空列表 (逻辑不变)
         if (mappings == null || mappings.isEmpty()) {
             return Collections.emptyList();
         }
-        // 3. 从映射关系列表中提取出所有 material_id (逻辑不变)
         List<Long> materialIds = mappings.stream()
                 .map(MaterialsTextbookMapping::getMaterialId)
                 .collect(Collectors.toList());
-        // 增加一个判断：如果 materialIds 为空，也没有必要继续查询了
         if (materialIds.isEmpty()) {
             return Collections.emptyList();
         }
-        // 4. 【核心修改】根据 material_id 列表和 materialName (如果存在) 动态查询教学素材
         LambdaQueryWrapper<TeachingMaterials> queryWrapper = new LambdaQueryWrapper<>();
-        // 条件一：素材ID必须在 materialIds 列表中
         queryWrapper.in(TeachingMaterials::getId, materialIds);
         if (StringUtils.isNotBlank(materialName)) {
-            // 使用 LIKE 进行模糊匹配，例如 '%keyword%'
             queryWrapper.like(TeachingMaterials::getName, materialName);
         }
-        // 使用 selectList 并传入构造好的 wrapper 来执行查询
         return teachingMaterialsMapper.selectList(queryWrapper);
     }
     @Override
