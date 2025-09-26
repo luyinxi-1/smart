@@ -32,11 +32,11 @@ public class FileCleanupTask {
         this.teachingMaterialsMapper = teachingMaterialsMapper;
     }
     /**
-     * 定时任务，每天凌晨3点执行，用于清理无用的教学素材文件。
+     * 定时任务，每月1号凌晨3点执行，用于清理无用的教学素材文件。
      * cron表达式: 秒 分 时 日 月 周
-     * "0 0 3 * * ?" 表示每天的 3:00:00 执行
+     * "0 0 3 1 * ?" 表示在每个月的1号的凌晨3点0分0秒执行
      */
-    @Scheduled(cron = "0 0 3 * * ?") // <-- 启用这一行
+    @Scheduled(cron = "0 0 3 1 * ?") //
 //@Scheduled(cron = "0/30 * * * * ?") // 测试每30秒删除一次
     public void cleanupUnusedTeachingMaterials() {
         log.info("--- [定时任务] 开始执行无用教学素材文件清理 ---");
