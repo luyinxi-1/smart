@@ -298,49 +298,50 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
     @Override
     public Page<TeachingMaterialsReturnVo> getPage(TeachingMaterialsPageSearchDto param) {
 
-        MyLambdaQueryWrapper<TeachingMaterials> queryWrapper = new MyLambdaQueryWrapper<>();
-
-        // 用户类型（0管理员、1学生、2教师）
+        // 从上下文中获取当前登录用户的信息
         Integer userType = UserUtils.get().getUserType();
-        if (userType == 0) {
-            queryWrapper.eq(TeachingMaterials::getCreator, param.getAuthorId())
-                    .like(TeachingMaterials::getName, param.getName())
-                    .eq(TeachingMaterials::getType, param.getType())
-                    .eq(TeachingMaterials::getIsPublic, param.getIsPublic());
-        } else if (userType == 1)
+        Long currentUserId = UserUtils.get().getId();
+        // 角色权限判断：学生无权限
+        if (userType == 1) {
             throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
-        else if (userType == 2) {
-            queryWrapper.like(TeachingMaterials::getName, param.getName())
-                    .eq(TeachingMaterials::getType, param.getType());
-            if (ObjectUtils.isNotEmpty(param.getIsPublic())) {
-                if (param.getIsPublic())
-                    queryWrapper.eq(TeachingMaterials::getIsPublic, param.getIsPublic());
-                else queryWrapper.eq(TeachingMaterials::getCreator, UserUtils.get().getId());
-            }
         }
-
+        // 对于管理员(0)和教师(2)，，都能查询全部素材
+        MyLambdaQueryWrapper<TeachingMaterials> queryWrapper = new MyLambdaQueryWrapper<>();
+        // 将所有查询参数作为可选的筛选条件
+        queryWrapper
+                // 当 param.getAuthorId() 不为空时，增加 `creator = ?` 条件
+                .eq(ObjectUtils.isNotEmpty(param.getAuthorId()), TeachingMaterials::getCreator, param.getAuthorId())
+                // 当 param.getName() 不为空时，增加 `name LIKE ?` 条件
+                .like(ObjectUtils.isNotEmpty(param.getName()), TeachingMaterials::getName, param.getName())
+                // 当 param.getType() 不为空时，增加 `type = ?` 条件
+                .eq(ObjectUtils.isNotEmpty(param.getType()), TeachingMaterials::getType, param.getType());
         List<TeachingMaterials> materialsList = this.list(queryWrapper);
-
-        List<Long> authorIdList = materialsList.stream().map(TeachingMaterials::getCreator).collect(Collectors.toList());
+        List<Long> authorIdList = materialsList.stream().map(TeachingMaterials::getCreator).distinct().collect(Collectors.toList());
         Map<Long, String> teacherIdNameMap;
-        if (ObjectUtils.isNotEmpty(authorIdList))
+        if (ObjectUtils.isNotEmpty(authorIdList)) {
             teacherIdNameMap = teacherService.list(
                             new LambdaQueryWrapper<Teacher>().in(Teacher::getId, authorIdList))
                     .stream().collect(
                             Collectors.toMap(Teacher::getId, Teacher::getName));
-        else teacherIdNameMap = new HashMap<>();
+        } else {
+            teacherIdNameMap = new HashMap<>();
+        }
         List<TeachingMaterialsReturnVo> pageRecordsVO = materialsList.stream()
                 .map(materials -> {
                     TeachingMaterialsReturnVo temp = new TeachingMaterialsReturnVo();
                     BeanUtils.copyProperties(materials, temp);
                     temp.setAuthorName(teacherIdNameMap.get(materials.getCreator()));
+                    // 判断是否为自己创建的逻辑
+                    if (materials.getCreator() != null) {
+                        temp.setIsCreator(materials.getCreator().equals(currentUserId));
+                    } else {
+                        temp.setIsCreator(false);
+                    }
                     return temp;
                 })
                 .sorted(Comparator.comparing(TeachingMaterialsReturnVo::getAddDatetime).reversed())
                 .collect(Collectors.toList());
-
         Page<TeachingMaterialsReturnVo> resultPage = createPage(pageRecordsVO, param.getCurrent(), param.getSize());
-
         return resultPage;
     }
 

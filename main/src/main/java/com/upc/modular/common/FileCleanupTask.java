@@ -31,7 +31,6 @@ public class FileCleanupTask {
     public FileCleanupTask(TeachingMaterialsMapper teachingMaterialsMapper) {
         this.teachingMaterialsMapper = teachingMaterialsMapper;
     }
-
     /**
      * 定时任务，每天凌晨3点执行，用于清理无用的教学素材文件。
      * cron表达式: 秒 分 时 日 月 周
@@ -41,7 +40,6 @@ public class FileCleanupTask {
 //@Scheduled(cron = "0/30 * * * * ?") // 测试每30秒删除一次
     public void cleanupUnusedTeachingMaterials() {
         log.info("--- [定时任务] 开始执行无用教学素材文件清理 ---");
-
         Path rootDirectory = Paths.get("upload", "teaching_materials");
         if (!Files.exists(rootDirectory)) {
             log.warn("[定时任务] 清理终止：根目录 '{}' 不存在。", rootDirectory);
@@ -52,7 +50,6 @@ public class FileCleanupTask {
             Set<String> validFilePaths = getValidFilePathsFromDatabase();
             Set<String> validDirectoryPaths = getValidDirectoryPathsFromDatabase();
             log.info("[定时任务] 数据库中共有 {} 个有效的文件记录和 {} 个有效的目录记录。", validFilePaths.size(), validDirectoryPaths.size());
-
             // --- 步骤 A: 优先清理孤立的目录（如图集） ---
             cleanupOrphanDirectories(rootDirectory, validDirectoryPaths);
 

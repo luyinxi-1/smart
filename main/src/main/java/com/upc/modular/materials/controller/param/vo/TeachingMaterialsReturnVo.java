@@ -41,4 +41,10 @@ public class TeachingMaterialsReturnVo {
 
     @ApiModelProperty("文件路径")
     private String filePath;
+    /**
+     * 是否为当前用户创建
+     * true: 是, false: 否
+     */
+    @ApiModelProperty("是否为本人上传")
+    private Boolean isCreator;
 }
