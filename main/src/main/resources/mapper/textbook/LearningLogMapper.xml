@@ -52,5 +52,30 @@
             LIMIT COALESCE(#{limit}, 10)
     </select>
 
+    <!-- 获取教材总章节数 -->
+    <select id="getTextbookTotalChapters" resultType="map">
+        SELECT
+        textbook_id as textbookId,
+        COUNT(*) as totalChapters
+        FROM textbook_catalog
+        WHERE textbook_id IN
+        <foreach collection="textbookIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        GROUP BY textbook_id
+    </select>
 
+    <!-- 获取学生已读章节数 -->
+    <select id="getStudentReadChapters" resultType="map">
+        SELECT
+        textbook_id as textbookId,
+        COUNT(DISTINCT catalogue_id) as readChapters
+        FROM learning_log
+        WHERE creator = #{userId}
+        AND textbook_id IN
+        <foreach collection="textbookIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        GROUP BY textbook_id
+    </select>
 </mapper>
