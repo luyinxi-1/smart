@@ -40,7 +40,7 @@ public class LearningNotes implements Serializable {
     private Long textbookId;
 
     @ApiModelProperty("笔记名称")
-    @TableField("note_id")
+    @TableField("note_name")
     private String noteName;
 
     @ApiModelProperty("关联的目录ID")

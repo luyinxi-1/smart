@@ -7,6 +7,7 @@
         <id column="id" property="id" />
         <result column="content" property="content" />
         <result column="textbook_id" property="textbookId" />
+        <result column="note_name" property="noteName" />
         <result column="catalogue_id" property="catalogueId" />
         <result column="client_uuid" property="clientUuid" />
         <result column="creator" property="creator" />
