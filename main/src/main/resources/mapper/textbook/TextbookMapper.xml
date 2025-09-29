@@ -104,15 +104,7 @@
             </if>
         </where>
         ORDER BY
-        t.add_datetime
-        <choose>
-            <when test="param.isAsc == 1">
-                ASC
-            </when>
-            <otherwise>
-                DESC
-            </otherwise>
-        </choose>
+        t.operation_datetime DESC
     </select>
     <select id="getOneTextbookDetails" resultType="com.upc.modular.textbook.param.TextbookPageReturnParam">
         SELECT
