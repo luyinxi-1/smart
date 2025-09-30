@@ -30,6 +30,21 @@ public interface ITeachingQuestionBankService extends IService<TeachingQuestionB
 
     void updateQuestionBank(TeachingQuestionBank teachingQuestionbank);
 
+    /**
+     * 批量更新题库信息
+     *
+     * @param teachingQuestionBanks 待更新的题库实体列表
+     */
+    //void updateQuestionBankBatch(List<TeachingQuestionBank> teachingQuestionBanks);
+
+    /**
+     * 批量更新题库信息
+     *
+     * @param teachingQuestionBanks 待更新的题库列表
+     * @return 成功更新的题库ID列表
+     */
+    List<Long> updateQuestionBankBatch(List<TeachingQuestionBank> teachingQuestionBanks);
+
     List<QuestionBankWithStatusVO> getQuestionBanksWithStatusForTextbook(QuestionBankWithStatusSearchParam param);
 
     Page<GradingSituationReturnVO> getGradingSituationPage(GradingSituationSearchParam param);

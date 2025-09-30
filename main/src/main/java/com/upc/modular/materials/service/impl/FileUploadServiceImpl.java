@@ -25,7 +25,6 @@ public class FileUploadServiceImpl implements IFileUploadService {
 
     @Override
     public String uploadMaterialFile(MultipartFile file, String type) {
-        // 1. 输入参数校验
         if (file == null || file.isEmpty()) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "上传文件不能为空");
         }
@@ -43,8 +42,7 @@ public class FileUploadServiceImpl implements IFileUploadService {
         // 3. 生成唯一文件名
         String fileName = FileManageUtil.createFileName(file);
 
-        // 4. 执行文件上传（假设 FileManageUtil.uploadFile 是您工具类中的方法）
-        // public static String uploadFile(MultipartFile file, Path folderPath, String fileName) { ... }
+        // 4. 执行文件上传（）
         String filePath = FileManageUtil.uploadFile(file, folderPath, fileName);
 
         // 5. 结果处理和返回

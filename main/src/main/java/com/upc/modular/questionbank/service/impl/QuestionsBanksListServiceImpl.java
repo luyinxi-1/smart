@@ -42,7 +42,7 @@ public class QuestionsBanksListServiceImpl extends ServiceImpl<QuestionsBanksLis
     QuestionsBanksListMapper questionsBanksListMapper;
     @Autowired
     private SysUserMapper sysUserMapper;
-    @Override
+/*    @Override
     public Void inserQuestionBankList(QuestionsBanksList param) {
         Long questionId = param.getQuestionId();
         Long bankId = param.getBankId();
@@ -64,7 +64,7 @@ public class QuestionsBanksListServiceImpl extends ServiceImpl<QuestionsBanksLis
 
         this.save(param);
         return null;
-    }
+    }*/
    @Override
    public void batchInsertQuestionBankList(QuestionsBanksListBatchParam param) {
        Long bankId = param.getBankId();
@@ -138,7 +138,7 @@ public class QuestionsBanksListServiceImpl extends ServiceImpl<QuestionsBanksLis
 
     }
 
-    @Override
+/*    @Override
     public void updateQuestionsBanksList(QuestionsBanksList param) {
         // 1. 校验要更新的记录本身是否存在
         Long questionBankListId = param.getId();
@@ -180,64 +180,8 @@ public class QuestionsBanksListServiceImpl extends ServiceImpl<QuestionsBanksLis
         // 4. 所有校验通过，执行更新操作
         // updateById 会根据 teachingQuestionbank 对象的ID去更新其他非空字段
         this.updateById(param);
-    }
-//    @Override
-//    public void batchUpdateQuestionsBanksList(QuestionsBanksListBatchParam param) {
-//        Long bankId = param.getBankId();
-//        Long id = param.getId();
-//
-//        // 检查关联记录是否存在
-//        if (id != null) {
-//            QuestionsBanksList exists = this.getById(id);
-//            if (exists == null) {
-//                throw new RuntimeException("ID为 " + id + " 的题目题库关联记录不存在！");
-//            }
-//        }
-//
-//        // 检查题库是否存在
-//        if (bankId != null) {
-//            LambdaQueryWrapper<TeachingQuestionBank> queryWrapper = new LambdaQueryWrapper<>();
-//            queryWrapper.eq(TeachingQuestionBank::getId, bankId);
-//            boolean isTeachingQuestionBankExists = teachingQuestionBankMapper.exists(queryWrapper);
-//            if (!isTeachingQuestionBankExists) {
-//                throw new RuntimeException("ID为 " + bankId + " 的题库不存在！");
-//            }
-//        }
-//
-//        // 批量处理题目列表
-//        List<QuestionsBanksListBatchParam.QuestionScoreParam> questionList = param.getList();
-//        if (questionList != null && !questionList.isEmpty()) {
-//            List<QuestionsBanksList> questionsBanksLists = questionList.stream().map(questionScoreParam -> {
-//                // 检查题目是否存在
-//                LambdaQueryWrapper<TeachingQuestion> questionQueryWrapper = new LambdaQueryWrapper<>();
-//                questionQueryWrapper.eq(TeachingQuestion::getId, questionScoreParam.getQuestionId());
-//                boolean isTeachingQuestionExists = teachingQuestionMapper.exists(questionQueryWrapper);
-//                if (!isTeachingQuestionExists) {
-//                    throw new RuntimeException("ID为 " + questionScoreParam.getQuestionId() + " 的题目不存在！");
-//                }
-//
-//                // 检查要更新的关联记录是否存在
-//                if (questionScoreParam.getId() != null) {
-//                    QuestionsBanksList exists = this.getById(questionScoreParam.getId());
-//                    if (exists == null) {
-//                        throw new RuntimeException("ID为 " + questionScoreParam.getId() + " 的题目题库关联记录不存在！");
-//                    }
-//                }
-//
-//                QuestionsBanksList questionsBanksList = new QuestionsBanksList();
-//                // 正确设置关联记录的ID
-//                questionsBanksList.setId(questionScoreParam.getId());
-//                questionsBanksList.setQuestionId(questionScoreParam.getQuestionId());
-//                questionsBanksList.setBankId(bankId);
-//                questionsBanksList.setScore(questionScoreParam.getScore());
-//                questionsBanksList.setSequence(questionScoreParam.getSequence());
-//                return questionsBanksList;
-//            }).collect(Collectors.toList());
-//
-//            // 批量更新
-//            this.updateBatchById(questionsBanksLists);
-//        }
-//    }
+    }*/
+
 
     @Override
     @Transactional(rollbackFor = Exception.class)

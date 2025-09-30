@@ -36,12 +36,6 @@ public class QuestionsBanksListController {
     @Autowired
     IQuestionsBanksListService questionsBanksListService;
 
-/*    @ApiOperation("新增题目题库关联")
-    @PostMapping("/insertQuestionsBanksList")
-    public R insertQuestionsBanksList(@RequestBody QuestionsBanksList param){
-        questionsBanksListService.inserQuestionBankList(param);
-        return R.commonReturn(200, "新增成功", "");
-    }*/
 @ApiOperation("新增题目题库关联")
 @PostMapping("/insertQuestionsBanksList")
 public R insertQuestionsBanksList(@RequestBody QuestionsBanksListBatchParam param){
@@ -56,12 +50,6 @@ public R insertQuestionsBanksList(@RequestBody QuestionsBanksListBatchParam para
         return R.commonReturn(200, "删除成功", "");
     }
 
-/*    @ApiOperation("更新题目题库关联信息")
-    @PostMapping("updateQuestionsBanksList")
-    public R updateQuestionsBanksList(@RequestBody QuestionsBanksList param){
-        questionsBanksListService.updateQuestionsBanksList(param);
-        return R.commonReturn(200, "修改成功", "");
-    }*/
 @ApiOperation("更新题目题库关联信息")
 @PostMapping("updateQuestionsBanksList")
 public R updateQuestionsBanksList(@RequestBody QuestionsBanksListBatchParam param){

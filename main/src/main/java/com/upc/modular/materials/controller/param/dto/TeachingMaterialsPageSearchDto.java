@@ -16,6 +16,9 @@ public class TeachingMaterialsPageSearchDto extends PageBaseSearchParam {
     @ApiModelProperty("作者id(仅管理员查询有效)")
     private Long authorId;
 
+    @ApiModelProperty(value = "是否只筛选未绑定的素材")
+    private Boolean unboundOnly;
+
     @ApiModelProperty("模糊查询参数 教学素材名称")
     private String name;
 

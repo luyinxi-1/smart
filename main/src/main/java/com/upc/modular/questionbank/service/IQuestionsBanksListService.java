@@ -17,7 +17,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IQuestionsBanksListService extends IService<QuestionsBanksList> {
 
-    Void inserQuestionBankList(QuestionsBanksList param);
+   //Void inserQuestionBankList(QuestionsBanksList param);
     /**
      * 批量新增题目题库关联
      * @param param 批量关联参数
@@ -30,6 +30,6 @@ public interface IQuestionsBanksListService extends IService<QuestionsBanksList>
      * @param param 批量更新参数
      */
     void batchUpdateQuestionsBanksList(QuestionsBanksListBatchParam param);
-    void updateQuestionsBanksList(QuestionsBanksList param);
+    //void updateQuestionsBanksList(QuestionsBanksList param);
     Page<QuestionsBanksList> selectQuestionPageList(QuestionsBanksListPageSearchParam param);
 }

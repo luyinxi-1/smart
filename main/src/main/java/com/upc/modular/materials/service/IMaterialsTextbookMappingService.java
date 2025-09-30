@@ -6,6 +6,9 @@ import com.upc.modular.materials.controller.param.vo.MaterialsTextbookMappingRet
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.entity.MaterialsTextbookMapping;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.materials.controller.param.dto.MaterialsTextbookMappingDto;
+
+import java.util.List;
 
 /**
  * <p>
@@ -17,8 +20,14 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IMaterialsTextbookMappingService extends IService<MaterialsTextbookMapping> {
 
-    Long insertMapping(Long textbookId, Long materialId, String chapterName, Integer chapterId);
-
+    Long insertMapping(Long textbookId, Long materialId, String chapterName, String chapterId);
+    /**
+     * 批量添加多条独立的教材与素材的映射关系
+     *
+     * @param mappings 包含多个映射关系信息的DTO列表
+     * @return 新增映射记录的ID列表
+     */
+    List<Long> insertMappingBatch(List<MaterialsTextbookMappingDto> mappings);
     Page<MaterialsTextbookMappingReturnParam> getPage(MaterialsTextbookMappingPageSearchParam param);
     TeachingMaterialsReturnVo getMaterialsByMappingId(Long id);
 }

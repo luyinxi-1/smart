@@ -4,6 +4,8 @@ package com.upc.modular.materials.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
+import com.upc.exception.BusinessException;
+import com.upc.modular.materials.controller.param.dto.MaterialsTextbookMappingDto;
 import com.upc.modular.materials.controller.param.dto.MaterialsTextbookMappingPageSearchParam;
 import com.upc.modular.materials.controller.param.vo.MaterialsTextbookMappingReturnParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
@@ -15,6 +17,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import javax.validation.Valid;
+import java.util.List;
 
 /**
  * <p>
@@ -41,13 +46,23 @@ public class MaterialsTextbookMappingController {
     }
     @ApiOperation(value = "添加素材到教材")
     @PostMapping("/insert-mapping")
-    public R insertMapping(Long textbookId, Long materialId, String chapterName, Integer chapterId) {
+    public R insertMapping(Long textbookId, Long materialId, String chapterName, String chapterId) {
         Long newId =materialsTextbookMappingService.insertMapping(textbookId, materialId, chapterName, chapterId);
         if (newId != null)
             return R.ok(newId);
         return R.fail("添加失败");
     }
 
+    @ApiOperation(value = "批量添加教材与素材的关联")
+    @PostMapping("/insert-mapping-batch")
+    public R insertMappingBatch(@Valid @RequestBody List<MaterialsTextbookMappingDto> mappings) {
+        try {
+            List<Long> newIds = materialsTextbookMappingService.insertMappingBatch(mappings);
+            return R.commonReturn(200, "批量添加成功", newIds);
+        } catch (BusinessException e) {
+            return R.fail(e.getMessage());
+        }
+    }
     @ApiOperation(value = "教材素材绑定ID查询教学素材详细信息")
     @PostMapping("/get-materials-by-mappingid")
     public R<TeachingMaterialsReturnVo> getMaterialsByMappingId(Long id) {

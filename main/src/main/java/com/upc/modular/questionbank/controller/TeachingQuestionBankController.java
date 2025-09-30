@@ -63,12 +63,21 @@ public class TeachingQuestionBankController {
         teachingQuestionBankService.updateQuestionBank(teachingQuestionbank);
         return R.commonReturn(200, "修改成功", "");
     }
-/*@ApiOperation("根据题库ID查询题目信息")
-@GetMapping("/questions/{bankId}")
-public R<List<QuestionsBanksListVO>> getQuestionsByBankId(@ApiParam("题库ID") @PathVariable Long bankId) {
-    List<QuestionsBanksListVO> questions = teachingQuestionBankService.getQuestionsWithTypeNameByBankId(bankId);
-    return R.ok(questions);
-}*/
+
+/*    @ApiOperation("批量更新题库信息")
+    @PostMapping("/updateQuestionBankBatch")
+    public R updateQuestionBankBatch(@RequestBody List<TeachingQuestionBank> teachingQuestionBanks) {
+        teachingQuestionBankService.updateQuestionBankBatch(teachingQuestionBanks);
+        return R.commonReturn(200, "批量修改成功", "");
+    }*/
+@ApiOperation("批量更新题库信息")
+@PostMapping("/updateQuestionBankBatch")
+public R<List<Long>> updateQuestionBankBatch(@RequestBody List<TeachingQuestionBank> teachingQuestionBanks) {
+    List<Long> updatedIds = teachingQuestionBankService.updateQuestionBankBatch(teachingQuestionBanks);
+    // 使用 R.ok() 或类似的成功方法来包装返回的数据
+    return R.commonReturn(200, "批量修改成功", updatedIds);
+}
+
     @ApiOperation("根据题库ID查询题目信息")
     @GetMapping("/questions/{bankId}")
     public R<List<QuestionsBanksListVO>> getQuestionsByBankId(@ApiParam("题库ID") @PathVariable Long bankId) {
@@ -123,13 +132,6 @@ public R<List<QuestionsBanksListVO>> getQuestionsByBankId(@ApiParam("题库ID") 
         return R.commonReturn(200, "评分成功", null);
     }
 
-//    @ApiOperation("点击教材题库-点击批阅-题库批阅-分页查询待批改题目列表")
-//    @PostMapping("/getPendingReviewPage")
-//    public R<PageBaseReturnParam<PendingReviewReturnVO>> getPendingReviewPage(@RequestBody PendingReviewSearchParam param) {
-//        Page<PendingReviewReturnVO> pageResult = teachingQuestionBankService.selectPendingReviewPage(param);
-//        PageBaseReturnParam<PendingReviewReturnVO> p = PageBaseReturnParam.ok(pageResult);
-//        return R.page(p);
-//    }
 
     @ApiOperation("点击教材题库-点击批阅-题库批阅-分页查询待批改题目列表")
     @PostMapping("/getPendingReviewPage")

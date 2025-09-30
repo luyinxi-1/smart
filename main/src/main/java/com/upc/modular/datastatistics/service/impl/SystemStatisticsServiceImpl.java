@@ -81,9 +81,9 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
     private IStudentService studentService;
     @Autowired
     private IDiscussionTopicReplyService discussionTopicReplyService;
-
     @Autowired
     private SystemDataStatisticsMapper systemDataStatisticsMapper;
+
     // 添加SysLogMapper的依赖
     @Autowired
     private com.upc.modular.auth.mapper.SysLogMapper userLoginLogMapper;
@@ -172,29 +172,31 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
     @Override
     public Map<String, Long> getAllCounts() {
         Map<String, Long> countsMap = new LinkedHashMap<>();
-
-        countsMap.put("StudentCount", studentService.count());
-        countsMap.put("TeachingideologicalMaterialCount", ideologicalMaterialService.count());
+        countsMap.put("TeacherCount", teacherService.count());//教师数量
+        countsMap.put("StudentCount", studentService.count());  //学生数量
+        countsMap.put("GroupCount", groupService.count());//班级数量
+        countsMap.put("TeachingideologicalMaterialCount", ideologicalMaterialService.count());//教学思政数量
 
         // 修改 DiscussionTopicCount，只统计 identity_type 为 1 的教学活动数量
         Long discussionTopicCount = discussionTopicService.lambdaQuery()
                 .eq(DiscussionTopic::getIdentityType, 1)
                 .count();
-        countsMap.put("DiscussionTopicCount", discussionTopicCount);
+        countsMap.put("DiscussionTopicCount", discussionTopicCount); //教学活动数量
+        countsMap.put("DiscussionTopicReplyCount", discussionTopicReplyService.count());//交流反馈数量
 
-        countsMap.put("TeachingQuestionBankCount", teachingQuestionbankService.count());
-        countsMap.put("CourseCount", courseService.count());
+        countsMap.put("TeachingQuestionBankCount", teachingQuestionbankService.count());//题库数量
+        countsMap.put("CourseCount", courseService.count()); //在授课程数量
+        countsMap.put("TeachingMaterialsCount", teachingMaterialsService.count());  //教学素材数量
 
         // 修改 TextbookCount，只统计 release_status 为 '1' 的教材数量
         Long textbookCount = textbookService.lambdaQuery()
                 .eq(Textbook::getReleaseStatus, "1")
                 .count();
-        countsMap.put("TextbookCount", textbookCount);
-
+        countsMap.put("TextbookCount", textbookCount);//智慧教材数量
+        countsMap.put("TodayStudyTime", systemDataStatisticsMapper.getTodayStudyDuration());//今日总学习时长
+       countsMap.put("TodayVisitorCount", systemDataStatisticsMapper.getTodayVisitorCount());//今日访问人数
         return countsMap;
     }
-
-
     @Override
     public Long getTeacherCount() {
         // TODO: 实现教师数量统计逻辑
@@ -206,7 +208,17 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         // TODO: 实现班级数量统计逻辑
         return groupService.count();
     }
+    @Override
+    public Long getCommunicationFeedbackCount() {
+        // TODO: 实现交流反馈数量统计逻辑
+        return discussionTopicReplyService.count();
+    }
 
+    @Override
+    public Long getTeachingMaterialsCount() {
+        // TODO: 实现教学素材数量统计逻辑
+        return teachingMaterialsService.count();
+    }
     //教材类型统计
     @Override
     public List<TextbookTypeCountDto> getTextbookTypeCount() {
@@ -403,17 +415,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         return result;
     }
 
-    @Override
-    public Long getCommunicationFeedbackCount() {
-        // TODO: 实现交流反馈数量统计逻辑
-        return discussionTopicReplyService.count();
-    }
 
-    @Override
-    public Long getTeachingMaterialsCount() {
-        // TODO: 实现教学素材数量统计逻辑
-        return teachingMaterialsService.count();
-    }
 
     // TODO:资源使用数据统计
     @Override

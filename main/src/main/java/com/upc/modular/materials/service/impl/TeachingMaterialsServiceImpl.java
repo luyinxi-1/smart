@@ -16,6 +16,7 @@ import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.entity.MaterialsTextbookMapping;
 import com.upc.modular.materials.entity.TeachingMaterials;
 import com.upc.modular.materials.mapper.TeachingMaterialsMapper;
+import com.upc.modular.materials.service.IMaterialsTextbookMappingService;
 import com.upc.modular.materials.service.ITeachingMaterialsService;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.service.impl.TeacherServiceImpl;
@@ -26,6 +27,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
@@ -64,6 +66,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
     @Autowired
     private TeachingMaterialsMapper baseMapper;
+
 
     /**
      * 添加教学素材
@@ -294,56 +297,84 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             response.setHeader("Content-Disposition", "attachment; filename=\"download.file\"");
         }
     }
+@Override
+public Page<TeachingMaterialsReturnVo> getPage(TeachingMaterialsPageSearchDto param) {
 
-    @Override
-    public Page<TeachingMaterialsReturnVo> getPage(TeachingMaterialsPageSearchDto param) {
-
-        // 从上下文中获取当前登录用户的信息
-        Integer userType = UserUtils.get().getUserType();
-        Long currentUserId = UserUtils.get().getId();
-        // 角色权限判断：学生无权限
-        if (userType == 1) {
-            throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
-        }
-        // 对于管理员(0)和教师(2)，，都能查询全部素材
-        MyLambdaQueryWrapper<TeachingMaterials> queryWrapper = new MyLambdaQueryWrapper<>();
-        // 将所有查询参数作为可选的筛选条件
-        queryWrapper
-                // 当 param.getAuthorId() 不为空时，增加 `creator = ?` 条件
-                .eq(ObjectUtils.isNotEmpty(param.getAuthorId()), TeachingMaterials::getCreator, param.getAuthorId())
-                // 当 param.getName() 不为空时，增加 `name LIKE ?` 条件
-                .like(ObjectUtils.isNotEmpty(param.getName()), TeachingMaterials::getName, param.getName())
-                // 当 param.getType() 不为空时，增加 `type = ?` 条件
-                .eq(ObjectUtils.isNotEmpty(param.getType()), TeachingMaterials::getType, param.getType());
-        List<TeachingMaterials> materialsList = this.list(queryWrapper);
-        List<Long> authorIdList = materialsList.stream().map(TeachingMaterials::getCreator).distinct().collect(Collectors.toList());
-        Map<Long, String> teacherIdNameMap;
-        if (ObjectUtils.isNotEmpty(authorIdList)) {
-            teacherIdNameMap = teacherService.list(
-                            new LambdaQueryWrapper<Teacher>().in(Teacher::getId, authorIdList))
-                    .stream().collect(
-                            Collectors.toMap(Teacher::getId, Teacher::getName));
-        } else {
-            teacherIdNameMap = new HashMap<>();
-        }
-        List<TeachingMaterialsReturnVo> pageRecordsVO = materialsList.stream()
-                .map(materials -> {
-                    TeachingMaterialsReturnVo temp = new TeachingMaterialsReturnVo();
-                    BeanUtils.copyProperties(materials, temp);
-                    temp.setAuthorName(teacherIdNameMap.get(materials.getCreator()));
-                    // 判断是否为自己创建的逻辑
-                    if (materials.getCreator() != null) {
-                        temp.setIsCreator(materials.getCreator().equals(currentUserId));
-                    } else {
-                        temp.setIsCreator(false);
-                    }
-                    return temp;
-                })
-                .sorted(Comparator.comparing(TeachingMaterialsReturnVo::getAddDatetime).reversed())
-                .collect(Collectors.toList());
-        Page<TeachingMaterialsReturnVo> resultPage = createPage(pageRecordsVO, param.getCurrent(), param.getSize());
-        return resultPage;
+    // 从上下文中获取当前登录用户的信息
+    Integer userType = UserUtils.get().getUserType();
+    Long currentUserId = UserUtils.get().getId();
+    // 角色权限判断：学生无权限
+    if (userType == 1) {
+        throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
     }
+    // 1. 构建完整的查询条件
+    MyLambdaQueryWrapper<TeachingMaterials> queryWrapper = new MyLambdaQueryWrapper<>();
+    // 将所有查询参数作为可选的筛选条件
+    queryWrapper
+            // 当 param.getAuthorId() 不为空时，增加 `creator = ?` 条件
+            .eq(ObjectUtils.isNotEmpty(param.getAuthorId()), TeachingMaterials::getCreator, param.getAuthorId())
+            // 当 param.getName() 不为空时，增加 `name LIKE ?` 条件
+            .like(ObjectUtils.isNotEmpty(param.getName()), TeachingMaterials::getName, param.getName())
+            // 当 param.getType() 不为空时，增加 `type = ?` 条件
+            .eq(ObjectUtils.isNotEmpty(param.getType()), TeachingMaterials::getType, param.getType());
+    if (param.getUnboundOnly() != null && param.getUnboundOnly()) {
+        // 1.1 获取所有已绑定过的素材ID列表
+        List<Long> boundMaterialIds = materialsTextbookMappingService.list(
+                        new LambdaQueryWrapper<MaterialsTextbookMapping>().select(MaterialsTextbookMapping::getMaterialId)
+                ).stream()
+                .map(MaterialsTextbookMapping::getMaterialId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 1.2 如果存在已绑定的素材，则在查询中排除它们
+        if (!CollectionUtils.isEmpty(boundMaterialIds)) {
+            queryWrapper.notIn(TeachingMaterials::getId, boundMaterialIds);
+        }
+        // 如果 boundMaterialIds 为空，则无需操作，查询所有即可
+    }
+    // 添加排序条件
+    queryWrapper.orderByDesc(TeachingMaterials::getAddDatetime);
+
+    // 2. 执行一次数据库分页查询
+    // 使用 MyBatis-Plus 的 page 方法进行真正的数据库分页
+    Page<TeachingMaterials> pageResult = this.page(new Page<>(param.getCurrent(), param.getSize()), queryWrapper);
+    List<TeachingMaterials> materialsList = pageResult.getRecords();
+    // 如果当前页没有数据，直接返回空的分页对象
+    if (CollectionUtils.isEmpty(materialsList)) {
+        return new Page<>(param.getCurrent(), param.getSize());
+    }
+    // 3. 对查询结果进行后处理（获取作者姓名等）
+    List<Long> authorIdList = materialsList.stream().map(TeachingMaterials::getCreator).distinct().collect(Collectors.toList());
+    Map<Long, String> teacherIdNameMap;
+    if (ObjectUtils.isNotEmpty(authorIdList)) {
+        teacherIdNameMap = teacherService.list(
+                        new LambdaQueryWrapper<Teacher>().in(Teacher::getId, authorIdList))
+                .stream().collect(
+                        Collectors.toMap(Teacher::getId, Teacher::getName));
+    } else {
+        teacherIdNameMap = new HashMap<>();
+    }
+    // 4. 转换VO并返回
+    List<TeachingMaterialsReturnVo> pageRecordsVO = materialsList.stream()
+            .map(materials -> {
+                TeachingMaterialsReturnVo temp = new TeachingMaterialsReturnVo();
+                BeanUtils.copyProperties(materials, temp);
+                temp.setAuthorName(teacherIdNameMap.get(materials.getCreator()));
+                // 判断是否为自己创建的逻辑
+                if (materials.getCreator() != null) {
+                    temp.setIsCreator(materials.getCreator().equals(currentUserId));
+                } else {
+                    temp.setIsCreator(false);
+                }
+                return temp;
+            })
+            .collect(Collectors.toList());
+
+    // 创建最终的返回分页对象
+    Page<TeachingMaterialsReturnVo> resultPage = new Page<>(pageResult.getCurrent(), pageResult.getSize(), pageResult.getTotal());
+    resultPage.setRecords(pageRecordsVO);
+    return resultPage;
+}
 
     @Override
     public TeachingMaterialsReturnVo getTeachingMaterials(Long id, Long textbookId) {

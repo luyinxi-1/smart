@@ -44,7 +44,6 @@ public R<String> insertMaterials(@RequestBody TeachingMaterialsSaveOrUpdateParam
     else
         return R.ok(result);
 }
-
     @ApiOperation(value = "下载教学素材")
     @GetMapping("/download-file-materials")
     public void downloadFileMaterials(@RequestParam Long id, @RequestParam Integer imageSetId, @RequestParam Long textbookId, @RequestParam String action, HttpServletResponse response) {
@@ -64,9 +63,9 @@ public R<String> insertMaterials(@RequestBody TeachingMaterialsSaveOrUpdateParam
         return R.page(result);
     }
 @ApiOperation(value = "查看课本所绑定的教学素材")
-@GetMapping("/{textbookId}/materials")
+@GetMapping("/get-textbookId-materials")
 public R<List<TeachingMaterials>> getMaterialsForTextbook(
-        @PathVariable Long textbookId,
+        @RequestParam Long textbookId,
         @RequestParam(required = false) String materialName) {
     List<TeachingMaterials> materials = teachingMaterialsService.getMaterialsByTextbookId(textbookId, materialName);
     return R.ok(materials);

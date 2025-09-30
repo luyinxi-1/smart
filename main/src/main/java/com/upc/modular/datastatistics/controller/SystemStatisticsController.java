@@ -50,7 +50,6 @@ public class SystemStatisticsController {
         List<VisitorCountDTO> result = systemStatisticsService.getStudentVisitorCountByTime(timeRange);
         return R.ok(result);
     }
-
     // 今日总学习时长
     @ApiOperation("今日总学习时长")
     @PostMapping("/todayStudyDuration")
@@ -62,7 +61,6 @@ public class SystemStatisticsController {
             return R.fail("获取今日总学习时长失败: " + e.getMessage());
         }
     }
-
     @ApiOperation("根据日期范围查询学习趋势(单位:秒)")
     @GetMapping("/studyTrendByDate")
     public R<List<StudyTrendDTO>> getStudyTrendByDate(
@@ -86,7 +84,6 @@ public class SystemStatisticsController {
         List<StudyTrendDTO> trendData = systemStatisticsService.getStudyTrendByDateRange(startDate, endDate, type);
         return R.ok(trendData);
     }
-
     @ApiOperation("获取系统所有核心数据统计")
     @GetMapping("/all-counts")
     public R<Map<String, Long>> getAllCounts() {
@@ -99,7 +96,6 @@ public class SystemStatisticsController {
         // TODO: 实现教师数量统计逻辑
         return R.ok(systemStatisticsService.getTeacherCount());
     }
-
     @ApiOperation("教学素材数量统计")
     @GetMapping("/teaching-materials-count")
     public R<Long> getTeachingMaterialsCount() {
