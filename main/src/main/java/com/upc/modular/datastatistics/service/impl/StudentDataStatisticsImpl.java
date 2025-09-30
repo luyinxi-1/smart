@@ -483,9 +483,43 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         //阅读过的目录id列表
         returnParam.setReadingCatalogueIdList(studentDataStatisticsMapper.findCatalogueIdList(userId,textbookId));
 
+        // 计算该教材的阅读总时长（分钟）
+        returnParam.setReadingDurationMinutes(calculateReadingDurationMinutesByTextbook(userId, textbookId));
+
         return returnParam;
     }
 
+    private Long calculateReadingDurationMinutesByTextbook(Long userId, Long textbookId) {
+        		final long MIN_DIFF_SECONDS = 55;
+		final long MAX_DIFF_SECONDS = 65;
+		List<LearningLog> logs = studentDataStatisticsMapper.findAddDatetime(userId, 0);
+		if (logs == null) {
+			return 0L;
+		}
+		// 仅保留该教材的日志，并确保按时间升序
+		List<LearningLog> textbookLogs = logs.stream()
+				.filter(l -> Objects.equals(l.getTextbookId(), textbookId))
+				.sorted(Comparator.comparing(LearningLog::getAddDatetime, Comparator.nullsLast(Comparator.naturalOrder())))
+				.collect(Collectors.toList());
+		if (textbookLogs.size() < 2) {
+			return 0L;
+		}
+		long minutes = 0L;
+		for (int i = 0; i < textbookLogs.size() - 1; i++) {
+			LearningLog a = textbookLogs.get(i);
+			LearningLog b = textbookLogs.get(i + 1);
+			LocalDateTime t1 = a.getAddDatetime();
+			LocalDateTime t2 = b.getAddDatetime();
+			if (t1 == null || t2 == null) {
+				continue;
+			}
+			long seconds = Duration.between(t1, t2).getSeconds();
+			if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
+				minutes += 1;
+			}
+		}
+		return minutes;
+    }
 
     /**
      * 计算给定数据集的方差

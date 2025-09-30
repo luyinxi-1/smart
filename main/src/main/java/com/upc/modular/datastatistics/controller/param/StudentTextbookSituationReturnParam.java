@@ -20,4 +20,7 @@ public class StudentTextbookSituationReturnParam {
     @ApiModelProperty("阅读过的目录id列表")
     private List<Long> readingCatalogueIdList;
 
+	@ApiModelProperty("阅读总时长(分钟)")
+	private Long readingDurationMinutes;
+
 }
