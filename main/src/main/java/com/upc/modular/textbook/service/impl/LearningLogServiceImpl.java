@@ -11,8 +11,13 @@ import com.upc.modular.textbook.service.ILearningLogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 
 /**
  * <p>
@@ -24,6 +29,8 @@ import java.util.List;
  */
 @Service
 public class LearningLogServiceImpl extends ServiceImpl<LearningLogMapper, LearningLog> implements ILearningLogService {
+
+    private static final Logger logger = LoggerFactory.getLogger(LearningLogServiceImpl.class);
 
     @Autowired
     private LearningLogMapper learningLogMapper;
@@ -43,8 +50,83 @@ public class LearningLogServiceImpl extends ServiceImpl<LearningLogMapper, Learn
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户未登录");
         }
         Long userId = UserUtils.get().getId();
-        // Call the mapper method to get the recent study list
-        List<RecentStudyReturnParam> recentStudies = learningLogMapper.recentStudy(userId, limit);
-        return recentStudies;
+
+        try {
+            // 获取最近学习记录
+            List<RecentStudyReturnParam> recentStudies = learningLogMapper.recentStudy(userId, limit);
+            logger.info("获取到最近学习记录数量: {}", recentStudies.size());
+
+            if (recentStudies.isEmpty()) {
+                logger.info("没有找到学习记录");
+                return recentStudies;
+            }
+
+            // 提取教材ID列表
+            List<Long> textbookIds = recentStudies.stream()
+                    .map(RecentStudyReturnParam::getId)
+                    .collect(Collectors.toList());
+            logger.info("教材ID列表: {}", textbookIds);
+
+            // 获取总章节数
+            List<Map<String, Object>> totalChaptersList = learningLogMapper.getTextbookTotalChapters(textbookIds);
+            logger.info("总章节数查询结果: {}", totalChaptersList);
+
+            Map<Long, Integer> totalChaptersMap = totalChaptersList.stream()
+                    .collect(Collectors.toMap(
+                            map -> Long.valueOf(map.get("textbookId").toString()),
+                            map -> Integer.valueOf(map.get("totalChapters").toString())
+                    ));
+            logger.info("总章节数映射: {}", totalChaptersMap);
+
+            // 获取已读章节数
+            List<Map<String, Object>> readChaptersList = learningLogMapper.getStudentReadChapters(userId, textbookIds);
+            logger.info("已读章节数查询结果: {}", readChaptersList);
+
+            Map<Long, Integer> readChaptersMap = readChaptersList.stream()
+                    .collect(Collectors.toMap(
+                            map -> Long.valueOf(map.get("textbookId").toString()),
+                            map -> Integer.valueOf(map.get("readChapters").toString())
+                    ));
+            logger.info("已读章节数映射: {}", readChaptersMap);
+
+            // 计算学习进度
+            for (RecentStudyReturnParam study : recentStudies) {
+                Long textbookId = study.getId();
+                Integer totalChapters = totalChaptersMap.getOrDefault(textbookId, 0);
+                Integer readChapters = readChaptersMap.getOrDefault(textbookId, 0);
+
+                logger.info("教材ID: {}, 总章节数: {}, 已读章节数: {}", textbookId, totalChapters, readChapters);
+
+                if (totalChapters > 0) {
+                    double progress = (double) readChapters / totalChapters * 100;
+                    int progressInt = (int) Math.round(progress);
+                    study.setLearningProgress(progressInt);
+                    logger.info("计算的学习进度: {}%", progressInt);
+                } else {
+                    study.setLearningProgress(0);
+                    logger.info("总章节数为0，设置学习进度为0");
+                }
+
+                // 确保进度在 0-100 范围内
+                if (study.getLearningProgress() < 0) {
+                    study.setLearningProgress(0);
+                } else if (study.getLearningProgress() > 100) {
+                    study.setLearningProgress(100);
+                }
+
+                logger.info("最终学习进度: {}%", study.getLearningProgress());
+            }
+
+            return recentStudies;
+
+        } catch (Exception e) {
+            logger.error("计算学习进度时发生错误", e);
+            // 如果计算失败，至少返回基本的学习记录，进度设为0
+            List<RecentStudyReturnParam> recentStudies = learningLogMapper.recentStudy(userId, limit);
+            for (RecentStudyReturnParam study : recentStudies) {
+                study.setLearningProgress(0);
+            }
+            return recentStudies;
+        }
     }
 }

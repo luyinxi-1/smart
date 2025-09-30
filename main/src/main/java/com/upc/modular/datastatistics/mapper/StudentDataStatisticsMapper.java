@@ -82,4 +82,7 @@ public interface StudentDataStatisticsMapper  extends BaseMapper<StudentStatisti
 
     @Select("SELECT catalogue_id FROM learning_log WHERE creator = #{userId} AND textbook_id = #{textbookId}")
     List<Long> findCatalogueIdList(Long userId, Long textbookId);
+
+    @Select("SELECT * FROM learning_log WHERE creator = #{userId} AND textbook_id = #{textbookId} ORDER BY add_datetime ASC")
+    List<LearningLog> findLearningLogsByUserAndTextbook(@Param("userId") Long userId, @Param("textbookId") Long textbookId);
 }
