@@ -28,6 +28,7 @@ import org.jsoup.Jsoup;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -264,5 +265,21 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
         return discussionTopicReturnParam;
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void batchUpdateCatalog(DiscussionTopicBatchUpdateCatalogParam param) {
+        if (param == null || CollectionUtils.isEmpty(param.getIds()) || param.getTextbookCatalogId() == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+        
+        // 批量更新章节ID
+        LambdaQueryWrapper<DiscussionTopic> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.in(DiscussionTopic::getId, param.getIds());
+        
+        DiscussionTopic updateEntity = new DiscussionTopic();
+        updateEntity.setTextbookCatalogId(param.getTextbookCatalogId());
+        
+        this.update(updateEntity, queryWrapper);
+    }
 
 }

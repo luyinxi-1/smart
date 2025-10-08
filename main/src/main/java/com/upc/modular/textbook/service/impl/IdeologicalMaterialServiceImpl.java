@@ -13,6 +13,7 @@ import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.IdeologicalMaterialMapper;
 import com.upc.modular.textbook.mapper.TextbookMapper;
+import com.upc.modular.textbook.param.IdeologicalMaterialBatchUpdateCatalogParam;
 import com.upc.modular.textbook.param.IdeologicalMaterialInsertAndUpdateParam;
 import com.upc.modular.textbook.param.IdeologicalMaterialSearchParam;
 import com.upc.modular.textbook.service.IIdeologicalMaterialService;
@@ -21,6 +22,7 @@ import com.upc.modular.textbook.service.ITextbookCatalogService;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.net.InetAddress;
 import java.time.LocalDate;
@@ -139,6 +141,23 @@ public class IdeologicalMaterialServiceImpl extends ServiceImpl<IdeologicalMater
         }
 
         return resultIdeologicalMaterials;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void batchUpdateCatalog(IdeologicalMaterialBatchUpdateCatalogParam param) {
+        if (param == null || CollectionUtils.isEmpty(param.getIds()) || param.getTextbookCatalogId() == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+        
+        // 批量更新章节ID
+        LambdaQueryWrapper<IdeologicalMaterial> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.in(IdeologicalMaterial::getId, param.getIds());
+        
+        IdeologicalMaterial updateEntity = new IdeologicalMaterial();
+        updateEntity.setTextbookCatalogId(param.getTextbookCatalogId());
+        
+        this.update(updateEntity, queryWrapper);
     }
 
     private String replaceBase64PicToUrl(String content, String addressPrefix) {

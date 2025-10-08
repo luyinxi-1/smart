@@ -28,4 +28,10 @@ public interface IDiscussionTopicService extends IService<DiscussionTopic> {
     List<MyJoinDiscussionTopicDiscussionTopicReturnParam> selectMyJoinDiscussionTopic(MyJoinDiscussionTopicSearchParam param);
 
     DiscussionTopicSecondReturnParam getSecondTextbookById(Long id);
+    
+    /**
+     * 批量更新教学活动的章节ID
+     * @param param 批量更新参数
+     */
+    void batchUpdateCatalog(DiscussionTopicBatchUpdateCatalogParam param);
 }
