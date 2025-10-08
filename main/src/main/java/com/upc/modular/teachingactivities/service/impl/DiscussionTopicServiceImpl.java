@@ -59,6 +59,8 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
         if (StringUtils.isBlank(discussionTopic.getTopicTitle()) || StringUtils.isBlank(discussionTopic.getTopicContent())){
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "标题或内容不能为空");
         }
+        // 确保不保存章节ID，即使前端传入了该参数
+        discussionTopic.setTextbookCatalogId(null);
         this.save(discussionTopic);
 
         return discussionTopic.getId();
@@ -72,6 +74,8 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
 //        if (StringUtils.isBlank(discussionTopic.getTopicTitle()) || StringUtils.isBlank(discussionTopic.getTopicContent())){
 //            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "标题或内容不能为空");
 //        }
+        // 确保不保存章节ID，即使前端传入了该参数
+        discussionTopic.setTextbookCatalogId(null);
         this.updateById(discussionTopic);
     }
     @Autowired

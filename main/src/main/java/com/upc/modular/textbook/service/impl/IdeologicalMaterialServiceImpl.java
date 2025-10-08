@@ -67,6 +67,8 @@ public class IdeologicalMaterialServiceImpl extends ServiceImpl<IdeologicalMater
         if (param == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
+        // 确保不保存章节ID，即使前端传入了该参数
+        param.setTextbookCatalogId(null);
         if (ObjectUtils.isNotEmpty(param.getContent())) {
             param.setContent(replaceBase64PicToUrl(param.getContent(), param.getAddressPrefix()));
         }
@@ -79,6 +81,8 @@ public class IdeologicalMaterialServiceImpl extends ServiceImpl<IdeologicalMater
         if (param == null || param.getId() == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
+        // 确保不保存章节ID，即使前端传入了该参数
+        param.setTextbookCatalogId(null);
         String processedContent = param.getContent();
         if (processedContent.contains("data:image")) {
             processedContent = replaceBase64PicToUrl(processedContent, param.getAddressPrefix());
