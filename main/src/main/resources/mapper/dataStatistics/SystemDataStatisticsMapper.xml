@@ -20,6 +20,37 @@
             sl.add_datetime &gt;= CURRENT_DATE
           AND sl.add_datetime &lt; (CURRENT_DATE + INTERVAL '1 day')
     </select>
+    <!-- 按时间段统计本日访问人数 -->
+    <select id="getTodayVisitorCountByPeriod" resultType="com.upc.modular.datastatistics.controller.param.StatisticsDto">
+        WITH TimeGroupedLogs AS (
+            SELECT
+                DISTINCT s.user_id,
+                         CASE
+                             WHEN EXTRACT(HOUR FROM sl.add_datetime) BETWEEN 0 AND 3 THEN '0:00-4:00'
+                             WHEN EXTRACT(HOUR FROM sl.add_datetime) BETWEEN 4 AND 7 THEN '4:00-8:00'
+                             WHEN EXTRACT(HOUR FROM sl.add_datetime) BETWEEN 8 AND 11 THEN '8:00-12:00'
+                             WHEN EXTRACT(HOUR FROM sl.add_datetime) BETWEEN 12 AND 15 THEN '12:00-16:00'
+                             WHEN EXTRACT(HOUR FROM sl.add_datetime) BETWEEN 16 AND 19 THEN '16:00-20:00'
+                             ELSE '20:00-24:00'
+                             END AS time_slot
+            FROM
+                sys_log sl
+                    INNER JOIN
+                student s ON sl.user_id = s.user_id
+            WHERE
+                sl.add_datetime &gt;= CURRENT_DATE
+              AND sl.add_datetime &lt; (CURRENT_DATE + INTERVAL '1 day')
+        )
+        SELECT
+            time_slot AS timeSlot,
+            COUNT(user_id) AS value
+        FROM
+            TimeGroupedLogs
+        GROUP BY
+            time_slot
+        ORDER BY
+            time_slot;
+    </select>
     <select id="getStudentVisitorCountByTime" resultMap="visitorCountResultMap">
         SELECT
         <!-- 将 ::date 的结果再次转换为 timestamp -->
@@ -61,7 +92,47 @@
         FROM
             UserLogsWithNext;
     </select>
-
+    <!-- 按时间段统计今日总学习时长（秒） -->
+    <select id="getTodayStudyDurationByPeriod" resultType="com.upc.modular.datastatistics.controller.param.StatisticsDto">
+        WITH UserLogsWithNext AS (
+            SELECT
+                LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime,
+                    add_datetime,
+                CASE
+                    WHEN EXTRACT(HOUR FROM add_datetime) BETWEEN 0 AND 3 THEN '0:00-4:00'
+                    WHEN EXTRACT(HOUR FROM add_datetime) BETWEEN 4 AND 7 THEN '4:00-8:00'
+                    WHEN EXTRACT(HOUR FROM add_datetime) BETWEEN 8 AND 11 THEN '8:00-12:00'
+                    WHEN EXTRACT(HOUR FROM add_datetime) BETWEEN 12 AND 15 THEN '12:00-16:00'
+                    WHEN EXTRACT(HOUR FROM add_datetime) BETWEEN 16 AND 19 THEN '16:00-20:00'
+                    ELSE '20:00-24:00'
+                    END AS time_slot
+            FROM
+                learning_log
+            WHERE
+                add_datetime &gt;= CURRENT_DATE
+              AND add_datetime &lt; (CURRENT_DATE + INTERVAL '1 day')
+        ),
+             DurationCalculations AS (
+                 SELECT
+                     time_slot,
+                     CASE
+                         -- 使用 age() 函数计算可靠的时间间隔(interval)，再用 EXTRACT 提取总秒数
+                         WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+                             THEN 60 -- 累加60秒
+                         ELSE 0
+                         END AS duration_seconds
+                 FROM UserLogsWithNext
+             )
+        SELECT
+            time_slot as timeSlot,
+            COALESCE(SUM(duration_seconds), 0) AS value
+        FROM
+            DurationCalculations
+        GROUP BY
+            time_slot
+        ORDER BY
+            time_slot;
+    </select>
     <select id="getStudyTrendByTimeRange" resultType="com.upc.modular.datastatistics.controller.param.StudyTrendDTO">
     <![CDATA[
         WITH DateSeries AS (

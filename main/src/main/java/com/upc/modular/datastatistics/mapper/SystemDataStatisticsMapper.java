@@ -2,10 +2,7 @@ package com.upc.modular.datastatistics.mapper;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
-import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
-import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
-import com.upc.modular.datastatistics.controller.param.TextbookUpdateApplicationParam;
+import com.upc.modular.datastatistics.controller.param.*;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -19,7 +16,8 @@ public interface SystemDataStatisticsMapper {
 
     // 今日访问人数
     Long getTodayVisitorCount();
-
+//按时间段统计今日访问人数
+    List<StatisticsDto> getTodayVisitorCountByPeriod();
 
 List<VisitorCountDTO> getStudentVisitorCountByTime(
         @Param("startDate") LocalDate startDate,
@@ -27,6 +25,8 @@ List<VisitorCountDTO> getStudentVisitorCountByTime(
 );
     // 今日总学习时长
     Long getTodayStudyDuration();
+    // 按时间段统计今日总学习时长
+    List<StatisticsDto> getTodayStudyDurationByPeriod();
 
     /**
      * 按类型统计已发布的教材数量 (关联查询)

@@ -2,10 +2,7 @@ package com.upc.modular.datastatistics.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
-import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
-import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
-import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
-import com.upc.modular.datastatistics.controller.param.TextbookUpdateApplicationParam;
+import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
 import com.upc.modular.textbook.service.ITextbookService;
 import io.swagger.annotations.Api;
@@ -42,6 +39,16 @@ public class SystemStatisticsController {
             return R.fail("获取今日访问人数失败: " + e.getMessage());
         }
     }
+    @ApiOperation("按时间段获取今日访问人数统计")
+    @PostMapping("/todayVisitorCountByPeriod")
+    public R<List<StatisticsDto>> getTodayVisitorCountByPeriod() {
+        try {
+            return R.ok(systemStatisticsService.getTodayVisitorCountByPeriod());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("获取今日分时访问人数失败: " + e.getMessage());
+        }
+    }
 
     @ApiOperation("按时间统计访问人数")
     @GetMapping("/visitorCountByTime")
@@ -59,6 +66,16 @@ public class SystemStatisticsController {
         } catch (Exception e) {
             e.printStackTrace();
             return R.fail("获取今日总学习时长失败: " + e.getMessage());
+        }
+    }
+    @ApiOperation("按时间段获取今日总学习时长统计")
+    @PostMapping("/todayStudyDurationByPeriod")
+    public R<List<StatisticsDto>> getTodayStudyDurationByPeriod() {
+        try {
+            return R.ok(systemStatisticsService.getTodayStudyDurationByPeriod());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("获取今日分时总学习时长失败: " + e.getMessage());
         }
     }
     @ApiOperation("根据日期范围查询学习趋势(单位:秒)")

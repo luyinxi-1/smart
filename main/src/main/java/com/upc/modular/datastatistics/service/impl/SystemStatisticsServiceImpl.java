@@ -3,13 +3,9 @@ package com.upc.modular.datastatistics.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.upc.modular.datastatistics.controller.param.ChapterMasteryVO;
+import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.course.service.ICourseService;
-import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
-import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
-import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
-import com.upc.modular.datastatistics.controller.param.TextbookUpdateApplicationParam;
 import com.upc.modular.datastatistics.mapper.SystemDataStatisticsMapper;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
 import com.upc.modular.group.service.IGroupService;
@@ -95,6 +91,26 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         return systemDataStatisticsMapper.getTodayVisitorCount();
     }
 
+    @Override
+    public List<StatisticsDto> getTodayVisitorCountByPeriod() {
+        // 从数据库获取按时间段分组的原始数据
+        List<StatisticsDto> resultsFromDb = systemDataStatisticsMapper.getTodayVisitorCountByPeriod();
+
+        // 创建一个从时间段到数值的映射，方便查找
+        Map<String, Long> resultMap = resultsFromDb.stream()
+                .collect(Collectors.toMap(StatisticsDto::getTimeSlot, StatisticsDto::getValue));
+
+        // 定义所有期望的时间段，确保返回结果的完整性
+        List<String> timeSlots = Arrays.asList(
+                "0:00-4:00", "4:00-8:00", "8:00-12:00",
+                "12:00-16:00", "16:00-20:00", "20:00-24:00"
+        );
+
+        // 遍历所有时间段，如果数据库中没有该时间段的数据，则补充为0
+        return timeSlots.stream()
+                .map(slot -> new StatisticsDto(slot, resultMap.getOrDefault(slot, 0L)))
+                .collect(Collectors.toList());
+    }
     //按时间统计访问人数
     @Override
     public List<VisitorCountDTO> getStudentVisitorCountByTime(String timeRange) {
@@ -147,6 +163,27 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
     public Long getTodayStudyDuration() {
         // TODO: 实现今日总学习时长统计逻辑
         return systemDataStatisticsMapper.getTodayStudyDuration();
+    }
+
+    @Override
+    public List<StatisticsDto> getTodayStudyDurationByPeriod() {
+        // 从数据库获取按时间段分组的原始数据
+        List<StatisticsDto> resultsFromDb = systemDataStatisticsMapper.getTodayStudyDurationByPeriod();
+
+        // 创建映射
+        Map<String, Long> resultMap = resultsFromDb.stream()
+                .collect(Collectors.toMap(StatisticsDto::getTimeSlot, StatisticsDto::getValue));
+
+        // 定义所有时间段
+        List<String> timeSlots = Arrays.asList(
+                "0:00-4:00", "4:00-8:00", "8:00-12:00",
+                "12:00-16:00", "16:00-20:00", "20:00-24:00"
+        );
+
+        // 遍历并补全数据
+        return timeSlots.stream()
+                .map(slot -> new StatisticsDto(slot, resultMap.getOrDefault(slot, 0L)))
+                .collect(Collectors.toList());
     }
 
     //按时间统计总学习时长

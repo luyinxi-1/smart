@@ -1,11 +1,7 @@
 package com.upc.modular.datastatistics.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.upc.modular.datastatistics.controller.param.ChapterMasteryVO;
-import com.upc.modular.datastatistics.controller.param.StudyTrendDTO;
-import com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto;
-import com.upc.modular.datastatistics.controller.param.VisitorCountDTO;
-import com.upc.modular.datastatistics.controller.param.TextbookUpdateApplicationParam;
+import com.upc.modular.datastatistics.controller.param.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -18,7 +14,8 @@ public interface ISystemStatisticsService {
      * 获取今日访问人数
      */
     Long getTodayVisitorCount();
-
+//按时间段获取今日访问人数统计
+    List<StatisticsDto> getTodayVisitorCountByPeriod();
     /**
      * 根据时间范围标识符获取学生访客数量
      *
@@ -30,6 +27,8 @@ public interface ISystemStatisticsService {
      * 获取今日总学习时长
      */
     Long getTodayStudyDuration();
+//按时间段获取今日学习时长统计
+    List<StatisticsDto> getTodayStudyDurationByPeriod();
 
     /**
      * 根据日期范围和统计类型获取学习趋势数据
