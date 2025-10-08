@@ -1,5 +1,6 @@
 package com.upc.modular.teachingactivities.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.teachingactivities.param.*;
 import com.upc.modular.teachingactivities.entity.DiscussionTopic;
@@ -28,4 +29,10 @@ public interface IDiscussionTopicService extends IService<DiscussionTopic> {
     List<MyJoinDiscussionTopicDiscussionTopicReturnParam> selectMyJoinDiscussionTopic(MyJoinDiscussionTopicSearchParam param);
 
     DiscussionTopicSecondReturnParam getSecondTextbookById(Long id);
+    
+    /**
+     * 批量更新教学活动的章节ID
+     * @param param 批量更新参数
+     */
+    void batchUpdateCatalog(DiscussionTopicBatchUpdateCatalogParam param);
 }

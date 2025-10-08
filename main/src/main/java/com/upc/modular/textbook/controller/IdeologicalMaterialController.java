@@ -5,6 +5,7 @@ import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.textbook.entity.IdeologicalMaterial;
+import com.upc.modular.textbook.param.IdeologicalMaterialBatchUpdateCatalogParam;
 import com.upc.modular.textbook.param.IdeologicalMaterialInsertAndUpdateParam;
 import com.upc.modular.textbook.param.IdeologicalMaterialSearchParam;
 import com.upc.modular.textbook.service.IIdeologicalMaterialService;
@@ -67,5 +68,12 @@ public class IdeologicalMaterialController {
     public R<List<IdeologicalMaterial>> getIdeologicalMaterialByConditions(@RequestBody IdeologicalMaterialSearchParam param) {
         List<IdeologicalMaterial> ideologicalMaterialList = iIdeologicalMaterialService.getIdeologicalMaterialByConditions(param);
         return R.ok(ideologicalMaterialList);
+    }
+    
+    @ApiOperation(value = "批量更新教学思政章节ID")
+    @PostMapping("/batchUpdateCatalog")
+    public R batchUpdateIdeologicalMaterialCatalog(@RequestBody IdeologicalMaterialBatchUpdateCatalogParam param) {
+        iIdeologicalMaterialService.batchUpdateCatalog(param);
+        return R.commonReturn(200, "更新成功", "");
     }
 }

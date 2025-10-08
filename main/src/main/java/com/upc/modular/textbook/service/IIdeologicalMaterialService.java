@@ -1,7 +1,9 @@
 package com.upc.modular.textbook.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.upc.modular.textbook.entity.IdeologicalMaterial;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.textbook.param.IdeologicalMaterialBatchUpdateCatalogParam;
 import com.upc.modular.textbook.param.IdeologicalMaterialInsertAndUpdateParam;
 import com.upc.modular.textbook.param.IdeologicalMaterialSearchParam;
 
@@ -24,4 +26,10 @@ public interface IIdeologicalMaterialService extends IService<IdeologicalMateria
     void updateIdeologicalMaterialById(IdeologicalMaterialInsertAndUpdateParam param);
 
     List<IdeologicalMaterial> getIdeologicalMaterialByConditions(IdeologicalMaterialSearchParam param);
+    
+    /**
+     * 批量更新教学思政的章节ID
+     * @param param 批量更新参数
+     */
+    void batchUpdateCatalog(IdeologicalMaterialBatchUpdateCatalogParam param);
 }

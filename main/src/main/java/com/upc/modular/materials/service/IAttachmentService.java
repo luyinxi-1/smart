@@ -1,5 +1,6 @@
 package com.upc.modular.materials.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.upc.modular.materials.controller.param.vo.AttachmentListReturnParam;
 import com.upc.modular.materials.entity.Attachment;
 import com.baomidou.mybatisplus.extension.service.IService;
