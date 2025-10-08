@@ -12,7 +12,17 @@ import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.mapper.SysUserMapper;
+import com.upc.modular.materials.entity.Attachment;
+import com.upc.modular.materials.service.IAttachmentService;
+import com.upc.modular.materials.entity.MaterialsTextbookMapping;
+import com.upc.modular.materials.service.IMaterialsTextbookMappingService;
+import com.upc.modular.questionbank.entity.TeachingQuestionBank;
+import com.upc.modular.questionbank.service.ITeachingQuestionBankService;
+import com.upc.modular.teachingactivities.entity.DiscussionTopic;
+import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
+import com.upc.modular.textbook.entity.IdeologicalMaterial;
 import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
+import com.upc.modular.textbook.service.IIdeologicalMaterialService;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
@@ -28,6 +38,7 @@ import com.upc.modular.textbook.service.ITextbookService;
 import com.upc.utils.Word2HtmlUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import org.jsoup.Jsoup;
@@ -74,6 +85,24 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
 
     @Autowired
     private SysUserMapper sysUserMapper;
+    
+    // 注入相关服务
+    @Autowired
+    private IAttachmentService attachmentService;
+    
+    @Autowired
+    private ITeachingQuestionBankService teachingQuestionBankService;
+    
+    @Autowired
+    @Lazy
+    private IDiscussionTopicService discussionTopicService;
+    
+    @Autowired
+    @Lazy
+    private IIdeologicalMaterialService ideologicalMaterialService;
+    
+    @Autowired
+    private IMaterialsTextbookMappingService materialsTextbookMappingService;
 
     @Override
     public void processAndSaveHtml(MultipartFile file, Long textbookId) {
@@ -180,7 +209,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
 
     /** 场景2：增量插入 */
     private Boolean insertIncremental(List<TextbookCatalogInsertParam> params, Long textbookId) {
-        // 缓存“临时ID → 真实ID”映射（本次批内引用）
+        // 缓存"临时ID → 真实ID"映射（本次批内引用）
         Map<String, Long> tempId2RealId = new HashMap<>();
 
         for (TextbookCatalogInsertParam p : params) {
@@ -219,12 +248,12 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         return 0L; // 顶级
     }
 
-    /** 计算增量插入时的 sort（含“同级后插”与“该父级下第一个”两种） */
+    /** 计算增量插入时的 sort（含"同级后插"与"该父级下第一个"两种） */
     private Integer computeSortForIncrement(Long textbookId, Long fatherId, Long sameCatalogLevelId) {
         // 左边界 L
         int L;
         if (sameCatalogLevelId != null && sameCatalogLevelId > 0) {
-            // 插在“上一个同级目录”的整棵子树之后
+            // 插在"上一个同级目录"的整棵子树之后
             L = maxSortInSubtree(textbookId, sameCatalogLevelId);
         } else {
             // 插在该父级下第一个 → 取父目录的 sort（顶级父=0）
@@ -239,7 +268,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             }
         }
 
-        // 右边界 R：同一本书中“最接近且更大”的 sort
+        // 右边界 R：同一本书中"最接近且更大"的 sort
         Integer R = minGreaterSort(textbookId, L);
 
         Integer candidate;
@@ -279,7 +308,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
                 .orElse(null);
     }
 
-    /** 取某节点“整棵子树”的最大 sort（含自身）。深度最多 4 层。 */
+    /** 取某节点"整棵子树"的最大 sort（含自身）。深度最多 4 层。 */
     private int maxSortInSubtree(Long textbookId, Long rootId) {
         TextbookCatalog root = textbookCatalogMapper.selectById(rootId);
         if (root == null) {
@@ -329,6 +358,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean delete(IdParam idParam) {
         if (ObjectUtils.isEmpty(idParam) || ObjectUtils.isEmpty(idParam.getIdList())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传入的ID列表不能为空");
@@ -359,6 +389,33 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             // f. 将子节点作为下一轮的父节点，继续向下查找
             parentIds = childIds;
         }
+
+        // 级联删除与这些章节关联的数据
+        // 1. 删除附件 (Attachment)
+        LambdaQueryWrapper<Attachment> attachmentQueryWrapper = new LambdaQueryWrapper<>();
+        attachmentQueryWrapper.in(Attachment::getObjectId, allIdsToDelete)
+                .eq(Attachment::getObjectType, "textbook_catalog");
+        attachmentService.remove(attachmentQueryWrapper);
+        
+        // 2. 删除题库 (TeachingQuestionBank)
+        LambdaQueryWrapper<TeachingQuestionBank> questionBankQueryWrapper = new LambdaQueryWrapper<>();
+        questionBankQueryWrapper.in(TeachingQuestionBank::getTextbookCatalogId, allIdsToDelete);
+        teachingQuestionBankService.remove(questionBankQueryWrapper);
+        
+        // 3. 删除教学活动 (DiscussionTopic)
+        LambdaQueryWrapper<DiscussionTopic> discussionTopicQueryWrapper = new LambdaQueryWrapper<>();
+        discussionTopicQueryWrapper.in(DiscussionTopic::getTextbookCatalogId, allIdsToDelete);
+        discussionTopicService.remove(discussionTopicQueryWrapper);
+        
+        // 4. 删除教学思政 (IdeologicalMaterial)
+        LambdaQueryWrapper<IdeologicalMaterial> ideologicalMaterialQueryWrapper = new LambdaQueryWrapper<>();
+        ideologicalMaterialQueryWrapper.in(IdeologicalMaterial::getTextbookCatalogId, allIdsToDelete);
+        ideologicalMaterialService.remove(ideologicalMaterialQueryWrapper);
+        
+        // 5. 删除教材素材映射关系 (MaterialsTextbookMapping)
+        LambdaQueryWrapper<MaterialsTextbookMapping> mappingQueryWrapper = new LambdaQueryWrapper<>();
+        mappingQueryWrapper.in(MaterialsTextbookMapping::getChapterId, allIdsToDelete);
+        materialsTextbookMappingService.remove(mappingQueryWrapper);
 
         // 3. 批量删除所有收集到的ID
         // 注意：MyBatis-Plus的批量删除方法是 removeByIds

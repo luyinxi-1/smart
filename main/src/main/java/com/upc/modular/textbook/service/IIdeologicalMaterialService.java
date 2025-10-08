@@ -1,5 +1,6 @@
 package com.upc.modular.textbook.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.upc.modular.textbook.entity.IdeologicalMaterial;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.textbook.param.IdeologicalMaterialBatchUpdateCatalogParam;
