@@ -49,4 +49,10 @@ public class DiscussionTopicSecondReturnParam {
 
     @ApiModelProperty("创建人姓名")
     private String nickName;
+    
+    @ApiModelProperty("点赞数")
+    private Integer likeNumber;
+    
+    @ApiModelProperty("回复数")
+    private Integer replyNumber;
 }

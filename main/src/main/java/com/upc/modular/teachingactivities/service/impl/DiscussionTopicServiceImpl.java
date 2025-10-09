@@ -15,6 +15,7 @@ import com.upc.modular.student.service.IStudentService;
 import com.upc.modular.teacher.service.ITeacherService;
 import com.upc.modular.teachingactivities.param.*;
 import com.upc.modular.teachingactivities.entity.DiscussionTopic;
+import com.upc.modular.teachingactivities.entity.UserLikes;
 import com.upc.modular.teachingactivities.mapper.DiscussionTopicMapper;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -97,6 +98,8 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
     private ITextbookAuthorityService textbookAuthorityService;
     @Autowired
     private DiscussionTopicMapper discussionTopicMapper;
+    @Autowired
+    private com.upc.modular.teachingactivities.mapper.UserLikesMapper userLikesMapper;
 
     @Override
     public Page<DiscussionTopicReturnParam> getDiscussionTopicList(DiscussionTopicSearchParam param) {
@@ -261,6 +264,18 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
                 discussionTopicReturnParam.setNickName(sysTbuser.getNickname());
             }
         }
+        
+        // 添加点赞数统计
+        Long likeCount = userLikesMapper.selectCount(
+                new LambdaQueryWrapper<UserLikes>()
+                        .eq(UserLikes::getType, 1)  // 类型1表示教学活动
+                        .eq(UserLikes::getCorrelationId, id)
+        );
+        discussionTopicReturnParam.setLikeNumber(likeCount != null ? likeCount.intValue() : 0);
+        
+        // 添加回复数统计
+        Integer replyCount = discussionTopicReplyService.getTopicReplyCount(id);
+        discussionTopicReturnParam.setReplyNumber(replyCount != null ? replyCount : 0);
 
         return discussionTopicReturnParam;
     }
