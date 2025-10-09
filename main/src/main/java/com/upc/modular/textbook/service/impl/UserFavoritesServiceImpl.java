@@ -155,17 +155,18 @@ public class UserFavoritesServiceImpl extends ServiceImpl<UserFavoritesMapper, U
 
     @Override
     public Boolean isFavoriteTextbook(Long textBookId) {
+        UserInfoToRedis userInfoToRedis = UserUtils.get();
+        if (ObjectUtils.isEmpty(userInfoToRedis)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户未登录");
+        }
         if (textBookId == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参为空");
         }
 
         LambdaQueryWrapper<UserFavorites> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(UserFavorites::getUserId, userInfoToRedis.getId());
         queryWrapper.eq(UserFavorites::getTextbookId, textBookId);
         long count = this.count(queryWrapper);
-        if (count > 0) {
-            return true;
-        } else {
-            return false;
-        }
+        return count > 0;
     }
 }
