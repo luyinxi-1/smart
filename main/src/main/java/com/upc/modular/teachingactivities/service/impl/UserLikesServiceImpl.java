@@ -11,6 +11,7 @@ import com.upc.modular.teachingactivities.param.LikeStateParam;
 import com.upc.modular.teachingactivities.service.IUserLikesService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
+import java.util.List;
 
 /**
  * <p>
@@ -47,6 +48,25 @@ public class UserLikesServiceImpl extends ServiceImpl<UserLikesMapper, UserLikes
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
         this.removeById(id);
+    }
+
+    /**
+     * 通过关联类型和关联ID取消点赞
+     * 与deleteUserLikeById保持一致，不检查当前登录用户
+     */
+    @Override
+    public void deleteUserLikeByTypeAndCorrelationId(Integer type, Long correlationId) {
+        if (type == null || correlationId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+        
+        // 直接根据type和correlationId删除点赞记录，不考虑创建者
+        LambdaQueryWrapper<UserLikes> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(UserLikes::getType, type);
+        queryWrapper.eq(UserLikes::getCorrelationId, correlationId);
+        
+        int rows = baseMapper.delete(queryWrapper);
+        System.out.println("根据type=" + type + ", correlationId=" + correlationId + " 删除了 " + rows + " 条点赞记录");
     }
 
     @Override
