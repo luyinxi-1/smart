@@ -1,6 +1,6 @@
 package com.upc.modular.datastatistics.service.impl;
 
-import com.upc.modular.datastatistics.controller.param.ChapterQuestionCorrectRateParam;
+import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.datastatistics.controller.param.TextbookDataStatisticsParam;
 import com.upc.modular.datastatistics.controller.param.TextbookTimeStatisticsReturnParam;
 import com.upc.modular.datastatistics.controller.param.TextbookTimeStatisticsSearchParam;
@@ -326,5 +326,199 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
             default:
                 return dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         }
+    }
+
+    @Override
+    public List<TeacherTextbookInfoParam> getTeacherTextbooks(Long teacherId) {
+        List<Map<String, Object>> rawData = teacherTextbookStatisticsMapper.getTeacherTextbooks(teacherId);
+        
+        List<TeacherTextbookInfoParam> result = new ArrayList<>();
+        
+        for (Map<String, Object> data : rawData) {
+            TeacherTextbookInfoParam param = new TeacherTextbookInfoParam();
+            
+            // 安全地处理可能为null的数值字段
+            param.setTextbookId(getLongValue(data.get("textbookId")));
+            param.setTextbookName((String) data.get("textbookName"));
+            param.setTextbookType(getLongValue(data.get("textbookType")));
+            param.setTextbookPublishingHouse((String) data.get("textbookPublishingHouse"));
+            param.setTextbookVersion((String) data.get("textbookVersion"));
+            param.setReleaseStatus(getIntValue(data.get("releaseStatus")));
+            param.setCourseName((String) data.get("courseName"));
+            param.setClassName((String) data.get("className"));
+            
+            result.add(param);
+        }
+        
+        return result;
+    }
+
+    @Override
+    public List<StudentQuestionAnsweringStatisticsParam> getStudentQuestionAnsweringStatistics(Long textbookId, Long studentId) {
+        List<Map<String, Object>> rawData = teacherTextbookStatisticsMapper.getStudentQuestionAnsweringStatistics(textbookId, studentId);
+        
+        List<StudentQuestionAnsweringStatisticsParam> result = new ArrayList<>();
+        
+        for (Map<String, Object> data : rawData) {
+            StudentQuestionAnsweringStatisticsParam param = new StudentQuestionAnsweringStatisticsParam();
+            
+            param.setChapterId(getLongValue(data.get("chapterId")));
+            param.setChapterName((String) data.get("chapterName"));
+            param.setQuestionAnsweringDuration(getLongValue(data.get("questionAnsweringDuration")));
+            param.setChapterScore(getDoubleValue(data.get("chapterScore")));
+            param.setCorrectRate(getDoubleValue(data.get("correctRate")));
+            param.setTotalQuestions(getIntValue(data.get("totalQuestions")));
+            param.setCorrectAnswers(getIntValue(data.get("correctAnswers")));
+            param.setAverageScore(getDoubleValue(data.get("averageScore")));
+            param.setChapterLevel(getIntValue(data.get("chapterLevel")));
+            param.setParentChapterId(getLongValue(data.get("parentChapterId")));
+            param.setReadingDuration(getLongValue(data.get("readingDuration")));
+            param.setMasteryPercentage(getDoubleValue(data.get("masteryPercentage")));
+            
+            result.add(param);
+        }
+        
+        return result;
+    }
+
+    /**
+     * 安全地获取Long值
+     * @param obj 对象
+     * @return Long值，如果为null则返回null
+     */
+    private Long getLongValue(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof Number) {
+            return ((Number) obj).longValue();
+        }
+        return null;
+    }
+
+    /**
+     * 安全地获取Integer值
+     * @param obj 对象
+     * @return Integer值，如果为null则返回null
+     */
+    private Integer getIntValue(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof Number) {
+            return ((Number) obj).intValue();
+        }
+        return null;
+    }
+
+    @Override
+    public List<TextbookStatisticsOverviewParam> getTeacherTextbookStatisticsOverview(Long teacherId) {
+        List<Map<String, Object>> rawData = teacherTextbookStatisticsMapper.getTeacherTextbookStatisticsOverview(teacherId);
+        
+        List<TextbookStatisticsOverviewParam> result = new ArrayList<>();
+        
+        for (Map<String, Object> data : rawData) {
+            TextbookStatisticsOverviewParam param = new TextbookStatisticsOverviewParam();
+            
+            param.setTextbookId(getLongValue(data.get("textbookId")));
+            param.setTextbookName((String) data.get("textbookName"));
+            param.setReaderCount(getLongValue(data.get("readerCount")));
+            param.setTeachingActivityCount(getLongValue(data.get("teachingActivityCount")));
+            param.setMaterialCount(getLongValue(data.get("materialCount")));
+            param.setCommunicationFeedbackCount(getLongValue(data.get("communicationFeedbackCount")));
+            param.setIdeologicalMaterialCount(getLongValue(data.get("ideologicalMaterialCount")));
+            param.setQuestionCorrectRate(getDoubleValue(data.get("questionCorrectRate")));
+            param.setCommunicationParticipationCount(getLongValue(data.get("communicationParticipationCount")));
+            param.setAnnotationCount(getLongValue(data.get("annotationCount")));
+            
+            result.add(param);
+        }
+        
+        return result;
+    }
+
+    @Override
+    public List<ReaderStatisticsParam> getTextbookReaderStatistics(Long textbookId) {
+        List<Map<String, Object>> rawData = teacherTextbookStatisticsMapper.getTextbookReaderStatistics(textbookId);
+        
+        List<ReaderStatisticsParam> result = new ArrayList<>();
+        
+        for (Map<String, Object> data : rawData) {
+            ReaderStatisticsParam param = new ReaderStatisticsParam();
+            
+            param.setStudentId(getLongValue(data.get("studentId")));
+            param.setStudentName((String) data.get("studentName"));
+            param.setReadingDuration(getLongValue(data.get("readingDuration")));
+            param.setLearningBehavior((String) data.get("learningBehavior"));
+            param.setChapterCount(getIntValue(data.get("chapterCount")));
+            param.setLastReadingTime(getStringValue(data.get("lastReadingTime")));
+            param.setProgressPercentage(getDoubleValue(data.get("progressPercentage")));
+            
+            result.add(param);
+        }
+        
+        return result;
+    }
+
+    @Override
+    public List<QuestionAnsweringStatisticsParam> getTextbookQuestionAnsweringStatistics(Long textbookId) {
+        List<Map<String, Object>> rawData = teacherTextbookStatisticsMapper.getTextbookQuestionAnsweringStatistics(textbookId);
+        
+        List<QuestionAnsweringStatisticsParam> result = new ArrayList<>();
+        
+        for (Map<String, Object> data : rawData) {
+            QuestionAnsweringStatisticsParam param = new QuestionAnsweringStatisticsParam();
+            
+            param.setChapterId(getLongValue(data.get("chapterId")));
+            param.setChapterName((String) data.get("chapterName"));
+            param.setMasteryLevel(getDoubleValue(data.get("masteryLevel")));
+            param.setTotalQuestions(getIntValue(data.get("totalQuestions")));
+            param.setCorrectAnswers(getIntValue(data.get("correctAnswers")));
+            param.setCorrectRate(getDoubleValue(data.get("correctRate")));
+            param.setParticipantCount(getIntValue(data.get("participantCount")));
+            param.setAverageScore(getDoubleValue(data.get("averageScore")));
+            param.setChapterLevel(getIntValue(data.get("chapterLevel")));
+            param.setParentChapterId(getLongValue(data.get("parentChapterId")));
+            
+            result.add(param);
+        }
+        
+        return result;
+    }
+
+    /**
+     * 安全地获取Double值
+     * @param obj 对象
+     * @return Double值，如果为null则返回null
+     */
+    private Double getDoubleValue(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof Number) {
+            return ((Number) obj).doubleValue();
+        }
+        return null;
+    }
+
+    /**
+     * 安全地获取String值
+     * @param obj 对象
+     * @return String值，如果为null则返回null
+     */
+    private String getStringValue(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof String) {
+            return (String) obj;
+        }
+        if (obj instanceof java.sql.Timestamp) {
+            return obj.toString();
+        }
+        if (obj instanceof java.util.Date) {
+            return obj.toString();
+        }
+        return obj.toString();
     }
 } 

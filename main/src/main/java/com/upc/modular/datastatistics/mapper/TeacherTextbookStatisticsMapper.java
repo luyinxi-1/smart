@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 教师端教材数据统计Mapper
@@ -119,4 +120,40 @@ public interface TeacherTextbookStatisticsMapper {
     List<DiscussionTopicReply> findCommunicationFeedbackByTextbookIdAndTime(@Param("textbookId") Long textbookId,
                                                                            @Param("startTime") String startTime,
                                                                            @Param("endTime") String endTime);
+
+    /**
+     * 获取教师所有教材信息
+     * @param teacherId 教师ID
+     * @return 教师教材列表
+     */
+    List<Map<String, Object>> getTeacherTextbooks(@Param("teacherId") Long teacherId);
+
+    /**
+     * 获取教师教材统计概览
+     * @param teacherId 教师ID
+     * @return 教材统计概览列表
+     */
+    List<Map<String, Object>> getTeacherTextbookStatisticsOverview(@Param("teacherId") Long teacherId);
+
+    /**
+     * 获取教材阅读人员统计
+     * @param textbookId 教材ID
+     * @return 阅读人员统计列表
+     */
+    List<Map<String, Object>> getTextbookReaderStatistics(@Param("textbookId") Long textbookId);
+
+    /**
+     * 获取教材做题情况统计
+     * @param textbookId 教材ID
+     * @return 做题情况统计列表
+     */
+    List<Map<String, Object>> getTextbookQuestionAnsweringStatistics(@Param("textbookId") Long textbookId);
+
+    /**
+     * 获取学生做题情况统计
+     * @param textbookId 教材ID
+     * @param studentId 学生ID
+     * @return 学生做题情况统计列表
+     */
+    List<Map<String, Object>> getStudentQuestionAnsweringStatistics(@Param("textbookId") Long textbookId, @Param("studentId") Long studentId);
 } 
