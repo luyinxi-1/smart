@@ -25,4 +25,11 @@ public interface TeacherMapper extends BaseMapper<Teacher> {
 
 
     TeacherReturnVo getInformationByTeacherId(@Param("teacherId") Long teacherId);
+
+    /**
+     * 根据用户ID获取教师ID
+     * @param userId 用户ID
+     * @return 教师ID
+     */
+    Long getTeacherIdByUserId(@Param("userId") Long userId);
 }

@@ -1,14 +1,19 @@
 package com.upc.modular.datastatistics.controller;
 
 import com.upc.common.responseparam.R;
+import com.upc.common.utils.UserInfoToRedis;
+import com.upc.context.LoginContextHolder;
 import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.datastatistics.entity.TeacherStatistics;
 import com.upc.modular.datastatistics.service.ITeacherStatisticsService;
+import com.upc.modular.teacher.service.ITeacherService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 教师统计Controller
@@ -21,34 +26,109 @@ public class TeacherStatisticsController {
     @Autowired
     private ITeacherStatisticsService teacherStatisticsService;
 
+    @Autowired
+    private ITeacherService teacherService;
+
     @ApiOperation("获取教师个人数据统计")
-    @PostMapping("/personal/{teacherId}")
-    public R<TeacherStatisticsReturnParam> getTeacherPersonalStatistics(@PathVariable Long teacherId) {
+    @PostMapping("/personal")
+    public R<TeacherStatisticsReturnParam> getTeacherPersonalStatistics() {
+        // 从当前登录用户获取教师ID
+        UserInfoToRedis currentUser = LoginContextHolder.getUserInfoToRedis();
+        if (currentUser == null || currentUser.getId() == null) {
+            return R.fail("用户未登录");
+        }
+        
+        Long teacherId = teacherService.getTeacherIdByUserId(currentUser.getId());
+        if (teacherId == null) {
+            return R.fail("当前用户不是教师");
+        }
+        
         return R.ok(teacherStatisticsService.getTeacherPersonalStatistics(teacherId));
     }
 
     @ApiOperation("统计教师授课班级数量")
-    @PostMapping("/class-count/{teacherId}")
-    public R<Integer> countTeacherClasses(@PathVariable Long teacherId) {
+    @PostMapping("/class-count")
+    public R<Integer> countTeacherClasses() {
+        // 从当前登录用户获取教师ID
+        UserInfoToRedis currentUser = LoginContextHolder.getUserInfoToRedis();
+        if (currentUser == null || currentUser.getId() == null) {
+            return R.fail("用户未登录");
+        }
+        
+        Long teacherId = teacherService.getTeacherIdByUserId(currentUser.getId());
+        if (teacherId == null) {
+            return R.fail("当前用户不是教师");
+        }
+        
         return R.ok(teacherStatisticsService.countTeacherClasses(teacherId));
     }
 
     @ApiOperation("统计教师授课学生数量")
-    @PostMapping("/student-count/{teacherId}")
-    public R<Integer> countTeacherStudents(@PathVariable Long teacherId) {
+    @PostMapping("/student-count")
+    public R<Integer> countTeacherStudents() {
+        // 从当前登录用户获取教师ID
+        UserInfoToRedis currentUser = LoginContextHolder.getUserInfoToRedis();
+        if (currentUser == null || currentUser.getId() == null) {
+            return R.fail("用户未登录");
+        }
+        
+        Long teacherId = teacherService.getTeacherIdByUserId(currentUser.getId());
+        if (teacherId == null) {
+            return R.fail("当前用户不是教师");
+        }
+        
         return R.ok(teacherStatisticsService.countTeacherStudents(teacherId));
     }
 
     @ApiOperation("统计教师教材数量")
-    @PostMapping("/textbook-count/{teacherId}")
-    public R<Integer> countTeacherTextbooks(@PathVariable Long teacherId) {
+    @PostMapping("/textbook-count")
+    public R<Integer> countTeacherTextbooks() {
+        // 从当前登录用户获取教师ID
+        UserInfoToRedis currentUser = LoginContextHolder.getUserInfoToRedis();
+        if (currentUser == null || currentUser.getId() == null) {
+            return R.fail("用户未登录");
+        }
+        
+        Long teacherId = teacherService.getTeacherIdByUserId(currentUser.getId());
+        if (teacherId == null) {
+            return R.fail("当前用户不是教师");
+        }
+        
         return R.ok(teacherStatisticsService.countTeacherTextbooks(teacherId));
     }
 
     @ApiOperation("统计教师授课课程数量")
-    @PostMapping("/course-count/{teacherId}")
-    public R<Integer> countTeacherCourses(@PathVariable Long teacherId) {
+    @PostMapping("/course-count")
+    public R<Integer> countTeacherCourses() {
+        // 从当前登录用户获取教师ID
+        UserInfoToRedis currentUser = LoginContextHolder.getUserInfoToRedis();
+        if (currentUser == null || currentUser.getId() == null) {
+            return R.fail("用户未登录");
+        }
+        
+        Long teacherId = teacherService.getTeacherIdByUserId(currentUser.getId());
+        if (teacherId == null) {
+            return R.fail("当前用户不是教师");
+        }
+        
         return R.ok(teacherStatisticsService.countTeacherCourses(teacherId));
+    }
+
+    @ApiOperation("获取教师教材热度排名")
+    @PostMapping("/textbook-popularity")
+    public R<List<TeacherTextbookPopularityParam>> getTeacherTextbookPopularity() {
+        // 从当前登录用户获取教师ID
+        UserInfoToRedis currentUser = LoginContextHolder.getUserInfoToRedis();
+        if (currentUser == null || currentUser.getId() == null) {
+            return R.fail("用户未登录");
+        }
+        
+        Long teacherId = teacherService.getTeacherIdByUserId(currentUser.getId());
+        if (teacherId == null) {
+            return R.fail("当前用户不是教师");
+        }
+        
+        return R.ok(teacherStatisticsService.getTeacherTextbookPopularity(teacherId));
     }
 
     @ApiOperation("保存教师统计数据")

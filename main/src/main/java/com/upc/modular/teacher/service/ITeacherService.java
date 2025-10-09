@@ -49,4 +49,11 @@ public interface ITeacherService extends IService<Teacher> {
     void exportTeacher(HttpServletResponse response, exportTeacherSearchParam param);
 
     TeacherReturnVo getInformationByTeacherId(Long teacherId);
+
+    /**
+     * 根据用户ID获取教师ID
+     * @param userId 用户ID
+     * @return 教师ID
+     */
+    Long getTeacherIdByUserId(Long userId);
 }

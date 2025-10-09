@@ -3,6 +3,8 @@ package com.upc.modular.datastatistics.service;
 import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.datastatistics.entity.TeacherStatistics;
 
+import java.util.List;
+
 /**
  * 教师统计Service接口
  */
@@ -65,4 +67,11 @@ public interface ITeacherStatisticsService {
      * @return 班级学习行为分析
      */
     ClassBehaviorAnalysisReturnParam analyzeClassLearningBehavior(Long classId, String startTime, String endTime);
+
+    /**
+     * 获取教师教材热度排名
+     * @param teacherId 教师ID
+     * @return 教师教材热度列表
+     */
+    List<TeacherTextbookPopularityParam> getTeacherTextbookPopularity(Long teacherId);
 }

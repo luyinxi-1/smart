@@ -493,6 +493,12 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         return endParam;
     }
 
-
+    @Override
+    public Long getTeacherIdByUserId(Long userId) {
+        if (userId == null) {
+            return null;
+        }
+        return teacherMapper.getTeacherIdByUserId(userId);
+    }
 
 }

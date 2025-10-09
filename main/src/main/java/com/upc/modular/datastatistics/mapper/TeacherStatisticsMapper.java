@@ -75,4 +75,11 @@ public interface TeacherStatisticsMapper extends BaseMapper<TeacherStatistics> {
     Long getClassTotalCommunicationFeedbackNum(@Param("classId") Long classId,
                                                @Param("startTime") String startTime,
                                                @Param("endTime") String endTime);
+
+    /**
+     * 获取教师教材热度排名
+     * @param teacherId 教师ID
+     * @return 教材热度列表
+     */
+    List<Map<String, Object>> getTeacherTextbookPopularity(@Param("teacherId") Long teacherId);
 }

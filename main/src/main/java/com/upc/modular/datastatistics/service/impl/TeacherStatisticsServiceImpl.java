@@ -348,4 +348,28 @@ public class TeacherStatisticsServiceImpl extends ServiceImpl<TeacherStatisticsM
 
         return recommendation.toString();
     }
+
+    @Override
+    public List<TeacherTextbookPopularityParam> getTeacherTextbookPopularity(Long teacherId) {
+        List<Map<String, Object>> rawData = teacherStatisticsMapper.getTeacherTextbookPopularity(teacherId);
+        
+        List<TeacherTextbookPopularityParam> result = new ArrayList<>();
+        int rank = 1;
+        
+        for (Map<String, Object> data : rawData) {
+            TeacherTextbookPopularityParam param = new TeacherTextbookPopularityParam();
+            param.setRank(rank++);
+            param.setTextbookId(((Number) data.get("textbookId")).longValue());
+            param.setTextbookName((String) data.get("textbookName"));
+            param.setReaderCount(((Number) data.get("readerCount")).longValue());
+            param.setReadingDurationMinutes(((Number) data.get("readingDurationMinutes")).longValue());
+            param.setTeachingActivityCount(((Number) data.get("teachingActivityCount")).longValue());
+            param.setCommunicationFeedbackCount(((Number) data.get("communicationFeedbackCount")).longValue());
+            param.setPopularityScore(((Number) data.get("popularityScore")).intValue());
+            
+            result.add(param);
+        }
+        
+        return result;
+    }
 }

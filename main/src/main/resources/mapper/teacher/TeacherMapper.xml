@@ -89,5 +89,11 @@
             t.id = #{teacherId}
     </select>
 
+    <select id="getTeacherIdByUserId" resultType="java.lang.Long" parameterType="java.lang.Long">
+        SELECT id
+        FROM teacher
+        WHERE user_id = #{userId}
+    </select>
+
 
 </mapper>
