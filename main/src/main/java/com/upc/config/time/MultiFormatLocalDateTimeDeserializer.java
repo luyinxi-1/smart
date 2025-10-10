@@ -18,6 +18,11 @@ public class MultiFormatLocalDateTimeDeserializer extends JsonDeserializer<Local
     @Override
     public LocalDateTime deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
         String dateString = p.getText().trim();
+        
+        // 如果字符串为空或null，返回null
+        if (dateString == null || dateString.isEmpty()) {
+            return null;
+        }
 
         // 1. 尝试解析 "yyyy-MM-dd HH:mm:ss" 格式
         try {
