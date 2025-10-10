@@ -69,5 +69,8 @@ public class TextbookCatalog implements Serializable {
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
     private LocalDateTime operationDatetime;
 
+    @ApiModelProperty("章节uuid")
+    @TableField(value = "catalog_uuid")
+    private String catalogUuid;
 
 }

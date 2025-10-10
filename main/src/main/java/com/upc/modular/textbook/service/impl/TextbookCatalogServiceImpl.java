@@ -199,9 +199,9 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             // 插入
             textbookCatalogMapper.insert(entity);
 
-            // 建立临时ID映射
-            if (StringUtils.isNotBlank(p.getTemporaryId())) {
-                tempId2RealId.put(p.getTemporaryId(), entity.getId());
+
+            if (StringUtils.isNotBlank(p.getCatalogUuid())) {
+                tempId2RealId.put(p.getCatalogUuid(), entity.getId());
             }
         }
         return true;
@@ -231,8 +231,8 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             textbookCatalogMapper.insert(entity);
 
             // 建立批内临时ID映射（供后续条目引用）
-            if (StringUtils.isNotBlank(p.getTemporaryId())) {
-                tempId2RealId.put(p.getTemporaryId(), entity.getId());
+            if (StringUtils.isNotBlank(p.getCatalogUuid())) {
+                tempId2RealId.put(p.getCatalogUuid(), entity.getId());
             }
         }
         return true;

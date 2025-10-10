@@ -1,5 +1,6 @@
 package com.upc.modular.datastatistics.controller.param;
 
+import com.upc.modular.student.entity.Student;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;

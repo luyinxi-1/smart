@@ -12,9 +12,6 @@ public class TextbookCatalogInsertParam extends TextbookCatalog {
     @ApiModelProperty("临时父Id")
     private String temporaryParentId;
 
-    @ApiModelProperty("临时Id")
-    private String temporaryId;
-
     @ApiModelProperty("同级目录的id")
     private Long sameCatalogLevelId;
 
