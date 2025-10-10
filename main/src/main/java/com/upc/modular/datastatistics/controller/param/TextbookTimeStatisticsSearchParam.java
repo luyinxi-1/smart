@@ -14,12 +14,6 @@ public class TextbookTimeStatisticsSearchParam {
     @ApiModelProperty("教材ID")
     private Long textbookId;
 
-    @ApiModelProperty("时间查询方式（1 按年 2 按月 3 按日）")
-    private Integer queryMethod = 1;
-
-    @ApiModelProperty("开始时间")
-    private String startTime;
-
-    @ApiModelProperty("结束时间")
-    private String endTime;
+    @ApiModelProperty("时间范围筛选（week-本周，month-本月，year-本年）")
+    private String timeRange;
 } 
