@@ -71,16 +71,7 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
         queryWrapper.eq(Student::getUserId,userId);
         long studentId = studentMapper.selectOne(queryWrapper).getId();
 
-        /*// 2. 校验作答次数
-        LambdaQueryWrapper<StudentExercisesRecord> qw = new LambdaQueryWrapper<>();
-        qw.eq(StudentExercisesRecord::getStudentId, studentId)
-                .eq(StudentExercisesRecord::getTeachingQuestionBankId, request.getBankId());
-        long attemptCount = studentExercisesRecordMapper.selectCount(qw);
-        if (bank.getMaxAttempts() != null && attemptCount >= bank.getMaxAttempts()) {
-            throw new RuntimeException("作答次数已达上限！");
-        }*/
         // --- 【核心修改】2. 校验作答次数 ---
-        // 首先，检查“是否有次数限制”这个开关是否为 true
         LambdaQueryWrapper<StudentExercisesRecord> qw = new LambdaQueryWrapper<>();
         qw.eq(StudentExercisesRecord::getStudentId, studentId)
                 .eq(StudentExercisesRecord::getTeachingQuestionBankId, request.getBankId());
@@ -104,7 +95,6 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
         record.setStatus(1); // 1-待批改
         studentExercisesRecordMapper.insert(record);
         Long recordId = record.getId(); // 获取新生成的答卷ID
-
         // --- 流程 1.3: 保存答题明细 ---
         for (AnswerDetailDTO answerDTO : request.getAnswers()) {
             StudentExercisesContent content = new StudentExercisesContent();
@@ -116,7 +106,6 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
             content.setTeachingQuestionBankId(request.getBankId());
             studentExercisesContentMapper.insert(content);
         }
-
         // --- 流程 2: 同步执行自动判卷 (未来可替换为MQ(消息队列)) ---
         autoJudgement(recordId);
 
