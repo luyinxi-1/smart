@@ -91,6 +91,13 @@ public class StudentDataStatisticsController {
     public R<List<StudentStatisticsData>> countStudentTextbookReadingCurrentYear(){
         return R.ok(iStudentDataStatistics.countStudentCurrentTextbookRead());
     }
+    @ApiOperation("统计学生教材阅读排行榜")
+    @GetMapping("/textbook-rank")
+    public R<List<StudentTextbookRankParam>> countStudentTextbookReadingRank(){
+        return R.ok(iStudentDataStatistics.countStudentTextbookReadingRank());
+    }
+
+
     @ApiOperation("统计学生教材完成度")
     @GetMapping("/textbook-completion")
     public R<List<StudentTextbookCompletionReturnParam>> countStudentTextbookCompletion(){
