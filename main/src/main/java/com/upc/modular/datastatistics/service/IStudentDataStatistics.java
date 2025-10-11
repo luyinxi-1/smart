@@ -44,4 +44,6 @@ public interface IStudentDataStatistics extends IService<StudentStatisticsData> 
     StudentAnalysisReturnParam countStudentPersonalAnalysis(String startTime, String endTime);
 
     StudentTextbookSituationReturnParam countStudentTextbookSituation(Long textbookId);
+
+    List<StudentTextbookRankParam> countStudentTextbookReadingRank();
 }
