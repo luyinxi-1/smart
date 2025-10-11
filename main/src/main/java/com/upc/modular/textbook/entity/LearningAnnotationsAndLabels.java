@@ -59,5 +59,7 @@ public class LearningAnnotationsAndLabels implements Serializable {
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
     private LocalDateTime operationDatetime;
 
-
+    @ApiModelProperty("批注和标注在文章中的位置信息")
+    @TableField("position_info")
+    private String positionInfo;
 }

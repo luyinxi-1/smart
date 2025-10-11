@@ -103,8 +103,8 @@
             <if test="param.status != null">
                 AND hpn.status = #{param.status}
             </if>
-            <if test="param.deadlineBefore != null">
-                AND hpn.deadline &lt; #{param.deadlineBefore}
+            <if test="param.deadlineAfter != null">
+                AND (hpn.deadline IS NULL OR hpn.deadline &gt; #{param.deadlineAfter})
             </if>
         </where>
         ORDER BY

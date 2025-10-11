@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.DayOfWeek;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -107,13 +109,14 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
     private List<TextbookTimeStatisticsReturnParam> calculateCommunicationFeedbackStatisticsByTime(TextbookTimeStatisticsSearchParam param) {
         // 获取交流反馈记录
         List<DiscussionTopicReply> records;
-        if (param.getStartTime() != null && param.getEndTime() != null) {
-            // 转换时间格式
-            String formattedStartTime = formatTimeForDatabase(param.getStartTime(), param.getQueryMethod(), true);
-            String formattedEndTime = formatTimeForDatabase(param.getEndTime(), param.getQueryMethod(), false);
-
-            records = teacherTextbookStatisticsMapper.findCommunicationFeedbackByTextbookIdAndTime(
-                    param.getTextbookId(), formattedStartTime, formattedEndTime);
+        if (param.getTimeRange() != null && !param.getTimeRange().isEmpty()) {
+            String[] timeRange = getTimeRangeByType(param.getTimeRange());
+            if (timeRange != null) {
+                records = teacherTextbookStatisticsMapper.findCommunicationFeedbackByTextbookIdAndTime(
+                        param.getTextbookId(), timeRange[0], timeRange[1]);
+            } else {
+                records = teacherTextbookStatisticsMapper.findCommunicationFeedbackByTextbookId(param.getTextbookId());
+            }
         } else {
             records = teacherTextbookStatisticsMapper.findCommunicationFeedbackByTextbookId(param.getTextbookId());
         }
@@ -127,8 +130,8 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
 
         for (DiscussionTopicReply reply : records) {
             if (reply.getAddDatetime() != null) {
-                // 根据查询方式格式化时间
-                String timeKey = formatTimeByQueryMethod(reply.getAddDatetime(), param.getQueryMethod());
+                // 根据时间范围类型格式化时间
+                String timeKey = formatTimeByRangeType(reply.getAddDatetime(), param.getTimeRange());
                 timeFeedbackMap.put(timeKey, timeFeedbackMap.getOrDefault(timeKey, 0L) + 1);
             }
         }
@@ -210,13 +213,14 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
         
         // 获取学习日志记录
         List<LearningLog> records;
-        if (param.getStartTime() != null && param.getEndTime() != null) {
-            // 转换时间格式
-            String formattedStartTime = formatTimeForDatabase(param.getStartTime(), param.getQueryMethod(), true);
-            String formattedEndTime = formatTimeForDatabase(param.getEndTime(), param.getQueryMethod(), false);
-            
-            records = teacherTextbookStatisticsMapper.findLearningLogsByTextbookIdAndTime(
-                    param.getTextbookId(), formattedStartTime, formattedEndTime);
+        if (param.getTimeRange() != null && !param.getTimeRange().isEmpty()) {
+            String[] timeRange = getTimeRangeByType(param.getTimeRange());
+            if (timeRange != null) {
+                records = teacherTextbookStatisticsMapper.findLearningLogsByTextbookIdAndTime(
+                        param.getTextbookId(), timeRange[0], timeRange[1]);
+            } else {
+                records = teacherTextbookStatisticsMapper.findLearningLogsByTextbookId(param.getTextbookId());
+            }
         } else {
             records = teacherTextbookStatisticsMapper.findLearningLogsByTextbookId(param.getTextbookId());
         }
@@ -250,8 +254,8 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
                 long seconds = duration.getSeconds();
                 
                 if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
-                    // 根据查询方式格式化时间
-                    String timeKey = formatTimeByQueryMethod(currentAddDatetime, param.getQueryMethod());
+                    // 根据时间范围类型格式化时间
+                    String timeKey = formatTimeByRangeType(currentAddDatetime, param.getTimeRange());
                     timeReadingMap.put(timeKey, timeReadingMap.getOrDefault(timeKey, 0L) + 1);
                 }
             }
@@ -274,56 +278,54 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
     }
 
     /**
-     * 将前端传入的时间格式转换为数据库可识别的格式
-     * @param timeStr 前端传入的时间字符串
-     * @param queryMethod 查询方式（1-按日，2-按月，3-按年）
-     * @param isStartTime 是否为开始时间
-     * @return 格式化后的时间字符串
+     * 根据时间范围类型获取开始和结束时间
+     * @param timeRange 时间范围类型
+     * @return 包含开始时间和结束时间的数组 [startTime, endTime]
      */
-    private String formatTimeForDatabase(String timeStr, Integer queryMethod, boolean isStartTime) {
-        if (queryMethod == null) {
-            queryMethod = 1; // 默认按日
-        }
+    private String[] getTimeRangeByType(String timeRange) {
+        LocalDate now = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         
-        switch (queryMethod) {
-            case 1: // 按日 - 格式：2024-01-15
-                return timeStr; // 已经是完整日期格式
-            case 2: // 按月 - 格式：2024-01
-                if (isStartTime) {
-                    return timeStr + "-01"; // 月初：2024-01-01
-                } else {
-                    return timeStr + "-31"; // 月末：2024-01-31
-                }
-            case 3: // 按年 - 格式：2024
-                if (isStartTime) {
-                    return timeStr + "-01-01"; // 年初：2024-01-01
-                } else {
-                    return timeStr + "-12-31"; // 年末：2024-12-31
-                }
+        switch (timeRange.toLowerCase()) {
+            case "week":
+                // 本周：从本周一开始到今天
+                LocalDate startOfWeek = now.with(DayOfWeek.MONDAY);
+                return new String[]{startOfWeek.format(formatter), now.format(formatter)};
+            case "month":
+                // 本月：从本月1号到今天
+                LocalDate startOfMonth = now.withDayOfMonth(1);
+                return new String[]{startOfMonth.format(formatter), now.format(formatter)};
+            case "year":
+                // 本年：从今年1月1号到今天
+                LocalDate startOfYear = now.withDayOfYear(1);
+                return new String[]{startOfYear.format(formatter), now.format(formatter)};
             default:
-                return timeStr;
+                // 默认返回null，表示不限制时间范围
+                return null;
         }
     }
 
     /**
-     * 根据查询方式格式化时间
+     * 根据时间范围类型格式化时间
      * @param dateTime 时间
-     * @param queryMethod 查询方式（1-按日，2-按月，3-按年）
+     * @param timeRange 时间范围类型（week/month/year）
      * @return 格式化后的时间字符串
      */
-    private String formatTimeByQueryMethod(LocalDateTime dateTime, Integer queryMethod) {
-        if (queryMethod == null) {
-            queryMethod = 1; // 默认按日
+    private String formatTimeByRangeType(LocalDateTime dateTime, String timeRange) {
+        if (timeRange == null || timeRange.isEmpty()) {
+            return dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         }
-
-        switch (queryMethod) {
-            case 1: // 按日
+        
+        switch (timeRange.toLowerCase()) {
+            case "week":
+            case "month":
+                // 按日显示
                 return dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            case 2: // 按月
+            case "year":
+                // 按月显示
                 return dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM"));
-            case 3: // 按年
-                return dateTime.format(DateTimeFormatter.ofPattern("yyyy"));
             default:
+                // 默认按日显示
                 return dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         }
     }

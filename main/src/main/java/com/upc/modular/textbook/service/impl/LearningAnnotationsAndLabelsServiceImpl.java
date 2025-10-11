@@ -15,7 +15,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -56,6 +55,7 @@ public class LearningAnnotationsAndLabelsServiceImpl extends ServiceImpl<Learnin
         LearningAnnotationsAndLabels result = new LearningAnnotationsAndLabels();
         BeanUtils.copyProperties(learningAnnotationsAndLabels.get(0), result);
         result.setContent(param.getContent());
+        result.setPositionInfo(param.getPositionInfo());
         return this.updateById(result);
     }
 
