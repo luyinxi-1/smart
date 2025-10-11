@@ -29,6 +29,7 @@ import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import com.upc.modular.textbook.mapper.TextbookMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,7 @@ import java.util.stream.Collectors;
  * @author byh
  * @since 2025-07-04
  */
+@Slf4j
 @Service
 public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestionBankMapper, TeachingQuestionBank> implements ITeachingQuestionBankService {
 
@@ -236,66 +238,6 @@ public Long inserQuestionBank(TeachingQuestionBank param) {
         // updateById 会根据 teachingQuestionbank 对象的ID去更新其他非空字段
         this.updateById(teachingQuestionbank);
     }
-   /* @Override
-    @Transactional(rollbackFor = Exception.class) // 开启事务
-    public void updateQuestionBankBatch(List<TeachingQuestionBank> teachingQuestionBanks) {
-        if (CollectionUtils.isEmpty(teachingQuestionBanks)) {
-            return; // 列表为空，直接返回
-        }
-        // 1. 提取所有待更新记录的ID，并检查ID是否存在
-        List<Long> questionBankIds = teachingQuestionBanks.stream()
-                .map(TeachingQuestionBank::getId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-
-        if (questionBankIds.size() != teachingQuestionBanks.size()) {
-            throw new RuntimeException("更新失败，部分题库记录未提供ID！");
-        }
-
-        List<TeachingQuestionBank> oldQuestionBanks = this.listByIds(questionBankIds);
-        if (oldQuestionBanks.size() != questionBankIds.size()) {
-            List<Long> foundIds = oldQuestionBanks.stream().map(TeachingQuestionBank::getId).collect(Collectors.toList());
-            questionBankIds.removeAll(foundIds);
-            throw new RuntimeException("ID为 " + questionBankIds.stream().map(String::valueOf).collect(Collectors.joining(",")) + " 的题库不存在，无法更新！");
-        }
-
-        Map<Long, TeachingQuestionBank> oldBankMap = oldQuestionBanks.stream()
-                .collect(Collectors.toMap(TeachingQuestionBank::getId, bank -> bank));
-
-        Set<Long> textbookIdsToValidate = teachingQuestionBanks.stream()
-                .filter(newBank -> {
-                    TeachingQuestionBank oldBank = oldBankMap.get(newBank.getId());
-                    // 如果新传入的 textbookId 不为空，且与旧值不同，则需要校验
-                    return newBank.getTextbookId() != null && !newBank.getTextbookId().equals(oldBank.getTextbookId());
-                })
-                .map(TeachingQuestionBank::getTextbookId)
-                .collect(Collectors.toSet());
-
-        Set<Long> catalogIdsToValidate = teachingQuestionBanks.stream()
-                .filter(newBank -> {
-                    TeachingQuestionBank oldBank = oldBankMap.get(newBank.getId());
-                    // 如果新传入的 textbookCatalogId 不为空，且与旧值不同，则需要校验
-                    return newBank.getTextbookCatalogId() != null && !newBank.getTextbookCatalogId().equals(oldBank.getTextbookCatalogId());
-                })
-                .map(TeachingQuestionBank::getTextbookCatalogId)
-                .collect(Collectors.toSet());
-
-        if (!CollectionUtils.isEmpty(textbookIdsToValidate)) {
-            long count = textbookMapper.selectCount(new LambdaQueryWrapper<Textbook>().in(Textbook::getId, textbookIdsToValidate));
-            if (count != textbookIdsToValidate.size()) {
-                throw new RuntimeException("更新失败，部分指定的教材ID不存在！"); // 可进一步精确提示哪个ID不存在
-            }
-        }
-        if (!CollectionUtils.isEmpty(catalogIdsToValidate)) {
-            long count = textbookCatalogMapper.selectCount(new LambdaQueryWrapper<TextbookCatalog>().in(TextbookCatalog::getId, catalogIdsToValidate));
-            if (count != catalogIdsToValidate.size()) {
-                throw new RuntimeException("更新失败，部分指定的教材目录ID不存在！"); // 可进一步精确提示哪个ID不存在
-            }
-        }
-        // 5. 所有校验通过，执行批量更新
-        this.updateBatchById(teachingQuestionBanks);
-    }*/
-    // TeachingQuestionBankServiceImpl.java
 
     @Override
     @Transactional(rollbackFor = Exception.class) // 事务保持不变
@@ -491,6 +433,8 @@ public Long inserQuestionBank(TeachingQuestionBank param) {
 
     @Override
     public Page<GradingSituationReturnVO> getGradingSituationPage(GradingSituationSearchParam param) {
+        // 调试日志：检查传入的参数值
+        log.info("开始分页查询答题情况，参数 bankId: {}", param.getBankId());
         Page<GradingSituationReturnVO> page = new Page<>(param.getCurrent(), param.getSize());
         return teachingQuestionBankMapper.selectGradingSituationPage(page, param);
     }

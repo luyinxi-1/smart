@@ -42,10 +42,10 @@ public class CodeGeneratorConfig {
 //        String url = "jdbc:mysql://119.186.61.60/future_village";
 //        String url = "jdbc:mysql://182.254.147.39/village";
 //        String url = "jdbc:mysql://27.223.88.150:10003/new_restructure";
-        String url = "jdbc:kingbase8://60.217.24.89:54321/kingbase";
+        String url = "jdbc:kingbase8://60.217.79.150:54321/my_new_";
 //String url = "jdbc:sqlite:C:\\Users\\Administrator\\.SmartTextbook\\client.db";
         String username = "system";
-        String password = "c505";
+        String password = "123456";
 
         FastAutoGenerator.create(url, username, password)
                 // 全局配置

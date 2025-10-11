@@ -105,7 +105,6 @@ public R<List<Long>> updateQuestionBankBatch(@RequestBody List<TeachingQuestionB
     @ApiOperation("点击教材题库后的页面")
     @PostMapping("/listWithStatus")
     public R<List<QuestionBankWithStatusVO>> getQuestionBanksWithStatus(@RequestBody QuestionBankWithStatusSearchParam param) {
-        // 移除不必要的teacherId获取逻辑，因为SQL查询中并未使用此参数
         List<QuestionBankWithStatusVO> result = teachingQuestionBankService.getQuestionBanksWithStatusForTextbook(param);
         return R.ok(result);
     }
@@ -131,7 +130,6 @@ public R<List<Long>> updateQuestionBankBatch(@RequestBody List<TeachingQuestionB
         teachingQuestionBankService.gradeSubjectiveQuestion(request);
         return R.commonReturn(200, "评分成功", null);
     }
-
 
     @ApiOperation("点击教材题库-点击批阅-题库批阅-分页查询待批改题目列表")
     @PostMapping("/getPendingReviewPage")
