@@ -47,9 +47,13 @@ public class TeachingQuestionBank implements Serializable {
     @TableField("textbook_id")
     private Long textbookId;
 
-    @ApiModelProperty("关联的教材目录")
+    @ApiModelProperty("关联的教材目录Id")
     @TableField("textbook_catalog_id")
     private Long textbookCatalogId;
+
+    @ApiModelProperty("关联的教材目录UUid")
+    @TableField(exist = false)
+    private String textbookCatalogUuId;
 
     @ApiModelProperty("是否限制答题次数（0:不限制，1:限制）")
     @TableField("is_limit_attempts")

@@ -64,17 +64,10 @@ public class TeachingQuestionBankController {
         return R.commonReturn(200, "修改成功", "");
     }
 
-/*    @ApiOperation("批量更新题库信息")
-    @PostMapping("/updateQuestionBankBatch")
-    public R updateQuestionBankBatch(@RequestBody List<TeachingQuestionBank> teachingQuestionBanks) {
-        teachingQuestionBankService.updateQuestionBankBatch(teachingQuestionBanks);
-        return R.commonReturn(200, "批量修改成功", "");
-    }*/
 @ApiOperation("批量更新题库信息")
 @PostMapping("/updateQuestionBankBatch")
 public R<List<Long>> updateQuestionBankBatch(@RequestBody List<TeachingQuestionBank> teachingQuestionBanks) {
     List<Long> updatedIds = teachingQuestionBankService.updateQuestionBankBatch(teachingQuestionBanks);
-    // 使用 R.ok() 或类似的成功方法来包装返回的数据
     return R.commonReturn(200, "批量修改成功", updatedIds);
 }
 

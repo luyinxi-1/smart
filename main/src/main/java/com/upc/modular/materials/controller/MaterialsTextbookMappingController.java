@@ -46,13 +46,13 @@ public class MaterialsTextbookMappingController {
     }
     @ApiOperation(value = "添加素材到教材")
     @PostMapping("/insert-mapping")
-    public R insertMapping(Long textbookId, Long materialId, String chapterName, String chapterId) {
-        Long newId =materialsTextbookMappingService.insertMapping(textbookId, materialId, chapterName, chapterId);
-        if (newId != null)
+    public R insertMapping(Long textbookId, Long materialId, String chapterName, Long chapterId, String chapterUuid) {
+        Long newId = materialsTextbookMappingService.insertMapping(textbookId, materialId, chapterName, chapterId, chapterUuid);
+        if (newId != null) {
             return R.ok(newId);
+        }
         return R.fail("添加失败");
     }
-
     @ApiOperation(value = "批量添加教材与素材的关联")
     @PostMapping("/insert-mapping-batch")
     public R insertMappingBatch(@Valid @RequestBody List<MaterialsTextbookMappingDto> mappings) {
@@ -63,6 +63,7 @@ public class MaterialsTextbookMappingController {
             return R.fail(e.getMessage());
         }
     }
+
     @ApiOperation(value = "教材素材绑定ID查询教学素材详细信息")
     @PostMapping("/get-materials-by-mappingid")
     public R<TeachingMaterialsReturnVo> getMaterialsByMappingId(Long id) {

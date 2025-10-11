@@ -21,7 +21,7 @@ import java.util.List;
  */
 public interface IMaterialsTextbookMappingService extends IService<MaterialsTextbookMapping> {
 
-    Long insertMapping(Long textbookId, Long materialId, String chapterName, String chapterId);
+    Long insertMapping(Long textbookId, Long materialId, String chapterName, Long chapterId, String chapterUuid);
     /**
      * 批量添加多条独立的教材与素材的映射关系
      *
@@ -30,5 +30,6 @@ public interface IMaterialsTextbookMappingService extends IService<MaterialsText
      */
     List<Long> insertMappingBatch(List<MaterialsTextbookMappingDto> mappings);
     Page<MaterialsTextbookMappingReturnParam> getPage(MaterialsTextbookMappingPageSearchParam param);
+
     TeachingMaterialsReturnVo getMaterialsByMappingId(Long id);
 }
