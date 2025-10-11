@@ -26,6 +26,6 @@ public class HomePageNoticePageSearchParam extends PageBaseSearchParam {
 
     @ApiModelProperty("截止日期筛选")
     @JsonDeserialize(using = MultiFormatLocalDateTimeDeserializer.class)
-    private LocalDateTime deadlineBefore;
+    private LocalDateTime deadlineAfter;
 
 }
