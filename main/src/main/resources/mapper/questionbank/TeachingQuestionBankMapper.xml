@@ -67,6 +67,9 @@
             <if test="param.scorePolicy != null">
                 AND t.score_policy = #{param.scorePolicy}
             </if>
+            <if test="param.isUnbound != null and param.isUnbound == 1">
+                AND t.textbook_catalog_id IS NULL
+            </if>
         </where>
         GROUP BY
         t.id, t.name, t.description, t.status, t.textbook_id,
