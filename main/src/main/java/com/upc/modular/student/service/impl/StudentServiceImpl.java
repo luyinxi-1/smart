@@ -251,7 +251,7 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
 // 文件位置: StudentServiceImpl.java
 
     @Override
-    public ImportStudentReturnVo importStudentData(MultipartFile file) {
+    public ImportStudentReturnVo importStudentData(MultipartFile file,Long classId) {
         // 1. 预加载数据
         Map<String, Student> existStudentMap = this.list().stream()
                 .filter(s -> ObjectUtils.isNotEmpty(s.getIdentityId()))
@@ -286,7 +286,8 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
                 existStudentMap,
                 classMap,
                 institutionMap,  //<-- 现在 institutionMap 变量存在了，不再报错
-                studentRoleId
+                studentRoleId,
+                classId
         );
 
         // 4. 读取Excel
@@ -585,6 +586,44 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         }
 
         return param;
+    }
+
+    @Override
+    public void exportStudentTemplate(HttpServletResponse response) {
+        try {
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setCharacterEncoding("utf-8");
+            String fileName = URLEncoder.encode("学生导入模板", "UTF-8").replaceAll("\\+", "%20");
+            response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+
+            // 创建模板数据
+            List<StudentImportDto> templateData = new ArrayList<>();
+
+            // 添加示例行
+            StudentImportDto example = new StudentImportDto();
+            example.setIdentityId("示例：20250001");
+            example.setIdcard("示例：11010119900307XXXX");
+            example.setName("示例：张三");
+            example.setClassName("示例：计算机科学与技术2025级1班");
+            example.setPhone("示例：13800138000");
+            example.setAccountStatus(1);
+            example.setPosition("示例：学生");
+            example.setGender("示例：男");
+            // 注意：LocalDateTime字段需要特殊处理
+            example.setEmail("示例：zhangsan@example.com");
+            example.setRemark("示例：备注信息");
+            example.setIdPhoto("示例：照片路径");
+            templateData.add(example);
+
+            // 使用 EasyExcel 写出模板
+            EasyExcel.write(response.getOutputStream(), StudentImportDto.class)
+                    .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
+                    .sheet("学生导入模板")
+                    .doWrite(templateData);
+
+        } catch (IOException e) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "模板导出失败: " + e.getMessage());
+        }
     }
 
 
