@@ -16,6 +16,7 @@
         m.id,
         m.material_id,
         m.textbook_id,
+        m.chapter_id AS chapterId,
         t.name,
         t.type,
         m.chapter_name,

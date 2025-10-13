@@ -18,6 +18,9 @@ public class MaterialsTextbookMappingReturnParam {
     @ApiModelProperty("教材id")
     private Long textbookId;
 
+    @ApiModelProperty("章节id")
+    private Long chapterId;
+
     @ApiModelProperty("素材名称")
     private String name;
 
