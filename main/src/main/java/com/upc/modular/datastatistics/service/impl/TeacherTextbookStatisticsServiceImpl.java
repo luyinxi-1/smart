@@ -211,26 +211,33 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
         final long MIN_DIFF_SECONDS = 55;
         final long MAX_DIFF_SECONDS = 65;
         
-        // 获取学习日志记录
+        // 获取学习日志记录，只获取data_type=0的记录（有效阅读行为）
         List<LearningLog> records;
         if (param.getTimeRange() != null && !param.getTimeRange().isEmpty()) {
             String[] timeRange = getTimeRangeByType(param.getTimeRange());
             if (timeRange != null) {
                 records = teacherTextbookStatisticsMapper.findLearningLogsByTextbookIdAndTime(
-                        param.getTextbookId(), timeRange[0], timeRange[1]);
+                        param.getTextbookId(), timeRange[0], timeRange[1]).stream()
+                        .filter(log -> log.getDataType() == 0)
+                        .collect(Collectors.toList());
             } else {
-                records = teacherTextbookStatisticsMapper.findLearningLogsByTextbookId(param.getTextbookId());
+                records = teacherTextbookStatisticsMapper.findLearningLogsByTextbookId(param.getTextbookId()).stream()
+                        .filter(log -> log.getDataType() == 0)
+                        .collect(Collectors.toList());
             }
         } else {
-            records = teacherTextbookStatisticsMapper.findLearningLogsByTextbookId(param.getTextbookId());
+            records = teacherTextbookStatisticsMapper.findLearningLogsByTextbookId(param.getTextbookId()).stream()
+                    .filter(log -> log.getDataType() == 0)
+                    .collect(Collectors.toList());
         }
         
         if (records == null || records.size() < 2) {
             return new ArrayList<>();
         }
         
-        // 按用户分组
+        // 按用户分组，过滤掉creator为null的记录
         Map<Long, List<LearningLog>> userRecordsMap = records.stream()
+                .filter(log -> log.getCreator() != null)  // 过滤掉creator为null的记录
                 .collect(Collectors.groupingBy(LearningLog::getCreator));
         
         // 按时间维度统计
@@ -271,8 +278,17 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
             result.add(returnParam);
         }
         
-        // 按时间排序
-        result.sort(Comparator.comparing(TextbookTimeStatisticsReturnParam::getTime));
+        // 按时间排序，使用专门的比较器处理不同格式的时间字符串
+        result.sort((o1, o2) -> {
+            String time1 = o1.getTime();
+            String time2 = o2.getTime();
+            
+            // 统一格式化为可比较的形式
+            String formattedTime1 = formatTimeStringForSorting(time1);
+            String formattedTime2 = formatTimeStringForSorting(time2);
+            
+            return formattedTime1.compareTo(formattedTime2);
+        });
         
         return result;
     }
@@ -303,6 +319,24 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
                 // 默认返回null，表示不限制时间范围
                 return null;
         }
+    }
+
+    /**
+     * 格式化时间字符串用于排序
+     * @param timeString 时间字符串
+     * @return 格式化后的时间字符串
+     */
+    private String formatTimeStringForSorting(String timeString) {
+        if (timeString == null || timeString.isEmpty()) {
+            return timeString;
+        }
+        
+        // 如果是年月格式(yyyy-MM)，补充为日期格式(yyyy-MM-dd)
+        if (timeString.length() == 7 && timeString.charAt(4) == '-') {
+            return timeString + "-01";
+        }
+        
+        return timeString;
     }
 
     /**

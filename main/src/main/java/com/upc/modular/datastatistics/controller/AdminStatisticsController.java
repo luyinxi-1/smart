@@ -43,23 +43,4 @@ public class AdminStatisticsController {
             return R.fail("获取类型阅读时长排名失败: " + e.getMessage());
         }
     }
-    
-    /**
-     * 获取指定学生在某教材下各章节的掌握度
-     * @param studentId 学生ID
-     * @param textbookId 教材ID
-     * @return 章节掌握度列表
-     */
-    @ApiOperation("获取指定学生在某教材下各章节的掌握度")
-    @PostMapping("/student-chapter-mastery")
-    public R<List<ChapterMasteryVO>> getStudentChapterMastery(
-            @ApiParam(value = "学生ID", required = true) @RequestParam Long studentId,
-            @ApiParam(value = "教材ID", required = true) @RequestParam Long textbookId) {
-        try {
-            List<ChapterMasteryVO> result = systemStatisticsService.getStudentChapterMastery(studentId, textbookId);
-            return R.ok(result);
-        } catch (Exception e) {
-            return R.fail("获取学生章节掌握度失败: " + e.getMessage());
-        }
-    }
 }
