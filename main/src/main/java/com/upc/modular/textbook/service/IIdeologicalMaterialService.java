@@ -31,5 +31,5 @@ public interface IIdeologicalMaterialService extends IService<IdeologicalMateria
      * 批量更新教学思政的章节ID
      * @param param 批量更新参数
      */
-    void batchUpdateCatalog(IdeologicalMaterialBatchUpdateCatalogParam param);
+    void batchUpdateCatalog(List<IdeologicalMaterialBatchUpdateCatalogParam> param);
 }

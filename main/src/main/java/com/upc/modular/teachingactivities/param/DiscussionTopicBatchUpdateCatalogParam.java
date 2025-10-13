@@ -14,8 +14,11 @@ import java.util.List;
 public class DiscussionTopicBatchUpdateCatalogParam {
 
     @ApiModelProperty(value = "教学活动ID列表", required = true)
-    private List<Long> ids;
+    private Long id;
 
-    @ApiModelProperty(value = "教材目录ID（章节ID）", required = true)
+    @ApiModelProperty(value = "教材目录ID（章节ID）")
     private Long textbookCatalogId;
+
+    @ApiModelProperty(value = "教材目录UUID（章节UUID）")
+    private String textbookCatalogUuid;
 }
