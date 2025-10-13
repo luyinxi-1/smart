@@ -30,4 +30,7 @@ public class TeachingQuestionBankPageSearchParam extends PageBaseSearchParam {
 
     @ApiModelProperty("成绩取法（如0：最高分、1：平均分、2：最后一次）")
     private Integer scorePolicy;
+
+    @ApiModelProperty("是否只查询未绑定题库(0 否 1是)")
+    private Integer isUnbound = 0;
 }
