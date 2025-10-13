@@ -282,19 +282,50 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void batchUpdateCatalog(DiscussionTopicBatchUpdateCatalogParam param) {
-        if (param == null || CollectionUtils.isEmpty(param.getIds()) || param.getTextbookCatalogId() == null) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+    public void batchUpdateCatalog(List<DiscussionTopicBatchUpdateCatalogParam> params) {
+        // 1. 基本参数校验
+        if (CollectionUtils.isEmpty(params)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "请求参数列表不能为空");
         }
-        
-        // 批量更新章节ID
-        LambdaQueryWrapper<DiscussionTopic> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.in(DiscussionTopic::getId, param.getIds());
-        
-        DiscussionTopic updateEntity = new DiscussionTopic();
-        updateEntity.setTextbookCatalogId(param.getTextbookCatalogId());
-        
-        this.update(updateEntity, queryWrapper);
+
+        // 2. 遍历参数列表进行逐个更新
+        for (DiscussionTopicBatchUpdateCatalogParam param : params) {
+            if (param.getId() == null) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教学活动ID不能为空");
+            }
+
+            // 校验章节ID和临时UUID至少要有一个
+            if (param.getTextbookCatalogId() == null && StringUtils.isEmpty(param.getTextbookCatalogUuid())) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR,
+                        "更新ID为 " + param.getId() + " 的活动时，章节ID和章节UUID必须至少提供一个");
+            }
+
+            Long finalCatalogId;
+
+            // 优先使用章节ID
+            if (param.getTextbookCatalogId() != null) {
+                finalCatalogId = param.getTextbookCatalogId();
+            } else {
+                // 如果章节ID为空，则使用临时UUID去数据库查询对应的ID
+                TextbookCatalog textbookCatalog = textbookCatalogService.getOne(new LambdaQueryWrapper<TextbookCatalog>()
+                        .eq(TextbookCatalog::getCatalogUuid, param.getTextbookCatalogUuid()));
+
+                // 如果根据UUID没有找到对应的章节，则抛出异常
+                if (textbookCatalog == null) {
+                    throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR,
+                            "根据提供的UUID: " + param.getTextbookCatalogUuid() + " 未找到对应的章节");
+                }
+                finalCatalogId = textbookCatalog.getId();
+            }
+
+            // 3. 执行单条更新
+            DiscussionTopic updateEntity = new DiscussionTopic();
+            updateEntity.setId(param.getId());
+            updateEntity.setTextbookCatalogId(finalCatalogId);
+
+            // 使用 updateById 方法进行更新，更为精确和高效
+            this.updateById(updateEntity);
+        }
     }
 
 }

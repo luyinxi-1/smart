@@ -34,5 +34,5 @@ public interface IDiscussionTopicService extends IService<DiscussionTopic> {
      * 批量更新教学活动的章节ID
      * @param param 批量更新参数
      */
-    void batchUpdateCatalog(DiscussionTopicBatchUpdateCatalogParam param);
+    void batchUpdateCatalog(List<DiscussionTopicBatchUpdateCatalogParam> param);
 }

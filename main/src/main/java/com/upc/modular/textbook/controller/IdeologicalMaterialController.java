@@ -69,11 +69,11 @@ public class IdeologicalMaterialController {
         List<IdeologicalMaterial> ideologicalMaterialList = iIdeologicalMaterialService.getIdeologicalMaterialByConditions(param);
         return R.ok(ideologicalMaterialList);
     }
-    
-    @ApiOperation(value = "批量更新教学思政章节ID")
+
+    @ApiOperation(value = "批量更新教学思政/活动的章节ID")
     @PostMapping("/batchUpdateCatalog")
-    public R batchUpdateIdeologicalMaterialCatalog(@RequestBody IdeologicalMaterialBatchUpdateCatalogParam param) {
-        iIdeologicalMaterialService.batchUpdateCatalog(param);
+    public R batchUpdateIdeologicalMaterialCatalog(@RequestBody List<IdeologicalMaterialBatchUpdateCatalogParam> params) {
+        iIdeologicalMaterialService.batchUpdateCatalog(params);
         return R.commonReturn(200, "更新成功", "");
     }
 }

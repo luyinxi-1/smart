@@ -118,7 +118,7 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
         // 1. 创建分页对象，注意泛型是中间结果类型
         Page<TeachingQuestionBankPageMidReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
         // 2. 调用Mapper获取包含 creatorId 和 questionCount 的分页数据
-        Page<TeachingQuestionBankPageMidReturnParam> midResultPage = teachingQuestionBankMapper.selectQuestionBank(page, param,userId);
+        Page<TeachingQuestionBankPageMidReturnParam> midResultPage = teachingQuestionBankMapper.selectQuestionBank(page, param, userId);
         // --- 第二阶段：Java内存中数据处理和转换 ---
         List<TeachingQuestionBankPageMidReturnParam> midRecords = midResultPage.getRecords();
         // 如果查询结果为空，直接返回一个空的最终分页对象，保留分页信息

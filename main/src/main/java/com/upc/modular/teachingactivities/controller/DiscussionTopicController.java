@@ -76,11 +76,11 @@ public class DiscussionTopicController {
         List<MyJoinDiscussionTopicDiscussionTopicReturnParam> resultList = discussionTopicService.selectMyJoinDiscussionTopic(param);
         return R.ok(resultList);
     }
-    
+
     @ApiOperation(value = "批量更新教学活动章节ID")
     @PostMapping("/batchUpdateCatalog")
-    public R batchUpdateDiscussionTopicCatalog(@RequestBody DiscussionTopicBatchUpdateCatalogParam param) {
-        discussionTopicService.batchUpdateCatalog(param);
+    public R batchUpdateDiscussionTopicCatalog(@RequestBody List<DiscussionTopicBatchUpdateCatalogParam> params) {
+        discussionTopicService.batchUpdateCatalog(params);
         return R.commonReturn(200, "更新成功", "");
     }
 }

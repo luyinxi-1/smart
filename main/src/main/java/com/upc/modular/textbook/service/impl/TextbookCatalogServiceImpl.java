@@ -399,10 +399,12 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
                 .eq(Attachment::getObjectType, "textbook_catalog");
         attachmentService.remove(attachmentQueryWrapper);
         
-        // 2. 删除题库 (TeachingQuestionBank)
+        // 2. 清空题库中的章节ID字段 (TeachingQuestionBank)
         LambdaQueryWrapper<TeachingQuestionBank> questionBankQueryWrapper = new LambdaQueryWrapper<>();
         questionBankQueryWrapper.in(TeachingQuestionBank::getTextbookCatalogId, allIdsToDelete);
-        teachingQuestionBankService.remove(questionBankQueryWrapper);
+        TeachingQuestionBank updateQuestionBank = new TeachingQuestionBank();
+        updateQuestionBank.setTextbookCatalogId(null);
+        teachingQuestionBankService.update(updateQuestionBank, questionBankQueryWrapper);
         
         // 3. 删除教学活动 (DiscussionTopic)
         LambdaQueryWrapper<DiscussionTopic> discussionTopicQueryWrapper = new LambdaQueryWrapper<>();
