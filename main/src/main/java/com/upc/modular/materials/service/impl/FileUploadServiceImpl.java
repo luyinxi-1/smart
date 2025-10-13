@@ -28,21 +28,25 @@ public class FileUploadServiceImpl implements IFileUploadService {
         if (file == null || file.isEmpty()) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "上传文件不能为空");
         }
-
+        // 将 "ppt","word", "excel", "pdf" 统一映射为 "file" 类型
+        String processedType = type;
+        if ("word".equalsIgnoreCase(type) || "excel".equalsIgnoreCase(type) || "pdf".equalsIgnoreCase(type)||"ppt".equalsIgnoreCase(type)) {
+            processedType = "file";
+        }
         // 校验素材类型是否受支持 (假设您有一个支持的类型列表)
         // 注意：这里不再需要判断 "imageSet" 和 "link"
-        if (!TeachingMaterials.SUPPORTED_TYPES.contains(type)) {
+        if (!TeachingMaterials.SUPPORTED_TYPES.contains(processedType)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "不支持该素材类型: " + type);
         }
-
         // 2. 构建文件存储路径
         // 路径结构： basePath/teaching_materials/{type}/{yyyyMMdd}
-        Path folderPath = Paths.get(basePath, "teaching_materials", type, FileManageUtil.yyyyMMddStr());
+        // 这里将使用处理后的 processedType ("file") 来创建文件夹
+        Path folderPath = Paths.get(basePath, "teaching_materials", processedType, FileManageUtil.yyyyMMddStr());
 
         // 3. 生成唯一文件名
         String fileName = FileManageUtil.createFileName(file);
 
-        // 4. 执行文件上传（）
+        // 4. 执行文件上传
         String filePath = FileManageUtil.uploadFile(file, folderPath, fileName);
 
         // 5. 结果处理和返回
