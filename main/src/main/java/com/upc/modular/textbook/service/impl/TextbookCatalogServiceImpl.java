@@ -196,6 +196,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             entity.setSort(sort);
             sort += STEP;
 
+            entity.setCatalogUuid(p.getCatalogUuid());
             // 插入
             textbookCatalogMapper.insert(entity);
 
@@ -218,6 +219,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             entity.setCatalogName(p.getCatalogName());
             entity.setContent(p.getContent());
             entity.setCatalogLevel(p.getCatalogLevel());
+            entity.setCatalogUuid(p.getCatalogUuid());
 
             // 解析父ID：先用真实 fatherCatalogId；若为 0/空，再看 temporaryParentId
             Long fatherId = normalizeFatherId(p, tempId2RealId);
