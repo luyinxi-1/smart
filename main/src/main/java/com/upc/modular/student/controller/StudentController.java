@@ -82,18 +82,25 @@ public class StudentController {
     @ApiOperation("批量导入学生 Excel")
     @PostMapping("/importStudentData")
     @ResponseBody
-    public R<ImportStudentReturnVo> importPopulationData(MultipartFile file){
+    public R<ImportStudentReturnVo> importPopulationData(MultipartFile file,
+                                                         @RequestParam(required = false) Long classId){
         String fileName = file.getOriginalFilename();
         if (fileName.matches("^.+\\.(?i)(xls)$")) {
             //03版本excel,xls
             return R.fail("该文件类型已不支持，请使用07版本后缀为.xlsx版本导入");
         } else if (fileName.matches("^.+\\.(?i)(xlsx)$")) {
             //07版本,xlsx
-            return R.ok(studentService.importStudentData(file));
+            return R.ok(studentService.importStudentData(file,classId));
         }else{
             return R.fail("文件格式不支持，请使用xlsx");
         }
     }
+    @ApiOperation("下载学生导入模板")
+    @GetMapping("/exportStudentTemplate")
+    public void exportStudentTemplate(HttpServletResponse response) {
+        studentService.exportStudentTemplate(response);
+    }
+
     @ApiOperation("根据用户ID查询学生的用户信息")
     @PostMapping("/getStudentUser")
     public R<SysTbuser> getStudentUser(@RequestBody StudentReturnVo param) {

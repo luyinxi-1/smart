@@ -42,9 +42,10 @@ private final IUserClassListService userClassListService;
 private final Map<String, Long> classMap;
 private final Map<String, Long> institutionMap;
 private final Long studentRoleId;
+private final Long forcedClassId;
 
 
-        List<SysTbuser> userInsertList = new ArrayList<>(BATCH_COUNT);
+    List<SysTbuser> userInsertList = new ArrayList<>(BATCH_COUNT);
         List<Student> studentInsertList = new ArrayList<>(BATCH_COUNT);
         List<UserRoleList> userRoleInsertList = new ArrayList<>(BATCH_COUNT);
         List<UserClassList> userClassInsertList = new ArrayList<>(BATCH_COUNT);
@@ -67,7 +68,8 @@ public StudentListener(StudentServiceImpl studentService,
         Map<String, Student> existStudentMap,
         Map<String, Long> classMap,
         Map<String, Long> institutionMap,
-        Long studentRoleId) {
+        Long studentRoleId,
+        Long forcedClassId) {
                 this.studentService = studentService;
                 this.sysUserService = sysUserService;
                 this.userRoleListService = userRoleListService;
@@ -76,33 +78,38 @@ public StudentListener(StudentServiceImpl studentService,
                 this.classMap = classMap;
                 this.institutionMap = institutionMap;
                 this.studentRoleId = studentRoleId;
+                this.forcedClassId = forcedClassId;
         }
 
         @Override
 public void invoke(StudentImportDto dto, AnalysisContext context) {
-        try {
+    try {
         int rowIndex = context.readRowHolder().getRowIndex() + 1;
 
         String identityId = dto.getIdentityId();
         if (StringUtils.isBlank(identityId)) {
-        // *** 关键修改：添加 StudentImportErrorDto 实例 ***
-        errorList.add(new StudentImportErrorDto().setErrorReason("第" + rowIndex + "行：学号不能为空"));
-        return;
+            // *** 关键修改：添加 StudentImportErrorDto 实例 ***
+            errorList.add(new StudentImportErrorDto().setErrorReason("第" + rowIndex + "行：学号不能为空"));
+            return;
         }
         if (StringUtils.isBlank(dto.getName())) {
-        // *** 关键修改：添加 StudentImportErrorDto 实例 ***
-        errorList.add(new StudentImportErrorDto().setErrorReason("第" + rowIndex + "行：姓名不能为空，学号: " + identityId));
-        return;
+            // *** 关键修改：添加 StudentImportErrorDto 实例 ***
+            errorList.add(new StudentImportErrorDto().setErrorReason("第" + rowIndex + "行：姓名不能为空，学号: " + identityId));
+            return;
         }
 
-                String className = dto.getClassName();
-                Long classId = null; // 默认为 null
-                if (StringUtils.isNotBlank(className)) {
-                        classId = classMap.get(className);
-                        if (classId == null) {
-                                // (可选) 如果你仍然想在最终的报告中看到这个警告，可以保留这行日志，但不要 return
-                                log.warn("第{}行：学号[{}]的班级名称[{}]在班级表中不存在，班级ID将设置为空。", rowIndex, identityId, className);
-                        }
+        String className = dto.getClassName();
+        Long classId = null; // 默认为 null
+        if(forcedClassId != null){
+            classId = forcedClassId;
+        }else{
+            if (StringUtils.isNotBlank(className)) {
+                    classId = classMap.get(className);
+                    if (classId == null) {
+                            // (可选) 如果你仍然想在最终的报告中看到这个警告，可以保留这行日志，但不要 return
+                            log.warn("第{}行：学号[{}]的班级名称[{}]在班级表中不存在，班级ID将设置为空。", rowIndex, identityId, className);
+                    }
+            }
         }
 
         Long institutionId = null;
@@ -154,12 +161,12 @@ public void invoke(StudentImportDto dto, AnalysisContext context) {
         if (studentInsertList.size() >= BATCH_COUNT || studentUpdateList.size() >= BATCH_COUNT) {
         saveData();
         clearLists();
-        }
-        } catch (Exception e) {
-        // *** 关键修改：添加 StudentImportErrorDto 实例 ***
-        errorList.add(new StudentImportErrorDto().setErrorReason("第" + (context.readRowHolder().getRowIndex() + 1) + "行：处理异常，学号[" + dto.getIdentityId() + "] - " + e.getMessage()));
-        log.error("导入学生异常：学号[{}]", dto.getIdentityId(), e);
-        }
+    }
+    } catch (Exception e) {
+    // *** 关键修改：添加 StudentImportErrorDto 实例 ***
+    errorList.add(new StudentImportErrorDto().setErrorReason("第" + (context.readRowHolder().getRowIndex() + 1) + "行：处理异常，学号[" + dto.getIdentityId() + "] - " + e.getMessage()));
+    log.error("导入学生异常：学号[{}]", dto.getIdentityId(), e);
+    }
         }
 
 @Override

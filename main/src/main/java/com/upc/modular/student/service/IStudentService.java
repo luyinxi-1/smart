@@ -38,7 +38,7 @@ public interface IStudentService extends IService<Student> {
 
     Page<StudentReturnVo> getPage(StudentPageSearchDto param);
 
-    ImportStudentReturnVo importStudentData(MultipartFile file);
+    ImportStudentReturnVo importStudentData(MultipartFile file,Long classId);
 
     SysTbuser getStudentUser(StudentReturnVo param);
 
@@ -64,4 +64,6 @@ public interface IStudentService extends IService<Student> {
     R resetStudentPassword(String identityId);
 
    StudentUserResultParam getStudentUserById(IdParam idParam);
+
+    void exportStudentTemplate(HttpServletResponse response);
 }
