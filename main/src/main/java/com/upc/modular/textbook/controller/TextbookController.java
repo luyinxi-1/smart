@@ -65,6 +65,19 @@ public class TextbookController {
         return R.page(result);
     }
 
+    /**
+     * 教材多条件组合筛选接口
+     * @param req 包含所有筛选条件的请求体
+     * @return 分页后的教材列表
+     */
+    @ApiOperation(value = "智能筛选教材")
+    @PostMapping("/querytextbook")
+    public R<PageBaseReturnParam<Textbook>> queryTextbooks(@RequestBody TextbookQueryReq req) {
+        Page<Textbook> pageResult = textbookService.queryTextbooksByConditions(req);
+        PageBaseReturnParam<Textbook> result = PageBaseReturnParam.ok(pageResult);
+        return R.page(result);
+    }
+
     @ApiOperation(value = "查询最新的教材")
     @PostMapping("/getNewTextbook")
     public R<List<Textbook>> getNewTextbook(@RequestParam("getNumber") int getNumber) {

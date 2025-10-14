@@ -152,4 +152,58 @@
         WHERE
             t.id = #{textbookId}
     </select>
+
+    <select id="queryByConditions"
+            resultType="com.upc.modular.textbook.entity.Textbook">
+        SELECT
+        t.id,
+        t.textbook_name,
+        t.type,
+        t.description,
+        t.textbook_publishing_house,
+        t.textbook_publishing_time,
+        t.textbook_version,
+        t.release_status,
+        t.review_status,
+        t.classification,
+        t.author_name,
+        t.executive_editor,
+        t.textbook_english_name,
+        t.version_number,
+        t.textbook_picture,
+        t.creator,
+        t.add_datetime,
+        t.operator,
+        t.operation_datetime
+        FROM
+        textbook t
+        LEFT JOIN
+        textbook_classification tc ON t.type = tc.id
+        <where>
+            <if test="req.textbookId != null">
+                AND t.id = #{req.textbookId}
+            </if>
+            <if test="req.textbookName != null and req.textbookName != ''">
+                AND t.textbook_name LIKE CONCAT('%', #{req.textbookName}, '%')
+            </if>
+            <if test="req.type != null">
+                AND t.type = #{req.type}
+            </if>
+            <if test="req.classificationName != null and req.classificationName != ''">
+                AND tc.classification_name LIKE CONCAT('%', #{req.classificationName}, '%')
+            </if>
+
+            <!-- 关键修改：使用 EXISTS 子查询来代替 JOIN，避免数据重复 -->
+            <if test="req.chapterId != null">
+                AND EXISTS (
+                SELECT 1
+                FROM textbook_catalog tca
+                WHERE tca.textbook_id = t.id AND tca.id = #{req.chapterId}
+                )
+            </if>
+        </where>
+        ORDER BY
+        t.add_datetime DESC
+    </select>
+
 </mapper>

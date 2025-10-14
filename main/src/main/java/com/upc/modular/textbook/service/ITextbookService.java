@@ -4,10 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.Textbook;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.upc.modular.textbook.param.TextbookPageReturnParam;
-import com.upc.modular.textbook.param.TextbookPageSearchParam;
-import com.upc.modular.textbook.param.UserFavoritesPageSearch;
-import com.upc.modular.textbook.param.VersionCheckResultDto;
+import com.upc.modular.textbook.param.*;
 
 import java.util.List;
 /**
@@ -27,6 +24,8 @@ public interface ITextbookService extends IService<Textbook> {
     void updateTextbook(Textbook textbook);
 
     Page<TextbookPageReturnParam> getPage(TextbookPageSearchParam param);
+
+    Page<Textbook> queryTextbooksByConditions(TextbookQueryReq req);
 
     List<Textbook> getNewTextbook(int getNumber);
 

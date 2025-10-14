@@ -152,6 +152,14 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     }
 
     @Override
+    public Page<Textbook> queryTextbooksByConditions(TextbookQueryReq req) {
+        Page<Textbook> page = new Page<>(req.getPageNum(), req.getPageSize());
+        return textbookMapper.queryByConditions(page, req);
+    }
+
+
+
+    @Override
     public List<Textbook> getNewTextbook(int getNumber) {
         MyLambdaQueryWrapper<Textbook> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
         lambdaQueryWrapper.orderByDesc(Textbook::getAddDatetime)
