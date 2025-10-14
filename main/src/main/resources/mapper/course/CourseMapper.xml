@@ -51,5 +51,43 @@
             <otherwise>DESC</otherwise>
         </choose>
     </select>
+    
+    <select id="selectCourseByTeacher"
+            resultType="com.upc.modular.course.controller.param.CoursePageReturnParam">
+        SELECT
+        c.id,
+        c.textbook_id AS textbookId,
+        c.course_name AS courseName,
+        c.credit,
+        c.description,
+        c.status,
+        t.id AS teacherId,
+        t.name AS teacherName,
+        u.nickname AS creatorName,
+        c.add_datetime AS addDatetime,
+        c.course_picture AS coursePicture
+        FROM course c
+        LEFT JOIN teacher t
+        ON c.teacher_id = t.id
+        LEFT JOIN sys_tbuser u
+        ON c.creator = u.id
+        <where>
+            <!-- 教师权限：只能查看自己创建的课程 -->
+            AND c.creator = #{teacherId}
+            <!-- 条件1: 课程名称模糊 -->
+            <if test="param.courseName != null and param.courseName != ''">
+                AND c.course_name LIKE CONCAT('%', #{param.courseName}, '%')
+            </if>
+            <!-- 条件2: 教师姓名模糊（用 t.name 过滤） -->
+            <if test="param.teacherName != null and param.teacherName != ''">
+                AND t.name LIKE CONCAT('%', #{param.teacherName}, '%')
+            </if>
+        </where>
+        ORDER BY c.add_datetime
+        <choose>
+            <when test="param.isAsc == 1">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+    </select>
 
 </mapper>
