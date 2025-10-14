@@ -1,21 +1,22 @@
 package com.upc.modular.datastatistics.controller;
+
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
 import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
-import com.upc.modular.textbook.service.ITextbookService;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import io.swagger.annotations.ApiOperation;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -156,5 +157,100 @@ public class SystemStatisticsController {
         Page<TextbookUpdateApplicationParam> page = new Page<>(current, size);
         IPage<TextbookUpdateApplicationParam> applications = systemStatisticsService.getTextbookUpdateApplications(page);
         return R.ok(applications);
+    }
+
+    @ApiOperation("获取全系统教材热度排名")
+    @GetMapping("/textbook-popularity")
+    public R<List<TeacherTextbookPopularityParam>> getSystemTextbookPopularity() {
+        return R.ok(systemStatisticsService.getSystemTextbookPopularity());
+    }
+
+    @ApiOperation("获取全系统教材统计概览 (分页)")
+    @GetMapping("/textbook-overview")
+    public R<IPage<TextbookStatisticsOverviewParam>> getSystemTextbookStatisticsOverview(
+            @RequestParam(value = "current", defaultValue = "1") long current,
+            @RequestParam(value = "size", defaultValue = "10") long size,
+            @RequestParam(value = "sortField", defaultValue = "textbookName") String sortField,
+            @RequestParam(value = "sortOrder", defaultValue = "asc") String sortOrder) {
+
+        Page<TextbookStatisticsOverviewParam> page = new Page<>(current, size);
+
+        // Add sorting logic
+        if (StringUtils.hasText(sortField)) {
+            // Convert camelCase to snake_case for database column name
+            String sortFieldDb = sortField.replaceAll("([A-Z])", "_$1").toLowerCase();
+            if ("asc".equalsIgnoreCase(sortOrder)) {
+                page.addOrder(OrderItem.asc(sortFieldDb));
+            } else {
+                page.addOrder(OrderItem.desc(sortFieldDb));
+            }
+        }
+
+        return R.ok(systemStatisticsService.getSystemTextbookStatisticsOverview(page));
+    }
+
+    @ApiOperation("获取教材阅读人员统计 (分页)")
+    @PostMapping("/reader-statistics")
+    public R<IPage<ReaderStatisticsParam>> getReaderStatistics(
+            @RequestParam(value = "current", defaultValue = "1") long current,
+            @RequestParam(value = "size", defaultValue = "10") long size,
+            @RequestParam(value = "sortField", defaultValue = "studentName") String sortField,
+            @RequestParam(value = "sortOrder", defaultValue = "asc") String sortOrder,
+            @RequestBody TextbookDataStatisticsRequestParam param) {
+
+        Page<ReaderStatisticsParam> page = new Page<>(current, size);
+
+        // Add sorting logic
+        if (StringUtils.hasText(sortField)) {
+            // 移除 camelCase 到 snake_case 的转换，直接使用 sortField，因为 SQL 别名已是 camelCase
+            // String sortFieldDb = sortField.replaceAll("([A-Z])", "_$1").toLowerCase();
+            if ("asc".equalsIgnoreCase(sortOrder)) {
+                page.addOrder(OrderItem.asc(sortField));
+            } else {
+                page.addOrder(OrderItem.desc(sortField));
+            }
+        }
+
+        return R.ok(systemStatisticsService.getReaderStatistics(page, param.getTextbookId()));
+    }
+
+    @ApiOperation("按时间统计阅读时长")
+    @PostMapping("/reading-duration-by-time")
+    public R<List<TextbookTimeStatisticsReturnParam>> getReadingDurationStatisticsByTime(
+            @RequestBody @Valid TextbookTimeStatisticsSearchParam param) {
+        return R.ok(systemStatisticsService.getReadingDurationStatisticsByTime(param));
+    }
+
+    @ApiOperation("按时间统计交流反馈新增数量")
+    @PostMapping("/communication-feedback-by-time")
+    public R<List<TextbookTimeStatisticsReturnParam>> getCommunicationFeedbackStatisticsByTime(
+            @RequestBody TextbookTimeStatisticsSearchParam param) {
+        return R.ok(systemStatisticsService.getCommunicationFeedbackStatisticsByTime(param));
+    }
+
+    @ApiOperation("获取各章节习题正确率统计")
+    @PostMapping("/chapter-question-correct-rate")
+    public R<List<ChapterQuestionCorrectRateParam>> getChapterQuestionCorrectRateStatistics(
+            @RequestBody TextbookDataStatisticsRequestParam param) {
+        return R.ok(systemStatisticsService.getChapterQuestionCorrectRateStatistics(param.getTextbookId()));
+    }
+
+    /**
+     * 获取指定学生在某教材下各章节的掌握度
+     * @param studentId 学生ID
+     * @param textbookId 教材ID
+     * @return 章节掌握度列表
+     */
+    @ApiOperation("获取指定学生在某教材下各章节的掌握度")
+    @PostMapping("/student-chapter-mastery")
+    public R<List<ChapterMasteryVO>> getStudentChapterMastery(
+            @ApiParam(value = "学生ID", required = true) @RequestParam Long studentId,
+            @ApiParam(value = "教材ID", required = true) @RequestParam Long textbookId) {
+        try {
+            List<ChapterMasteryVO> result = systemStatisticsService.getStudentChapterMastery(studentId, textbookId);
+            return R.ok(result);
+        } catch (Exception e) {
+            return R.fail("获取学生章节掌握度失败: " + e.getMessage());
+        }
     }
 }

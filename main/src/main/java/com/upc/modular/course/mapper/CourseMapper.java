@@ -26,4 +26,10 @@ public interface CourseMapper extends BaseMapper<Course> {
             Page<CoursePageReturnParam> page,
             @Param("param") CoursePageSearchParam param
     );
+    
+    Page<CoursePageReturnParam> selectCourseByTeacher(
+            Page<CoursePageReturnParam> page,
+            @Param("param") CoursePageSearchParam param,
+            @Param("teacherId") Long teacherId
+    );
 }

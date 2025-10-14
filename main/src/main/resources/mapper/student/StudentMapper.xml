@@ -35,7 +35,8 @@
         s.*,
         u.institution_id AS institutionId,
         i.institution_name AS institutionName,
-        g.name AS className
+        g.name AS className,
+        g.grade AS grade
         FROM student s
         LEFT JOIN sys_tbuser u ON s.user_id = u.id
         LEFT JOIN institution i ON u.institution_id = i.id
@@ -55,6 +56,18 @@
             </if>
             <if test="param.classId != null">
                 AND s.class_id = #{param.classId}
+            </if>
+            <if test="param.institutionId != null">
+                AND u.institution_id = #{param.institutionId}
+            </if>
+            <if test="param.grade != null and param.grade != ''">
+                AND g.grade = #{param.grade}
+            </if>
+            <if test="param.position != null and param.position != ''">
+                AND s.position LIKE CONCAT('%', #{param.position}, '%')
+            </if>
+            <if test="param.accountStatus != null">
+                AND s.account_status = #{param.accountStatus}
             </if>
         </where>
         ORDER BY s.add_datetime

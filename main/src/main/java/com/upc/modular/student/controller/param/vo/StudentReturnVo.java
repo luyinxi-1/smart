@@ -20,4 +20,7 @@ public class StudentReturnVo extends Student {
 
     @ApiModelProperty("班级名称")
     private String className;
+    
+    @ApiModelProperty("年级")
+    private Long grade;
 }
