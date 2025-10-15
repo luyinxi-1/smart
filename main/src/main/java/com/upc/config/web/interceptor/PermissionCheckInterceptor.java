@@ -41,15 +41,13 @@ public class PermissionCheckInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
        // 1. 从上下文中获取用户信息。这是第一个拦截器存放的结果。
         UserInfoToRedis userInfoToRedis = UserUtils.get();
-
         // 2. 对于需要权限校验的接口，如果在这里发现用户信息为空，
         //    说明用户未提供有效的token，此时必须拦截。
         if (userInfoToRedis == null) {
             throw new BusinessException(BusinessErrorEnum.PLEASE_LOGIN);
         }
-
         // 3. 调用权限检查方法，并返回检查结果。
-       //return hasPermission(request, userInfoToRedis);
+      // return hasPermission(request, userInfoToRedis);
         return true;
     }
 

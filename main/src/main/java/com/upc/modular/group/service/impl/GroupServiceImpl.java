@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.service.ISysUserService;
-import com.upc.modular.group.controller.param.UserTypeCount;
 import com.upc.modular.group.controller.param.pageGroup;
 import com.upc.modular.group.controller.param.pageGroupVo;
 import com.upc.modular.group.entity.Group;
@@ -17,19 +16,14 @@ import com.upc.modular.group.service.IGroupService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.institution.service.IInstitutionService;
-import com.upc.modular.student.controller.param.pageStudent;
-import com.upc.modular.student.entity.Student;
-import com.upc.modular.student.service.IStudentService;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.service.ITeacherService;
 import com.upc.utils.InstitutionUtil;
-import org.apache.poi.hpsf.ClassID;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -49,15 +43,9 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
     @Autowired
     private IInstitutionService institutionService;
 
-    // 注入用户服务，用于查询用户类型
     @Autowired
     private ISysUserService sysUserService;
 
-    // 注入学生服务，用于查询学生姓名
-    @Autowired
-    private IStudentService studentService;
-
-    // 注入教师服务，用于查询教师姓名
     @Autowired
     private ITeacherService teacherService;
 
@@ -103,6 +91,23 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
                     .collect(Collectors.toMap(Teacher::getId, Teacher::getName));
         }
 
+        // 收集所有创建人ID以便批量查询
+        Set<Long> creatorIds = groupPage.getRecords().stream()
+                .map(Group::getCreator)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // 批量查询创建人信息（直接从用户表获取nickname）
+        Map<Long, String> creatorNameMap = new HashMap<>();
+        if (!creatorIds.isEmpty()) {
+            LambdaQueryWrapper<SysTbuser> userQueryWrapper = new LambdaQueryWrapper<>();
+            userQueryWrapper.in(SysTbuser::getId, creatorIds);
+            List<SysTbuser> users = sysUserService.list(userQueryWrapper);
+            creatorNameMap = users.stream()
+                    .filter(user -> user.getNickname() != null)
+                    .collect(Collectors.toMap(SysTbuser::getId, SysTbuser::getNickname));
+        }
+
         for (Group group : groupPage.getRecords()) {
             pageGroupVo vo = new pageGroupVo();
             // 复制基础属性
@@ -113,35 +118,11 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
                 vo.setTeacherName(teacherNameMap.get(group.getTeacherId()));
             }
 
-            Long creatorId = group.getCreator();
-            String creatorName = null; // 默认为null
-            if (creatorId != null) {
-                // 3.1 根据ID查询用户信息，获取用户类型
-                SysTbuser user = sysUserService.getById(creatorId);
-
-                if (user != null) {
-                    Integer userType = user.getUserType();
-                    // 3.2 根据用户类型，去不同的表查询姓名
-                    if (userType == 1) { // 类型为1，是学生
-                        LambdaQueryWrapper<Student> studentLqw = new LambdaQueryWrapper<>();
-                        studentLqw.eq(Student::getUserId, user.getId()).last("LIMIT 1");
-                        Student student = studentService.getOne(studentLqw);
-                        if (student != null) {
-                            creatorName = student.getName();
-                        }
-                    } else if (userType == 0 || userType == 2) { // 类型为0或2，是教师/管理员
-                        LambdaQueryWrapper<Teacher> teacherLqw = new LambdaQueryWrapper<>();
-                        teacherLqw.eq(Teacher::getUserId, user.getId()).last("LIMIT 1");
-                        Teacher teacher = teacherService.getOne(teacherLqw);
-                        if (teacher != null) {
-                            creatorName = teacher.getName();
-                        }
-                    }
-                }
+            // 设置创建人姓名（从用户表nickname获取）
+            if (group.getCreator() != null) {
+                vo.setCreatorName(creatorNameMap.get(group.getCreator()));
             }
 
-            // 3.3 设置查询到的姓名
-            vo.setCreatorName(creatorName);
             voRecords.add(vo);
         }
 
