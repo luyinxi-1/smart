@@ -40,12 +40,8 @@ public interface ISystemStatisticsService {
      */
     List<StudyTrendDTO> getStudyTrendByDateRange(LocalDate startDate, LocalDate endDate, String type);
 
-    /**
-     * 获取系统所有核心数据统计
-     * 返回一个Map，其中key是统计项的名称，value是对应的数量
-     * @return Map<String, Long>
-     */
-    Map<String, Long> getAllCounts();
+
+    SystemAllCountsDto getAllCounts();
 
 
     /**
