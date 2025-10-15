@@ -94,7 +94,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
 
         String token = UUID.randomUUID().toString().replace("-", "_");
 
-        redisTemplate.opsForValue().set(token, userInfo, Duration.ofHours(2));
+        redisTemplate.opsForValue().set(token, userInfo, Duration.ofHours(24));
 
         // 记录该登录信息到日志
         if (userInfo.getId() != null && StringUtils.isNotBlank(request.getRequestURI())) {
