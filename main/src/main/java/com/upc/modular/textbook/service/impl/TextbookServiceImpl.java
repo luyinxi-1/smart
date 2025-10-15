@@ -19,11 +19,9 @@ import com.upc.modular.institution.service.impl.InstitutionServiceImpl;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.teachingactivities.param.DiscussionTopicSecondReplyPageReturnParam;
-import com.upc.modular.textbook.entity.Textbook;
-import com.upc.modular.textbook.entity.TextbookAuthority;
-import com.upc.modular.textbook.entity.TextbookClassification;
-import com.upc.modular.textbook.entity.UserFavorites;
+import com.upc.modular.textbook.entity.*;
 import com.upc.modular.textbook.mapper.TextbookAuthorityMapper;
+import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import com.upc.modular.textbook.mapper.TextbookMapper;
 import com.upc.modular.textbook.param.*;
 import com.upc.modular.textbook.service.ITextbookAuthorityService;
@@ -60,9 +58,113 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
 
     @Autowired
     private InstitutionServiceImpl institutionService;
+    @Autowired
+    private TextbookCatalogMapper textbookCatalogMapper;
 
 
+    @Override
+    public TextbookIntelligentQueryReturnParam smartSearch(String query) {
+        if (StringUtils.isBlank(query)) {
+            return new TextbookIntelligentQueryReturnParam(); // 返回空结果
+        }
 
+        // 1. 解析关键词
+        List<String> keywords = Arrays.stream(query.split("[,，]"))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+
+        if (keywords.isEmpty()) {
+            return new TextbookIntelligentQueryReturnParam();
+        }
+
+        // 2.【教材查询】优先通过关键词匹配教材
+        Textbook matchedTextbook = findTextbookByKeywords(keywords);
+        Long targetTextbookId = (matchedTextbook != null) ? matchedTextbook.getId() : null;
+        String textbookName = (matchedTextbook != null) ? matchedTextbook.getTextbookName() : null;
+
+        // 3.【章节查询】根据是否匹配到教材，确定章节的搜索范围
+        // 优先在已匹配的教材下搜索章节名，否则在所有章节名中搜索
+        TextbookCatalog matchedChapter = findChapterByKeywords(keywords, targetTextbookId);
+        String chapterName = (matchedChapter != null && StringUtils.isNotBlank(matchedChapter.getCatalogName()))
+                ? stripHtml(matchedChapter.getCatalogName())
+                : null;
+
+        // 4.【内容查询】根据是否匹配到教材，确定内容的搜索范围
+        // 优先在已匹配的教材下搜索内容，优先在已匹配的章节下搜索内容否则在所有内容中搜索
+        String content = null;
+        TextbookCatalog matchedContentCatalog = null;
+
+        // 优先级1: 如果找到了章节，首先检查该章节的内容是否也匹配关键词
+        if (matchedChapter != null && StringUtils.isNotBlank(matchedChapter.getContent())) {
+            // 在内存中检查已找到章节的内容是否包含所有关键词
+            boolean allKeywordsInContent = keywords.stream()
+                    .allMatch(key -> matchedChapter.getContent().contains(key));
+            if (allKeywordsInContent) {
+                matchedContentCatalog = matchedChapter; // 内容就在已找到的章节里，这是最佳匹配
+            }
+        }
+
+        // 优先级2/3: 如果在已找到的章节中没找到内容，或根本没找到章节，则进行更广泛的数据库搜索
+        if (matchedContentCatalog == null) {
+            // 根据是否找到教材，在教材范围内或全局范围内搜索内容
+            matchedContentCatalog = findContentByKeywords(keywords, targetTextbookId);
+        }
+
+        content = (matchedContentCatalog != null) ? stripHtml(matchedContentCatalog.getContent()) : null;
+
+        // 5. 组装最终结果
+        return new TextbookIntelligentQueryReturnParam(textbookName, chapterName, content);
+    }
+
+    /**
+     * 根据关键词列表模糊查询教材，返回找到的第一个。
+     * 所有关键词都必须在教材名称中出现 (AND逻辑)。
+     */
+    private Textbook findTextbookByKeywords(List<String> keywords) {
+        MyLambdaQueryWrapper<Textbook> wrapper = new MyLambdaQueryWrapper<>();
+        keywords.forEach(keyword -> wrapper.like(Textbook::getTextbookName, keyword));
+        wrapper.last("LIMIT 1"); // 优化查询，只取第一个
+        return textbookMapper.selectOne(wrapper);
+    }
+
+    /**
+     * 根据关键词列表和可选的教材ID，在【章节名称】中模糊查询，返回找到的第一个。
+     * 所有关键词都必须在章节名中出现 (AND逻辑)。
+     */
+    private TextbookCatalog findChapterByKeywords(List<String> keywords, Long textbookId) {
+        MyLambdaQueryWrapper<TextbookCatalog> wrapper = new MyLambdaQueryWrapper<>();
+        if (textbookId != null) {
+            wrapper.eq(TextbookCatalog::getTextbookId, textbookId);
+        }
+        // AND 逻辑
+        keywords.forEach(key -> wrapper.like(TextbookCatalog::getCatalogName, key));
+        wrapper.last("LIMIT 1");
+        return textbookCatalogMapper.selectOne(wrapper);
+    }
+
+    /**
+     * 根据关键词列表和可选的教材ID，在【章节内容】中模糊查询，返回找到的第一个。
+     * 所有关键词都必须在内容中出现 (AND逻辑)。
+     */
+    private TextbookCatalog findContentByKeywords(List<String> keywords, Long textbookId) {
+        MyLambdaQueryWrapper<TextbookCatalog> wrapper = new MyLambdaQueryWrapper<>();
+        if (textbookId != null) {
+            wrapper.eq(TextbookCatalog::getTextbookId, textbookId);
+        }
+        // AND 逻辑
+        keywords.forEach(key -> wrapper.like(TextbookCatalog::getContent, key));
+        wrapper.last("LIMIT 1");
+        return textbookCatalogMapper.selectOne(wrapper);
+    }
+
+    /**
+     * 工具方法：移除字符串中的HTML标签
+     */
+    private String stripHtml(String html) {
+        if (html == null) return null;
+        return html.replaceAll("<[^>]*>", "");
+    }
 
 
 

@@ -9,6 +9,8 @@ import com.upc.common.utils.UserUtils;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsPageSearchDto;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsSaveOrUpdateParam;
 import com.upc.modular.materials.controller.param.vo.MaterialsTextbookNameMappingReturnParam;
@@ -16,7 +18,6 @@ import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.entity.MaterialsTextbookMapping;
 import com.upc.modular.materials.entity.TeachingMaterials;
 import com.upc.modular.materials.mapper.TeachingMaterialsMapper;
-import com.upc.modular.materials.service.IMaterialsTextbookMappingService;
 import com.upc.modular.materials.service.ITeachingMaterialsService;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.service.impl.TeacherServiceImpl;
@@ -28,19 +29,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static com.upc.utils.CreatePage.createPage;
 
 /**
  * <p>
@@ -67,11 +68,15 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
     @Autowired
     private TeachingMaterialsMapper baseMapper;
 
+    @Autowired
+    private ISysUserService sysUserService;
+
 
     /**
      * 添加教学素材
+     * <p>
+     * // * @param files
      *
-    // * @param files
      * @param param
      * @return
      */
@@ -297,84 +302,85 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             response.setHeader("Content-Disposition", "attachment; filename=\"download.file\"");
         }
     }
-@Override
-public Page<TeachingMaterialsReturnVo> getPage(TeachingMaterialsPageSearchDto param) {
 
-    // 从上下文中获取当前登录用户的信息
-    Integer userType = UserUtils.get().getUserType();
-    Long currentUserId = UserUtils.get().getId();
-    // 角色权限判断：学生无权限
-    if (userType == 1) {
-        throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
-    }
-    // 1. 构建完整的查询条件
-    MyLambdaQueryWrapper<TeachingMaterials> queryWrapper = new MyLambdaQueryWrapper<>();
-    // 将所有查询参数作为可选的筛选条件
-    queryWrapper
-            // 当 param.getAuthorId() 不为空时，增加 `creator = ?` 条件
-            .eq(ObjectUtils.isNotEmpty(param.getAuthorId()), TeachingMaterials::getCreator, param.getAuthorId())
-            // 当 param.getName() 不为空时，增加 `name LIKE ?` 条件
-            .like(ObjectUtils.isNotEmpty(param.getName()), TeachingMaterials::getName, param.getName())
-            // 当 param.getType() 不为空时，增加 `type = ?` 条件
-            .eq(ObjectUtils.isNotEmpty(param.getType()), TeachingMaterials::getType, param.getType());
-    if (param.getUnboundOnly() != null && param.getUnboundOnly()) {
-        // 1.1 获取所有已绑定过的素材ID列表
-        List<Long> boundMaterialIds = materialsTextbookMappingService.list(
-                        new LambdaQueryWrapper<MaterialsTextbookMapping>().select(MaterialsTextbookMapping::getMaterialId)
-                ).stream()
-                .map(MaterialsTextbookMapping::getMaterialId)
-                .distinct()
+    @Override
+    public Page<TeachingMaterialsReturnVo> getPage(TeachingMaterialsPageSearchDto param) {
+
+        // 从上下文中获取当前登录用户的信息
+        Integer userType = UserUtils.get().getUserType();
+        Long currentUserId = UserUtils.get().getId();
+        // 角色权限判断：学生无权限
+        if (userType == 1) {
+            throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
+        }
+        // 1. 构建完整的查询条件
+        MyLambdaQueryWrapper<TeachingMaterials> queryWrapper = new MyLambdaQueryWrapper<>();
+        // 将所有查询参数作为可选的筛选条件
+        queryWrapper
+                // 当 param.getAuthorId() 不为空时，增加 `creator = ?` 条件
+                .eq(ObjectUtils.isNotEmpty(param.getAuthorId()), TeachingMaterials::getCreator, param.getAuthorId())
+                // 当 param.getName() 不为空时，增加 `name LIKE ?` 条件
+                .like(ObjectUtils.isNotEmpty(param.getName()), TeachingMaterials::getName, param.getName())
+                // 当 param.getType() 不为空时，增加 `type = ?` 条件
+                .eq(ObjectUtils.isNotEmpty(param.getType()), TeachingMaterials::getType, param.getType());
+        if (param.getUnboundOnly() != null && param.getUnboundOnly()) {
+            // 1.1 获取所有已绑定过的素材ID列表
+            List<Long> boundMaterialIds = materialsTextbookMappingService.list(
+                            new LambdaQueryWrapper<MaterialsTextbookMapping>().select(MaterialsTextbookMapping::getMaterialId)
+                    ).stream()
+                    .map(MaterialsTextbookMapping::getMaterialId)
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            // 1.2 如果存在已绑定的素材，则在查询中排除它们
+            if (!CollectionUtils.isEmpty(boundMaterialIds)) {
+                queryWrapper.notIn(TeachingMaterials::getId, boundMaterialIds);
+            }
+            // 如果 boundMaterialIds 为空，则无需操作，查询所有即可
+        }
+        // 添加排序条件
+        queryWrapper.orderByDesc(TeachingMaterials::getAddDatetime);
+
+        // 2. 执行一次数据库分页查询
+        // 使用 MyBatis-Plus 的 page 方法进行真正的数据库分页
+        Page<TeachingMaterials> pageResult = this.page(new Page<>(param.getCurrent(), param.getSize()), queryWrapper);
+        List<TeachingMaterials> materialsList = pageResult.getRecords();
+        // 如果当前页没有数据，直接返回空的分页对象
+        if (CollectionUtils.isEmpty(materialsList)) {
+            return new Page<>(param.getCurrent(), param.getSize());
+        }
+        // 3. 对查询结果进行后处理（获取作者姓名等）
+        List<Long> authorIdList = materialsList.stream().map(TeachingMaterials::getCreator).distinct().collect(Collectors.toList());
+        Map<Long, String> userIdNameMap;
+        if (ObjectUtils.isNotEmpty(authorIdList)) {
+            userIdNameMap = sysUserService.list(
+                    new LambdaQueryWrapper<SysTbuser>().in(SysTbuser::getId, authorIdList)
+            ).stream().collect(
+                    Collectors.toMap(SysTbuser::getId, SysTbuser::getNickname));
+        } else {
+            userIdNameMap = new HashMap<>();
+        }
+        // 4. 转换VO并返回
+        List<TeachingMaterialsReturnVo> pageRecordsVO = materialsList.stream()
+                .map(materials -> {
+                    TeachingMaterialsReturnVo temp = new TeachingMaterialsReturnVo();
+                    BeanUtils.copyProperties(materials, temp);
+                    temp.setAuthorName(userIdNameMap.get(materials.getCreator()));
+                    // 判断是否为自己创建的逻辑
+                    if (materials.getCreator() != null) {
+                        temp.setIsCreator(materials.getCreator().equals(currentUserId));
+                    } else {
+                        temp.setIsCreator(false);
+                    }
+                    return temp;
+                })
                 .collect(Collectors.toList());
 
-        // 1.2 如果存在已绑定的素材，则在查询中排除它们
-        if (!CollectionUtils.isEmpty(boundMaterialIds)) {
-            queryWrapper.notIn(TeachingMaterials::getId, boundMaterialIds);
-        }
-        // 如果 boundMaterialIds 为空，则无需操作，查询所有即可
+        // 创建最终的返回分页对象
+        Page<TeachingMaterialsReturnVo> resultPage = new Page<>(pageResult.getCurrent(), pageResult.getSize(), pageResult.getTotal());
+        resultPage.setRecords(pageRecordsVO);
+        return resultPage;
     }
-    // 添加排序条件
-    queryWrapper.orderByDesc(TeachingMaterials::getAddDatetime);
-
-    // 2. 执行一次数据库分页查询
-    // 使用 MyBatis-Plus 的 page 方法进行真正的数据库分页
-    Page<TeachingMaterials> pageResult = this.page(new Page<>(param.getCurrent(), param.getSize()), queryWrapper);
-    List<TeachingMaterials> materialsList = pageResult.getRecords();
-    // 如果当前页没有数据，直接返回空的分页对象
-    if (CollectionUtils.isEmpty(materialsList)) {
-        return new Page<>(param.getCurrent(), param.getSize());
-    }
-    // 3. 对查询结果进行后处理（获取作者姓名等）
-    List<Long> authorIdList = materialsList.stream().map(TeachingMaterials::getCreator).distinct().collect(Collectors.toList());
-    Map<Long, String> teacherIdNameMap;
-    if (ObjectUtils.isNotEmpty(authorIdList)) {
-        teacherIdNameMap = teacherService.list(
-                        new LambdaQueryWrapper<Teacher>().in(Teacher::getId, authorIdList))
-                .stream().collect(
-                        Collectors.toMap(Teacher::getId, Teacher::getName));
-    } else {
-        teacherIdNameMap = new HashMap<>();
-    }
-    // 4. 转换VO并返回
-    List<TeachingMaterialsReturnVo> pageRecordsVO = materialsList.stream()
-            .map(materials -> {
-                TeachingMaterialsReturnVo temp = new TeachingMaterialsReturnVo();
-                BeanUtils.copyProperties(materials, temp);
-                temp.setAuthorName(teacherIdNameMap.get(materials.getCreator()));
-                // 判断是否为自己创建的逻辑
-                if (materials.getCreator() != null) {
-                    temp.setIsCreator(materials.getCreator().equals(currentUserId));
-                } else {
-                    temp.setIsCreator(false);
-                }
-                return temp;
-            })
-            .collect(Collectors.toList());
-
-    // 创建最终的返回分页对象
-    Page<TeachingMaterialsReturnVo> resultPage = new Page<>(pageResult.getCurrent(), pageResult.getSize(), pageResult.getTotal());
-    resultPage.setRecords(pageRecordsVO);
-    return resultPage;
-}
 
     @Override
     public TeachingMaterialsReturnVo getTeachingMaterials(Long id, Long textbookId) {
@@ -420,87 +426,89 @@ public Page<TeachingMaterialsReturnVo> getPage(TeachingMaterialsPageSearchDto pa
 
         return materialsReturnVo;
     }
-@Override
-@Transactional(rollbackFor = Exception.class)
-public String updateTeachingMaterialsById(TeachingMaterialsSaveOrUpdateParam param) {
-    // 1. 参数校验 (保持不变)
-    if (ObjectUtils.isEmpty(param) || ObjectUtils.isEmpty(param.getId()))
-        throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
-    if (ObjectUtils.isEmpty(param.getType()))
-        throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，参数 type 不能为空");
-    TeachingMaterials oldData = this.getById(param.getId());
-    if(ObjectUtils.isEmpty(oldData)){
-        throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，未找到指定ID的素材");
-    }
-    if (!UserUtils.get().getId().equals(oldData.getCreator()) && UserUtils.get().getUserType() != 0) {
-        throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
-    }
-    if (!param.getType().equals(oldData.getType()))
-        throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，类型不可变");
-    if (ObjectUtils.isNotEmpty(param.getName()))
-        oldData.setName(param.getName());
-    if (ObjectUtils.isNotEmpty(param.getCoverImagePath()))
-        oldData.setCoverImagePath(param.getCoverImagePath());
-    if (ObjectUtils.isNotEmpty(param.getQrcodePath()))
-        oldData.setQrcodePath(param.getQrcodePath());
-    if (ObjectUtils.isNotEmpty(param.getIsPublic())) {
-        oldData.setIsPublic(param.getIsPublic());
-    }
 
-    String materialType = oldData.getType();
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String updateTeachingMaterialsById(TeachingMaterialsSaveOrUpdateParam param) {
+        // 1. 参数校验 (保持不变)
+        if (ObjectUtils.isEmpty(param) || ObjectUtils.isEmpty(param.getId()))
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        if (ObjectUtils.isEmpty(param.getType()))
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，参数 type 不能为空");
+        TeachingMaterials oldData = this.getById(param.getId());
+        if (ObjectUtils.isEmpty(oldData)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，未找到指定ID的素材");
+        }
+        if (!UserUtils.get().getId().equals(oldData.getCreator()) && UserUtils.get().getUserType() != 0) {
+            throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
+        }
+        if (!param.getType().equals(oldData.getType()))
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，类型不可变");
+        if (ObjectUtils.isNotEmpty(param.getName()))
+            oldData.setName(param.getName());
+        if (ObjectUtils.isNotEmpty(param.getCoverImagePath()))
+            oldData.setCoverImagePath(param.getCoverImagePath());
+        if (ObjectUtils.isNotEmpty(param.getQrcodePath()))
+            oldData.setQrcodePath(param.getQrcodePath());
+        if (ObjectUtils.isNotEmpty(param.getIsPublic())) {
+            oldData.setIsPublic(param.getIsPublic());
+        }
 
-    // 5.1 如果是图集类型
-    if ("imageSet".equals(materialType)) {
-        if (ObjectUtils.isNotEmpty(param.getFileListPaths())) {
-            List<String> fileListPaths = param.getFileListPaths();
-            String firstImagePath = fileListPaths.get(0);
-            try {
-                Path imagePath = Paths.get(firstImagePath);
-                Path parentDir = imagePath.getParent();
-                if (parentDir == null) {
-                    throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "无法从图集路径中确定父目录");
+        String materialType = oldData.getType();
+
+        // 5.1 如果是图集类型
+        if ("imageSet".equals(materialType)) {
+            if (ObjectUtils.isNotEmpty(param.getFileListPaths())) {
+                List<String> fileListPaths = param.getFileListPaths();
+                String firstImagePath = fileListPaths.get(0);
+                try {
+                    Path imagePath = Paths.get(firstImagePath);
+                    Path parentDir = imagePath.getParent();
+                    if (parentDir == null) {
+                        throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "无法从图集路径中确定父目录");
+                    }
+                    oldData.setFilePath(parentDir.toString());
+                    oldData.setFileName(parentDir.getFileName().toString());
+                } catch (InvalidPathException e) {
+                    throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "提供的图集文件路径格式无效");
                 }
-                oldData.setFilePath(parentDir.toString());
-                oldData.setFileName(parentDir.getFileName().toString());
-            } catch (InvalidPathException e) {
-                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "提供的图集文件路径格式无效");
             }
         }
-    }
-    // 5.2 如果是链接类型
-    else if ("link".equals(materialType)) {
-        // 更新链接的URL
-        if (ObjectUtils.isNotEmpty(param.getFilePath())) {
-            oldData.setFilePath(param.getFilePath());
+        // 5.2 如果是链接类型
+        else if ("link".equals(materialType)) {
+            // 更新链接的URL
+            if (ObjectUtils.isNotEmpty(param.getFilePath())) {
+                oldData.setFilePath(param.getFilePath());
+            }
+            oldData.setFileName(UUID.randomUUID().toString());
         }
-        oldData.setFileName(UUID.randomUUID().toString());
-    }
-    // 5.3 如果是其他文件类型
-    else {
-        if (ObjectUtils.isNotEmpty(param.getFilePath())) {
-            String newFilePath = param.getFilePath();
-            oldData.setFilePath(newFilePath);
-            try {
-                Path path = Paths.get(newFilePath);
-                String newFileName = path.getFileName().toString();
-                oldData.setFileName(newFileName);
-            } catch (InvalidPathException e) {
-                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "提供的文件路径格式无效");
+        // 5.3 如果是其他文件类型
+        else {
+            if (ObjectUtils.isNotEmpty(param.getFilePath())) {
+                String newFilePath = param.getFilePath();
+                oldData.setFilePath(newFilePath);
+                try {
+                    Path path = Paths.get(newFilePath);
+                    String newFileName = path.getFileName().toString();
+                    oldData.setFileName(newFileName);
+                } catch (InvalidPathException e) {
+                    throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "提供的文件路径格式无效");
+                }
             }
         }
-    }
-    // 6. 更新操作时间 (保持不变)
-    oldData.setOperationDatetime(LocalDateTime.now());
-    // 7. 执行数据库更新并返回结果 (保持不变)
-    if (this.updateById(oldData)) {
-        if ("link".equals(oldData.getType())) {
-            return oldData.getFilePath();
+        // 6. 更新操作时间 (保持不变)
+        oldData.setOperationDatetime(LocalDateTime.now());
+        // 7. 执行数据库更新并返回结果 (保持不变)
+        if (this.updateById(oldData)) {
+            if ("link".equals(oldData.getType())) {
+                return oldData.getFilePath();
+            }
+            return oldData.getFileName();
+        } else {
+            return null;
         }
-        return oldData.getFileName();
-    } else {
-        return null;
     }
-}
+
     @Override
     public List<TeachingMaterials> getMaterialsByTextbookId(Long textbookId, String materialName) {
         List<MaterialsTextbookMapping> mappings = materialsTextbookMappingService.list(
@@ -523,6 +531,7 @@ public String updateTeachingMaterialsById(TeachingMaterialsSaveOrUpdateParam par
         }
         return teachingMaterialsMapper.selectList(queryWrapper);
     }
+
     @Override
     public void deleteTeachingMaterialsByIds(List<Long> ids) {
         // 1. 查出这些素材
