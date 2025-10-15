@@ -225,8 +225,24 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             Long fatherId = normalizeFatherId(p, tempId2RealId);
             entity.setFatherCatalogId(fatherId);
 
+            // ===== 关键修改：解析同级章节ID =====
+            // 目标：根据前端传入的 sameCatalogLevelId 或 sameCatalogLevelUuid，解析出用于计算排序的、真实的同级节点ID
+            Long resolvedSameCatalogLevelId = null;
+            if (StringUtils.isNotBlank(p.getSameCatalogLevelUuid())) {
+                // 场景一：前端传入了同级节点的临时UUID，说明该同级节点是本次批量插入的。
+                // 从 tempId2RealId 映射中查找它已经存入数据库的真实ID。
+                resolvedSameCatalogLevelId = tempId2RealId.get(p.getSameCatalogLevelUuid());
+                // 做一个健壮性检查，如果找不到，说明前端传的数据或顺序有问题。
+                if (resolvedSameCatalogLevelId == null) {
+                    throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "同级临时UUID无效或顺序错误: " + p.getSameCatalogLevelUuid());
+                }
+            } else {
+                // 场景二：前端传入的是已存在的数据库ID，直接使用。
+                resolvedSameCatalogLevelId = p.getSameCatalogLevelId();
+            }
+
             // 计算 sort
-            Integer sort = computeSortForIncrement(textbookId, fatherId, p.getSameCatalogLevelId());
+            Integer sort = computeSortForIncrement(textbookId, fatherId, resolvedSameCatalogLevelId);
             entity.setSort(sort);
 
             // 插入
