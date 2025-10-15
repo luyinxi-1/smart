@@ -229,8 +229,13 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
                 .eq(Textbook::getReleaseStatus, "1")
                 .count();
         countsMap.put("TextbookCount", textbookCount);//智慧教材数量
-        countsMap.put("TodayStudyTime", systemDataStatisticsMapper.getTodayStudyDuration());//今日总学习时长
-       countsMap.put("TodayVisitorCount", systemDataStatisticsMapper.getTodayVisitorCount());//今日访问人数
+        //countsMap.put("TodayStudyTime", systemDataStatisticsMapper.getTodayStudyDuration());//今日总学习时长
+        // 将今日总学习时长从秒转换为分钟
+        Long todayStudyTimeInSeconds = systemDataStatisticsMapper.getTodayStudyDuration();
+        Long todayStudyTimeInMinutes = todayStudyTimeInSeconds != null ? todayStudyTimeInSeconds / 60 : 0L;
+        countsMap.put("TodayStudyTime", todayStudyTimeInMinutes);//今日总学习时长(分钟)
+
+        countsMap.put("TodayVisitorCount", systemDataStatisticsMapper.getTodayVisitorCount());//今日访问人数
         return countsMap;
     }
     @Override

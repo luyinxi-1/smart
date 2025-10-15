@@ -21,6 +21,8 @@ import com.upc.modular.materials.mapper.TeachingMaterialsMapper;
 import com.upc.modular.materials.service.ITeachingMaterialsService;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.service.impl.TeacherServiceImpl;
+import com.upc.modular.textbook.entity.Textbook;
+import com.upc.modular.textbook.service.ITextbookService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -70,6 +72,8 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
     @Autowired
     private ISysUserService sysUserService;
+    @Autowired
+    private ITextbookService textbookService;
 
 
     /**
@@ -349,7 +353,28 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         if (CollectionUtils.isEmpty(materialsList)) {
             return new Page<>(param.getCurrent(), param.getSize());
         }
-        // 3. 对查询结果进行后处理（获取作者姓名等）
+
+        // 3. 对查询结果进行后处理
+        List<Long> materialIds = materialsList.stream().map(TeachingMaterials::getId).distinct().collect(Collectors.toList());
+
+        // 3.1 获取素材与教材的绑定关系
+        Map<Long, Long> materialTextbookIdMap = materialsTextbookMappingService.list(
+                new LambdaQueryWrapper<MaterialsTextbookMapping>().in(MaterialsTextbookMapping::getMaterialId, materialIds)
+        ).stream().collect(Collectors.toMap(MaterialsTextbookMapping::getMaterialId, MaterialsTextbookMapping::getTextbookId, (v1, v2) -> v1)); // (v1, v2) -> v1 表示如果一个素材绑定多个教材，只取第一个
+
+        // 3.2 如果存在绑定关系，查询教材信息
+        Map<Long, String> textbookIdNameMap = new HashMap<>();
+        if (!materialTextbookIdMap.isEmpty()) {
+            List<Long> textbookIds = materialTextbookIdMap.values().stream().distinct().collect(Collectors.toList());
+            if (!CollectionUtils.isEmpty(textbookIds)) {
+                // 假设你有一个 TextbookService 来查询教材信息
+                textbookIdNameMap = textbookService.list(
+                        new LambdaQueryWrapper<Textbook>().in(Textbook::getId, textbookIds)
+                ).stream().collect(Collectors.toMap(Textbook::getId, Textbook::getTextbookName));
+            }
+        }
+
+        // 3.3 获取作者姓名
         List<Long> authorIdList = materialsList.stream().map(TeachingMaterials::getCreator).distinct().collect(Collectors.toList());
         Map<Long, String> userIdNameMap;
         if (ObjectUtils.isNotEmpty(authorIdList)) {
@@ -360,7 +385,9 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         } else {
             userIdNameMap = new HashMap<>();
         }
+
         // 4. 转换VO并返回
+        final Map<Long, String> finaltextbookIdNameMap = textbookIdNameMap; // 在lambda中使用
         List<TeachingMaterialsReturnVo> pageRecordsVO = materialsList.stream()
                 .map(materials -> {
                     TeachingMaterialsReturnVo temp = new TeachingMaterialsReturnVo();
@@ -372,6 +399,14 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                     } else {
                         temp.setIsCreator(false);
                     }
+
+                    // 新增逻辑：设置教材ID和名称
+                    Long textbookId = materialTextbookIdMap.get(materials.getId());
+                    if (textbookId != null) {
+                        temp.setTextbookId(textbookId);
+                        temp.setTextbookName(finaltextbookIdNameMap.get(textbookId));
+                    }
+
                     return temp;
                 })
                 .collect(Collectors.toList());
