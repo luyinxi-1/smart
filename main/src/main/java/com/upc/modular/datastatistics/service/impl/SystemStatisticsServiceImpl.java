@@ -204,40 +204,39 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         // 调用 Mapper，传入转换后的 LocalDateTime
         return systemDataStatisticsMapper.getStudyTrendByTimeRange(startTime, endTime, lowerCaseType);
     }
+@Override
+public SystemAllCountsDto getAllCounts() { // 1. 修改返回类型
+    SystemAllCountsDto countsDto = new SystemAllCountsDto(); // 2. 创建DTO对象
 
-    @Override
-    public Map<String, Long> getAllCounts() {
-        Map<String, Long> countsMap = new LinkedHashMap<>();
-        countsMap.put("TeacherCount", teacherService.count());//教师数量
-        countsMap.put("StudentCount", studentService.count());  //学生数量
-        countsMap.put("GroupCount", groupService.count());//班级数量
-        countsMap.put("TeachingideologicalMaterialCount", ideologicalMaterialService.count());//教学思政数量
+    // 3. 使用setter方法为DTO的每个属性赋值
+    countsDto.setTeacherCount(teacherService.count());
+    countsDto.setStudentCount(studentService.count());
+    countsDto.setGroupCount(groupService.count());
+    countsDto.setTeachingideologicalMaterialCount(ideologicalMaterialService.count());
 
-        // 修改 DiscussionTopicCount，只统计 identity_type 为 1 的教学活动数量
-        Long discussionTopicCount = discussionTopicService.lambdaQuery()
-                .eq(DiscussionTopic::getIdentityType, 1)
-                .count();
-        countsMap.put("DiscussionTopicCount", discussionTopicCount); //教学活动数量
-        countsMap.put("DiscussionTopicReplyCount", discussionTopicReplyService.count());//交流反馈数量
+    Long discussionTopicCount = discussionTopicService.lambdaQuery()
+            .eq(DiscussionTopic::getIdentityType, 1)
+            .count();
+    countsDto.setDiscussionTopicCount(discussionTopicCount);
 
-        countsMap.put("TeachingQuestionBankCount", teachingQuestionbankService.count());//题库数量
-        countsMap.put("CourseCount", courseService.count()); //在授课程数量
-        countsMap.put("TeachingMaterialsCount", teachingMaterialsService.count());  //教学素材数量
+    countsDto.setDiscussionTopicReplyCount(discussionTopicReplyService.count());
+    countsDto.setTeachingQuestionBankCount(teachingQuestionbankService.count());
+    countsDto.setCourseCount(courseService.count());
+    countsDto.setTeachingMaterialsCount(teachingMaterialsService.count());
 
-        // 修改 TextbookCount，只统计 release_status 为 '1' 的教材数量
-        Long textbookCount = textbookService.lambdaQuery()
-                .eq(Textbook::getReleaseStatus, "1")
-                .count();
-        countsMap.put("TextbookCount", textbookCount);//智慧教材数量
-        //countsMap.put("TodayStudyTime", systemDataStatisticsMapper.getTodayStudyDuration());//今日总学习时长
-        // 将今日总学习时长从秒转换为分钟
-        Long todayStudyTimeInSeconds = systemDataStatisticsMapper.getTodayStudyDuration();
-        Long todayStudyTimeInMinutes = todayStudyTimeInSeconds != null ? todayStudyTimeInSeconds / 60 : 0L;
-        countsMap.put("TodayStudyTime", todayStudyTimeInMinutes);//今日总学习时长(分钟)
+    Long textbookCount = textbookService.lambdaQuery()
+            .eq(Textbook::getReleaseStatus, "1")
+            .count();
+    countsDto.setTextbookCount(textbookCount);
 
-        countsMap.put("TodayVisitorCount", systemDataStatisticsMapper.getTodayVisitorCount());//今日访问人数
-        return countsMap;
-    }
+    Long todayStudyTimeInSeconds = systemDataStatisticsMapper.getTodayStudyDuration();
+    Long todayStudyTimeInMinutes = todayStudyTimeInSeconds != null ? todayStudyTimeInSeconds / 60 : 0L;
+    countsDto.setTodayStudyTime(todayStudyTimeInMinutes);
+
+    countsDto.setTodayVisitorCount(systemDataStatisticsMapper.getTodayVisitorCount());
+
+    return countsDto; // 4. 返回DTO对象
+}
     @Override
     public Long getTeacherCount() {
         // TODO: 实现教师数量统计逻辑

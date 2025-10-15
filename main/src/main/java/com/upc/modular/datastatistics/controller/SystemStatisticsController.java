@@ -120,11 +120,11 @@ public R<List<StatisticsDto>> getTodayStudyDurationByPeriod() {
         List<StudyTrendDTO> trendData = systemStatisticsService.getStudyTrendByDateRange(startDate, endDate, type);
         return R.ok(trendData);
     }
-    @ApiOperation("获取系统所有核心数据统计")
-    @GetMapping("/all-counts")
-    public R<Map<String, Long>> getAllCounts() {
-        return R.ok(systemStatisticsService.getAllCounts());
-    }
+@ApiOperation("获取系统所有核心数据统计")
+@GetMapping("/all-counts")
+public R<SystemAllCountsDto> getAllCounts() {
+    return R.ok(systemStatisticsService.getAllCounts());
+}
 
     @ApiOperation("教师数量统计")
     @GetMapping("/teacher-count")
