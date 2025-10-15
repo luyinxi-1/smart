@@ -61,7 +61,7 @@ public class TextbookReviewController {
     @PostMapping("/processReviewResult")
     public R processReviewResult(@ApiParam(example = "1") @RequestParam Long reviewId,
                                  @ApiParam(example = "1") @RequestParam Integer auditResult,
-                                 @ApiParam(example = "审核通过") @RequestParam String description) {
+                                 @ApiParam(example = "审核通过") @RequestParam(required = false) String description) {
         textbookReviewService.processReviewResult(reviewId, auditResult, description);
         return R.commonReturn(200, "处理成功", "");
     }
