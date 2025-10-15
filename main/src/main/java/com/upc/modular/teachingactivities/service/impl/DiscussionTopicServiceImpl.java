@@ -1,6 +1,7 @@
 package com.upc.modular.teachingactivities.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
@@ -45,6 +46,27 @@ import java.util.stream.Collectors;
 @Service
 public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMapper, DiscussionTopic> implements IDiscussionTopicService {
 
+    @Autowired
+    private ISysUserService sysTbuserService;
+    @Autowired
+    private ITeacherService teacherService;
+    @Autowired
+    private IStudentService studentService;
+    @Autowired
+    private ITextbookService textbookService;
+    @Autowired
+    private ITextbookCatalogService textbookCatalogService;
+    @Autowired
+    private DiscussionTopicReplyServiceImpl discussionTopicReplyService;
+    @Autowired
+    private TextbookClassificationServiceImpl textbookClassificationService;
+    @Autowired
+    private ITextbookAuthorityService textbookAuthorityService;
+    @Autowired
+    private DiscussionTopicMapper discussionTopicMapper;
+    @Autowired
+    private com.upc.modular.teachingactivities.mapper.UserLikesMapper userLikesMapper;
+
     @Override
     public void deleteDiscussionTopicByIds(List<Long> ids) {
         if (CollectionUtils.isEmpty(ids)) {
@@ -78,112 +100,105 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
         discussionTopic.setTextbookCatalogId(null);
         this.updateById(discussionTopic);
     }
-    @Autowired
-    private ISysUserService sysTbuserService;
-    @Autowired
-    private ITeacherService teacherService;
-    @Autowired
-    private IStudentService studentService;
-    @Autowired
-    private ITextbookService textbookService;
-    @Autowired
-    private ITextbookCatalogService textbookCatalogService;
-    @Autowired
-    private DiscussionTopicReplyServiceImpl discussionTopicReplyService;
-    @Autowired
-    private TextbookClassificationServiceImpl textbookClassificationService;
-    @Autowired
-    private ITextbookAuthorityService textbookAuthorityService;
-    @Autowired
-    private DiscussionTopicMapper discussionTopicMapper;
-    @Autowired
-    private com.upc.modular.teachingactivities.mapper.UserLikesMapper userLikesMapper;
 
     @Override
     public Page<DiscussionTopicReturnParam> getDiscussionTopicList(DiscussionTopicSearchParam param) {
+        // 获取当前用户ID，用于后续判断是否为创建者
         Long userId = UserUtils.get().getId();
 
         Page<DiscussionTopic> page = new Page<>(param.getCurrent(), param.getSize());
+        QueryWrapper<DiscussionTopic> queryWrapper = new QueryWrapper<>();
 
-        LambdaQueryWrapper<DiscussionTopic> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.like(StringUtils.isNotBlank(param.getTopicTitle()), DiscussionTopic::getTopicTitle, param.getTopicTitle());
-        queryWrapper.eq(param.getType() != null, DiscussionTopic::getType, param.getType());
-        queryWrapper.eq(param.getMessageType() != null, DiscussionTopic::getMessageType, param.getMessageType());
-        queryWrapper.eq(param.getTextbookId() != null, DiscussionTopic::getTextbookId, param.getTextbookId());
-        queryWrapper.eq(param.getTextbookCatalogId() != null, DiscussionTopic::getTextbookCatalogId, param.getTextbookCatalogId());
-        queryWrapper.eq(param.getIdentityType() != null, DiscussionTopic::getIdentityType, param.getIdentityType());
+        // 1. 构建查询条件 (与您提供的一致)
+        queryWrapper.like(StringUtils.isNotBlank(param.getTopicTitle()), "topic_title", param.getTopicTitle());
+        queryWrapper.eq(param.getType() != null, "type", param.getType());
+        queryWrapper.eq(param.getMessageType() != null, "message_type", param.getMessageType());
+        queryWrapper.eq(param.getTextbookId() != null, "textbook_id", param.getTextbookId());
+        queryWrapper.eq(param.getTextbookCatalogId() != null, "textbook_catalog_id", param.getTextbookCatalogId());
+        queryWrapper.eq(param.getIdentityType() != null, "identity_type", param.getIdentityType());
 
-        // 执行分页查询
+        // 2. 核心排序逻辑
+        Integer sortType = param.getSortType();
+        if (sortType == null) {
+            sortType = 0; // 如果前端未提供排序类型，默认为0
+        }
+
+        switch (sortType) {
+            case 1:
+                // 按最新一条回复时间排序
+                // 将完整的 ORDER BY 子句放入 last() 中
+                queryWrapper.last("ORDER BY (SELECT MAX(operation_datetime) FROM discussion_topic_reply WHERE discussion_topic_reply.topic_id = discussion_topic.id) DESC NULLS LAST, add_datetime DESC");
+                break;
+            case 2:
+                // 按回复数排序
+                queryWrapper.last("ORDER BY (SELECT COUNT(id) FROM discussion_topic_reply WHERE discussion_topic_reply.topic_id = discussion_topic.id) DESC, add_datetime DESC");
+                break;
+            default:
+                // 默认(sortType=0)排序方式，因为语法简单，可以继续使用 orderByDesc
+                queryWrapper.orderByDesc("add_datetime");
+                break;
+        }
+
+
+        // 3. 执行分页查询
         IPage<DiscussionTopic> topicPage = this.page(page, queryWrapper);
 
-        // 如果查询结果为空，返回一个空的分页对象
+        // 如果当前页没有数据，直接返回一个空的分页对象
         if (topicPage.getRecords().isEmpty()) {
-            // 使用 param.getCurrent() 和 param.getSize()
             return new Page<>(param.getCurrent(), param.getSize(), topicPage.getTotal());
         }
 
-        // 转换成 DiscussionTopicReturnParam 列表
+        // 4. 数据转换 (PO -> DTO)，与您提供的一致
         List<DiscussionTopicReturnParam> returnList = topicPage.getRecords().stream()
                 .map(discussionTopic -> {
-                    DiscussionTopicReturnParam discussionTopicReturnParam = new DiscussionTopicReturnParam();
+                    DiscussionTopicReturnParam returnParam = new DiscussionTopicReturnParam();
 
-                    if(discussionTopic.getId() != null){
-                        discussionTopicReturnParam.setId(discussionTopic.getId());
-                    }else{
-                        discussionTopicReturnParam.setId(0L);
+                    // 基础属性映射
+                    returnParam.setId(discussionTopic.getId());
+                    returnParam.setActivityName(discussionTopic.getTopicTitle());
+                    returnParam.setActivityType(discussionTopic.getType());
+                    if (discussionTopic.getAddDatetime() != null) {
+                        returnParam.setAddDatetime(discussionTopic.getAddDatetime().toString());
                     }
 
+                    // 关联查询与填充：教材名称
                     if (discussionTopic.getTextbookId() != null) {
                         Textbook textbook = textbookService.getById(discussionTopic.getTextbookId());
                         if (textbook != null) {
-                            discussionTopicReturnParam.setTextbookName(textbook.getTextbookName());
+                            returnParam.setTextbookName(textbook.getTextbookName());
                         }
                     }
 
+                    // 关联查询与填充：教材目录
                     if (discussionTopic.getTextbookCatalogId() != null) {
                         TextbookCatalog textbookCatalog = textbookCatalogService.getById(discussionTopic.getTextbookCatalogId());
                         if (textbookCatalog != null && textbookCatalog.getCatalogName() != null) {
                             String catalogName = Jsoup.parse(textbookCatalog.getCatalogName()).text();
-                            discussionTopicReturnParam.setTextbookCatalogName(catalogName);
+                            returnParam.setTextbookCatalogName(catalogName);
                         } else {
-                            discussionTopicReturnParam.setTextbookCatalogName("");
+                            returnParam.setTextbookCatalogName("");
                         }
                     }
-                    if (discussionTopic.getTopicTitle() != null) {
-                        discussionTopicReturnParam.setActivityName(discussionTopic.getTopicTitle());
-                    }
-                    if (discussionTopic.getType() != null) {
-                        discussionTopicReturnParam.setActivityType(discussionTopic.getType());
-                    }
+
+                    // 关联查询与填充：创建人信息
                     if (discussionTopic.getCreator() != null) {
                         SysTbuser sysTbuser = sysTbuserService.getById(discussionTopic.getCreator());
                         if (sysTbuser != null) {
-                            discussionTopicReturnParam.setCreatorName(sysTbuser.getNickname());
+                            returnParam.setCreatorName(sysTbuser.getNickname());
                         }
-                        // 添加判断是否为当前用户创建
-                        discussionTopicReturnParam.setIsCreatedByCurrentUser(discussionTopic.getCreator().equals(userId));
-                    }
-                    if (discussionTopic.getAddDatetime() != null) {
-                        discussionTopicReturnParam.setAddDatetime(discussionTopic.getAddDatetime().toString());
+                        // 判断是否为当前用户创建
+                        returnParam.setIsCreatedByCurrentUser(discussionTopic.getCreator().equals(userId));
                     }
 
+                    // 关联查询与填充：回复数
                     Integer topicReplyCount = discussionTopicReplyService.getTopicReplyCount(discussionTopic.getId());
-                    if (topicReplyCount != null) {
-                        discussionTopicReturnParam.setReplyCount(topicReplyCount);
-                    }
-                    return discussionTopicReturnParam;
+                    returnParam.setReplyCount(topicReplyCount != null ? topicReplyCount : 0);
+
+                    return returnParam;
                 })
                 .collect(Collectors.toList());
 
-        // 对结果列表进行二次筛选，基于ActivityName（即topicTitle）进行模糊查询
-        if (StringUtils.isNotBlank(param.getTopicTitle())) {
-            returnList = returnList.stream()
-                    .filter(item -> item.getActivityName() != null &&
-                            item.getActivityName().toLowerCase().contains(param.getTopicTitle().toLowerCase()))
-                    .collect(Collectors.toList());
-        }
-
-        // 构建并返回新的 Page 对象
+        // 5. 构建并返回最终的分页结果
         Page<DiscussionTopicReturnParam> resultPage = new Page<>(topicPage.getCurrent(), topicPage.getSize(), topicPage.getTotal());
         resultPage.setRecords(returnList);
         return resultPage;

@@ -28,6 +28,15 @@ public class DiscussionTopicSearchParam {
     @ApiModelProperty("发起人类型")
     private Integer identityType;
 
+    /**
+     * 排序方式
+     * 0: 按创建日期排序 (默认)
+     * 1: 按最新一条回复时间排序
+     * 2: 按回复数排序
+     */
+    @ApiModelProperty("排序方式：0: 按创建日期排序，1: 按最新一条回复时间排序2: 按回复数排序")
+    private Integer sortType;
+
     @ApiModelProperty("当前页码")
     private Long current = 1L;
 
