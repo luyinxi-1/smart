@@ -30,7 +30,6 @@ public interface TextbookMapper extends BaseMapper<Textbook> {
      * @param req 包含所有查询条件的对象
      * @return 教材VO列表
      */
-   //List<Textbook> queryByConditions(Page<Textbook> page, @Param("req") TextbookQueryReq req);
     Page<Textbook> queryByConditions(Page<Textbook> page, @Param("req") TextbookQueryReq req);
 
 }

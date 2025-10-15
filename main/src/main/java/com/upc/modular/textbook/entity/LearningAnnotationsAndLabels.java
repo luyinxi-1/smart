@@ -62,4 +62,12 @@ public class LearningAnnotationsAndLabels implements Serializable {
     @ApiModelProperty("批注和标注在文章中的位置信息")
     @TableField("position_info")
     private String positionInfo;
+
+    @ApiModelProperty("客户端的UUID")
+    @TableField("client_uuid")
+    private String clientUuid;
+
+    @ApiModelProperty("客户端是否删除标志")
+    @TableField("is_delete")
+    private Integer isDelete;
 }
