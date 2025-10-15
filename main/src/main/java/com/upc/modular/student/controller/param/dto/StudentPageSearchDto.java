@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
+import java.util.List;
+
 @Data
 @Accessors(chain = true)
 @EqualsAndHashCode(callSuper = true)
@@ -38,4 +40,10 @@ public class StudentPageSearchDto  extends PageBaseSearchParam {
     
     @ApiModelProperty("账号状态")
     private Integer accountStatus;
+
+    @ApiModelProperty("班级名称")
+    private String className;
+
+    @ApiModelProperty(value = "组织ID列表", hidden = true)
+    private List<Long> institutionIdList;
 }
