@@ -15,6 +15,9 @@ public class TextbookCatalogInsertParam extends TextbookCatalog {
     @ApiModelProperty("同级目录的id")
     private Long sameCatalogLevelId;
 
+    @ApiModelProperty("同级目录的uuid")
+    private String sameCatalogLevelUuid;
+
     @ApiModelProperty("是否是数据库为空时新增，0是，1不是")
     private Integer firstAdd;
 }
