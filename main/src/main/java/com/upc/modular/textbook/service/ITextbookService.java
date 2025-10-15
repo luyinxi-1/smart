@@ -36,4 +36,6 @@ public interface ITextbookService extends IService<Textbook> {
     Textbook downloadTextbookInfo(Long textbookId);
 
     VersionCheckResultDto checkStatusAndVersion(Long textbookId, String clientVersion);
+
+    TextbookIntelligentQueryReturnParam smartSearch(String query);
 }

@@ -69,13 +69,21 @@ public class TextbookController {
      * @param req 包含所有筛选条件的请求体
      * @return 分页后的教材列表
      */
-    @ApiOperation(value = "智能筛选教材")
+    @ApiOperation(value = "智能筛选教材(表单版)")
     @PostMapping("/querytextbook")
     public R<PageBaseReturnParam<Textbook>> queryTextbooks(@RequestBody TextbookQueryReq req) {
         Page<Textbook> pageResult = textbookService.queryTextbooksByConditions(req);
         PageBaseReturnParam<Textbook> result = PageBaseReturnParam.ok(pageResult);
         return R.page(result);
     }
+    @ApiOperation(value = "智能搜索教材(关键词版)")
+    @GetMapping("/smartSearch")
+    public R<TextbookIntelligentQueryReturnParam> smartSearch(
+            @ApiParam(value = "关键词字符串，用逗号分隔", required = true, example = "计算机,网络,协议")
+            @RequestParam("query") String query) {
+        return R.ok(textbookService.smartSearch(query));
+    }
+
 
     @ApiOperation(value = "查询最新的教材")
     @PostMapping("/getNewTextbook")

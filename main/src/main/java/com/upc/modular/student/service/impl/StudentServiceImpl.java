@@ -193,6 +193,11 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
     @Override
     public Page<StudentReturnVo> getPage(StudentPageSearchDto param) {
         Page<StudentReturnVo> page = new Page<>(param.getCurrent(), param.getSize());
+        if (param.getInstitutionId() != null && param.getInstitutionId() > 0) {
+            List<Institution> institutions = institutionMapper.selectList(null);
+            List<Long> allSubInstitutionIds = InstitutionUtil.getAllSubInstitutionIds(param.getInstitutionId(), institutions);
+            param.setInstitutionIdList(allSubInstitutionIds);
+        }
         return studentMapper.selectStudentWithDetails(page, param);
     }
 
