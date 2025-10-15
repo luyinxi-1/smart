@@ -6,8 +6,14 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.common.responseparam.R;
 import com.upc.common.utils.UserUtils;
 import com.upc.modular.client.controller.param.SyncInfoReturnParam;
+import com.upc.modular.client.entity.ClientLearningAnnotationsAndLabels;
 import com.upc.modular.client.entity.ClientLearningLog;
+import com.upc.modular.client.entity.ClientLearningNotes;
+import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
 import com.upc.modular.textbook.entity.LearningLog;
+import com.upc.modular.textbook.entity.LearningNotes;
+import com.upc.modular.textbook.service.ILearningAnnotationsAndLabelsService;
+import com.upc.modular.textbook.service.ILearningNotesService;
 import com.upc.modular.textbook.service.impl.LearningLogServiceImpl;
 import io.swagger.annotations.Api;
 import org.springframework.beans.BeanUtils;
@@ -28,6 +34,10 @@ public class DataSyncController {
 
     @Autowired
     private LearningLogServiceImpl learningLogService;
+    @Autowired
+    private ILearningAnnotationsAndLabelsService learningAnnotationsAndLabelsService;
+    @Autowired
+    private ILearningNotesService learningNotesService;
 
     @PostMapping("/learningLog")
     public R<SyncInfoReturnParam> learningLog(@RequestBody ArrayList<ClientLearningLog> clientLearningLogs) {
@@ -42,6 +52,34 @@ public class DataSyncController {
                 LearningLog::getId,
                 ClientLearningLog::getIsDelete,
                 LearningLog.class
+        ));
+    }
+    // 5. 添加新的同步接口
+    @PostMapping("/learningAnnotationsAndLabels")
+    public R<SyncInfoReturnParam> learningAnnotationsAndLabels(@RequestBody ArrayList<ClientLearningAnnotationsAndLabels> clientData) {
+        // 调用通用的同步方法，传入批注和标注相关的参数
+        return R.ok(syncData(
+                clientData,
+                learningAnnotationsAndLabelsService,                              // 使用新的Service
+                ClientLearningAnnotationsAndLabels::getClientUuid,                // 客户端UUID Getter
+                LearningAnnotationsAndLabels::getClientUuid,                      // 服务端UUID Getter
+                ClientLearningAnnotationsAndLabels::getId,                        // 客户端ID Getter
+                LearningAnnotationsAndLabels::getId,                              // 服务端ID Getter
+                ClientLearningAnnotationsAndLabels::getIsDelete,                  // 删除标记Getter
+                LearningAnnotationsAndLabels.class                                // 服务端实体Class
+        ));
+    }
+    @PostMapping("/learningNotes")
+    public R<SyncInfoReturnParam> learningNotes(@RequestBody ArrayList<ClientLearningNotes> clientData) {
+        return R.ok(syncData(
+                clientData,
+                learningNotesService,           // 使用学习笔记的Service
+                ClientLearningNotes::getClientUuid, // 客户端UUID Getter
+                LearningNotes::getClientUuid,       // 服务端UUID Getter
+                ClientLearningNotes::getId,         // 客户端ID Getter
+                LearningNotes::getId,               // 服务端ID Getter
+                ClientLearningNotes::getIsDelete,   // 删除标记Getter
+                LearningNotes.class                 // 服务端实体Class
         ));
     }
 

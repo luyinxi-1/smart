@@ -77,5 +77,9 @@ public class SysTbuser implements Serializable {
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
     private LocalDateTime operationDatetime;
 
+    @ApiModelProperty("创建人姓名")
+    @TableField(exist = false)
+    private String creatorName;
+
 
 }

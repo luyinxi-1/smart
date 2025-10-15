@@ -225,6 +225,7 @@
         )
   ]]>
         <where>
+            t.release_status = '1'
             <if test="startTime != null and startTime != ''">
                 <![CDATA[
         AND l1.add_datetime >= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
@@ -270,6 +271,7 @@
         AND l2.data_type = 0
   ]]>
         <where>
+            t.release_status = '1'
             <if test="startTime != null and startTime != ''">
                 <![CDATA[
         AND l1.add_datetime >= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
