@@ -152,8 +152,22 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
         // 2. 遍历判卷
         for (StudentExercisesContent content : contents) {
             TeachingQuestion question = questionMap.get(content.getTeachingQuestion());
-            if (question == null || question.getAnswer() == null) {
-                continue; // 如果题目或答案不存在，跳过
+            if (question == null) {
+                continue; // 如果题目不存在，跳过
+            }
+
+            // 根据题目类型进行判卷
+            // 主观题只标记，不评分
+            if (question.getType() == 5) { // --- 问答题 ---
+                hasSubjective = true;
+                continue; // 跳过，不自动评分
+            }
+
+            // --- 以下为客观题判卷逻辑 ---
+
+            // 客观题必须有标准答案才能评分
+            if (question.getAnswer() == null) {
+                continue;
             }
 
             // 获取这道题的满分值
@@ -164,13 +178,12 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
             String studentAnswer = (content.getContent() != null) ? content.getContent().trim() : "";
             String correctAnswer = question.getAnswer().trim();
 
-            // 根据题目类型进行判卷
             switch (question.getType()) {
                 case 1: // --- 单选题 ---
-                    if (correctAnswer.equalsIgnoreCase(studentAnswer)) {  //.equalsIgnoreCase() 是 Java 中 String 类的一个方法，用于比较两个字符串的内容是否相同，同时忽略大小写差异
+                    if (correctAnswer.equalsIgnoreCase(studentAnswer)) {
                         score = fullScore;
                         content.setResult("单选题正确");
-                    }else{
+                    } else {
                         content.setResult("单选题错误");
                     }
                     break;
@@ -233,10 +246,6 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
                         }
                     }
                     break;
-
-                case 5: // --- 问答题 ---
-                    hasSubjective = true;
-                    continue; // 跳过，不自动评分
             }
 
             // 更新单题得分
@@ -246,16 +255,11 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
 
         // --- 流程 3: 更新答卷最终状态和总分 ---
         if (!hasSubjective) {
-            // 所有客观题已判完，计算总分
-            double totalScore = 0f;
-            List<StudentExercisesContent> updatedContents = studentExercisesContentMapper.selectList(
-                    new LambdaQueryWrapper<StudentExercisesContent>().eq(StudentExercisesContent::getRecordId, recordId)
-            );
-            for (StudentExercisesContent c : updatedContents) {
-                if(c.getScore() != null) {
-                    totalScore += c.getScore();
-                }
-            }
+            // 所有客观题已判完，直接从内存中的列表计算总分，避免重复查询
+            double totalScore = contents.stream()
+                    .filter(c -> c.getScore() != null)
+                    .mapToDouble(StudentExercisesContent::getScore)
+                    .sum();
 
             // 更新答卷记录
             StudentExercisesRecord recordToUpdate = new StudentExercisesRecord();
@@ -363,6 +367,14 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
                     "未找到对应的学生做题记录 ID：" + missing
             );
         }
+        
+        // 先删除关联的答题内容记录
+        studentExercisesContentMapper.delete(
+            new LambdaQueryWrapper<StudentExercisesContent>()
+                .in(StudentExercisesContent::getRecordId, idList)
+        );
+        
+        // 再删除主表记录
         this.removeByIds(idList);
 
         return null;

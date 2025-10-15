@@ -39,8 +39,11 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -120,24 +123,55 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
     public Page<SysTbuser> getPage(SysUserPageSearchParam param) {
         Page<SysTbuser> page = new Page<>(param.getCurrent(), param.getSize());
         MyLambdaQueryWrapper<SysTbuser> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
-        if (ObjectUtils.isEmpty(param.getUserType())) {
-            lambdaQueryWrapper
-                    .like(ObjectUtils.isNotEmpty(param.getNickname()), SysTbuser::getNickname, param.getNickname())
-                    .orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
-            return this.page(page, lambdaQueryWrapper);
+
+        // 统一处理通用查询条件：昵称模糊查询
+        lambdaQueryWrapper.like(ObjectUtils.isNotEmpty(param.getNickname()), SysTbuser::getNickname, param.getNickname());
+
+        // 根据不同的userType处理查询逻辑
+        if (ObjectUtils.isNotEmpty(param.getUserType())) {
+            if (param.getUserType() == -1) {
+                // userType为-1是特殊标识，查询类型为1（教师）或2（学生）的用户
+                lambdaQueryWrapper.and(w -> w.eq(SysTbuser::getUserType, 1)
+                        .or()
+                        .eq(SysTbuser::getUserType, 2));
+            } else {
+                // 其他情况，直接按传入的userType精确查询
+                lambdaQueryWrapper.eq(SysTbuser::getUserType, param.getUserType());
+            }
         }
-        if (param.getUserType() == -1) {
-            lambdaQueryWrapper
-                    .and(w -> w.eq(SysTbuser::getUserType, 1)
-                            .or()
-                            .eq(SysTbuser::getUserType, 2))
-                    .like(ObjectUtils.isNotEmpty(param.getNickname()), SysTbuser::getNickname, param.getNickname())
-                    .orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
-            return this.page(page, lambdaQueryWrapper);
+        // 如果param.getUserType()为空，则不添加用户类型的筛选，实现查询所有类型的用户
+
+        // 统一处理排序
+        lambdaQueryWrapper.orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
+
+        // 执行分页查询
+        Page<SysTbuser> resultPage = this.page(page, lambdaQueryWrapper);
+
+        // 填充创建人姓名
+        List<SysTbuser> userList = resultPage.getRecords();
+        if (ObjectUtils.isNotEmpty(userList)) {
+            // 1. 收集所有创建人的ID
+            Set<Long> creatorIds = userList.stream()
+                    .map(SysTbuser::getCreator)
+                    .filter(ObjectUtils::isNotEmpty)
+                    .collect(Collectors.toSet());
+
+            if (ObjectUtils.isNotEmpty(creatorIds)) {
+                // 2. 一次性查询出所有创建人的信息
+                List<SysTbuser> creators = this.listByIds(creatorIds);
+                Map<Long, String> creatorMap = creators.stream()
+                        .collect(Collectors.toMap(SysTbuser::getId, SysTbuser::getNickname));
+
+                // 3. 遍历结果集，设置创建人姓名
+                userList.forEach(user -> {
+                    if (user.getCreator() != null) {
+                        user.setCreatorName(creatorMap.get(user.getCreator()));
+                    }
+                });
+            }
         }
-        lambdaQueryWrapper.eq(ObjectUtils.isNotEmpty(param.getUserType()), SysTbuser::getUserType, param.getUserType())
-                .orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
-        return this.page(page, lambdaQueryWrapper);
+
+        return resultPage;
     }
 
     @Override
