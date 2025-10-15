@@ -2,6 +2,7 @@ package com.upc.modular.questionbank.service.impl;
 
 import com.alibaba.excel.util.CollectionUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.utils.UserUtils;
@@ -368,6 +369,23 @@ public Long inserQuestionBank(TeachingQuestionBank param) {
                 throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "更新失败，以下指定的教材目录ID不存在: " + nonExistentIds.stream().map(String::valueOf).collect(Collectors.joining(",")));
 
             }
+        }
+        // 5. 在更新前，先清除本次操作涉及章节下所有题库的旧绑定关系
+        Set<Long> catalogIdsToClear = teachingQuestionBanks.stream()
+                .map(TeachingQuestionBank::getTextbookCatalogId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // 5.2. 如果存在需要操作的目录，则执行解绑
+        if (!CollectionUtils.isEmpty(catalogIdsToClear)) {
+            LambdaUpdateWrapper<TeachingQuestionBank> clearBindingWrapper = new LambdaUpdateWrapper<>();
+            clearBindingWrapper
+                    .in(TeachingQuestionBank::getTextbookCatalogId, catalogIdsToClear)
+                    .set(TeachingQuestionBank::getTextbookCatalogId, null)
+                    .set(TeachingQuestionBank::getTextbookId, null);
+
+            // 执行批量解绑操作
+            this.update(clearBindingWrapper);
         }
         // 5. 所有校验通过，执行批量更新
         this.updateBatchById(teachingQuestionBanks);
