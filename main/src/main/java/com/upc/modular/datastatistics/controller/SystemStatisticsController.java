@@ -69,7 +69,7 @@ public class SystemStatisticsController {
             return R.fail("获取今日总学习时长失败: " + e.getMessage());
         }
     }
-    @ApiOperation("按时间段获取今日总学习时长统计")
+/*    @ApiOperation("按时间段获取今日总学习时长统计")
     @PostMapping("/todayStudyDurationByPeriod")
     public R<List<StatisticsDto>> getTodayStudyDurationByPeriod() {
         try {
@@ -78,7 +78,25 @@ public class SystemStatisticsController {
             e.printStackTrace();
             return R.fail("获取今日分时总学习时长失败: " + e.getMessage());
         }
+    }*/
+@ApiOperation("按时间段获取今日总学习时长统计(分钟)")
+@PostMapping("/todayStudyDurationByPeriod")
+public R<List<StatisticsDto>> getTodayStudyDurationByPeriod() {
+    try {
+        List<StatisticsDto> result = systemStatisticsService.getTodayStudyDurationByPeriod();
+        // 将秒转换为分钟
+        result.forEach(dto -> {
+            if (dto.getValue() != null) {
+                dto.setValue(dto.getValue() / 60);
+            }
+        });
+        return R.ok(result);
+    } catch (Exception e) {
+        e.printStackTrace();
+        return R.fail("获取今日分时总学习时长失败: " + e.getMessage());
     }
+}
+
     @ApiOperation("根据日期范围查询学习趋势(单位:秒)")
     @GetMapping("/studyTrendByDate")
     public R<List<StudyTrendDTO>> getStudyTrendByDate(
