@@ -211,6 +211,7 @@
             ELSE NULL
         END) AS readingDuration
     FROM textbook t
+    WHERE t.release_status = '1'
     LEFT JOIN learning_log l1 ON t.id = l1.textbook_id
     LEFT JOIN learning_log l2 ON l1.creator = l2.creator
         AND l1.textbook_id = l2.textbook_id
@@ -253,6 +254,7 @@
             ELSE NULL
         END) AS readingDuration
     FROM textbook t
+    WHERE t.release_status = '1'
     LEFT JOIN textbook_classification tc ON t.classification = tc.id
     LEFT JOIN learning_log l1 ON t.id = l1.textbook_id AND l1.data_type = 0
     LEFT JOIN learning_log l2 ON l1.creator = l2.creator
