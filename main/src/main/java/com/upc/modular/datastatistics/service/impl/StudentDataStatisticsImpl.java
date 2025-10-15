@@ -116,7 +116,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         final long MIN_DIFF_SECONDS = 55;
         final long MAX_DIFF_SECONDS = 65;
 //        获取时间列表
-        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(currentUserId,0);
+        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(currentUserId);
 
         if(records == null || records.size() < 2){
             return 0L;
@@ -474,8 +474,8 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
     public StudentTextbookSituationReturnParam countStudentTextbookSituation(Long textbookId) {
         Long userId = UserUtils.get().getId();
         StudentTextbookSituationReturnParam returnParam = new StudentTextbookSituationReturnParam();
-        //统计该学生对于该教材学习次数
-        returnParam.setStudyCount(studentDataStatisticsMapper.countStudentTextbookReading(userId, textbookId));
+        // 【优化】直接调用SQL进行高效计算，避免在Java中加载大量数据
+        returnParam.setStudyCount(studentDataStatisticsMapper.countStudySessionsByTextbook(userId, textbookId));
 
         //统计最后阅读的目录id
         returnParam.setLastReadingCatalogueId(studentDataStatisticsMapper.findLastReadingCatalogueId(userId, textbookId));
@@ -493,7 +493,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
     public List<StudentTextbookRankParam> countStudentTextbookReadingRank() {
         Long userId = UserUtils.get().getId();
         //从数据库获取该用户的所有学习日志记录
-        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(userId, 0);
+        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(userId);
 
         if (records == null || records.size() < 2) {
             return new ArrayList<>();
@@ -557,7 +557,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
     private Long calculateReadingDurationMinutesByTextbook(Long userId, Long textbookId) {
         		final long MIN_DIFF_SECONDS = 55;
 		final long MAX_DIFF_SECONDS = 65;
-		List<LearningLog> logs = studentDataStatisticsMapper.findAddDatetime(userId, 0);
+		List<LearningLog> logs = studentDataStatisticsMapper.findAddDatetime(userId);
 		if (logs == null) {
 			return 0L;
 		}
@@ -635,7 +635,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
      */
     private List<StudentTextbookReadingTimeTopParam> calculateTextbookReadingTimeTop(Long userId) {
         // 获取学习日志记录
-        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(userId, 0);
+        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(userId);
 
         if (records == null || records.size() < 2) {
             return new ArrayList<>();

@@ -26,4 +26,16 @@ public class StudentPageSearchDto  extends PageBaseSearchParam {
 
     @ApiModelProperty("班级id")
     private Long classId;
+    
+    @ApiModelProperty("组织id")
+    private Long institutionId;
+    
+    @ApiModelProperty("年级")
+    private Long grade;
+    
+    @ApiModelProperty("职务")
+    private String position;
+    
+    @ApiModelProperty("账号状态")
+    private Integer accountStatus;
 }

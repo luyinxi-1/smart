@@ -78,8 +78,23 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
 
     @Override
     public Page<CoursePageReturnParam> getPage(CoursePageSearchParam param) {
+        // 获取当前用户信息
+        Long currentUserId = UserUtils.get().getId();
+        Integer userType = UserUtils.get().getUserType();
+        
         Page<CoursePageReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
-        return courseMapper.selectCourse(page, param);
+        
+        // 根据用户类型进行不同的查询
+        switch (userType) {
+            case 0: // 管理员 - 查看所有课程
+                return courseMapper.selectCourse(page, param);
+            case 1: // 学生 - 无权访问
+                throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "学生无权查看课程列表");
+            case 2: // 教师 - 只能查看自己创建的课程
+                return courseMapper.selectCourseByTeacher(page, param, currentUserId);
+            default:
+                throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "无权查看课程列表");
+        }
     }
 
     @Override
@@ -87,7 +102,7 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");//直接用
         response.setCharacterEncoding("utf-8");//直接用
         try {
-            //下面四行直接复制，只需要改“课程信息表”这里
+            //下面四行直接复制，只需要改"课程信息表"这里
             String fileName = URLEncoder.encode("课程信息表", "UTF-8").
                     replaceAll("\\+", "%20");
             response.setHeader("Content-disposition", "attachment;filename*=utf-8''"
@@ -145,4 +160,3 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         return param.getId();
     }
 }
-
