@@ -57,8 +57,12 @@
             <if test="param.classId != null">
                 AND s.class_id = #{param.classId}
             </if>
-            <if test="param.institutionId != null">
-                AND u.institution_id = #{param.institutionId}
+            <!-- 修改：使用 institutionIdList 进行 IN 查询 -->
+            <if test="param.institutionIdList != null and param.institutionIdList.size() > 0">
+                AND u.institution_id IN
+                <foreach item="id" collection="param.institutionIdList" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
             </if>
             <if test="param.grade != null and param.grade != ''">
                 AND g.grade = #{param.grade}
@@ -68,6 +72,10 @@
             </if>
             <if test="param.accountStatus != null">
                 AND s.account_status = #{param.accountStatus}
+            </if>
+            <!-- 新增：班级名称模糊查询 -->
+            <if test="param.className != null and param.className != ''">
+                AND g.name LIKE CONCAT('%', #{param.className}, '%')
             </if>
         </where>
         ORDER BY s.add_datetime
