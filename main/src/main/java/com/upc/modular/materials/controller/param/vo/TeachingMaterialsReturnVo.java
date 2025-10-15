@@ -47,4 +47,16 @@ public class TeachingMaterialsReturnVo {
      */
     @ApiModelProperty("是否为本人上传")
     private Boolean isCreator;
+    /**
+     * 教材ID
+     */
+    @ApiModelProperty("已绑定的教材ID")
+    private Long textbookId;
+
+    /**
+     * 教材名称
+     */
+    @ApiModelProperty("已绑定的教材名称")
+    private String textbookName;
 }
+

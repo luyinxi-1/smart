@@ -55,15 +55,11 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysTbrole> im
 
     @Override
     public void deleteSysRoleByIds(List<Long> ids) {
-        if(CollectionUtils.isEmpty(ids)) {
+        if (CollectionUtils.isEmpty(ids)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, " ID列表不能为空");
         }
-        for (Long id : ids) {
-            List<RoleAuthorityList> list = roleAuthorityListService.list(new LambdaQueryWrapper<RoleAuthorityList>().eq(RoleAuthorityList::getRoleId, id));
-            if (!list.isEmpty()) {
-                throw new BusinessException(BusinessErrorEnum.BINDING_ERR, " 当前角色已绑定权限信息，请先删除绑定关系！");
-            }
-        }
+        // 删除角色时，同步删除角色与权限的绑定关系
+        roleAuthorityListService.remove(new LambdaQueryWrapper<RoleAuthorityList>().in(RoleAuthorityList::getRoleId, ids));
         this.removeBatchByIds(ids);
     }
 
