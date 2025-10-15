@@ -7,7 +7,8 @@
         SELECT COUNT(DISTINCT g.id)
         FROM `group` g
                  INNER JOIN user_class_list ucl ON g.id = ucl.class_id
-        WHERE ucl.user_id = #{teacherId} AND ucl.type = 2
+                 INNER JOIN teacher t ON ucl.user_id = t.user_id
+        WHERE t.id = #{teacherId} AND ucl.type = 2
     </select>
 
     <!-- 统计教师授课学生数量 -->
@@ -15,18 +16,16 @@
         SELECT COUNT(DISTINCT s.id)
         FROM student s
                  INNER JOIN user_class_list ucl ON s.class_id = ucl.class_id
-        WHERE ucl.user_id = #{teacherId} AND ucl.type = 2
+                 INNER JOIN teacher t ON ucl.user_id = t.user_id
+        WHERE t.id = #{teacherId} AND ucl.type = 2
     </select>
 
     <!-- 统计教师教材数量 -->
     <select id="countTeacherTextbooks" resultType="java.lang.Integer">
         SELECT COUNT(DISTINCT t.id)
         FROM textbook t
-                 INNER JOIN course_textbook_list ctl ON t.id = ctl.textbook_id
-                 INNER JOIN course c ON ctl.course_id = c.id
-                 INNER JOIN course_class_list ccl ON c.id = ccl.course_id
-                 INNER JOIN user_class_list ucl ON ccl.class_id = ucl.class_id
-        WHERE ucl.user_id = #{teacherId} AND ucl.type = 2
+        WHERE t.textbook_author_id = #{teacherId}
+          AND t.release_status = 1
     </select>
 
     <!-- 统计教师授课课程数量 -->
@@ -35,7 +34,8 @@
         FROM course c
                  INNER JOIN course_class_list ccl ON c.id = ccl.course_id
                  INNER JOIN user_class_list ucl ON ccl.class_id = ucl.class_id
-        WHERE ucl.user_id = #{teacherId} AND ucl.type = 2
+                 INNER JOIN teacher t ON ucl.user_id = t.user_id
+        WHERE t.id = #{teacherId} AND ucl.type = 2
     </select>
 
     <!-- 获取班级学生ID列表 -->
@@ -113,10 +113,6 @@
                 COALESCE(feedback_stats.communication_feedback_count, 0) * 3
             ) as popularityScore
         FROM textbook t
-        INNER JOIN course_textbook_list ctl ON t.id = ctl.textbook_id
-        INNER JOIN course c ON ctl.course_id = c.id
-        INNER JOIN course_class_list ccl ON c.id = ccl.course_id
-        INNER JOIN user_class_list ucl ON ccl.class_id = ucl.class_id
         LEFT JOIN (
             -- 统计阅读人数
             SELECT 
@@ -167,7 +163,8 @@
             LEFT JOIN discussion_topic_reply dtr ON dt.id = dtr.topic_id
             GROUP BY dt.textbook_id
         ) feedback_stats ON t.id = feedback_stats.textbook_id
-        WHERE ucl.user_id = #{teacherId} AND ucl.type = 2
+        WHERE t.textbook_author_id = #{teacherId}
+          AND t.release_status = 1
         ORDER BY popularityScore DESC
         LIMIT 10
     </select>
