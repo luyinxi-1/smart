@@ -220,7 +220,7 @@ public class IdeologicalMaterialServiceImpl extends ServiceImpl<IdeologicalMater
         LocalDate currentDate = LocalDate.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
         String dateString = currentDate.format(formatter);
-        String basePath = "/upload/public/picture/" + dateString + "/";
+        String basePath = "upload/public/picture/" + dateString + "/";
 
         // 2. 判断content是纯Base64还是HTML
         if (content.trim().startsWith("data:image")) {
@@ -266,7 +266,7 @@ public class IdeologicalMaterialServiceImpl extends ServiceImpl<IdeologicalMater
             boolean success = GenerateImage(base64Data, basePath + filename);
 
             if (success) {
-                return addressPrefix + "/upload/public/picture/" + dateString + "/" + filename;
+                return addressPrefix + "upload/public/picture/" + dateString + "/" + filename;
             }
         } catch (Exception e) {
             // 如果在解析或处理base64Uri时出错，记录日志（可选）并返回失败
