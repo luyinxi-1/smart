@@ -206,46 +206,45 @@ public class IdeologicalMaterialServiceImpl extends ServiceImpl<IdeologicalMater
 //            if (ret.contains("data:")) {
 //                String filename = System.currentTimeMillis() + (int) (1 + Math.random() * 1000) + "." + ret.substring(ret.indexOf("/") + 1, ret.indexOf(";"));
 //                GenerateImage(ret.substring(ret.indexOf(",")), path + filename);
-////                content = content.replace(ret, addressPrefix + "/upload/public/picture/"  + dateString + "/" + filename);
-//                content = content.replace(ret, addressPrefix + "D:\\NewMakeFile/"  + dateString + "/" + filename);
+//                content = content.replace(ret, addressPrefix + "/upload/public/picture/"  + dateString + "/" + filename);
 //            }
 //        }
 //        return content;
 //    }
-public String replaceBase64PicToUrl(String content, String addressPrefix) {
-    if (content == null || content.isEmpty()) {
-        return content;
-    }
-
-    // 1. 准备通用的日期和路径
-    LocalDate currentDate = LocalDate.now();
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-    String dateString = currentDate.format(formatter);
-    String basePath = "/usr/local/src/upload/public/picture/" + dateString + "/";
-
-    // 2. 判断content是纯Base64还是HTML
-    if (content.trim().startsWith("data:image")) {
-        // 模式一：整个content是Base64数据
-        String newUrl = processAndSaveBase64Image(content.trim(), basePath, dateString, addressPrefix);
-        // 如果处理成功，返回新URL；如果失败，返回原始内容
-        return newUrl != null ? newUrl : content;
-    } else {
-        // 模式二：content是HTML，需要查找并替换所有Base64图片
-        Pattern pattern = Pattern.compile("src\\s*=\\s*\"(data:image.*?)\"");
-        Matcher matcher = pattern.matcher(content);
-        StringBuffer sb = new StringBuffer();
-
-        while (matcher.find()) {
-            String base64Uri = matcher.group(1);
-            String newUrl = processAndSaveBase64Image(base64Uri, basePath, dateString, addressPrefix);
-            // 如果处理成功，用新URL替换；如果失败，保留原始Base64，避免图片丢失
-            String replacement = (newUrl != null) ? "src=\"" + newUrl + "\"" : matcher.group(0);
-            matcher.appendReplacement(sb, replacement);
+    public String replaceBase64PicToUrl(String content, String addressPrefix) {
+        if (content == null || content.isEmpty()) {
+            return content;
         }
-        matcher.appendTail(sb);
-        return sb.toString();
+
+        // 1. 准备通用的日期和路径
+        LocalDate currentDate = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        String dateString = currentDate.format(formatter);
+        String basePath = "/upload/public/picture/" + dateString + "/";
+
+        // 2. 判断content是纯Base64还是HTML
+        if (content.trim().startsWith("data:image")) {
+            // 模式一：整个content是Base64数据
+            String newUrl = processAndSaveBase64Image(content.trim(), basePath, dateString, addressPrefix);
+            // 如果处理成功，返回新URL；如果失败，返回原始内容
+            return newUrl != null ? newUrl : content;
+        } else {
+            // 模式二：content是HTML，需要查找并替换所有Base64图片
+            Pattern pattern = Pattern.compile("src\\s*=\\s*\"(data:image.*?)\"");
+            Matcher matcher = pattern.matcher(content);
+            StringBuffer sb = new StringBuffer();
+
+            while (matcher.find()) {
+                String base64Uri = matcher.group(1);
+                String newUrl = processAndSaveBase64Image(base64Uri, basePath, dateString, addressPrefix);
+                // 如果处理成功，用新URL替换；如果失败，保留原始Base64，避免图片丢失
+                String replacement = (newUrl != null) ? "src=\"" + newUrl + "\"" : matcher.group(0);
+                matcher.appendReplacement(sb, replacement);
+            }
+            matcher.appendTail(sb);
+            return sb.toString();
+        }
     }
-}
 
     /**
      * 处理单个Base64 URI，保存为图片文件，并返回可访问的URL。
@@ -267,7 +266,7 @@ public String replaceBase64PicToUrl(String content, String addressPrefix) {
             boolean success = GenerateImage(base64Data, basePath + filename);
 
             if (success) {
-                return addressPrefix + "/usr/local/src/upload/public/picture/" + dateString + "/" + filename;
+                return addressPrefix + "/upload/public/picture/" + dateString + "/" + filename;
             }
         } catch (Exception e) {
             // 如果在解析或处理base64Uri时出错，记录日志（可选）并返回失败
