@@ -42,4 +42,6 @@ public interface ISysUserService extends IService<SysTbuser> {
     R resetPassword(Long userId);
 
     Long getUserInfo(Long id, Integer userType);
+
+    String getUserPicture(Long id, Integer userType);
 }

@@ -97,7 +97,8 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
                 .setPassword(AesCbcCompatUtil.encryptZeroBase64(teacher.getIdentityId()))
                 .setUserType(2) // 教师
                 .setInstitutionId(teacher.getInstitutionId())
-                .setStatus(1); // 默认启用
+                .setStatus(1)
+                .setUserPicture(teacher.getPhone()); // 默认启用
 
         sysUserMapper.insert(user);
         Teacher newTeacher = new Teacher();
