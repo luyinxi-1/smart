@@ -6,6 +6,7 @@ import com.upc.modular.textbook.entity.LearningNotes;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.textbook.param.LearningNotesPageReturnParam;
 import com.upc.modular.textbook.param.LearningNotesPageSearchParam;
+import com.upc.modular.textbook.param.UuidParam;
 
 /**
  * <p>
@@ -21,7 +22,11 @@ public interface ILearningNotesService extends IService<LearningNotes> {
 
     Boolean batchDelete(IdParam idParam);
 
+    Boolean batchDeleteByUuid(UuidParam uuidParam);
+
     Boolean updateNotes(LearningNotes param);
+
+    Boolean updateNotesbyClientUuid(LearningNotes param);
 
     Page<LearningNotesPageReturnParam> getAllPage(LearningNotesPageSearchParam param);
 

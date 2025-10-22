@@ -70,4 +70,8 @@ public class LearningNotes implements Serializable {
     @ApiModelProperty("笔记在文档中的位置信息")
     @TableField("position_info")
     private String positionInfo;
+
+    @ApiModelProperty("客户端是否删除标志")
+    @TableField("is_delete")
+    private  Integer isDelete;
 }
