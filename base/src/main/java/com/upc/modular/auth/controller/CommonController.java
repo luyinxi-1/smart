@@ -2,6 +2,7 @@ package com.upc.modular.auth.controller;
 
 import com.upc.common.responseparam.R;
 import com.upc.common.utils.FileManageUtil;
+import com.upc.modular.auth.controller.param.UploadBase64Param;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -55,10 +56,11 @@ public class CommonController {
      */
     @ApiOperation("上传base64格式图片转换成png文件")
     @PostMapping("/uploadBase64")
-    public R<String> uploadBase64(@RequestParam String base64Data) {
+    public R<String> uploadBase64(@RequestBody UploadBase64Param base64Data) {
         Path folderPath = Paths.get(basePath, FileManageUtil.yyyyMMddStr());
         String pngFileName = UUID.randomUUID() + ".png";
-        return R.ok(FileManageUtil.saveBase64Image(base64Data, folderPath, pngFileName));
+        String data = base64Data.getBase64Data();
+        return R.ok(FileManageUtil.saveBase64Image(data, folderPath, pngFileName));
     }
 
     /**

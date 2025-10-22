@@ -191,88 +191,88 @@ public class IdeologicalMaterialServiceImpl extends ServiceImpl<IdeologicalMater
         }
     }
 
-//    private String replaceBase64PicToUrl(String content, String addressPrefix) {
-//        // 获取当前日期
-//        LocalDate currentDate = LocalDate.now();
-//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-//        String dateString = currentDate.format(formatter);
-//
-//        String path = "D:\\NewMakeFile" +  "/" + dateString + "/";
-//        String input = "src=\\s*\"?(.*?)(\"|>|\\s+)";
-//        Pattern p = Pattern.compile(input);
-//        Matcher matcher = p.matcher(content);
-//        while (matcher.find()) {
-//            String ret = matcher.group(1);
-//            if (ret.contains("data:")) {
-//                String filename = System.currentTimeMillis() + (int) (1 + Math.random() * 1000) + "." + ret.substring(ret.indexOf("/") + 1, ret.indexOf(";"));
-//                GenerateImage(ret.substring(ret.indexOf(",")), path + filename);
-////                content = content.replace(ret, addressPrefix + "/upload/public/picture/"  + dateString + "/" + filename);
-//                content = content.replace(ret, addressPrefix + "D:\\NewMakeFile/"  + dateString + "/" + filename);
-//            }
-//        }
-//        return content;
-//    }
-public String replaceBase64PicToUrl(String content, String addressPrefix) {
-    if (content == null || content.isEmpty()) {
+    private String replaceBase64PicToUrl(String content, String addressPrefix) {
+        // 获取当前日期
+        LocalDate currentDate = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        String dateString = currentDate.format(formatter);
+
+        String path = "upload/public/picture/" + dateString + "/";
+        String input = "src=\\s*\"?(.*?)(\"|>|\\s+)";
+        Pattern p = Pattern.compile(input);
+        Matcher matcher = p.matcher(content);
+        while (matcher.find()) {
+            String ret = matcher.group(1);
+            if (ret.contains("data:")) {
+                String filename = System.currentTimeMillis() + (int) (1 + Math.random() * 1000) + "." + ret.substring(ret.indexOf("/") + 1, ret.indexOf(";"));
+                GenerateImage(ret.substring(ret.indexOf(",")), path + filename);
+//                content = content.replace(ret, addressPrefix + "/upload/public/picture/"  + dateString + "/" + filename);
+                content = content.replace(ret, addressPrefix + "/upload/public/picture/"  + dateString + "/" + filename);
+            }
+        }
         return content;
     }
-
-    // 1. 准备通用的日期和路径
-    LocalDate currentDate = LocalDate.now();
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-    String dateString = currentDate.format(formatter);
-    String basePath = "/upload/public/picture/" + dateString + "/";
-
-    // 2. 判断content是纯Base64还是HTML
-    if (content.trim().startsWith("data:image")) {
-        // 模式一：整个content是Base64数据
-        String newUrl = processAndSaveBase64Image(content.trim(), basePath, dateString, addressPrefix);
-        // 如果处理成功，返回新URL；如果失败，返回原始内容
-        return newUrl != null ? newUrl : content;
-    } else {
-        // 模式二：content是HTML，需要查找并替换所有Base64图片
-        Pattern pattern = Pattern.compile("src\\s*=\\s*\"(data:image.*?)\"");
-        Matcher matcher = pattern.matcher(content);
-        StringBuffer sb = new StringBuffer();
-
-        while (matcher.find()) {
-            String base64Uri = matcher.group(1);
-            String newUrl = processAndSaveBase64Image(base64Uri, basePath, dateString, addressPrefix);
-            // 如果处理成功，用新URL替换；如果失败，保留原始Base64，避免图片丢失
-            String replacement = (newUrl != null) ? "src=\"" + newUrl + "\"" : matcher.group(0);
-            matcher.appendReplacement(sb, replacement);
-        }
-        matcher.appendTail(sb);
-        return sb.toString();
-    }
-}
-
-    /**
-     * 处理单个Base64 URI，保存为图片文件，并返回可访问的URL。
-     *
-     * @param base64Uri     完整的Base64数据URI (例如 "data:image/png;base64,iVBOR...")
-     * @param basePath      文件保存的基础路径 (例如 "D:\NewMakeFile/20251016/")
-     * @param dateString    日期字符串 (例如 "20251016")
-     * @param addressPrefix URL前缀
-     * @return 成功则返回拼接好的URL，失败则返回null
-     */
-    private String processAndSaveBase64Image(String base64Uri, String basePath, String dateString, String addressPrefix) {
-        try {
-            // 提取文件扩展名和数据部分
-            String fileExtension = base64Uri.substring(base64Uri.indexOf("/") + 1, base64Uri.indexOf(";"));
-            String base64Data = base64Uri.substring(base64Uri.indexOf(",") + 1);
-
-            // 生成文件名并调用保存方法
-            String filename = System.currentTimeMillis() + "" + (int) (1 + Math.random() * 1000) + "." + fileExtension;
-            boolean success = GenerateImage(base64Data, basePath + filename);
-
-            if (success) {
-                return addressPrefix + "/upload/public/picture/" + dateString + "/" + filename;
-            }
-        } catch (Exception e) {
-            // 如果在解析或处理base64Uri时出错，记录日志（可选）并返回失败
-            // log.error("处理Base64字符串时出错", e);
-        }
-        return null; // 任何失败都返回null
-    }
+//public String replaceBase64PicToUrl(String content, String addressPrefix) {
+//    if (content == null || content.isEmpty()) {
+//        return content;
+//    }
+//
+//    // 1. 准备通用的日期和路径
+//    LocalDate currentDate = LocalDate.now();
+//    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+//    String dateString = currentDate.format(formatter);
+//    String basePath = "/usr/local/src/upload/public/picture/" + dateString + "/";
+//
+//    // 2. 判断content是纯Base64还是HTML
+//    if (content.trim().startsWith("data:image")) {
+//        // 模式一：整个content是Base64数据
+//        String newUrl = processAndSaveBase64Image(content.trim(), basePath, dateString, addressPrefix);
+//        // 如果处理成功，返回新URL；如果失败，返回原始内容
+//        return newUrl != null ? newUrl : content;
+//    } else {
+//        // 模式二：content是HTML，需要查找并替换所有Base64图片
+//        Pattern pattern = Pattern.compile("src\\s*=\\s*\"(data:image.*?)\"");
+//        Matcher matcher = pattern.matcher(content);
+//        StringBuffer sb = new StringBuffer();
+//
+//        while (matcher.find()) {
+//            String base64Uri = matcher.group(1);
+//            String newUrl = processAndSaveBase64Image(base64Uri, basePath, dateString, addressPrefix);
+//            // 如果处理成功，用新URL替换；如果失败，保留原始Base64，避免图片丢失
+//            String replacement = (newUrl != null) ? "src=\"" + newUrl + "\"" : matcher.group(0);
+//            matcher.appendReplacement(sb, replacement);
+//        }
+//        matcher.appendTail(sb);
+//        return sb.toString();
+//    }
+//}
+//
+//    /**
+//     * 处理单个Base64 URI，保存为图片文件，并返回可访问的URL。
+//     *
+//     * @param base64Uri     完整的Base64数据URI (例如 "data:image/png;base64,iVBOR...")
+//     * @param basePath      文件保存的基础路径 (例如 "D:\NewMakeFile/20251016/")
+//     * @param dateString    日期字符串 (例如 "20251016")
+//     * @param addressPrefix URL前缀
+//     * @return 成功则返回拼接好的URL，失败则返回null
+//     */
+//    private String processAndSaveBase64Image(String base64Uri, String basePath, String dateString, String addressPrefix) {
+//        try {
+//            // 提取文件扩展名和数据部分
+//            String fileExtension = base64Uri.substring(base64Uri.indexOf("/") + 1, base64Uri.indexOf(";"));
+//            String base64Data = base64Uri.substring(base64Uri.indexOf(",") + 1);
+//
+//            // 生成文件名并调用保存方法
+//            String filename = System.currentTimeMillis() + "" + (int) (1 + Math.random() * 1000) + "." + fileExtension;
+//            boolean success = GenerateImage(base64Data, basePath + filename);
+//
+//            if (success) {
+//                return addressPrefix + "/usr/local/src/upload/public/picture/" + dateString + "/" + filename;
+//            }
+//        } catch (Exception e) {
+//            // 如果在解析或处理base64Uri时出错，记录日志（可选）并返回失败
+//            // log.error("处理Base64字符串时出错", e);
+//        }
+//        return null; // 任何失败都返回null
+//    }
 }

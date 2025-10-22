@@ -89,4 +89,7 @@ public class UserInfoToRedis {
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
     private LocalDateTime operationDatetime;
 
+    @ApiModelProperty("用户照片")
+    private String userPicture;
+
 }

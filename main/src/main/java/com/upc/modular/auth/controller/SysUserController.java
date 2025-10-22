@@ -105,7 +105,8 @@ public class SysUserController {
     public R getUserInfo() {
         UserInfoToRedis userInfoToRedis = UserUtils.get();
         Long id = sysUserService.getUserInfo(userInfoToRedis.getId(), userInfoToRedis.getUserType());
-        userInfoToRedis.setSchoolId(id);
+        String userPicture = sysUserService.getUserPicture(userInfoToRedis.getId(), userInfoToRedis.getUserType());
+        userInfoToRedis.setUserPicture(userPicture);
         return R.ok(userInfoToRedis);
     }
 }

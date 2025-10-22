@@ -139,8 +139,8 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         newUser.setStatus(1);   // 默认启用
         // 根据最终确认，机构ID在这里暂时不设置
         newUser.setInstitutionId(null);
+        newUser.setUserPicture(student.getIdPhoto());
         sysUserService.save(newUser);
-
         // 2. 关联角色
         SysTbrole studentRole = sysRoleMapper.selectOne(new QueryWrapper<SysTbrole>().eq("role_code", "student"));
         if (studentRole == null) {

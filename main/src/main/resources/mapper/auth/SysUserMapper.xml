@@ -43,4 +43,18 @@
         </choose>
     </select>
 
+    <select id="getUserPicUrl" resultType="java.lang.String">
+        <choose>
+            <when test="userType == 1">
+                SELECT id_photo FROM student WHERE user_id = #{id}
+            </when>
+            <when test="userType == 2 or userType == 0">
+                SELECT photo FROM teacher WHERE user_id = #{id}
+            </when>
+            <otherwise>
+                SELECT NULL
+            </otherwise>
+        </choose>
+    </select>
+
 </mapper>

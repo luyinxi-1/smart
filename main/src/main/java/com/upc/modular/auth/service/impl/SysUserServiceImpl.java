@@ -285,5 +285,14 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
          return schoolId;
     }
 
+    @Override
+    public String getUserPicture(Long id, Integer userType) {
+        if (ObjectUtils.isEmpty(id) || ObjectUtils.isEmpty(userType)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户ID或用户类型为空");
+        }
+        String pic_url = sysUserMapper.getUserPicUrl(id, userType);
+        return pic_url;
+    }
+
 
 }
