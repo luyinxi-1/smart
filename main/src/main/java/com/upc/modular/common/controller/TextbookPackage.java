@@ -51,10 +51,14 @@ public class TextbookPackage {
     private TextbookMapper textbookMapper;
 
     // Go 语言编译的工作区
-    private static final String GO_BUILD_WORKSPACE = "/opt/GoBuildWorkspace";
+    //private static final String GO_BUILD_WORKSPACE = "/opt/GoBuildWorkspace";
+    // 临时改成这个，部署到linux之前得改回来。
+    private static final String GO_BUILD_WORKSPACE = "D:/GoBuildWorkspace";
+
 
     // *** UPDATED ***: Base path for textbook pictures updated to the specific server path.
     private static final String TEXTBOOK_PICTURE_BASE_PATH = "/opt/textbook-app/upload/public/picture/convertTextbookImage/";
+    //private static final String TEXTBOOK_PICTURE_BASE_PATH = "D:/textbook-app/upload/public/picture/convertTextbookImage/";
 
     @ApiOperation(value = "教材打包（包含图片等资源）")
     @PostMapping("/do")
