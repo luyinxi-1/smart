@@ -18,17 +18,29 @@ const zipPassword = "PASSWORD_PLACEHOLDER"
 func getDeviceUUID() (string, error) {
 	switch runtime.GOOS {
 	case "windows":
-		cmd := exec.Command("wmic", "csproduct", "get", "uuid")
-		var out bytes.Buffer
-		cmd.Stdout = &out
-		if err := cmd.Run(); err != nil {
-			return "", err
-		}
-		lines := strings.Split(out.String(), "\n")
-		if len(lines) >= 2 {
-			return strings.TrimSpace(lines[1]), nil
-		}
-		return "", fmt.Errorf("无法解析wmic输出")
+    	// 优先使用 PowerShell
+    	cmd := exec.Command("powershell", "-Command", "(Get-CimInstance Win32_ComputerSystemProduct).UUID")
+    	var out bytes.Buffer
+    	cmd.Stdout = &out
+    	if err := cmd.Run(); err == nil {
+    		uuid := strings.TrimSpace(out.String())
+    		if uuid != "" {
+    			return uuid, nil
+    		}
+    	}
+    	// 回退到旧版 wmic
+    	cmd = exec.Command("wmic", "csproduct", "get", "uuid")
+    	out.Reset()
+    	cmd.Stdout = &out
+    	if err := cmd.Run(); err != nil {
+    		return "", fmt.Errorf("无法通过 PowerShell 或 wmic 获取UUID: %v", err)
+    	}
+    	lines := strings.Split(out.String(), "\n")
+    	if len(lines) >= 2 {
+    		return strings.TrimSpace(lines[1]), nil
+    	}
+    	return "", fmt.Errorf("无法解析UUID输出")
+
 	// 您可以根据需要添加macOS和Linux的实现
 	case "darwin":
 		return "", fmt.Errorf("macOS尚未支持")
