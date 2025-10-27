@@ -172,7 +172,7 @@ public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required
 
 
     @ApiOperation("资源使用数据统计")
-    @GetMapping("/")
+    @GetMapping("/resource-usage-statistics")
     public R<Map<String, Object>> getResourceUsageStatistics() {
         Map<String, Object> statistics = systemStatisticsService.getResourceUsageStatistics();
         return R.ok(statistics);
@@ -296,7 +296,7 @@ public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required
             List<ChapterMasteryVO> result = systemStatisticsService.getStudentChapterMastery(studentId, textbookId);
             return R.ok(result);
         } catch (Exception e) {
-            return R.ok(new ArrayList<>());
+            return R.fail("获取学生章节掌握度失败: " + e.getMessage());
         }
     }
 }

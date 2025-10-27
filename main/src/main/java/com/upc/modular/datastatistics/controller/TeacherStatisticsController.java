@@ -201,7 +201,7 @@ public class TeacherStatisticsController {
             ClassAnalysisReturnParam result = teacherStatisticsService.generateClassAnalysisReport(classId, startTime, endTime);
             return R.ok(result);
         } catch (Exception e) {
-            return R.ok(new ClassAnalysisReturnParam());
+            return R.fail("班级分析报告生成失败: " + e.getMessage());
         }
     }
 
