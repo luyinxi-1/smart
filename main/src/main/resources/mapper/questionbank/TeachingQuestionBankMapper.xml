@@ -27,20 +27,23 @@
         t.description,
         t.status,
         t.textbook_id AS textbookId,
+        tb.textbook_name as textbookName,
         t.textbook_catalog_id AS textbookCatalogId,
         t.max_attempts AS maxAttempts,
         t.score_policy AS scorePolicy,
         t.creator,
         u.nickname AS creatorName,   -- ⭐ 新增：从用户表取创建人名称
-        tb.textbook_name AS textbookName, -- ⭐ 新增：从教材表取教材名称
         t.add_datetime AS addDatetime,
         COUNT(qbl.id) AS questionCount
         FROM
         teaching_question_bank t
         LEFT JOIN questions_banks_list qbl ON t.id = qbl.bank_id
         LEFT JOIN sys_tbuser u ON t.creator = u.id
-        LEFT JOIN textbook tb ON t.textbook_id = tb.id  -- ⭐ 新增：关联教材表获取教材名称
+        LEFT JOIN textbook tb on t.textbook_id = tb.id
         <where>
+            <if test="userRole != null and userRole == 'teacher'">
+                AND t.creator = #{userId}
+            </if>
             <!-- 条件1: 根据题库名称模糊查询 -->
             <if test="param.name != null and param.name != ''">
                 AND t.name LIKE CONCAT('%', #{param.name}, '%')
@@ -72,15 +75,11 @@
             <if test="param.isUnbound != null and param.isUnbound == 1">
                 AND t.textbook_catalog_id IS NULL
             </if>
-            <!-- 权限控制：如果是教师角色，只能查看自己创建的题库 -->
-            <if test="userType != null and userType == 2">
-                AND t.creator = #{userId}
-            </if>
         </where>
         GROUP BY
-        t.id, t.name, t.description, t.status, t.textbook_id,
+        t.id, t.name, t.description, t.status, t.textbook_id, tb.textbook_name,
         t.textbook_catalog_id, t.max_attempts, t.score_policy,
-        t.creator, u.nickname, t.add_datetime, tb.textbook_name  -- ⭐ GROUP BY 里加上教材名称
+        t.creator, u.nickname, t.add_datetime  -- ⭐ GROUP BY 里要加上 u.username
         ORDER BY
         t.add_datetime
         <choose>
