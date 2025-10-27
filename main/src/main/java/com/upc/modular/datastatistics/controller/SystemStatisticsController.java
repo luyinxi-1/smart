@@ -51,34 +51,40 @@ public class SystemStatisticsController {
         }
     }
 
-    @ApiOperation("按时间统计访问人数")
+    @ApiOperation("按(周/月/年)时间统计访问人数")
     @GetMapping("/visitorCountByTime")
     public R<List<VisitorCountDTO>> getStudentVisitorCountByTime(
             @RequestParam(defaultValue = "week") String timeRange) {
         List<VisitorCountDTO> result = systemStatisticsService.getStudentVisitorCountByTime(timeRange);
         return R.ok(result);
     }
+    @ApiOperation("按(周/月/年)统计每日学习时长")
+    @GetMapping("/studyDurationByTime")
+    public R<List<DailyStudyDurationDto>> getStudyDurationByTime(
+            @RequestParam(defaultValue = "week") String timeRange) {
+        try {
+            List<DailyStudyDurationDto> result = systemStatisticsService.getStudyDurationByTime(timeRange);
+            return R.ok(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("获取学习时长统计失败: " + e.getMessage());
+        }
+    }
     // 今日总学习时长
     @ApiOperation("今日总学习时长")
     @PostMapping("/todayStudyDuration")
     public R<Long> getTodayStudyDuration() {
         try {
-            return R.ok(systemStatisticsService.getTodayStudyDuration());
+            Long durationInSeconds = systemStatisticsService.getTodayStudyDuration();
+            // 将秒转换为分钟
+            Long durationInMinutes = durationInSeconds / 60;
+            return R.ok(durationInMinutes);
         } catch (Exception e) {
             e.printStackTrace();
             return R.fail("获取今日总学习时长失败: " + e.getMessage());
         }
     }
-/*    @ApiOperation("按时间段获取今日总学习时长统计")
-    @PostMapping("/todayStudyDurationByPeriod")
-    public R<List<StatisticsDto>> getTodayStudyDurationByPeriod() {
-        try {
-            return R.ok(systemStatisticsService.getTodayStudyDurationByPeriod());
-        } catch (Exception e) {
-            e.printStackTrace();
-            return R.fail("获取今日分时总学习时长失败: " + e.getMessage());
-        }
-    }*/
+
 @ApiOperation("按时间段获取今日总学习时长统计(分钟)")
 @PostMapping("/todayStudyDurationByPeriod")
 public R<List<StatisticsDto>> getTodayStudyDurationByPeriod() {
@@ -96,7 +102,6 @@ public R<List<StatisticsDto>> getTodayStudyDurationByPeriod() {
         return R.fail("获取今日分时总学习时长失败: " + e.getMessage());
     }
 }
-
     @ApiOperation("根据日期范围查询学习趋势(单位:秒)")
     @GetMapping("/studyTrendByDate")
     public R<List<StudyTrendDTO>> getStudyTrendByDate(
@@ -122,8 +127,8 @@ public R<List<StatisticsDto>> getTodayStudyDurationByPeriod() {
     }
 @ApiOperation("获取系统所有核心数据统计")
 @GetMapping("/all-counts")
-public R<SystemAllCountsDto> getAllCounts() {
-    return R.ok(systemStatisticsService.getAllCounts());
+public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required = false) String dateStr) {
+    return R.ok(systemStatisticsService.getAllCounts(dateStr));
 }
 
     @ApiOperation("教师数量统计")
@@ -176,13 +181,11 @@ public R<SystemAllCountsDto> getAllCounts() {
         IPage<TextbookUpdateApplicationParam> applications = systemStatisticsService.getTextbookUpdateApplications(page);
         return R.ok(applications);
     }
-
     @ApiOperation("获取全系统教材热度排名")
     @GetMapping("/textbook-popularity")
     public R<List<TeacherTextbookPopularityParam>> getSystemTextbookPopularity() {
         return R.ok(systemStatisticsService.getSystemTextbookPopularity());
     }
-
     @ApiOperation("获取全系统教材统计概览 (分页)")
     @GetMapping("/textbook-overview")
     public R<IPage<TextbookStatisticsOverviewParam>> getSystemTextbookStatisticsOverview(
@@ -206,7 +209,6 @@ public R<SystemAllCountsDto> getAllCounts() {
 
         return R.ok(systemStatisticsService.getSystemTextbookStatisticsOverview(page));
     }
-
     @ApiOperation("获取教材阅读人员统计 (分页)")
     @PostMapping("/reader-statistics")
     public R<IPage<ReaderStatisticsParam>> getReaderStatistics(
