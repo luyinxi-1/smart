@@ -14,6 +14,20 @@
         <result column="operator" property="operator" />
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
+    
+    <!-- 带创建人姓名的查询映射结果 -->
+    <resultMap id="ClassificationWithCreatorMap" type="com.upc.modular.questionbank.controller.param.TeachingQuestionClassificationReturnVo">
+        <id column="id" property="id" />
+        <result column="teaching_question_classification_name" property="teachingQuestionClassificationName" />
+        <result column="sort_number" property="sortNumber" />
+        <result column="parent_id" property="parentId" />
+        <result column="classification_grade" property="classificationGrade" />
+        <result column="creator" property="creator" />
+        <result column="add_datetime" property="addDatetime" />
+        <result column="operator" property="operator" />
+        <result column="operation_datetime" property="operationDatetime" />
+        <result column="creatorName" property="creatorName" />
+    </resultMap>
 
     <select id="selectMaxSortNumber" resultType="java.lang.Integer" parameterType="com.upc.modular.questionbank.entity.TeachingQuestionClassification">
         SELECT MAX(sort_number) FROM teaching_question_classification
@@ -43,4 +57,34 @@
         </set>
         WHERE id = #{id}
     </update>
+    
+    <!-- 查询题目分类列表（带创建人姓名） -->
+    <select id="selectTeachingQuestionClassificationListWithCreator" resultMap="ClassificationWithCreatorMap">
+        SELECT 
+            tc.id,
+            tc.teaching_question_classification_name,
+            tc.sort_number,
+            tc.parent_id,
+            tc.classification_grade,
+            tc.creator,
+            tc.add_datetime,
+            tc.operator,
+            tc.operation_datetime,
+            u.nickname AS creatorName
+        FROM teaching_question_classification tc
+        LEFT JOIN sys_tbuser u ON tc.creator = u.id
+        <where>
+            <if test="teachingQuestionClassificationName != null and teachingQuestionClassificationName != ''">
+                AND tc.teaching_question_classification_name LIKE CONCAT('%', #{teachingQuestionClassificationName}, '%')
+            </if>
+            <!-- 管理员查询所有，教师只查询自己创建的 -->
+            <if test="creatorId != null">
+                AND tc.creator = #{creatorId}
+            </if>
+            <if test="creatorName != null and creatorName != ''">
+                AND u.nickname LIKE CONCAT('%', #{creatorName}, '%')
+            </if>
+        </where>
+        ORDER BY tc.sort_number
+    </select>
 </mapper>
