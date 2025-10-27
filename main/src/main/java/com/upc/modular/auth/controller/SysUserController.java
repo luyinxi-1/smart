@@ -43,7 +43,7 @@ public class SysUserController {
 
     @PostMapping("/login")
     @ApiOperation("登录")
-    public R<String> login(@RequestBody UserLoginParam userLogin, HttpServletRequest request) {
+    public R<UserLoginResultParam> login(@RequestBody UserLoginParam userLogin, HttpServletRequest request) {
         return R.ok(sysUserService.login(userLogin, request));
     }
 
