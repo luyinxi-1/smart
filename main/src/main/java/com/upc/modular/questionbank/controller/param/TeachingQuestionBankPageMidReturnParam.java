@@ -22,6 +22,9 @@ public class TeachingQuestionBankPageMidReturnParam {
     @ApiModelProperty("关联教材ID")
     private Long textbookId;
 
+    @ApiModelProperty("关联教材名称")
+    private String textbookName;
+
     @ApiModelProperty("关联的教材目录")
     private Long textbookCatalogId;
 
@@ -39,7 +42,4 @@ public class TeachingQuestionBankPageMidReturnParam {
 
     @ApiModelProperty("题目数量")
     private Long questionCount;
-    
-    @ApiModelProperty("教材名称")
-    private String textbookName;
 }

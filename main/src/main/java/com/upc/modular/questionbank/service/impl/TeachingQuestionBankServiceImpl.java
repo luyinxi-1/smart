@@ -1,12 +1,10 @@
 package com.upc.modular.questionbank.service.impl;
 
+import com.alibaba.excel.util.CollectionUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.upc.common.utils.UserInfoToRedis;
 import com.upc.common.utils.UserUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
@@ -15,42 +13,45 @@ import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.questionbank.controller.param.*;
 import com.upc.modular.questionbank.entity.*;
-import com.upc.modular.questionbank.mapper.*;
+import com.upc.modular.questionbank.mapper.QuestionsBanksListMapper;
+import com.upc.modular.questionbank.mapper.StudentExercisesContentMapper;
+import com.upc.modular.questionbank.mapper.StudentExercisesRecordMapper;
+import com.upc.modular.questionbank.mapper.TeachingQuestionBankMapper;
+import com.upc.modular.questionbank.service.IStudentExercisesRecordService;
+import com.upc.modular.questionbank.service.ITeachingQuestionBankService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.upc.modular.questionbank.controller.param.PendingReviewReturnVO;
+import com.upc.modular.questionbank.controller.param.PendingReviewSearchParam;
 import com.upc.modular.student.entity.Student;
 import com.upc.modular.student.mapper.StudentMapper;
+import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import com.upc.modular.textbook.mapper.TextbookMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.upc.utils.CreatePage.createPage;
-
 /**
  * <p>
- *  服务实现类
+ * 服务实现类
  * </p>
  *
  * @author byh
  * @since 2025-07-04
  */
+@Slf4j
 @Service
-public class TeachingQuestionBankServiceImpl extends com.baomidou.mybatisplus.extension.service.impl.ServiceImpl<com.upc.modular.questionbank.mapper.TeachingQuestionBankMapper, com.upc.modular.questionbank.entity.TeachingQuestionBank> implements com.upc.modular.questionbank.service.ITeachingQuestionBankService {
-
-    private static final Logger log = LoggerFactory.getLogger(TeachingQuestionBankServiceImpl.class);
-
-    @Autowired
-    private TeachingQuestionMapper teachingQuestionMapper;
+public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestionBankMapper, TeachingQuestionBank> implements ITeachingQuestionBankService {
 
     @Autowired
     private TeachingQuestionBankMapper teachingQuestionBankMapper;
@@ -74,7 +75,7 @@ public class TeachingQuestionBankServiceImpl extends com.baomidou.mybatisplus.ex
     private StudentExercisesRecordMapper studentExercisesRecordMapper;
 
     @Autowired
-    private com.upc.modular.questionbank.service.IStudentExercisesRecordService studentExercisesRecordService;
+    private IStudentExercisesRecordService studentExercisesRecordService;
 
     @Autowired
     private QuestionsBanksListMapper questionsBanksListMapper;
@@ -113,15 +114,28 @@ public class TeachingQuestionBankServiceImpl extends com.baomidou.mybatisplus.ex
 
     @Override
     public Page<TeachingQuestionBankPageReturnParam> selectQuestionBankPage(TeachingQuestionBankPageSearchParam param) {
-        UserInfoToRedis currentUser = UserUtils.get();
-        Long userId = currentUser.getId();
-        Integer userType = currentUser.getUserType();
-        
+        Long userId = UserUtils.get().getId();
+        Integer userType = UserUtils.get().getUserType();
+        String userRole = "";
+
+        // 安全校验：根据用户类型决定角色和访问权限
+        if (userType == 1) { // 1 = 学生
+            // 学生无权访问此接口，直接返回空结果
+            return new Page<>(param.getCurrent(), param.getSize(), 0);
+        } else if (userType == 2) { // 2 = 教师
+            userRole = "teacher";
+        } else if (userType == 0) { // 0 = 管理员
+            userRole = "admin";
+        } else {
+            // 其他未知角色，同样视为无权限
+            return new Page<>(param.getCurrent(), param.getSize(), 0);
+        }
+
         // --- 第一阶段：数据库查询 ---
         // 1. 创建分页对象，注意泛型是中间结果类型
         Page<TeachingQuestionBankPageMidReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
         // 2. 调用Mapper获取包含 creatorId 和 questionCount 的分页数据
-        Page<TeachingQuestionBankPageMidReturnParam> midResultPage = teachingQuestionBankMapper.selectQuestionBank(page, param, userId, userType);
+        Page<TeachingQuestionBankPageMidReturnParam> midResultPage = teachingQuestionBankMapper.selectQuestionBank(page, param, userId, userRole);
         // --- 第二阶段：Java内存中数据处理和转换 ---
         List<TeachingQuestionBankPageMidReturnParam> midRecords = midResultPage.getRecords();
         // 如果查询结果为空，直接返回一个空的最终分页对象，保留分页信息
@@ -158,8 +172,6 @@ public class TeachingQuestionBankServiceImpl extends com.baomidou.mybatisplus.ex
             finalParam.setCreatorName(creatorName);
             // 添加是否为当前用户创建的标识
             finalParam.setIsCreatedByCurrentUser(midParam.getCreator() != null && midParam.getCreator().equals(userId));
-            // 设置教材名称
-            finalParam.setTextbookName(midParam.getTextbookName());
             return finalParam;
         }).collect(Collectors.toList());
         // 6. 构建并返回最终的分页对象
@@ -171,33 +183,33 @@ public class TeachingQuestionBankServiceImpl extends com.baomidou.mybatisplus.ex
         finalPage.setRecords(finalRecords);
         return finalPage;
     }
-@Override
-public Long inserQuestionBank(TeachingQuestionBank param) {
-    Long textbookId = param.getTextbookId();
-    Long textbookCatalogId = param.getTextbookCatalogId();
+    @Override
+    public Long inserQuestionBank(TeachingQuestionBank param) {
+        Long textbookId = param.getTextbookId();
+        Long textbookCatalogId = param.getTextbookCatalogId();
 
-    // 教材ID和教材目录ID是外键，需要判断是否存在
-    if (textbookId != null) {
-        LambdaQueryWrapper<Textbook> queryWrapper1 = new LambdaQueryWrapper<>();
-        queryWrapper1.eq(Textbook::getId, textbookId);
-        boolean isTextbookExists = textbookMapper.exists(queryWrapper1);
-        if (!isTextbookExists) {
-            throw new RuntimeException("ID为 " + textbookId + " 的教材不存在！");
+        // 教材ID和教材目录ID是外键，需要判断是否存在
+        if (textbookId != null) {
+            LambdaQueryWrapper<Textbook> queryWrapper1 = new LambdaQueryWrapper<>();
+            queryWrapper1.eq(Textbook::getId, textbookId);
+            boolean isTextbookExists = textbookMapper.exists(queryWrapper1);
+            if (!isTextbookExists) {
+                throw new RuntimeException("ID为 " + textbookId + " 的教材不存在！");
+            }
         }
-    }
 
-    if (textbookCatalogId != null) {
-        LambdaQueryWrapper<TextbookCatalog> queryWrapper2 = new LambdaQueryWrapper<>();
-        queryWrapper2.eq(TextbookCatalog::getId, textbookCatalogId);
-        boolean isTextbookCatalogExists = textbookCatalogMapper.exists(queryWrapper2);
-        if (!isTextbookCatalogExists) {
-            throw new RuntimeException("ID为 " + textbookCatalogId + " 的教材目录不存在！");
+        if (textbookCatalogId != null) {
+            LambdaQueryWrapper<TextbookCatalog> queryWrapper2 = new LambdaQueryWrapper<>();
+            queryWrapper2.eq(TextbookCatalog::getId, textbookCatalogId);
+            boolean isTextbookCatalogExists = textbookCatalogMapper.exists(queryWrapper2);
+            if (!isTextbookCatalogExists) {
+                throw new RuntimeException("ID为 " + textbookCatalogId + " 的教材目录不存在！");
+            }
         }
-    }
 
-    this.save(param);
-    return param.getId();
-}
+        this.save(param);
+        return param.getId();
+    }
 
 
     @Override
@@ -311,51 +323,69 @@ public Long inserQuestionBank(TeachingQuestionBank param) {
         // 2. 校验所有待更新的题库ID本身是否存在
         List<TeachingQuestionBank> oldQuestionBanks = this.listByIds(questionBankIds);
         if (oldQuestionBanks.size() != questionBankIds.size()) {
-            // 找出那些不存在的 ID
-            List<Long> foundIds = oldQuestionBanks.stream()
-                    .map(TeachingQuestionBank::getId)
-                    .collect(Collectors.toList());
-            List<Long> missing = questionBankIds.stream()
-                    .filter(id -> !foundIds.contains(id))
-                    .collect(Collectors.toList());
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "更新失败，以下题库ID不存在：" + missing);
+            Set<Long> foundIds = oldQuestionBanks.stream().map(TeachingQuestionBank::getId).collect(Collectors.toSet());
+            List<Long> missingIds = questionBankIds.stream().filter(id -> !foundIds.contains(id)).collect(Collectors.toList());
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR,
+                    "ID为 " + missingIds.stream().map(String::valueOf).collect(Collectors.joining(",")) + " 的题库不存在，无法更新！");
+
         }
+        // 3. 准备校验有变动的关联ID (教材ID和目录ID)
+        Map<Long, TeachingQuestionBank> oldBankMap = oldQuestionBanks.stream()
+                .collect(Collectors.toMap(TeachingQuestionBank::getId, bank -> bank));
 
-        // 3. 校验外键约束
-        for (TeachingQuestionBank bank : teachingQuestionBanks) {
-            Long questionBankId = bank.getId();
-            TeachingQuestionBank oldBank = oldQuestionBanks.stream()
-                    .filter(b -> b.getId().equals(questionBankId))
-                    .findFirst()
-                    .orElse(null);
+        Set<Long> textbookIdsToValidate = teachingQuestionBanks.stream()
+                .filter(newBank -> {
+                    TeachingQuestionBank oldBank = oldBankMap.get(newBank.getId());
+                    return newBank.getTextbookId() != null && !newBank.getTextbookId().equals(oldBank.getTextbookId());
+                })
+                .map(TeachingQuestionBank::getTextbookId)
+                .collect(Collectors.toSet());
 
-            // 3.1 校验教材ID
-            Long textbookId = bank.getTextbookId();
-            if (ObjectUtils.isNotEmpty(textbookId) && ObjectUtils.isNotNull(textbookId)) {
-                if (!textbookId.equals(oldBank.getTextbookId())) {
-                    boolean isTextbookExists = textbookMapper.exists(
-                            new LambdaQueryWrapper<Textbook>().eq(Textbook::getId, textbookId)
-                    );
-                    if (!isTextbookExists) {
-                        throw new BusinessException(BusinessErrorEnum.FOREIGN_KEY_NOT_FOUND, "ID为 " + textbookId + " 的教材不存在！");
-                    }
-                }
-            }
+        Set<Long> catalogIdsToValidate = teachingQuestionBanks.stream()
+                .filter(newBank -> {
+                    TeachingQuestionBank oldBank = oldBankMap.get(newBank.getId());
+                    return newBank.getTextbookCatalogId() != null && !newBank.getTextbookCatalogId().equals(oldBank.getTextbookCatalogId());
+                })
+                .map(TeachingQuestionBank::getTextbookCatalogId)
+                .collect(Collectors.toSet());
 
-            // 3.2 校验教材目录ID
-            Long textbookCatalogId = bank.getTextbookCatalogId();
-            if (ObjectUtils.isNotEmpty(textbookCatalogId) && ObjectUtils.isNotNull(textbookCatalogId)) {
-                if (!textbookCatalogId.equals(oldBank.getTextbookCatalogId())) {
-                    boolean isTextbookCatalogExists = textbookCatalogMapper.exists(
-                            new LambdaQueryWrapper<TextbookCatalog>().eq(TextbookCatalog::getId, textbookCatalogId)
-                    );
-                    if (!isTextbookCatalogExists) {
-                        throw new BusinessException(BusinessErrorEnum.FOREIGN_KEY_NOT_FOUND, "ID为 " + textbookCatalogId + " 的教材目录不存在！");
-                    }
-                }
+        // 4. 【核心修改】执行精确校验
+        if (!CollectionUtils.isEmpty(textbookIdsToValidate)) {
+            // 查询数据库中实际存在的ID
+            List<Long> foundTextbookIds = textbookMapper.selectList(new LambdaQueryWrapper<Textbook>()
+                            .select(Textbook::getId) // 仅查询ID字段，提升效率
+                            .in(Textbook::getId, textbookIdsToValidate))
+                    .stream()
+                    .map(Textbook::getId)
+                    .collect(Collectors.toList());
+
+            // 如果查到的ID数量少于需要校验的ID数量，说明有ID不存在
+            if (foundTextbookIds.size() < textbookIdsToValidate.size()) {
+                // 找出不存在的ID (差集)
+                Set<Long> nonExistentIds = new HashSet<>(textbookIdsToValidate);
+                nonExistentIds.removeAll(foundTextbookIds);
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "更新失败，以下指定的教材ID不存在: " + nonExistentIds.stream().map(String::valueOf).collect(Collectors.joining(",")));
+
             }
         }
+        // 校验教材目录ID
+        if (!CollectionUtils.isEmpty(catalogIdsToValidate)) {
+            // 查询数据库中实际存在的ID
+            List<Long> foundCatalogIds = textbookCatalogMapper.selectList(new LambdaQueryWrapper<TextbookCatalog>()
+                            .select(TextbookCatalog::getId)
+                            .in(TextbookCatalog::getId, catalogIdsToValidate))
+                    .stream()
+                    .map(TextbookCatalog::getId)
+                    .collect(Collectors.toList());
 
+            if (foundCatalogIds.size() < catalogIdsToValidate.size()) {
+                // 找出不存在的ID (差集)
+                Set<Long> nonExistentIds = new HashSet<>(catalogIdsToValidate);
+                nonExistentIds.removeAll(foundCatalogIds);
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "更新失败，以下指定的教材目录ID不存在: " + nonExistentIds.stream().map(String::valueOf).collect(Collectors.joining(",")));
+
+            }
+        }
         // 5. 在更新前，先清除本次操作涉及章节下所有题库的旧绑定关系
         Set<Long> catalogIdsToClear = teachingQuestionBanks.stream()
                 .map(TeachingQuestionBank::getTextbookCatalogId)
@@ -468,7 +498,7 @@ public Long inserQuestionBank(TeachingQuestionBank param) {
 
         if (resultList != null && !resultList.isEmpty()) {
             for (QuestionBankWithStatusVO vo : resultList) {
-                if (org.springframework.util.StringUtils.hasText(vo.getCatalogName())) {
+                if (StringUtils.hasText(vo.getCatalogName())) {
                     String rawHtml = vo.getCatalogName();
                     String plainText = Jsoup.parse(rawHtml).text();
                     vo.setCatalogName(plainText);
