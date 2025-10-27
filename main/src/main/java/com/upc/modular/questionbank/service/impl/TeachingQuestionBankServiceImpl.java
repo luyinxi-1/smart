@@ -30,6 +30,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.upc.modular.materials.entity.TeachingMaterials;
+import com.upc.modular.materials.mapper.TeachingMaterialsMapper;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -80,6 +82,12 @@ public class TeachingQuestionBankServiceImpl extends com.baomidou.mybatisplus.ex
     private QuestionsBanksListMapper questionsBanksListMapper;
     @Autowired
     private SysUserMapper sysUserMapper;
+
+    @Autowired
+    private QuestionBankMaterialsMappingMapper questionBankMaterialsMappingMapper;
+
+    @Autowired
+    private TeachingMaterialsMapper teachingMaterialsMapper;
 
 
 
@@ -644,5 +652,52 @@ public Long inserQuestionBank(TeachingQuestionBank param) {
     @Override
     public List<QuestionsBanksListVO> getQuestionsWithTypeNameByBankId(Long bankId) {
         return questionsBanksListMapper.selectQuestionsWithTypeNameByBankId(bankId);
+    }
+
+    @Override
+    public List<QuestionBankMaterialVO> getQuestionBankMaterials(Long questionBankId) {
+        // 查询题库关联的素材映射
+        List<QuestionBankMaterialsMapping> mappings = questionBankMaterialsMappingMapper.selectMaterialsByQuestionBankId(questionBankId);
+
+        if (mappings == null || mappings.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 提取素材ID列表
+        List<Long> materialIds = mappings.stream()
+                .map(QuestionBankMaterialsMapping::getMaterialId)
+                .collect(Collectors.toList());
+
+        // 查询素材详细信息
+        LambdaQueryWrapper<TeachingMaterials> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(TeachingMaterials::getId, materialIds);
+        List<TeachingMaterials> materials = teachingMaterialsMapper.selectList(wrapper);
+
+        // 创建素材ID到素材对象的映射
+        Map<Long, TeachingMaterials> materialMap = materials.stream()
+                .collect(Collectors.toMap(TeachingMaterials::getId, m -> m));
+
+        // 组装返回结果
+        List<QuestionBankMaterialVO> result = new ArrayList<>();
+        for (QuestionBankMaterialsMapping mapping : mappings) {
+            TeachingMaterials material = materialMap.get(mapping.getMaterialId());
+            if (material != null) {
+                QuestionBankMaterialVO vo = new QuestionBankMaterialVO();
+                vo.setId(mapping.getId());
+                vo.setQuestionBankId(mapping.getQuestionBankId());
+                vo.setMaterialId(material.getId());
+                vo.setMaterialName(material.getName());
+                vo.setMaterialType(material.getType());
+                vo.setFilePath(material.getFilePath());
+                vo.setCoverImagePath(material.getCoverImagePath());
+                vo.setFileSize(material.getFileSize());
+                vo.setIsPublic(material.getIsPublic());
+                vo.setSequence(mapping.getSequence());
+                vo.setAddDatetime(mapping.getAddDatetime());
+                result.add(vo);
+            }
+        }
+
+        return result;
     }
 }
