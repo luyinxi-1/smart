@@ -7,6 +7,20 @@
         <!-- 关键修改：将 javaType 改为 java.util.Date，并指定 jdbcType -->
         <result property="date" column="date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
     </resultMap>
+
+    <!-- 根据指定日期查询访问学生人数 -->
+    <select id="getVisitorCountByDate" resultType="long">
+        SELECT
+            COUNT(DISTINCT s.user_id)
+        FROM
+            sys_log sl
+                INNER JOIN
+            student s ON sl.user_id = s.user_id
+        WHERE
+          -- 使用传入的 targetDate 参数
+            sl.add_datetime &gt;= #{targetDate}
+          AND sl.add_datetime &lt; (#{targetDate} + INTERVAL '1 day')
+    </select>
     <!-- 今日访问学生人数 -->
     <select id="getTodayVisitorCount" resultType="long">
         SELECT
@@ -67,6 +81,30 @@
         date
         ORDER BY
         date ASC
+    </select>
+    <!-- 根据指定日期统计总阅读时长（秒） -->
+    <select id="getStudyDurationByDate" resultType="long">
+        WITH UserLogsWithNext AS (
+            SELECT
+                LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime,
+                add_datetime
+            FROM
+                learning_log
+            WHERE
+                add_datetime &gt;= #{targetDate}
+              AND add_datetime &lt; (#{targetDate} + INTERVAL '1 day')
+        )
+        SELECT
+            COALESCE(SUM(
+                             CASE
+                                 -- 使用 age() 函数计算可靠的时间间隔(interval)，再用 EXTRACT 提取总秒数
+                                 WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+                                     THEN 60 -- 累加60秒
+                                 ELSE 0
+                                 END
+                     ), 0) AS total_reading_seconds
+        FROM
+            UserLogsWithNext;
     </select>
     <!-- 统计今日总阅读时长（秒）- 使用 age() 函数的最终正确版本 -->
     <select id="getTodayStudyDuration" resultType="long">
@@ -132,6 +170,38 @@
             time_slot
         ORDER BY
             time_slot;
+    </select>
+    <!-- 最终正确版本: 兼容 KingbaseES 数据库 -->
+    <select id="getStudyDurationsByDateRange" resultType="com.upc.modular.datastatistics.controller.param.DailyStudyDurationDto">
+        WITH UserLogsWithNext AS (
+            SELECT
+                LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime,
+                add_datetime
+            FROM
+                learning_log
+            WHERE
+                add_datetime >= #{startDate}::timestamp
+            AND add_datetime &lt; (#{endDate}::date + INTERVAL '1 day')::timestamp
+            )
+        SELECT
+            (add_datetime::date)::timestamp AS "date",
+            COALESCE(SUM(
+                             CASE
+                                 -- 【关键修改】使用 EXTRACT(EPOCH FROM ...) 分别作用于两个时间戳，然后相减
+                                 -- 这是计算秒差的最通用、最不容易出错的方法
+                                 WHEN (EXTRACT(EPOCH FROM next_add_datetime) - EXTRACT(EPOCH FROM add_datetime)) BETWEEN 55 AND 65
+                                     THEN 60
+                                 ELSE 0
+                                 END
+                     ), 0) AS "durationInSeconds"
+        FROM
+            UserLogsWithNext
+        WHERE
+            next_add_datetime IS NOT NULL
+        GROUP BY
+            "date"
+        ORDER BY
+            "date" ASC;
     </select>
     <select id="getStudyTrendByTimeRange" resultType="com.upc.modular.datastatistics.controller.param.StudyTrendDTO">
     <![CDATA[

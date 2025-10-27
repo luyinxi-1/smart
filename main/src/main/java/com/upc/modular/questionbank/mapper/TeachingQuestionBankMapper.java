@@ -24,7 +24,7 @@ public interface TeachingQuestionBankMapper extends BaseMapper<TeachingQuestionB
             Page<TeachingQuestionBankPageMidReturnParam> page,
             @Param("param") TeachingQuestionBankPageSearchParam param,
             @Param("userId") Long userId,
-            @Param("userType") Integer userType
+            @Param("userRole") String userRole
     );
 
     List<QuestionBankWithStatusVO> selectQuestionBanksWithPendingStatus(

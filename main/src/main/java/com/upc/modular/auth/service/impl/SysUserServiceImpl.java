@@ -75,7 +75,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
 
 
     @Override
-    public String login(UserLoginParam userLogin, HttpServletRequest request) {
+    public UserLoginResultParam login(UserLoginParam userLogin, HttpServletRequest request) {
         if (userLogin == null || StringUtils.isBlank(userLogin.getUsername()) || StringUtils.isBlank(userLogin.getPassword())) {
             throw new BusinessException(BusinessErrorEnum.IS_EMPTY);
         }
@@ -106,7 +106,10 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
             }
         }
 
-        return token;
+        UserLoginResultParam result = new UserLoginResultParam();
+        result.setToken(token);
+        result.setUserId(userInfo.getId());
+        return result;
     }
 
     @Override
