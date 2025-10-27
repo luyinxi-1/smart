@@ -14,4 +14,7 @@ public class TeachingQuestionClassificationSearchParam extends PageBaseSearchPar
     @ApiModelProperty("题目分类名称")
     @TableField("teaching_question_classification_name")
     private String teachingQuestionClassificationName;
+
+    @ApiModelProperty("创建人姓名（教师名称模糊查询）")
+    private String creatorName;
 }

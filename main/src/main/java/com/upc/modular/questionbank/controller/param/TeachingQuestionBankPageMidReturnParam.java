@@ -39,4 +39,7 @@ public class TeachingQuestionBankPageMidReturnParam {
 
     @ApiModelProperty("题目数量")
     private Long questionCount;
+    
+    @ApiModelProperty("教材名称")
+    private String textbookName;
 }
