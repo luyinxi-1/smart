@@ -85,10 +85,17 @@ public interface SystemDataStatisticsMapper {
     IPage<TextbookUpdateApplicationParam> getTextbookUpdateApplications(Page<TextbookUpdateApplicationParam> page);
 
     /**
-     * 获取全系统教材热度排名原始数据
+     * 获取全系统教材热度排名原始数据 (分页)
+     * @param page 分页参数
+     * @return IPage<Map<String, Object>>
+     */
+    IPage<Map<String, Object>> getSystemTextbookPopularity(IPage<?> page);
+
+    /**
+     * 获取全系统教材热度排名原始数据 (不分页，用于导出)
      * @return List<Map<String, Object>>
      */
-    List<Map<String, Object>> getSystemTextbookPopularity();
+    List<Map<String, Object>> getSystemTextbookPopularityForExport();
 
     /**
      * 获取全系统教材统计概览原始数据 (分页)

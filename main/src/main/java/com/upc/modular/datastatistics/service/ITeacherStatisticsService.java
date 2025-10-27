@@ -1,5 +1,7 @@
 package com.upc.modular.datastatistics.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.datastatistics.entity.TeacherStatistics;
 
@@ -70,8 +72,16 @@ public interface ITeacherStatisticsService {
 
     /**
      * 获取教师教材热度排名
+     * @param page 分页参数
      * @param teacherId 教师ID
      * @return 教师教材热度列表
      */
-    List<TeacherTextbookPopularityParam> getTeacherTextbookPopularity(Long teacherId);
+    IPage<TeacherTextbookPopularityParam> getTeacherTextbookPopularity(Page<TeacherTextbookPopularityParam> page, Long teacherId);
+
+    /**
+     * 导出教师教材热度排名
+     * @param teacherId 教师ID
+     * @return 教师教材热度列表
+     */
+    List<TeacherTextbookPopularityParam> exportTeacherTextbookPopularity(Long teacherId);
 }

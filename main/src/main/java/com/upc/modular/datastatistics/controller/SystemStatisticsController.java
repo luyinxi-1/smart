@@ -1,5 +1,6 @@
 package com.upc.modular.datastatistics.controller;
 
+import com.alibaba.excel.EasyExcel;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -15,10 +16,15 @@ import io.swagger.annotations.ApiOperation;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -166,7 +172,7 @@ public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required
 
 
     @ApiOperation("资源使用数据统计")
-    @GetMapping("/resource-usage-statistics")
+    @GetMapping("/")
     public R<Map<String, Object>> getResourceUsageStatistics() {
         Map<String, Object> statistics = systemStatisticsService.getResourceUsageStatistics();
         return R.ok(statistics);
@@ -181,11 +187,31 @@ public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required
         IPage<TextbookUpdateApplicationParam> applications = systemStatisticsService.getTextbookUpdateApplications(page);
         return R.ok(applications);
     }
+
     @ApiOperation("获取全系统教材热度排名")
     @GetMapping("/textbook-popularity")
-    public R<List<TeacherTextbookPopularityParam>> getSystemTextbookPopularity() {
-        return R.ok(systemStatisticsService.getSystemTextbookPopularity());
+    public R<IPage<TeacherTextbookPopularityParam>> getSystemTextbookPopularity(Page<TeacherTextbookPopularityParam> page) {
+        return R.ok(systemStatisticsService.getSystemTextbookPopularity(page));
     }
+
+    @ApiOperation("导出全系统教材热度排名")
+    @GetMapping("/export-textbook-popularity")
+    public void exportSystemTextbookPopularity(HttpServletResponse response) throws IOException {
+        List<TeacherTextbookPopularityParam> list = systemStatisticsService.exportSystemTextbookPopularity();
+
+        String fileName = "全系统教材热度排名.xlsx";
+        String fallbackName = "system_popularity_report.xlsx"; // 纯英文备用文件名
+
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
+        String contentDisposition = String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s", fallbackName, encodedFileName);
+        response.setHeader("Content-Disposition", contentDisposition);
+
+        EasyExcel.write(response.getOutputStream(), TeacherTextbookPopularityParam.class).sheet("排名").doWrite(list);
+    }
+
     @ApiOperation("获取全系统教材统计概览 (分页)")
     @GetMapping("/textbook-overview")
     public R<IPage<TextbookStatisticsOverviewParam>> getSystemTextbookStatisticsOverview(
@@ -270,7 +296,7 @@ public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required
             List<ChapterMasteryVO> result = systemStatisticsService.getStudentChapterMastery(studentId, textbookId);
             return R.ok(result);
         } catch (Exception e) {
-            return R.fail("获取学生章节掌握度失败: " + e.getMessage());
+            return R.ok(new ArrayList<>());
         }
     }
 }

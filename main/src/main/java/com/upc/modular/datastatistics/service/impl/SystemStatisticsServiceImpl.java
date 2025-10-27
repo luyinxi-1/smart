@@ -580,8 +580,32 @@ public SystemAllCountsDto getAllCounts(String dateStr) { // 1. 修改返回类�
     }
 
     @Override
-    public List<TeacherTextbookPopularityParam> getSystemTextbookPopularity() {
-        List<Map<String, Object>> rawData = systemDataStatisticsMapper.getSystemTextbookPopularity();
+    public IPage<TeacherTextbookPopularityParam> getSystemTextbookPopularity(Page<TeacherTextbookPopularityParam> page) {
+        IPage<Map<String, Object>> rawDataPage = systemDataStatisticsMapper.getSystemTextbookPopularity(page);
+        List<TeacherTextbookPopularityParam> resultList = new ArrayList<>();
+        long rankStart = (page.getCurrent() - 1) * page.getSize() + 1;
+
+        for (Map<String, Object> data : rawDataPage.getRecords()) {
+            TeacherTextbookPopularityParam param = new TeacherTextbookPopularityParam();
+            param.setRank((int) rankStart++);
+            param.setTextbookId(getLongValue(data.get("textbookId")));
+            param.setTextbookName((String) data.get("textbookName"));
+            param.setReaderCount(getLongValue(data.get("readerCount")));
+            param.setReadingDurationMinutes(getLongValue(data.get("readingDurationMinutes")));
+            param.setTeachingActivityCount(getLongValue(data.get("teachingActivityCount")));
+            param.setCommunicationFeedbackCount(getLongValue(data.get("communicationFeedbackCount")));
+            param.setPopularityScore(getIntValue(data.get("popularityScore")));
+            resultList.add(param);
+        }
+
+        IPage<TeacherTextbookPopularityParam> resultPage = new Page<>(rawDataPage.getCurrent(), rawDataPage.getSize(), rawDataPage.getTotal());
+        resultPage.setRecords(resultList);
+        return resultPage;
+    }
+
+    @Override
+    public List<TeacherTextbookPopularityParam> exportSystemTextbookPopularity() {
+        List<Map<String, Object>> rawData = systemDataStatisticsMapper.getSystemTextbookPopularityForExport();
         List<TeacherTextbookPopularityParam> result = new ArrayList<>();
         int rank = 1;
 

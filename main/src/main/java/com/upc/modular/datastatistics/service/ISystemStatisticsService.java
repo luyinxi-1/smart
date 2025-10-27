@@ -103,9 +103,16 @@ public interface ISystemStatisticsService {
 
     /**
      * 获取全系统教材热度排名
+     * @param page 分页参数
+     * @return IPage<TeacherTextbookPopularityParam>
+     */
+    IPage<TeacherTextbookPopularityParam> getSystemTextbookPopularity(Page<TeacherTextbookPopularityParam> page);
+
+    /**
+     * 导出全系统教材热度排名
      * @return List<TeacherTextbookPopularityParam>
      */
-    List<TeacherTextbookPopularityParam> getSystemTextbookPopularity();
+    List<TeacherTextbookPopularityParam> exportSystemTextbookPopularity();
 
     /**
      * 获取全系统教材统计概览 (分页)
