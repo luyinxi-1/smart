@@ -8,6 +8,7 @@ import com.upc.modular.auth.param.GetUserIsInInstitutionParam;
 import com.upc.modular.auth.param.SysUserPageSearchParam;
 import com.upc.modular.auth.param.UpdatePasswordParam;
 import com.upc.modular.auth.param.UserLoginParam;
+import com.upc.modular.auth.param.UserLoginResultParam;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.servlet.http.HttpServletRequest;
@@ -23,11 +24,7 @@ import java.util.List;
  */
 public interface ISysUserService extends IService<SysTbuser> {
 
-    /**
-     * WEB端用户登录
-     * @return 返回登陆成功的token
-     */
-    String login(UserLoginParam userLogin, HttpServletRequest request);
+    UserLoginResultParam login(UserLoginParam userLogin, HttpServletRequest request);
 
     void batchDelete(List<Long> idList);
 

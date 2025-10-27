@@ -1,15 +1,10 @@
 package com.upc.modular.questionbank.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.questionbank.controller.param.*;
-import com.upc.modular.questionbank.entity.QuestionsBanksList;
-import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.upc.modular.questionbank.entity.TeachingQuestionBank;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.upc.modular.questionbank.controller.param.PendingReviewReturnVO;
-import com.upc.modular.questionbank.controller.param.PendingReviewSearchParam;
 
 import java.util.List;
 
@@ -47,6 +42,14 @@ public interface ITeachingQuestionBankService extends IService<TeachingQuestionB
     List<Long> updateQuestionBankBatch(List<TeachingQuestionBank> teachingQuestionBanks);
 
     List<QuestionBankWithStatusVO> getQuestionBanksWithStatusForTextbook(QuestionBankWithStatusSearchParam param);
+
+    /**
+     * 获取题库关联的素材列表
+     *
+     * @param questionBankId 题库ID
+     * @return 素材列表
+     */
+    List<QuestionBankMaterialVO> getQuestionBankMaterials(Long questionBankId);
 
     Page<GradingSituationReturnVO> getGradingSituationPage(GradingSituationSearchParam param);
 
