@@ -157,8 +157,59 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
                 })
                 .collect(Collectors.toList());
     }
-
     @Override
+    public List<DailyStudyDurationDto> getStudyDurationByTime(String timeRange) {
+        // 定义业务所需的时区为一个常量，这是最佳实践
+        final ZoneId BUSINESS_ZONE_ID = ZoneId.of("Asia/Shanghai");
+
+        // 确保 endDate 也是基于业务时区生成的
+        LocalDate endDate = LocalDate.now(BUSINESS_ZONE_ID);
+        LocalDate startDate;
+
+        // 1. 日期范围计算... (这部分不变)
+        switch (timeRange.toLowerCase()) {
+            case "week":
+                startDate = endDate.minusDays(6);
+                break;
+            case "month":
+                startDate = endDate.minusMonths(1).plusDays(1);
+                break;
+            case "year":
+                startDate = endDate.minusYears(1).plusDays(1);
+                break;
+            default:
+                throw new IllegalArgumentException("无效的时间范围: " + timeRange);
+        }
+
+        // 2. 从 Mapper 获取数据 (不变)
+        List<DailyStudyDurationDto> recordedDurations = systemDataStatisticsMapper.getStudyDurationsByDateRange(startDate, endDate);
+
+        // 3. 将结果转换为 Map，使用统一的业务时区
+        Map<LocalDate, Long> durationMapInSeconds = recordedDurations.stream()
+                .collect(Collectors.toMap(
+                        // 使用业务时区进行转换，与SQL的逻辑保持一致
+                        dto -> dto.getDate().toInstant().atZone(BUSINESS_ZONE_ID).toLocalDate(),
+                        dto -> dto.getDurationInSeconds()
+                ));
+
+        // 4. 生成完整的日期序列并补全数据
+        long daysBetween = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+
+        return Stream.iterate(startDate, date -> date.plusDays(1))
+                .limit(daysBetween)
+                .map(date -> {
+                    Long durationInSeconds = durationMapInSeconds.getOrDefault(date, 0L);
+                    DailyStudyDurationDto resultDto = new DailyStudyDurationDto();
+
+                    // 在将 LocalDate 转回 Date 时，也应指定业务时区
+                    resultDto.setDate(Date.from(date.atStartOfDay(BUSINESS_ZONE_ID).toInstant()));
+                    resultDto.setDurationInMinutes(durationInSeconds / 60);
+                    resultDto.setDurationInSeconds(durationInSeconds);
+
+                    return resultDto;
+                })
+                .collect(Collectors.toList());
+    }
     public Long getTodayStudyDuration() {
         // TODO: 实现今日总学习时长统计逻辑
         return systemDataStatisticsMapper.getTodayStudyDuration();
@@ -205,9 +256,20 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         return systemDataStatisticsMapper.getStudyTrendByTimeRange(startTime, endTime, lowerCaseType);
     }
 @Override
-public SystemAllCountsDto getAllCounts() { // 1. 修改返回类型
+public SystemAllCountsDto getAllCounts(String dateStr) { // 1. 修改返回类型
     SystemAllCountsDto countsDto = new SystemAllCountsDto(); // 2. 创建DTO对象
 
+    LocalDate targetDate;
+    if (dateStr != null && !dateStr.trim().isEmpty()) {
+        try {
+            targetDate = LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
+        } catch (Exception e) {
+            // 如果日期格式不正确，可以记录日志并使用默认值
+            targetDate = LocalDate.now();
+        }
+    } else {
+        targetDate = LocalDate.now();
+    }
     // 3. 使用setter方法为DTO的每个属性赋值
     countsDto.setTeacherCount(teacherService.count());
     countsDto.setStudentCount(studentService.count());
@@ -229,11 +291,17 @@ public SystemAllCountsDto getAllCounts() { // 1. 修改返回类型
             .count();
     countsDto.setTextbookCount(textbookCount);
 
-    Long todayStudyTimeInSeconds = systemDataStatisticsMapper.getTodayStudyDuration();
+    /*Long todayStudyTimeInSeconds = systemDataStatisticsMapper.getTodayStudyDuration();
     Long todayStudyTimeInMinutes = todayStudyTimeInSeconds != null ? todayStudyTimeInSeconds / 60 : 0L;
     countsDto.setTodayStudyTime(todayStudyTimeInMinutes);
 
-    countsDto.setTodayVisitorCount(systemDataStatisticsMapper.getTodayVisitorCount());
+    countsDto.setTodayVisitorCount(systemDataStatisticsMapper.getTodayVisitorCount());*/
+    // 4. 调用mapper方法时传入目标日期
+    Long studyTimeInSeconds = systemDataStatisticsMapper.getStudyDurationByDate(targetDate);
+    countsDto.setTodayStudyTime(studyTimeInSeconds != null ? studyTimeInSeconds / 60 : 0L);
+
+    countsDto.setTodayVisitorCount(systemDataStatisticsMapper.getVisitorCountByDate(targetDate));
+
 
     return countsDto; // 4. 返回DTO对象
 }

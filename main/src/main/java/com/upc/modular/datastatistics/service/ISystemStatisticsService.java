@@ -24,6 +24,13 @@ public interface ISystemStatisticsService {
      * @return 包含每天访客数量的 DTO 列表
      */
     List<VisitorCountDTO> getStudentVisitorCountByTime(String timeRange);
+
+    /**
+     * 根据时间范围获取每日学习时长统计
+     * @param timeRange 时间范围 ("week", "month", "year")
+     * @return 每日学习时长的列表
+     */
+    List<DailyStudyDurationDto> getStudyDurationByTime(String timeRange);
     /**
      * 获取今日总学习时长
      */
@@ -41,7 +48,7 @@ public interface ISystemStatisticsService {
     List<StudyTrendDTO> getStudyTrendByDateRange(LocalDate startDate, LocalDate endDate, String type);
 
 
-    SystemAllCountsDto getAllCounts();
+    SystemAllCountsDto getAllCounts(String dateStr);
 
 
     /**
