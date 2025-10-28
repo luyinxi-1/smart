@@ -1,9 +1,12 @@
 package com.upc.modular.textbook.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.textbook.entity.LearningLog;
 import com.upc.modular.textbook.entity.LearningNotes;
 import com.upc.modular.textbook.param.LearningNotesPageReturnParam;
 import com.upc.modular.textbook.param.LearningNotesPageSearchParam;
@@ -47,6 +50,19 @@ public class LearningNotesController {
     @PostMapping("batchDeleteByUuid")
     public R<Boolean> batchDeleteByUuid(@RequestBody UuidParam uuidParam) {
         return R.ok(learningNotesService.batchDeleteByUuid(uuidParam));
+    }
+    @ApiOperation(value = "检查服务端是否存在具有指定 clientUuid 的学习批注和标注数据(客户端用)")
+    @PostMapping("/checkExistByUuid")
+    public R<Boolean> checkExistByUuid(@RequestBody String clientUuid) {
+        if (StringUtils.isEmpty(clientUuid)) {
+            return R.ok(false);
+        }
+        // 查询数据库中是否存在该clientUuid的学习笔记
+        LambdaQueryWrapper<LearningNotes> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(LearningNotes::getClientUuid, clientUuid);
+
+        boolean exists = learningNotesService.count(queryWrapper) > 0;
+        return R.ok(exists);
     }
 
     @ApiOperation(value = "更新学习笔记")
