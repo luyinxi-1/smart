@@ -1,7 +1,10 @@
 package com.upc.modular.textbook.controller;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.upc.common.responseparam.R;
+import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
 import com.upc.modular.textbook.entity.LearningLog;
 import com.upc.modular.textbook.param.RecentStudyReturnParam;
 import com.upc.modular.textbook.param.UuidParam;
@@ -46,5 +49,18 @@ public class LearningLogController {
     @PostMapping("batchDeleteByUuid")
     public R<Boolean> batchDeleteByUuid(@RequestBody UuidParam uuidParam) {
         return R.ok(learningLogService.batchDeleteByUuid(uuidParam));
+    }
+    @ApiOperation(value = "检查服务端是否存在具有指定 clientUuid 的学习批注和标注数据(客户端用)")
+    @PostMapping("/checkExistByUuid")
+    public R<Boolean> checkExistByUuid(@RequestBody String clientUuid) {
+        if (StringUtils.isEmpty(clientUuid)) {
+            return R.ok(false);
+        }
+        // 查询数据库中是否存在该clientUuid的学习日志
+        LambdaQueryWrapper<LearningLog> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(LearningLog::getClientUuid, clientUuid);
+
+        boolean exists = learningLogService.count(queryWrapper) > 0;
+        return R.ok(exists);
     }
 }
