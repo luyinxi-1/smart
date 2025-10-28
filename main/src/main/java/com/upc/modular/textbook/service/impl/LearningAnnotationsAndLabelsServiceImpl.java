@@ -9,6 +9,7 @@ import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
 import com.upc.modular.textbook.mapper.LearningAnnotationsAndLabelsMapper;
+import com.upc.modular.textbook.param.UuidParam;
 import com.upc.modular.textbook.service.ILearningAnnotationsAndLabelsService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
@@ -38,6 +39,24 @@ public class LearningAnnotationsAndLabelsServiceImpl extends ServiceImpl<Learnin
         }
         return this.removeBatchByIds(idParam.getIdList());
     }
+    @Override
+    public Boolean batchDeleteByUuid(UuidParam uuidParam) {
+        // 1. 参数校验
+        if (ObjectUtils.isEmpty(uuidParam) || ObjectUtils.isEmpty(uuidParam.getUuidList())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参UUID列表不能为空");
+        }
+
+        // 2. 构建删除条件 (QueryWrapper)
+        // 使用 LambdaQueryWrapper 可以防止硬编码字段名，更加安全
+        LambdaQueryWrapper<LearningAnnotationsAndLabels> wrapper = new LambdaQueryWrapper<>();
+        // 关键：构建 WHERE uuid IN ('uuid1', 'uuid2', ...) 的条件
+        wrapper.in(LearningAnnotationsAndLabels::getClientUuid, uuidParam.getUuidList());
+
+        // 3. 执行删除操作
+        // this.remove(wrapper) 方法会根据构造的条件执行 DELETE FROM table WHERE ...
+        return this.remove(wrapper);
+    }
+
 
     @Override
     public Boolean saveOrUpdateLabels(LearningAnnotationsAndLabels param) {

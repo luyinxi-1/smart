@@ -4,6 +4,7 @@ import com.upc.common.responseparam.R;
 import com.upc.modular.textbook.entity.LearningLog;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.textbook.param.RecentStudyReturnParam;
+import com.upc.modular.textbook.param.UuidParam;
 
 import java.util.List;
 
@@ -20,4 +21,6 @@ public interface ILearningLogService extends IService<LearningLog> {
     Boolean insert(LearningLog learningLog);
 
     List<RecentStudyReturnParam> recentStudy(Integer limit);
+    
+    Boolean batchDeleteByUuid(UuidParam uuidParam);
 }

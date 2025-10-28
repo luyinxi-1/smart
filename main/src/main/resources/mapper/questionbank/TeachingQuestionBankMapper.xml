@@ -27,6 +27,7 @@
         t.description,
         t.status,
         t.textbook_id AS textbookId,
+        tb.textbook_name as textbookName,
         t.textbook_catalog_id AS textbookCatalogId,
         t.max_attempts AS maxAttempts,
         t.score_policy AS scorePolicy,
@@ -38,7 +39,11 @@
         teaching_question_bank t
         LEFT JOIN questions_banks_list qbl ON t.id = qbl.bank_id
         LEFT JOIN sys_tbuser u ON t.creator = u.id
+        LEFT JOIN textbook tb on t.textbook_id = tb.id
         <where>
+            <if test="userRole != null and userRole == 'teacher'">
+                AND t.creator = #{userId}
+            </if>
             <!-- 条件1: 根据题库名称模糊查询 -->
             <if test="param.name != null and param.name != ''">
                 AND t.name LIKE CONCAT('%', #{param.name}, '%')
@@ -72,7 +77,7 @@
             </if>
         </where>
         GROUP BY
-        t.id, t.name, t.description, t.status, t.textbook_id,
+        t.id, t.name, t.description, t.status, t.textbook_id, tb.textbook_name,
         t.textbook_catalog_id, t.max_attempts, t.score_policy,
         t.creator, u.nickname, t.add_datetime  -- ⭐ GROUP BY 里要加上 u.username
         ORDER BY

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.questionbank.mapper.QuestionBankMaterialsMappingMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.upc.modular.questionbank.entity.QuestionBankMaterialsMapping">
+        <id column="id" property="id" />
+        <result column="question_bank_id" property="questionBankId" />
+        <result column="material_id" property="materialId" />
+        <result column="sequence" property="sequence" />
+        <result column="creator" property="creator" />
+        <result column="add_datetime" property="addDatetime" />
+        <result column="operator" property="operator" />
+        <result column="operation_datetime" property="operationDatetime" />
+    </resultMap>
+
+    <!-- 根据题库ID查询关联的素材列表 -->
+    <select id="selectMaterialsByQuestionBankId" resultMap="BaseResultMap">
+        SELECT 
+            id,
+            question_bank_id,
+            material_id,
+            sequence,
+            creator,
+            add_datetime,
+            operator,
+            operation_datetime
+        FROM question_bank_materials_mapping
+        WHERE question_bank_id = #{questionBankId}
+        ORDER BY sequence ASC, add_datetime ASC
+    </select>
+
+    <!-- 批量插入题库素材关联 -->
+    <insert id="batchInsert">
+        INSERT INTO question_bank_materials_mapping 
+        (question_bank_id, material_id, sequence, creator, add_datetime, operator, operation_datetime)
+        VALUES
+        <foreach collection="mappings" item="item" separator=",">
+            (#{item.questionBankId}, #{item.materialId}, #{item.sequence}, #{item.creator}, #{item.addDatetime}, #{item.operator}, #{item.operationDatetime})
+        </foreach>
+    </insert>
+
+    <!-- 根据题库ID删除所有关联 -->
+    <delete id="deleteByQuestionBankId">
+        DELETE FROM question_bank_materials_mapping
+        WHERE question_bank_id = #{questionBankId}
+    </delete>
+
+    <!-- 分页查询题库素材关联列表 -->
+    <select id="selectMaterialsPageList" resultMap="BaseResultMap">
+        SELECT
+            qbmm.id,
+            qbmm.question_bank_id,
+            qbmm.material_id,
+            qbmm.sequence,
+            qbmm.creator,
+            qbmm.add_datetime,
+            qbmm.operator,
+            qbmm.operation_datetime
+        FROM question_bank_materials_mapping qbmm
+        LEFT JOIN teaching_materials tm ON qbmm.material_id = tm.id
+        <where>
+            qbmm.question_bank_id = #{param.questionBankId}
+            <!-- 素材名称模糊查询 -->
+            <if test="param.materialName != null and param.materialName != ''">
+                AND tm.name LIKE CONCAT('%', #{param.materialName}, '%')
+            </if>
+            <!-- 素材类型精确查询 -->
+            <if test="param.materialType != null and param.materialType != ''">
+                AND tm.type = #{param.materialType}
+            </if>
+        </where>
+        ORDER BY qbmm.sequence ASC, qbmm.add_datetime DESC
+    </select>
+
+</mapper>
+

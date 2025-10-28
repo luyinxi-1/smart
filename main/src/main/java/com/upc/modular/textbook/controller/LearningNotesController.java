@@ -1,6 +1,5 @@
 package com.upc.modular.textbook.controller;
 
-
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
@@ -8,6 +7,7 @@ import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.LearningNotes;
 import com.upc.modular.textbook.param.LearningNotesPageReturnParam;
 import com.upc.modular.textbook.param.LearningNotesPageSearchParam;
+import com.upc.modular.textbook.param.UuidParam;
 import com.upc.modular.textbook.service.ILearningLogService;
 import com.upc.modular.textbook.service.ILearningNotesService;
 import io.swagger.annotations.Api;
@@ -43,10 +43,22 @@ public class LearningNotesController {
         return R.ok(learningNotesService.batchDelete(idParam));
     }
 
+    @ApiOperation(value = "根据UUID批量删除学习笔记（客户端删除使用)")
+    @PostMapping("batchDeleteByUuid")
+    public R<Boolean> batchDeleteByUuid(@RequestBody UuidParam uuidParam) {
+        return R.ok(learningNotesService.batchDeleteByUuid(uuidParam));
+    }
+
     @ApiOperation(value = "更新学习笔记")
     @PostMapping("/updateNotes")
     public R<Boolean> updateNotes(@RequestBody LearningNotes param) {
         return R.ok(learningNotesService.updateNotes(param));
+    }
+
+    @ApiOperation(value = "根据clientUuid更新学习笔记(客户端使用)")
+    @PostMapping("/updateNotesbyUUID")
+    public R<Boolean> updateNotesbyUUID(@RequestBody LearningNotes param) {
+        return R.ok(learningNotesService.updateNotesbyClientUuid(param));
     }
 
     @ApiOperation(value = "查看笔记")

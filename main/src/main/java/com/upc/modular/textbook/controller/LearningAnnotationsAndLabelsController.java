@@ -4,6 +4,7 @@ package com.upc.modular.textbook.controller;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
+import com.upc.modular.textbook.param.UuidParam;
 import com.upc.modular.textbook.service.ILearningAnnotationsAndLabelsService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -33,6 +34,12 @@ public class LearningAnnotationsAndLabelsController {
     public R<Boolean> batchDetele(@RequestBody IdParam idParam) {
         return R.ok(learningAnnotationsAndLabelsService.batchDetele(idParam));
     }
+    @ApiOperation(value = "根据UUID批量删除学习标注和批注(客户端用)")
+    @PostMapping("/batchDeleteByUuid") // 修正了拼写并更新了路径
+    public R<Boolean> batchDeleteByUuid(@RequestBody UuidParam uuidParam) {
+        return R.ok(learningAnnotationsAndLabelsService.batchDeleteByUuid(uuidParam));
+    }
+
 
     @ApiOperation(value = "新增或修改学习标注和批注")
     @PostMapping("/saveOrUpdateLabels")

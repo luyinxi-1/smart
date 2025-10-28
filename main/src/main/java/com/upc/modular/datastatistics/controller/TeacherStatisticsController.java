@@ -1,5 +1,8 @@
 package com.upc.modular.datastatistics.controller;
 
+import com.alibaba.excel.EasyExcel;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
 import com.upc.common.utils.UserInfoToRedis;
 import com.upc.context.LoginContextHolder;
@@ -13,6 +16,10 @@ import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -115,20 +122,51 @@ public class TeacherStatisticsController {
     }
 
     @ApiOperation("获取教师教材热度排名")
-    @PostMapping("/textbook-popularity")
-    public R<List<TeacherTextbookPopularityParam>> getTeacherTextbookPopularity() {
+    @GetMapping("/textbook-popularity")
+    public R<IPage<TeacherTextbookPopularityParam>> getTeacherTextbookPopularity(Page<TeacherTextbookPopularityParam> page) {
         // 从当前登录用户获取教师ID
         UserInfoToRedis currentUser = LoginContextHolder.getUserInfoToRedis();
         if (currentUser == null || currentUser.getId() == null) {
             return R.fail("用户未登录");
         }
-        
+
         Long teacherId = teacherService.getTeacherIdByUserId(currentUser.getId());
         if (teacherId == null) {
             return R.fail("当前用户不是教师");
         }
-        
-        return R.ok(teacherStatisticsService.getTeacherTextbookPopularity(teacherId));
+
+        return R.ok(teacherStatisticsService.getTeacherTextbookPopularity(page, teacherId));
+    }
+
+    @ApiOperation("导出教师教材热度排名")
+    @GetMapping("/export-textbook-popularity")
+    public void exportTeacherTextbookPopularity(HttpServletResponse response) throws IOException {
+        // 从当前登录用户获取教师ID
+        UserInfoToRedis currentUser = LoginContextHolder.getUserInfoToRedis();
+        if (currentUser == null || currentUser.getId() == null) {
+            // 处理错误，例如抛出异常或返回错误信息
+            return;
+        }
+
+        Long teacherId = teacherService.getTeacherIdByUserId(currentUser.getId());
+        if (teacherId == null) {
+            // 处理错误
+            return;
+        }
+
+        List<TeacherTextbookPopularityParam> list = teacherStatisticsService.exportTeacherTextbookPopularity(teacherId);
+
+        String fileName = "教师教材热度排名.xlsx";
+        String fallbackName = "teacher_popularity_report.xlsx"; // 纯英文备用文件名
+
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
+        String contentDisposition = String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s", fallbackName, encodedFileName);
+        response.setHeader("Content-Disposition", contentDisposition);
+
+        EasyExcel.write(response.getOutputStream(), TeacherTextbookPopularityParam.class).sheet("排名").doWrite(list);
     }
 
     @ApiOperation("保存教师统计数据")

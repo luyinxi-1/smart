@@ -3,6 +3,7 @@ package com.upc.modular.questionbank.controller;
 
 import com.upc.common.responseparam.R;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionClassificationSearchParam;
+import com.upc.modular.questionbank.controller.param.TeachingQuestionClassificationReturnVo;
 import com.upc.modular.questionbank.controller.param.TopLevelTeachingQuestionClassificationSearchParam;
 import com.upc.modular.questionbank.entity.TeachingQuestionClassification;
 import com.upc.modular.questionbank.service.ITeachingQuestionClassificationService;
@@ -12,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -28,6 +31,26 @@ public class TeachingQuestionClassificationController {
 
     @Autowired
     private ITeachingQuestionClassificationService teachingQuestionClassificationService;
+    
+    /**
+     * 构建带创建人姓名的分类树
+     * @param list 分类列表
+     * @return 树形结构的分类列表
+     */
+    private List<TeachingQuestionClassificationReturnVo> buildDictTreeWithCreator(List<TeachingQuestionClassificationReturnVo> list) {
+        // 将分类按照父ID分组
+        Map<Long, List<TeachingQuestionClassificationReturnVo>> map = list.stream()
+                .collect(Collectors.groupingBy(TeachingQuestionClassificationReturnVo::getParentId));
+
+        // 为每个分类设置子分类
+        list.forEach(item -> item.setChildrenVo(map.get(item.getId())));
+
+        // 找到所有根节点（假设根节点的父ID为0）
+        List<TeachingQuestionClassificationReturnVo> roots = list.stream()
+                .filter(item -> item.getParentId() == 0)
+                .collect(Collectors.toList());
+        return roots;
+    }
 
     @PostMapping("/insertTeachingQuestionClassification")
     @ApiOperation("新增题目分类")
@@ -66,9 +89,9 @@ public class TeachingQuestionClassificationController {
 
     @PostMapping("/selectTeachingQuestionClassificationList")
     @ApiOperation("获取分类列表")
-    public R<List<TeachingQuestionClassification>> selectTeachingQuestionClassificationList(@RequestBody TeachingQuestionClassificationSearchParam param){
-        List<TeachingQuestionClassification> list = teachingQuestionClassificationService.selectTeachingQuestionClassificationList(param);
-        List<TeachingQuestionClassification> teachingQuestionClassification = teachingQuestionClassificationService.buildDictTree(list);
+    public R<List<TeachingQuestionClassificationReturnVo>> selectTeachingQuestionClassificationList(@RequestBody TeachingQuestionClassificationSearchParam param){
+        List<TeachingQuestionClassificationReturnVo> list = ((com.upc.modular.questionbank.service.impl.TeachingQuestionClassificationServiceImpl) teachingQuestionClassificationService).selectTeachingQuestionClassificationListWithCreator(param);
+        List<TeachingQuestionClassificationReturnVo> teachingQuestionClassification = buildDictTreeWithCreator(list);
         return R.ok(teachingQuestionClassification);
     }
 

@@ -1,5 +1,6 @@
 package com.upc.modular.textbook.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.upc.common.utils.UserUtils;
 import com.upc.exception.BusinessErrorEnum;
@@ -7,6 +8,7 @@ import com.upc.exception.BusinessException;
 import com.upc.modular.textbook.entity.LearningLog;
 import com.upc.modular.textbook.mapper.LearningLogMapper;
 import com.upc.modular.textbook.param.RecentStudyReturnParam;
+import com.upc.modular.textbook.param.UuidParam;
 import com.upc.modular.textbook.service.ILearningLogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -128,5 +130,22 @@ public class LearningLogServiceImpl extends ServiceImpl<LearningLogMapper, Learn
             }
             return recentStudies;
         }
+    }
+    
+    @Override
+    public Boolean batchDeleteByUuid(UuidParam uuidParam) {
+        // 1. 参数校验
+        if (ObjectUtils.isEmpty(uuidParam) || ObjectUtils.isEmpty(uuidParam.getUuidList())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参UUID列表不能为空");
+        }
+
+        // 2. 构建查询条件 (QueryWrapper)
+        // 使用 LambdaQueryWrapper 可以防止硬编码字段名，更安全
+        LambdaQueryWrapper<LearningLog> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(LearningLog::getClientUuid, uuidParam.getUuidList());
+
+        // 3. 执行删除操作
+        // this.remove(wrapper) 方法会根据构造的条件执行 DELETE FROM table WHERE ...
+        return this.remove(wrapper);
     }
 }

@@ -11,12 +11,11 @@ import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.mapper.SysUserMapper;
+import com.upc.modular.materials.entity.TeachingMaterials;
+import com.upc.modular.materials.mapper.TeachingMaterialsMapper;
 import com.upc.modular.questionbank.controller.param.*;
 import com.upc.modular.questionbank.entity.*;
-import com.upc.modular.questionbank.mapper.QuestionsBanksListMapper;
-import com.upc.modular.questionbank.mapper.StudentExercisesContentMapper;
-import com.upc.modular.questionbank.mapper.StudentExercisesRecordMapper;
-import com.upc.modular.questionbank.mapper.TeachingQuestionBankMapper;
+import com.upc.modular.questionbank.mapper.*;
 import com.upc.modular.questionbank.service.IStudentExercisesRecordService;
 import com.upc.modular.questionbank.service.ITeachingQuestionBankService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -37,6 +36,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import com.upc.modular.materials.entity.TeachingMaterials;
+import com.upc.modular.materials.mapper.TeachingMaterialsMapper;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -82,6 +83,11 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
     @Autowired
     private SysUserMapper sysUserMapper;
 
+    @Autowired
+    private QuestionBankMaterialsMappingMapper questionBankMaterialsMappingMapper;
+
+    @Autowired
+    private TeachingMaterialsMapper teachingMaterialsMapper;
 
 
     @Override
@@ -115,11 +121,27 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
     @Override
     public Page<TeachingQuestionBankPageReturnParam> selectQuestionBankPage(TeachingQuestionBankPageSearchParam param) {
         Long userId = UserUtils.get().getId();
+        Integer userType = UserUtils.get().getUserType();
+        String userRole = "";
+
+        // 安全校验：根据用户类型决定角色和访问权限
+        if (userType == 1) { // 1 = 学生
+            // 学生无权访问此接口，直接返回空结果
+            return new Page<>(param.getCurrent(), param.getSize(), 0);
+        } else if (userType == 2) { // 2 = 教师
+            userRole = "teacher";
+        } else if (userType == 0) { // 0 = 管理员
+            userRole = "admin";
+        } else {
+            // 其他未知角色，同样视为无权限
+            return new Page<>(param.getCurrent(), param.getSize(), 0);
+        }
+
         // --- 第一阶段：数据库查询 ---
         // 1. 创建分页对象，注意泛型是中间结果类型
         Page<TeachingQuestionBankPageMidReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
         // 2. 调用Mapper获取包含 creatorId 和 questionCount 的分页数据
-        Page<TeachingQuestionBankPageMidReturnParam> midResultPage = teachingQuestionBankMapper.selectQuestionBank(page, param, userId);
+        Page<TeachingQuestionBankPageMidReturnParam> midResultPage = teachingQuestionBankMapper.selectQuestionBank(page, param, userId, userRole);
         // --- 第二阶段：Java内存中数据处理和转换 ---
         List<TeachingQuestionBankPageMidReturnParam> midRecords = midResultPage.getRecords();
         // 如果查询结果为空，直接返回一个空的最终分页对象，保留分页信息
@@ -167,33 +189,33 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
         finalPage.setRecords(finalRecords);
         return finalPage;
     }
-@Override
-public Long inserQuestionBank(TeachingQuestionBank param) {
-    Long textbookId = param.getTextbookId();
-    Long textbookCatalogId = param.getTextbookCatalogId();
+    @Override
+    public Long inserQuestionBank(TeachingQuestionBank param) {
+        Long textbookId = param.getTextbookId();
+        Long textbookCatalogId = param.getTextbookCatalogId();
 
-    // 教材ID和教材目录ID是外键，需要判断是否存在
-    if (textbookId != null) {
-        LambdaQueryWrapper<Textbook> queryWrapper1 = new LambdaQueryWrapper<>();
-        queryWrapper1.eq(Textbook::getId, textbookId);
-        boolean isTextbookExists = textbookMapper.exists(queryWrapper1);
-        if (!isTextbookExists) {
-            throw new RuntimeException("ID为 " + textbookId + " 的教材不存在！");
+        // 教材ID和教材目录ID是外键，需要判断是否存在
+        if (textbookId != null) {
+            LambdaQueryWrapper<Textbook> queryWrapper1 = new LambdaQueryWrapper<>();
+            queryWrapper1.eq(Textbook::getId, textbookId);
+            boolean isTextbookExists = textbookMapper.exists(queryWrapper1);
+            if (!isTextbookExists) {
+                throw new RuntimeException("ID为 " + textbookId + " 的教材不存在！");
+            }
         }
-    }
 
-    if (textbookCatalogId != null) {
-        LambdaQueryWrapper<TextbookCatalog> queryWrapper2 = new LambdaQueryWrapper<>();
-        queryWrapper2.eq(TextbookCatalog::getId, textbookCatalogId);
-        boolean isTextbookCatalogExists = textbookCatalogMapper.exists(queryWrapper2);
-        if (!isTextbookCatalogExists) {
-            throw new RuntimeException("ID为 " + textbookCatalogId + " 的教材目录不存在！");
+        if (textbookCatalogId != null) {
+            LambdaQueryWrapper<TextbookCatalog> queryWrapper2 = new LambdaQueryWrapper<>();
+            queryWrapper2.eq(TextbookCatalog::getId, textbookCatalogId);
+            boolean isTextbookCatalogExists = textbookCatalogMapper.exists(queryWrapper2);
+            if (!isTextbookCatalogExists) {
+                throw new RuntimeException("ID为 " + textbookCatalogId + " 的教材目录不存在！");
+            }
         }
-    }
 
-    this.save(param);
-    return param.getId();
-}
+        this.save(param);
+        return param.getId();
+    }
 
 
     @Override
@@ -658,5 +680,52 @@ public Long inserQuestionBank(TeachingQuestionBank param) {
     @Override
     public List<QuestionsBanksListVO> getQuestionsWithTypeNameByBankId(Long bankId) {
         return questionsBanksListMapper.selectQuestionsWithTypeNameByBankId(bankId);
+    }
+
+    @Override
+    public List<QuestionBankMaterialVO> getQuestionBankMaterials(Long questionBankId) {
+        // 查询题库关联的素材映射
+        List<QuestionBankMaterialsMapping> mappings = questionBankMaterialsMappingMapper.selectMaterialsByQuestionBankId(questionBankId);
+
+        if (mappings == null || mappings.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 提取素材ID列表
+        List<Long> materialIds = mappings.stream()
+                .map(QuestionBankMaterialsMapping::getMaterialId)
+                .collect(Collectors.toList());
+
+        // 查询素材详细信息
+        LambdaQueryWrapper<TeachingMaterials> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(TeachingMaterials::getId, materialIds);
+        List<TeachingMaterials> materials = teachingMaterialsMapper.selectList(wrapper);
+
+        // 创建素材ID到素材对象的映射
+        Map<Long, TeachingMaterials> materialMap = materials.stream()
+                .collect(Collectors.toMap(TeachingMaterials::getId, m -> m));
+
+        // 组装返回结果
+        List<QuestionBankMaterialVO> result = new ArrayList<>();
+        for (QuestionBankMaterialsMapping mapping : mappings) {
+            TeachingMaterials material = materialMap.get(mapping.getMaterialId());
+            if (material != null) {
+                QuestionBankMaterialVO vo = new QuestionBankMaterialVO();
+                vo.setId(mapping.getId());
+                vo.setQuestionBankId(mapping.getQuestionBankId());
+                vo.setMaterialId(material.getId());
+                vo.setMaterialName(material.getName());
+                vo.setMaterialType(material.getType());
+                vo.setFilePath(material.getFilePath());
+                vo.setCoverImagePath(material.getCoverImagePath());
+                vo.setFileSize(material.getFileSize());
+                vo.setIsPublic(material.getIsPublic());
+                vo.setSequence(mapping.getSequence());
+                vo.setAddDatetime(mapping.getAddDatetime());
+                result.add(vo);
+            }
+        }
+
+        return result;
     }
 }

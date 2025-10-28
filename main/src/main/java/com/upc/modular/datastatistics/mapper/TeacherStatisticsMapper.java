@@ -1,6 +1,7 @@
 package com.upc.modular.datastatistics.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.upc.modular.datastatistics.entity.TeacherStatistics;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -77,9 +78,17 @@ public interface TeacherStatisticsMapper extends BaseMapper<TeacherStatistics> {
                                                @Param("endTime") String endTime);
 
     /**
-     * 获取教师教材热度排名
+     * 获取教师教材热度排名（分页）
+     * @param page 分页参数
      * @param teacherId 教师ID
      * @return 教材热度列表
      */
-    List<Map<String, Object>> getTeacherTextbookPopularity(@Param("teacherId") Long teacherId);
+    IPage<Map<String, Object>> getTeacherTextbookPopularity(IPage<?> page, @Param("teacherId") Long teacherId);
+
+    /**
+     * 获取教师教材热度排名（不分页，用于导出）
+     * @param teacherId 教师ID
+     * @return 教材热度列表
+     */
+    List<Map<String, Object>> getTeacherTextbookPopularityForExport(@Param("teacherId") Long teacherId);
 }

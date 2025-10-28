@@ -1,5 +1,6 @@
 package com.upc.modular.datastatistics.controller;
 
+import com.alibaba.excel.EasyExcel;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -15,10 +16,15 @@ import io.swagger.annotations.ApiOperation;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -51,34 +57,40 @@ public class SystemStatisticsController {
         }
     }
 
-    @ApiOperation("按时间统计访问人数")
+    @ApiOperation("按(周/月/年)时间统计访问人数")
     @GetMapping("/visitorCountByTime")
     public R<List<VisitorCountDTO>> getStudentVisitorCountByTime(
             @RequestParam(defaultValue = "week") String timeRange) {
         List<VisitorCountDTO> result = systemStatisticsService.getStudentVisitorCountByTime(timeRange);
         return R.ok(result);
     }
+    @ApiOperation("按(周/月/年)统计每日学习时长")
+    @GetMapping("/studyDurationByTime")
+    public R<List<DailyStudyDurationDto>> getStudyDurationByTime(
+            @RequestParam(defaultValue = "week") String timeRange) {
+        try {
+            List<DailyStudyDurationDto> result = systemStatisticsService.getStudyDurationByTime(timeRange);
+            return R.ok(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("获取学习时长统计失败: " + e.getMessage());
+        }
+    }
     // 今日总学习时长
     @ApiOperation("今日总学习时长")
     @PostMapping("/todayStudyDuration")
     public R<Long> getTodayStudyDuration() {
         try {
-            return R.ok(systemStatisticsService.getTodayStudyDuration());
+            Long durationInSeconds = systemStatisticsService.getTodayStudyDuration();
+            // 将秒转换为分钟
+            Long durationInMinutes = durationInSeconds / 60;
+            return R.ok(durationInMinutes);
         } catch (Exception e) {
             e.printStackTrace();
             return R.fail("获取今日总学习时长失败: " + e.getMessage());
         }
     }
-/*    @ApiOperation("按时间段获取今日总学习时长统计")
-    @PostMapping("/todayStudyDurationByPeriod")
-    public R<List<StatisticsDto>> getTodayStudyDurationByPeriod() {
-        try {
-            return R.ok(systemStatisticsService.getTodayStudyDurationByPeriod());
-        } catch (Exception e) {
-            e.printStackTrace();
-            return R.fail("获取今日分时总学习时长失败: " + e.getMessage());
-        }
-    }*/
+
 @ApiOperation("按时间段获取今日总学习时长统计(分钟)")
 @PostMapping("/todayStudyDurationByPeriod")
 public R<List<StatisticsDto>> getTodayStudyDurationByPeriod() {
@@ -96,7 +108,6 @@ public R<List<StatisticsDto>> getTodayStudyDurationByPeriod() {
         return R.fail("获取今日分时总学习时长失败: " + e.getMessage());
     }
 }
-
     @ApiOperation("根据日期范围查询学习趋势(单位:秒)")
     @GetMapping("/studyTrendByDate")
     public R<List<StudyTrendDTO>> getStudyTrendByDate(
@@ -122,8 +133,8 @@ public R<List<StatisticsDto>> getTodayStudyDurationByPeriod() {
     }
 @ApiOperation("获取系统所有核心数据统计")
 @GetMapping("/all-counts")
-public R<SystemAllCountsDto> getAllCounts() {
-    return R.ok(systemStatisticsService.getAllCounts());
+public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required = false) String dateStr) {
+    return R.ok(systemStatisticsService.getAllCounts(dateStr));
 }
 
     @ApiOperation("教师数量统计")
@@ -179,8 +190,26 @@ public R<SystemAllCountsDto> getAllCounts() {
 
     @ApiOperation("获取全系统教材热度排名")
     @GetMapping("/textbook-popularity")
-    public R<List<TeacherTextbookPopularityParam>> getSystemTextbookPopularity() {
-        return R.ok(systemStatisticsService.getSystemTextbookPopularity());
+    public R<IPage<TeacherTextbookPopularityParam>> getSystemTextbookPopularity(Page<TeacherTextbookPopularityParam> page) {
+        return R.ok(systemStatisticsService.getSystemTextbookPopularity(page));
+    }
+
+    @ApiOperation("导出全系统教材热度排名")
+    @GetMapping("/export-textbook-popularity")
+    public void exportSystemTextbookPopularity(HttpServletResponse response) throws IOException {
+        List<TeacherTextbookPopularityParam> list = systemStatisticsService.exportSystemTextbookPopularity();
+
+        String fileName = "全系统教材热度排名.xlsx";
+        String fallbackName = "system_popularity_report.xlsx"; // 纯英文备用文件名
+
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
+        String contentDisposition = String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s", fallbackName, encodedFileName);
+        response.setHeader("Content-Disposition", contentDisposition);
+
+        EasyExcel.write(response.getOutputStream(), TeacherTextbookPopularityParam.class).sheet("排名").doWrite(list);
     }
 
     @ApiOperation("获取全系统教材统计概览 (分页)")
@@ -206,7 +235,6 @@ public R<SystemAllCountsDto> getAllCounts() {
 
         return R.ok(systemStatisticsService.getSystemTextbookStatisticsOverview(page));
     }
-
     @ApiOperation("获取教材阅读人员统计 (分页)")
     @PostMapping("/reader-statistics")
     public R<IPage<ReaderStatisticsParam>> getReaderStatistics(

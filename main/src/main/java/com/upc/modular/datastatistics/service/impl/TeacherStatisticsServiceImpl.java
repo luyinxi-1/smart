@@ -1,6 +1,8 @@
 package com.upc.modular.datastatistics.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.datastatistics.entity.TeacherStatistics;
@@ -350,12 +352,35 @@ public class TeacherStatisticsServiceImpl extends ServiceImpl<TeacherStatisticsM
     }
 
     @Override
-    public List<TeacherTextbookPopularityParam> getTeacherTextbookPopularity(Long teacherId) {
-        List<Map<String, Object>> rawData = teacherStatisticsMapper.getTeacherTextbookPopularity(teacherId);
-        
+    public IPage<TeacherTextbookPopularityParam> getTeacherTextbookPopularity(Page<TeacherTextbookPopularityParam> page, Long teacherId) {
+        IPage<Map<String, Object>> rawDataPage = teacherStatisticsMapper.getTeacherTextbookPopularity(page, teacherId);
+        List<TeacherTextbookPopularityParam> resultList = new ArrayList<>();
+        long rankStart = (page.getCurrent() - 1) * page.getSize() + 1;
+
+        for (Map<String, Object> data : rawDataPage.getRecords()) {
+            TeacherTextbookPopularityParam param = new TeacherTextbookPopularityParam();
+            param.setRank((int) rankStart++);
+            param.setTextbookId(((Number) data.get("textbookId")).longValue());
+            param.setTextbookName((String) data.get("textbookName"));
+            param.setReaderCount(((Number) data.get("readerCount")).longValue());
+            param.setReadingDurationMinutes(((Number) data.get("readingDurationMinutes")).longValue());
+            param.setTeachingActivityCount(((Number) data.get("teachingActivityCount")).longValue());
+            param.setCommunicationFeedbackCount(((Number) data.get("communicationFeedbackCount")).longValue());
+            param.setPopularityScore(((Number) data.get("popularityScore")).intValue());
+            resultList.add(param);
+        }
+
+        IPage<TeacherTextbookPopularityParam> resultPage = new Page<>(rawDataPage.getCurrent(), rawDataPage.getSize(), rawDataPage.getTotal());
+        resultPage.setRecords(resultList);
+        return resultPage;
+    }
+
+    @Override
+    public List<TeacherTextbookPopularityParam> exportTeacherTextbookPopularity(Long teacherId) {
+        List<Map<String, Object>> rawData = teacherStatisticsMapper.getTeacherTextbookPopularityForExport(teacherId);
         List<TeacherTextbookPopularityParam> result = new ArrayList<>();
         int rank = 1;
-        
+
         for (Map<String, Object> data : rawData) {
             TeacherTextbookPopularityParam param = new TeacherTextbookPopularityParam();
             param.setRank(rank++);
@@ -366,10 +391,9 @@ public class TeacherStatisticsServiceImpl extends ServiceImpl<TeacherStatisticsM
             param.setTeachingActivityCount(((Number) data.get("teachingActivityCount")).longValue());
             param.setCommunicationFeedbackCount(((Number) data.get("communicationFeedbackCount")).longValue());
             param.setPopularityScore(((Number) data.get("popularityScore")).intValue());
-            
             result.add(param);
         }
-        
+
         return result;
     }
 }

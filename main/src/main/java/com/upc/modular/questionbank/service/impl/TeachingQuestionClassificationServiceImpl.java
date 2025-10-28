@@ -4,10 +4,14 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.utils.UserUtils;
+import com.upc.common.utils.UserInfoToRedis;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionClassificationSearchParam;
+import com.upc.modular.questionbank.controller.param.TeachingQuestionClassificationReturnVo;
 import com.upc.modular.questionbank.controller.param.TopLevelTeachingQuestionClassificationSearchParam;
 import com.upc.modular.questionbank.entity.TeachingQuestionClassification;
 import com.upc.modular.questionbank.mapper.TeachingQuestionClassificationMapper;
@@ -37,6 +41,9 @@ public class TeachingQuestionClassificationServiceImpl extends ServiceImpl<Teach
 
     @Autowired
     private TeachingQuestionClassificationMapper teachingQuestionClassificationMapper;
+    
+    @Autowired
+    private SysUserMapper sysUserMapper;
 
     @Override
     public void insertTeachingQuestionClassification(TeachingQuestionClassification param) {
@@ -144,6 +151,72 @@ public class TeachingQuestionClassificationServiceImpl extends ServiceImpl<Teach
         lambdaQueryWrapper.like(ObjectUtils.isNotEmpty(param.getTeachingQuestionClassificationName()), TeachingQuestionClassification::getTeachingQuestionClassificationName, param.getTeachingQuestionClassificationName());
         lambdaQueryWrapper.orderBy(true, Objects.equals(param.getIsAsc(), 1), TeachingQuestionClassification::getSortNumber);
         return teachingQuestionClassificationMapper.selectList(lambdaQueryWrapper);
+    }
+
+    public List<TeachingQuestionClassificationReturnVo> selectTeachingQuestionClassificationListWithCreator(TeachingQuestionClassificationSearchParam param) {
+        // 获取当前用户信息
+        UserInfoToRedis currentUser = UserUtils.get();
+        if (currentUser == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户未登录");
+        }
+
+        // 构建查询条件
+        MyLambdaQueryWrapper<TeachingQuestionClassification> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+        
+        // 权限控制：管理员查询全部，教师只查询自己创建的
+        if (currentUser.getUserType() != null && currentUser.getUserType() == 2) { // 教师
+            lambdaQueryWrapper.eq(TeachingQuestionClassification::getCreator, currentUser.getId());
+        }
+        
+        // 按分类名称模糊查询
+        lambdaQueryWrapper.like(ObjectUtils.isNotEmpty(param.getTeachingQuestionClassificationName()), 
+                TeachingQuestionClassification::getTeachingQuestionClassificationName, param.getTeachingQuestionClassificationName());
+        
+        // 按创建人（教师）名称模糊查询
+        if (ObjectUtils.isNotEmpty(param.getCreatorName())) {
+            // 需要关联查询，这里先查询出符合条件的用户ID
+            MyLambdaQueryWrapper<SysTbuser> userQueryWrapper = new MyLambdaQueryWrapper<>();
+            userQueryWrapper.like(SysTbuser::getNickname, param.getCreatorName());
+            List<SysTbuser> users = sysUserMapper.selectList(userQueryWrapper);
+            if (users.isEmpty()) {
+                // 如果没有找到匹配的用户，则返回空列表
+                return Collections.emptyList();
+            }
+            List<Long> userIds = users.stream().map(SysTbuser::getId).collect(Collectors.toList());
+            lambdaQueryWrapper.in(TeachingQuestionClassification::getCreator, userIds);
+        }
+        
+        lambdaQueryWrapper.orderBy(true, Objects.equals(param.getIsAsc(), 1), TeachingQuestionClassification::getSortNumber);
+        
+        // 查询分类数据
+        List<TeachingQuestionClassification> classifications = teachingQuestionClassificationMapper.selectList(lambdaQueryWrapper);
+        
+        // 转换为带创建人姓名的VO对象
+        List<TeachingQuestionClassificationReturnVo> result = classifications.stream().map(classification -> {
+            TeachingQuestionClassificationReturnVo vo = new TeachingQuestionClassificationReturnVo();
+            // 复制原有属性
+            vo.setId(classification.getId());
+            vo.setTeachingQuestionClassificationName(classification.getTeachingQuestionClassificationName());
+            vo.setSortNumber(classification.getSortNumber());
+            vo.setParentId(classification.getParentId());
+            vo.setClassificationGrade(classification.getClassificationGrade());
+            vo.setCreator(classification.getCreator());
+            vo.setAddDatetime(classification.getAddDatetime());
+            vo.setOperator(classification.getOperator());
+            vo.setOperationDatetime(classification.getOperationDatetime());
+            
+            // 获取创建人姓名
+            if (classification.getCreator() != null) {
+                SysTbuser creator = sysUserMapper.selectById(classification.getCreator());
+                if (creator != null) {
+                    vo.setCreatorName(creator.getNickname());
+                }
+            }
+            
+            return vo;
+        }).collect(Collectors.toList());
+        
+        return result;
     }
 
     @Override

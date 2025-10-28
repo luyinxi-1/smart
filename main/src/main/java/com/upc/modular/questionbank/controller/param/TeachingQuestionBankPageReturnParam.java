@@ -26,6 +26,9 @@ public class TeachingQuestionBankPageReturnParam {
     @ApiModelProperty("关联教材ID")
     private Long textbookId;
 
+    @ApiModelProperty("关联教材名称")
+    private String textbookName;
+
     @ApiModelProperty("关联的教材目录")
     private Long textbookCatalogId;
 
@@ -49,6 +52,4 @@ public class TeachingQuestionBankPageReturnParam {
 
     @ApiModelProperty("是否为当前用户创建")
     private Boolean isCreatedByCurrentUser;
-
-
 }

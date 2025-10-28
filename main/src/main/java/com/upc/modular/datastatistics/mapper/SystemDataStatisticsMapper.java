@@ -16,6 +16,10 @@ import java.util.Map;
 @Mapper
 public interface SystemDataStatisticsMapper {
 
+    //获取某天的访问人数
+    Long getVisitorCountByDate(LocalDate targetDate);
+    // 获取某天的总学习时长
+    Long getStudyDurationByDate(LocalDate targetDate);
     // 今日访问人数
     Long getTodayVisitorCount();
     //按时间段统计今日访问人数
@@ -25,6 +29,8 @@ public interface SystemDataStatisticsMapper {
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );
+
+    List<DailyStudyDurationDto> getStudyDurationsByDateRange(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
     // 今日总学习时长
     Long getTodayStudyDuration();
     // 按时间段统计今日总学习时长
@@ -79,10 +85,17 @@ public interface SystemDataStatisticsMapper {
     IPage<TextbookUpdateApplicationParam> getTextbookUpdateApplications(Page<TextbookUpdateApplicationParam> page);
 
     /**
-     * 获取全系统教材热度排名原始数据
+     * 获取全系统教材热度排名原始数据 (分页)
+     * @param page 分页参数
+     * @return IPage<Map<String, Object>>
+     */
+    IPage<Map<String, Object>> getSystemTextbookPopularity(IPage<?> page);
+
+    /**
+     * 获取全系统教材热度排名原始数据 (不分页，用于导出)
      * @return List<Map<String, Object>>
      */
-    List<Map<String, Object>> getSystemTextbookPopularity();
+    List<Map<String, Object>> getSystemTextbookPopularityForExport();
 
     /**
      * 获取全系统教材统计概览原始数据 (分页)
