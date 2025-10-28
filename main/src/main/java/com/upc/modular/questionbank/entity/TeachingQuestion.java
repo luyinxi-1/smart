@@ -7,8 +7,6 @@ import java.time.LocalDateTime;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 
 /**
@@ -82,6 +80,22 @@ public class TeachingQuestion implements Serializable {
     @ApiModelProperty("答案解析")
     @TableField("answer_analysis")
     private String answerAnalysis;
+
+    @ApiModelProperty("所属教材id")
+    @TableField("teaching_material_id")
+    private Long teachingMaterialId;
+
+    @ApiModelProperty("所属教材名称")
+    @TableField("teaching_material_name")
+    private String teachingMaterialName;
+
+    @ApiModelProperty("所属章节id")
+    @TableField("chapter_id")
+    private Long chapterId;
+
+    @ApiModelProperty("所属章节名称")
+    @TableField("chapter_name")
+    private String chapterName;
 
     @ApiModelProperty("创建人名称")
     @TableField(exist = false) // 非数据库字段
