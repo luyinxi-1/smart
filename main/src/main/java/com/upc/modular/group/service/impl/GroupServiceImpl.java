@@ -57,6 +57,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
                 .eq(dictType.getId() != null, Group::getId, dictType.getId())
                 .eq(dictType.getGrade() != null, Group::getGrade, dictType.getGrade())
                 .eq(dictType.getStatus() != null, Group::getStatus, dictType.getStatus())
+                .eq(dictType.getClassStatus() != null, Group::getClassStatus, dictType.getClassStatus())
                 .like(!StringUtils.isEmpty(dictType.getName()), Group::getName, dictType.getName())
                 .eq(Group::getStatus, 1);
 

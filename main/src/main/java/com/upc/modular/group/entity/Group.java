@@ -87,5 +87,8 @@ public class Group implements Serializable {
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
     private LocalDateTime operationDatetime;
 
+    @ApiModelProperty("班级状态")
+    @TableField(value = "classStatus")
+    private LocalDateTime classStatus;
 
 }
