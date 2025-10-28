@@ -91,6 +91,13 @@ public class HomePagePromotionServiceImpl extends ServiceImpl<HomePagePromotionM
         return promotionDetails;
     }
 
+    @Override
+    public Boolean updateClearPromotion(HomePagePromotion homePagePromotion) {
+        this.remove(new MyLambdaQueryWrapper<>());
+
+        return this.save(homePagePromotion);
+    }
+
     private void setTextbookDetails(HomePagePromotionReturnParam promotion) {
         if (promotion == null || ObjectUtils.isEmpty(promotion.getTextbookId())) {
             return;

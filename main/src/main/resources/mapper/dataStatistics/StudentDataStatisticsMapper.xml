@@ -71,4 +71,12 @@
                 (EXTRACT(EPOCH FROM add_datetime) - EXTRACT(EPOCH FROM prev_add_datetime)) > 60
             )
     </select>
+
+    <select id="listStudentCourseTextbookIds" resultType="long">
+        SELECT DISTINCT ctl.textbook_id
+        FROM student s
+                 JOIN course_class_list ccl on s.class_id = ccl.class_id
+                 JOIN course_textbook_list ctl on ccl.course_id = ctl.course_id
+        where s.user_id = #{userId}
+    </select>
 </mapper>

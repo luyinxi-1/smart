@@ -68,4 +68,10 @@ public class HomePagePromotionController {
     public R<HomePagePromotionReturnParam> getHomePagePromotionDetails(@RequestParam("promotionId") Long promotionId) {
         return R.ok(homePagePromotionService.getHomePagePromotionDetails(promotionId));
     }
+
+    @ApiOperation(value = "清空式的更新操作")
+    @PostMapping("/updateClearPromotion")
+    public R<Boolean> updateClearPromotion(@RequestBody HomePagePromotion homePagePromotion) {
+        return R.ok(homePagePromotionService.updateClearPromotion(homePagePromotion));
+    }
 }

@@ -134,4 +134,12 @@ public class TextbookController {
 
         return R.ok(resultDto);
     }
+
+    @ApiOperation(value = "分页查询教材热度排行榜")
+    @PostMapping("/getHotnessPage")
+    public R<PageBaseReturnParam<TextbookHotnessDto>> getHotnessPage(@RequestBody Page<TextbookHotnessDto> page) {
+        Page<TextbookHotnessDto> hotnessPage = textbookService.getTextbookHotnessPage(page);
+        PageBaseReturnParam<TextbookHotnessDto> result = PageBaseReturnParam.ok(hotnessPage);
+        return R.page(result);
+    }
 }

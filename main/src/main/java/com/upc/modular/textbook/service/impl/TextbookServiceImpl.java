@@ -550,4 +550,9 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         List<TextbookAuthority> textbookAuthorities = textbookAuthorityMapper.selectList(queryWrapper);
         return textbookAuthorities.isEmpty();
     }
+
+    @Override
+    public Page<TextbookHotnessDto> getTextbookHotnessPage(Page<TextbookHotnessDto> page) {
+        return textbookMapper.selectTextbookHotnessPage(page);
+    }
 }

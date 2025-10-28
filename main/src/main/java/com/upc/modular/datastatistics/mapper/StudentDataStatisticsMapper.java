@@ -84,4 +84,6 @@ public interface StudentDataStatisticsMapper  extends BaseMapper<StudentStatisti
     List<LearningLog> findLearningLogsByUserAndTextbook(@Param("userId") Long userId, @Param("textbookId") Long textbookId);
 
     Long countStudySessionsByTextbook(@Param("userId") Long userId, @Param("textbookId") Long textbookId);
+
+    List<Long> listStudentCourseTextbookIds(Long userId);
 }

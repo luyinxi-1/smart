@@ -193,7 +193,8 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         if (startTime == null && endTime == null) {
             readCatalogs = studentDataStatisticsMapper.findReadCatalogsByUserId(currentUserId);
         }else {
-            readCatalogs = studentDataStatisticsMapper.findReadCatalogsByUserIdAndTime(currentUserId,startTime,endTime);}
+            readCatalogs = studentDataStatisticsMapper.findReadCatalogsByUserIdAndTime(currentUserId,startTime,endTime);
+        }
 
         //如果没有阅读记录，返回空列表
         if (readCatalogs == null || readCatalogs.isEmpty()) {
@@ -466,6 +467,27 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         returnParam.setQuestionBankNum(this.countStudentQuestionsByTime(startTime, endTime));
         //统计学生起止时间交流反馈数量
         returnParam.setCommunicationFeedbackNum(this.countStudentCommunicationFeedbackByTime(startTime, endTime));
+        //统计学生书架教材数量
+        returnParam.setShelfBookNum(this.countStudentFavoritebook());
+
+        //统计学生课程教材数量
+        List<Long> courseTextbookIds = studentDataStatisticsMapper.listStudentCourseTextbookIds(userId);
+        returnParam.setMyCourseBookNum((long) courseTextbookIds.size());
+
+        List<StudentTextbookCompletionReturnParam> allCompletionInfo = this.countStudentTextbookCompetion(startTime, endTime);
+        Set<Long> completedTextbookIds = allCompletionInfo.stream()
+                .filter(param -> param.getCompletion() != null && param.getCompletion() >= COMPLETION_THRESHOLD)
+                .map(StudentTextbookCompletionReturnParam::getTextbookId)
+                .collect(Collectors.toSet());
+
+        // 3. 计算课程教材中已完成的数量 (交集)
+        long completedCourseBookCount = 0;
+        if (courseTextbookIds != null && !completedTextbookIds.isEmpty()) {
+            completedCourseBookCount = courseTextbookIds.stream()
+                    .filter(completedTextbookIds::contains)
+                    .count();
+        }
+        returnParam.setMyCourseBookCompletionNum(completedCourseBookCount);
 
         return returnParam;
     }
@@ -555,35 +577,35 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
     }
 
     private Long calculateReadingDurationMinutesByTextbook(Long userId, Long textbookId) {
-        		final long MIN_DIFF_SECONDS = 55;
-		final long MAX_DIFF_SECONDS = 65;
-		List<LearningLog> logs = studentDataStatisticsMapper.findAddDatetime(userId);
-		if (logs == null) {
-			return 0L;
-		}
-		// 仅保留该教材的日志，并确保按时间升序
-		List<LearningLog> textbookLogs = logs.stream()
-				.filter(l -> Objects.equals(l.getTextbookId(), textbookId))
-				.sorted(Comparator.comparing(LearningLog::getAddDatetime, Comparator.nullsLast(Comparator.naturalOrder())))
-				.collect(Collectors.toList());
-		if (textbookLogs.size() < 2) {
-			return 0L;
-		}
-		long minutes = 0L;
-		for (int i = 0; i < textbookLogs.size() - 1; i++) {
-			LearningLog a = textbookLogs.get(i);
-			LearningLog b = textbookLogs.get(i + 1);
-			LocalDateTime t1 = a.getAddDatetime();
-			LocalDateTime t2 = b.getAddDatetime();
-			if (t1 == null || t2 == null) {
-				continue;
-			}
-			long seconds = Duration.between(t1, t2).getSeconds();
-			if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
-				minutes += 1;
-			}
-		}
-		return minutes;
+        final long MIN_DIFF_SECONDS = 55;
+        final long MAX_DIFF_SECONDS = 65;
+        List<LearningLog> logs = studentDataStatisticsMapper.findAddDatetime(userId);
+        if (logs == null) {
+            return 0L;
+        }
+        // 仅保留该教材的日志，并确保按时间升序
+        List<LearningLog> textbookLogs = logs.stream()
+                .filter(l -> Objects.equals(l.getTextbookId(), textbookId))
+                .sorted(Comparator.comparing(LearningLog::getAddDatetime, Comparator.nullsLast(Comparator.naturalOrder())))
+                .collect(Collectors.toList());
+        if (textbookLogs.size() < 2) {
+            return 0L;
+        }
+        long minutes = 0L;
+        for (int i = 0; i < textbookLogs.size() - 1; i++) {
+            LearningLog a = textbookLogs.get(i);
+            LearningLog b = textbookLogs.get(i + 1);
+            LocalDateTime t1 = a.getAddDatetime();
+            LocalDateTime t2 = b.getAddDatetime();
+            if (t1 == null || t2 == null) {
+                continue;
+            }
+            long seconds = Duration.between(t1, t2).getSeconds();
+            if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
+                minutes += 1;
+            }
+        }
+        return minutes;
     }
 
     /**
@@ -730,7 +752,4 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         }
         return count;
     }
-
-
-
 }

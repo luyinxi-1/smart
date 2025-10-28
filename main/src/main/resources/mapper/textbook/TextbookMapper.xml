@@ -206,4 +206,17 @@
         t.add_datetime DESC
     </select>
 
+    <select id="selectTextbookHotnessPage" resultType="com.upc.modular.textbook.param.TextbookHotnessDto">
+        SELECT
+            t.*,
+            COUNT(uf.textbook_id) AS favoritesCount
+        FROM
+            textbook t
+                LEFT JOIN
+            user_favorites uf ON t.id = uf.textbook_id
+        GROUP BY
+            t.id
+        ORDER BY
+            favoritesCount DESC
+    </select>
 </mapper>

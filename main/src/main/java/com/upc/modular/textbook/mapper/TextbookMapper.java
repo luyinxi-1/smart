@@ -3,6 +3,7 @@ package com.upc.modular.textbook.mapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.textbook.entity.Textbook;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.upc.modular.textbook.param.TextbookHotnessDto;
 import com.upc.modular.textbook.param.TextbookPageReturnParam;
 import com.upc.modular.textbook.param.TextbookPageSearchParam;
 import com.upc.modular.textbook.param.TextbookQueryReq;
@@ -31,5 +32,12 @@ public interface TextbookMapper extends BaseMapper<Textbook> {
      * @return 教材VO列表
      */
     Page<Textbook> queryByConditions(Page<Textbook> page, @Param("req") TextbookQueryReq req);
+
+    /**
+     * 分页查询教材热度排行榜
+     * @param page 分页参数
+     * @return 教材热度列表
+     */
+    Page<TextbookHotnessDto> selectTextbookHotnessPage(Page<TextbookHotnessDto> page);
 
 }
