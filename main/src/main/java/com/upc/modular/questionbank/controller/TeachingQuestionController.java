@@ -1,20 +1,20 @@
 package com.upc.modular.questionbank.controller;
 
-import com.upc.modular.auth.entity.SysTbuser;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
-import com.upc.modular.course.entity.Course;
+import com.upc.modular.questionbank.controller.param.SmartPaperGenerationParam;
+import com.upc.modular.questionbank.controller.param.SmartPaperQuestionVO;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchParam;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.upc.modular.questionbank.service.ITeachingQuestionService;
-import com.upc.modular.questionbank.controller.param.TeachingQuestionWithCreatorDto;
-import com.upc.modular.teacher.service.ITeacherService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * <p>
@@ -30,8 +30,6 @@ import org.springframework.web.bind.annotation.*;
 public class TeachingQuestionController {
     @Autowired
     ITeachingQuestionService teachingQuestionService;
-    @Autowired
-    private com.upc.modular.auth.mapper.SysUserMapper sysUserMapper;
 
     @ApiOperation("新增题目")
     @PostMapping("/inserQuestion")
@@ -67,5 +65,12 @@ public R<TeachingQuestion> selectQuestionById(@RequestParam Long id) {
         Page<TeachingQuestion> page = teachingQuestionService.selectQuestionPage(teachingQuestion);
         PageBaseReturnParam<TeachingQuestion> p = PageBaseReturnParam.ok(page);
         return R.page(p);
+    }
+
+    @ApiOperation("智能组卷（教师）")
+    @PostMapping("/smartPaperGeneration")
+    public R<List<SmartPaperQuestionVO>> smartPaperGeneration(@RequestBody SmartPaperGenerationParam param) {
+        List<SmartPaperQuestionVO> result = teachingQuestionService.smartPaperGeneration(param);
+        return R.ok(result);
     }
 }
