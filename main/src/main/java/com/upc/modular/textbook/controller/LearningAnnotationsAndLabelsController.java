@@ -1,6 +1,8 @@
 package com.upc.modular.textbook.controller;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
@@ -38,6 +40,20 @@ public class LearningAnnotationsAndLabelsController {
     @PostMapping("/batchDeleteByUuid") // 修正了拼写并更新了路径
     public R<Boolean> batchDeleteByUuid(@RequestBody UuidParam uuidParam) {
         return R.ok(learningAnnotationsAndLabelsService.batchDeleteByUuid(uuidParam));
+    }
+    @ApiOperation(value = "检查服务端是否存在具有指定 clientUuid 的学习批注和标注数据(客户端用)")
+    @PostMapping("/checkExistByUuid")
+    public R<Boolean> checkExistByUuid(@RequestBody String clientUuid) {
+        if (StringUtils.isEmpty(clientUuid)) {
+            return R.ok(false);
+        }
+
+        // 查询数据库中是否存在该clientUuid的学习批注和标注
+        LambdaQueryWrapper<LearningAnnotationsAndLabels> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(LearningAnnotationsAndLabels::getClientUuid, clientUuid);
+
+        boolean exists = learningAnnotationsAndLabelsService.count(queryWrapper) > 0;
+        return R.ok(exists);
     }
 
 

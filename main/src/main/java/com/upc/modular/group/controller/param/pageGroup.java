@@ -40,6 +40,10 @@ public class pageGroup extends PageBaseSearchParam {
     @TableField("status")
     private Integer status;
 
+    @ApiModelProperty("班级状态")
+    @TableField("class_status")
+    private Integer classStatus;
+
     @ApiModelProperty("组织ID")
     @TableField("institution_id")
     private Long institutionId;
