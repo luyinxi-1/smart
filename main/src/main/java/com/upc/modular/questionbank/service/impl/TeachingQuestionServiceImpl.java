@@ -6,6 +6,8 @@ import com.upc.common.utils.UserUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.questionbank.controller.param.SmartPaperGenerationParam;
 import com.upc.modular.questionbank.controller.param.SmartPaperQuestionVO;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchParam;
@@ -35,6 +37,8 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
     @Autowired
     TeachingQuestionMapper teachingQuestionMapper;
 
+    @Autowired
+    private SysUserMapper sysUserMapper;
     @Override
     public Void deleteCourseByIds(IdParam idParam) {
         List<Long> idList = idParam.getIdList();
@@ -98,8 +102,6 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
 
         // 调用 Mapper 方法，并传入 isAdmin 标志
         Page<TeachingQuestion> resultPage = teachingQuestionMapper.selectQuestion(page, param, userId, isAdmin);
-
-        // c. 返回值中已移除 isCreatedByCurrentUser 字段的设置逻辑
 
         return resultPage;
     }
