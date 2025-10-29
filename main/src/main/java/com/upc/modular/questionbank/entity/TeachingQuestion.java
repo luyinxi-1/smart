@@ -83,7 +83,7 @@ public class TeachingQuestion implements Serializable {
 
     @ApiModelProperty("所属教材id")
     @TableField("textbook_id")
-    private Long textbooklId;
+    private Long textbookId;
 
     @ApiModelProperty("所属教材名称")
     @TableField("textbook_name")
@@ -101,7 +101,11 @@ public class TeachingQuestion implements Serializable {
     @TableField(exist = false) // 非数据库字段
     private String creatorName;
 
-    @ApiModelProperty("是否为当前用户创建")
+    @ApiModelProperty("题目分类名称")
+    @TableField(exist = false)
+    private String teachingQuestionClassificationName;
+
+/*    @ApiModelProperty("是否为当前用户创建")
     @TableField(exist = false) // 非数据库字段
-    private Boolean isCreatedByCurrentUser;
+    private Boolean isCreatedByCurrentUser;*/
 }
