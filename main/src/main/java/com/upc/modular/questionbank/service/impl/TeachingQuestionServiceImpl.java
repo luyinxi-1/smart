@@ -11,6 +11,7 @@ import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.questionbank.controller.param.SmartPaperGenerationParam;
 import com.upc.modular.questionbank.controller.param.SmartPaperQuestionVO;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchParam;
+import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchReturnVO;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.upc.modular.questionbank.mapper.TeachingQuestionMapper;
 import com.upc.modular.questionbank.service.ITeachingQuestionService;
@@ -83,7 +84,7 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
         return resultPage;
     }*/
     @Override
-    public Page<TeachingQuestion> selectQuestionPage(TeachingQuestionPageSearchParam param) {
+    public Page<TeachingQuestionPageSearchReturnVO> selectQuestionPage(TeachingQuestionPageSearchParam param) {
         // 获取当前登录用户的 ID
         Long userId = UserUtils.get().getId();
         // 2. 根据 userId 从数据库实时查询用户信息
@@ -98,10 +99,10 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
         // 根据 user_type 判断是否为管理员
         boolean isAdmin = (userType != null && userType == 0);
         // 创建分页对象
-        Page<TeachingQuestion> page = new Page<>(param.getCurrent(), param.getSize());
+        Page<TeachingQuestionPageSearchReturnVO> page = new Page<>(param.getCurrent(), param.getSize());
 
         // 调用 Mapper 方法，并传入 isAdmin 标志
-        Page<TeachingQuestion> resultPage = teachingQuestionMapper.selectQuestion(page, param, userId, isAdmin);
+        Page<TeachingQuestionPageSearchReturnVO> resultPage = teachingQuestionMapper.selectQuestion(page, param, userId, isAdmin);
 
         return resultPage;
     }
