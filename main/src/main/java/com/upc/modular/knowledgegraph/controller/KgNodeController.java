@@ -6,6 +6,7 @@ import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.knowledgegraph.entity.KgNode;
 import com.upc.modular.knowledgegraph.param.KgNodeSearchParam;
+import com.upc.modular.knowledgegraph.param.TextbookKnowledgeGraphReturnParam;
 import com.upc.modular.knowledgegraph.service.IKgNodeService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -69,6 +70,13 @@ public class KgNodeController {
     @PostMapping("/getKgNodeByConditions")
     public R<List<KgNode>> getKgNodeByConditions(@RequestBody KgNodeSearchParam param) {
         List<KgNode> result = kgNodeService.getKgNodeByConditions(param);
+        return R.commonReturn(200, "查询成功", result);
+    }
+    
+    @ApiOperation(value = "获取教材知识图谱信息")
+    @GetMapping("/getTextbookKnowledgeGraph")
+    public R<TextbookKnowledgeGraphReturnParam> getTextbookKnowledgeGraph(@RequestParam Long textbookId) {
+        TextbookKnowledgeGraphReturnParam result = kgNodeService.getTextbookKnowledgeGraph(textbookId);
         return R.commonReturn(200, "查询成功", result);
     }
 
