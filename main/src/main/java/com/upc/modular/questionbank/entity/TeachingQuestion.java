@@ -82,12 +82,12 @@ public class TeachingQuestion implements Serializable {
     private String answerAnalysis;
 
     @ApiModelProperty("所属教材id")
-    @TableField("teaching_material_id")
-    private Long teachingMaterialId;
+    @TableField("textbook_id")
+    private Long textbooklId;
 
     @ApiModelProperty("所属教材名称")
-    @TableField("teaching_material_name")
-    private String teachingMaterialName;
+    @TableField("textbook_name")
+    private String textbookName;
 
     @ApiModelProperty("所属章节id")
     @TableField("chapter_id")
