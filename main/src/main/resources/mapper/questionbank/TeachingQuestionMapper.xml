@@ -18,52 +18,62 @@
         <result column="add_datetime" property="addDatetime" />
         <result column="operator" property="operator" />
         <result column="operation_datetime" property="operationDatetime" />
+        <result column="textbook_id" property="textbookId" />
+        <result column="textbook_name" property="textbookName" />
+        <result column="chapter_id" property="chapterId" />
+        <result column="chapter_name" property="chapterName" />
+        <result column="teaching_question_classification_name" property="teachingQuestionClassificationName" />
         <result column="creatorName" property="creatorName"/> <!-- 非数据库字段 -->
     </resultMap>
 
-    <select id="selectQuestion"
-            resultMap="BaseResultMap">
+    <select id="selectQuestion" resultMap="BaseResultMap">
         SELECT
-        t.id,
-        t.type,
-        t.content,
-        t.difficulty,
-        t.status,
-        t.answer,
-        t.subject,
-        t.creator,
-        t.add_datetime,
-        t.operator,
-        t.operation_datetime,
-        t.teaching_question_classification_id,
-        #{userId} as currentUserId
+        t.id, t.type, t.content, t.difficulty, t.status, t.answer, t.subject,
+        t.creator, t.add_datetime, t.operator, t.operation_datetime,
+        t.teaching_question_classification_id, t.textbook_id, t.textbook_name,
+        t.chapter_id, t.chapter_name,
+        -- 【新增】关联查询出题目分类的名称
+        tqc.teaching_question_classification_name
+        -- 【修改】FROM 语句，使用 LEFT JOIN 关联题目分类表
         FROM teaching_question t
+        LEFT JOIN teaching_question_classification tqc ON t.teaching_question_classification_id = tqc.id
         <where>
-            <!-- 条件1: 根据题目内容模糊查询 -->
+            <!-- 题目内容模糊查询 -->
             <if test="param.content != null and param.content != ''">
                 AND t.content LIKE CONCAT('%', #{param.content}, '%')
             </if>
-            <!-- 条件2: 根据题型精确查询  -->
+            <!-- 【新增】题目分类名称模糊查询 -->
+            <if test="param.teachingQuestionClassificationName != null and param.teachingQuestionClassificationName != ''">
+                AND tqc.teaching_question_classification_name LIKE CONCAT('%', #{param.teachingQuestionClassificationName}, '%')
+            </if>
+            <!-- 题型精确查询 -->
             <if test="param.type != null">
                 AND t.type = #{param.type}
             </if>
-            <!-- 条件3: 根据难度等级精确查询 -->
-            <if test="param.difficulty != null">
-                AND t.difficulty = #{param.difficulty}
-            </if>
-            <!-- 条件4: 根据状态精确查询 -->
+            <!-- 状态精确查询 -->
             <if test="param.status != null">
                 AND t.status = #{param.status}
             </if>
-            <!-- 条件5: 根据题目所属学科模糊查询 -->
+            <!-- 所属学科模糊查询 -->
             <if test="param.subject != null and param.subject != ''">
-                AND t.content LIKE CONCAT('%', #{param.subject}, '%')
+                AND t.subject LIKE CONCAT('%', #{param.subject}, '%')
             </if>
-            <!-- 条件6: 根据题目名称模糊查询 -->
-            <if test="param.questionName != null and param.questionName != ''">
-                AND t.content LIKE CONCAT('%', #{param.questionName}, '%')
+
+            <!-- a. 增加的查询参数 -->
+            <if test="param.difficulty != null">
+                AND t.difficulty = #{param.difficulty}
             </if>
-            <!-- 条件7: 根据题目分类ID查询该分类及子级 -->
+            <if test="param.textbookName != null and param.textbookName != ''">
+                AND t.textbook_name LIKE CONCAT('%', #{param.textbookName}, '%')
+            </if>
+            <if test="param.textbookId != null">
+                AND t.textbook_id = #{param.textbookId}
+            </if>
+            <if test="param.chapterId != null">
+                AND t.chapter_id = #{param.chapterId}
+            </if>
+
+            <!-- 【已恢复】条件: 根据题目分类ID查询该分类及所有子分类的题目 -->
             <if test="param.classificationId != null">
                 AND (t.teaching_question_classification_id = #{param.classificationId}
                 OR t.teaching_question_classification_id IN (
@@ -75,6 +85,11 @@
                 )
                 )
                 )
+            </if>
+            <!-- b. 权限控制 -->
+            <!-- 如果当前用户不是管理员, 则增加一个查询条件，只查询 creator 是自己的记录 -->
+            <if test="!isAdmin">
+                AND t.creator = #{userId}
             </if>
         </where>
         ORDER BY t.add_datetime

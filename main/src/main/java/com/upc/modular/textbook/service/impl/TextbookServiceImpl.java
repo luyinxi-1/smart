@@ -217,14 +217,25 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             textbookPageReturnParams = textbookMapper.selectTextbookPage(param, classificationIds, UserUtils.get().getUserType());
         }
         List<TextbookPageReturnParam> returnParams = new ArrayList<>();
-        if (UserUtils.get().getUserType() == 0) {
+        Integer userType = UserUtils.get().getUserType();
+        
+        // 根据用户类型进行不同的权限过滤
+        if (userType == 0) {
+            // 管理员：查看所有教材
             returnParams.addAll(textbookPageReturnParams);
-        } else {
+        } else if (userType == 1) {
+            // 学生：查看所有教材（可根据实际需求调整为只查看有查看权限的教材）
+            returnParams.addAll(textbookPageReturnParams);
+        } else if (userType == 2) {
+            // 教师：只查看有编辑权限的教材
             for (TextbookPageReturnParam returnParam : textbookPageReturnParams) {
                 if (textbookAuthorityEditJudge(returnParam.getId(), UserUtils.get().getId())) {
                     returnParams.add(returnParam);
                 }
             }
+        } else {
+            // 其他未知类型：不返回任何教材
+            // returnParams 保持为空
         }
         for (TextbookPageReturnParam returnParam : returnParams) {
             if (judgeTextbookViewStatus(returnParam)) {

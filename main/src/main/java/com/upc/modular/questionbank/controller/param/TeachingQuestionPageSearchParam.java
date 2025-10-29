@@ -22,6 +22,15 @@ public class TeachingQuestionPageSearchParam extends PageBaseSearchParam {
     @ApiModelProperty("难度等级")
     private Integer difficulty;
 
+    @ApiModelProperty(value = "教材名称(模糊查询)")
+    private String textbookName;
+
+    @ApiModelProperty("教材ID")
+    private Long textbookId;
+
+    @ApiModelProperty("章节ID")
+    private Long chapterId;
+
     @ApiModelProperty("状态（0禁用，1启用）")
     private Integer status;
 
@@ -30,5 +39,7 @@ public class TeachingQuestionPageSearchParam extends PageBaseSearchParam {
 
     @ApiModelProperty("题目分类ID（查询该分类及子级）")
     private Long classificationId;
+    @ApiModelProperty("题目分类名称")
+    private String teachingQuestionClassificationName;
 
 }
