@@ -1,0 +1,133 @@
+package com.upc.modular.textbook.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.common.responseparam.PageBaseReturnParam;
+import com.upc.modular.textbook.entity.MaterialList;
+import com.upc.modular.textbook.entity.MaterialPush;
+import com.upc.modular.textbook.mapper.MaterialListMapper;
+import com.upc.modular.textbook.mapper.MaterialPushMapper;
+import com.upc.modular.textbook.param.MaterialPushPageSearchParam;
+import com.upc.modular.textbook.param.PushMaterialBatchUpdateCatalogParam;
+import com.upc.modular.textbook.param.PushMaterialInsertAndUpdateParam;
+import com.upc.modular.textbook.service.IMaterialPushService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+/**
+ * <p>
+ *  服务实现类
+ * </p>
+ *
+ * @author JM
+ * @since 2025-10-29
+ */
+@Service
+public class MaterialPushServiceImpl extends ServiceImpl<MaterialPushMapper, MaterialPush> implements IMaterialPushService {
+    @Autowired
+    private MaterialListMapper materialListMapper;
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long insertPushMaterial(PushMaterialInsertAndUpdateParam param) {
+        //插入MaterialPush表内容
+        MaterialPush materialPush = new MaterialPush();
+        BeanUtils.copyProperties(param, materialPush);
+
+        this.save(materialPush);
+        Long materialPushId = materialPush.getId();
+
+        //清空Material表中数据
+        materialListMapper.delete(new LambdaQueryWrapper<MaterialList>()
+                .eq(MaterialList::getMaterialPushId , materialPushId));
+        //插入MaterialList表内容
+        List<MaterialList> materialList = param.getMaterialList();
+        if(materialList != null && !materialList.isEmpty()){
+            for(MaterialList material : materialList){
+                material.setId( null);
+                materialListMapper.insert(material);
+            }
+        }
+        return materialPushId;
+    }
+
+    @Override
+    public void deleteIdeologicalMaterialByIds(List<Long> ids) {
+        this.removeBatchByIds(ids);
+        materialListMapper.delete(new LambdaQueryWrapper<MaterialList>()
+                .in(MaterialList::getMaterialPushId , ids));
+    }
+
+    @Override
+    public PushMaterialInsertAndUpdateParam getMaterialById(Long id) {
+        List<MaterialList> materialList = materialListMapper.selectList(new LambdaQueryWrapper<MaterialList>()
+                .eq(MaterialList::getMaterialPushId , id));
+        MaterialPush materialPush = this.getById(id);
+        PushMaterialInsertAndUpdateParam param = new PushMaterialInsertAndUpdateParam();
+        param.setMaterialList(materialList);
+        BeanUtils.copyProperties(materialPush, param);
+        return param;
+    }
+
+    @Override
+    public PageBaseReturnParam<MaterialPush> getPushMaterialByTextbookIdPage(MaterialPushPageSearchParam param) {
+        Page<MaterialPush> page = new Page<>(param.getCurrent(), param.getSize());
+        LambdaQueryWrapper<MaterialPush> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(MaterialPush::getTextbookId, param.getTextbookId());
+        Page<MaterialPush> result = this.page(page, queryWrapper);
+
+        List<MaterialPush> records = result.getRecords();
+        records.forEach(materialPush -> {
+            materialPush.setContent(null);
+            materialPush.setIntroduction(null);
+        });
+        result.setRecords(records);
+
+        return PageBaseReturnParam.ok(result);
+
+    }
+
+    @Override
+    public void updatePushMaterialById(PushMaterialInsertAndUpdateParam param) {
+        // 更新material_push表数据
+        MaterialPush materialPush = new MaterialPush();
+        BeanUtils.copyProperties(param, materialPush);
+        this.updateById(materialPush);
+
+        // 删除material_list表中与该推送关联的所有内容
+        materialListMapper.delete(new LambdaQueryWrapper<MaterialList>()
+                .eq(MaterialList::getMaterialPushId, param.getId()));
+
+        // 插入新的material_list数据
+        List<MaterialList> materialList = param.getMaterialList();
+        if (materialList != null && !materialList.isEmpty()) {
+            for (MaterialList item : materialList) {
+                item.setId(null); // 确保ID为null，让数据库自动生成
+                materialListMapper.insert(item);
+            }
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void batchUpdateCatalog(List<PushMaterialBatchUpdateCatalogParam> params) {
+        if (params != null && !params.isEmpty()) {
+            for (PushMaterialBatchUpdateCatalogParam param : params) {
+                // 创建更新对象
+                MaterialPush materialPush = new MaterialPush();
+                materialPush.setId(param.getId());
+                materialPush.setTextbookCatalogId(param.getTextbookCatalogId());
+                materialPush.setTextbookCatalogName(param.getTextbookCatalogName());
+
+                // 执行更新操作
+                this.updateById(materialPush);
+            }
+        }
+    }
+
+
+}

@@ -1,15 +1,13 @@
 package com.upc.modular.questionbank.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.utils.UserUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
-import com.upc.modular.auth.entity.SysTbuser;
-import com.upc.modular.auth.mapper.SysUserMapper;
-import com.upc.modular.course.controller.param.CoursePageReturnParam;
+import com.upc.modular.questionbank.controller.param.SmartPaperGenerationParam;
+import com.upc.modular.questionbank.controller.param.SmartPaperQuestionVO;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchParam;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.upc.modular.questionbank.mapper.TeachingQuestionMapper;
@@ -18,7 +16,9 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -34,8 +34,6 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
 
     @Autowired
     TeachingQuestionMapper teachingQuestionMapper;
-    @Autowired
-    private SysUserMapper sysUserMapper;
 
     @Override
     public Void deleteCourseByIds(IdParam idParam) {
@@ -109,5 +107,110 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
     @Override
     public TeachingQuestion selectQuestionById(Long id) {
         return teachingQuestionMapper.selectQuestionById(id); // 👈 使用自定义SQL
+    }
+
+    @Override
+    public List<SmartPaperQuestionVO> smartPaperGeneration(SmartPaperGenerationParam param) {
+        // 参数校验
+        if (param.getTextbookId() == null || param.getChapterId() == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材ID和章节ID不能为空");
+        }
+        if (param.getDifficulty() == null || param.getDifficulty() < 1 || param.getDifficulty() > 3) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "难易程度必须为1-3之间");
+        }
+        if (param.getQuestionTypeCount() == null || param.getQuestionTypeCount().isEmpty()) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "题型数量不能为空");
+        }
+
+        List<SmartPaperQuestionVO> result = new ArrayList<>();
+
+        // 遍历每个题型
+        for (Map.Entry<Integer, Integer> entry : param.getQuestionTypeCount().entrySet()) {
+            Integer questionType = entry.getKey();
+            Integer totalCount = entry.getValue();
+
+            if (totalCount == null || totalCount <= 0) {
+                continue; // 跳过无效的数量
+            }
+
+            // 计算选择的难易程度的题目数量（向上取整）
+            int selectedDifficultyCount = (int) Math.ceil(totalCount * 0.5);
+
+            // 计算其余难易程度平分的数量
+            int remainingCount = totalCount - selectedDifficultyCount;
+
+            // 获取所有难度级别（1-简单，2-中等，3-困难）
+            List<Integer> otherDifficulties = new ArrayList<>();
+            for (int i = 1; i <= 3; i++) {
+                if (i != param.getDifficulty()) {
+                    otherDifficulties.add(i);
+                }
+            }
+
+            // 计算每个其他难度应分配的题目数量
+            int eachOtherCount = otherDifficulties.size() > 0 ? remainingCount / otherDifficulties.size() : 0;
+            int remainder = otherDifficulties.size() > 0 ? remainingCount % otherDifficulties.size() : 0;
+
+            // 从选择的难易程度中抽取题目
+            List<TeachingQuestion> selectedQuestions = teachingQuestionMapper.selectQuestionsByCondition(
+                    param.getTextbookId(),
+                    param.getChapterId(),
+                    questionType,
+                    param.getDifficulty()
+            );
+
+            if (selectedQuestions.size() < selectedDifficultyCount) {
+                throw new BusinessException(
+                        BusinessErrorEnum.PARAMETER_VALIDATION_ERROR,
+                        String.format("题型%d的难度%d题目数量不足，需要%d道，实际只有%d道",
+                                questionType, param.getDifficulty(), selectedDifficultyCount, selectedQuestions.size())
+                );
+            }
+
+            // 添加选择的难度的题目
+            result.addAll(convertToVO(selectedQuestions.subList(0, selectedDifficultyCount)));
+
+            // 从其他难度中抽取题目
+            for (int i = 0; i < otherDifficulties.size(); i++) {
+                Integer otherDifficulty = otherDifficulties.get(i);
+                // 如果有余数，前面几个难度多分配一道题
+                int countForThisDifficulty = eachOtherCount + (i < remainder ? 1 : 0);
+
+                if (countForThisDifficulty > 0) {
+                    List<TeachingQuestion> otherQuestions = teachingQuestionMapper.selectQuestionsByCondition(
+                            param.getTextbookId(),
+                            param.getChapterId(),
+                            questionType,
+                            otherDifficulty
+                    );
+
+                    if (otherQuestions.size() < countForThisDifficulty) {
+                        throw new BusinessException(
+                                BusinessErrorEnum.PARAMETER_VALIDATION_ERROR,
+                                String.format("题型%d的难度%d题目数量不足，需要%d道，实际只有%d道",
+                                        questionType, otherDifficulty, countForThisDifficulty, otherQuestions.size())
+                        );
+                    }
+
+                    result.addAll(convertToVO(otherQuestions.subList(0, countForThisDifficulty)));
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * 将TeachingQuestion转换为SmartPaperQuestionVO
+     */
+    private List<SmartPaperQuestionVO> convertToVO(List<TeachingQuestion> questions) {
+        return questions.stream().map(question -> {
+            SmartPaperQuestionVO vo = new SmartPaperQuestionVO();
+            vo.setId(question.getId());
+            vo.setType(question.getType());
+            vo.setContent(question.getContent());
+            vo.setDifficulty(question.getDifficulty());
+            return vo;
+        }).collect(Collectors.toList());
     }
 }
