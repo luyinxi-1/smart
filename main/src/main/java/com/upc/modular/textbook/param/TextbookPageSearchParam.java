@@ -36,4 +36,6 @@ public class TextbookPageSearchParam extends PageBaseSearchParam {
     @ApiModelProperty("教材分类id")
     private Long classificationId;
 
+    @ApiModelProperty("教材归属机构ID")
+    private Long belongInstitutionId;
 }

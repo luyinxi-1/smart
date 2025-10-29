@@ -40,7 +40,7 @@ public class Institution implements Serializable {
     private Long fatherInstitutionId;
 
 
-    @ApiModelProperty("机构级别（5班级，4专业、3系、2学院、1学部，0最高）")
+    @ApiModelProperty("机构级别（6教研室、5班级、4专业、3系、2学院、1学部、0最高）")
     @TableField("institution_grade")
     private Integer institutionGrade;
 
