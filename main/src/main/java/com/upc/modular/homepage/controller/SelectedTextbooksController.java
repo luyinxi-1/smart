@@ -31,26 +31,26 @@ public class SelectedTextbooksController {
         return R.ok(homePageTextbooknService.insert(homePageTextbook));
     }
 
-    @ApiOperation(value = "删除首页宣传")
+    @ApiOperation(value = "删除教材宣传")
     @PostMapping("/batchDelete")
     public R<Boolean> batchDelete(@RequestParam("idList") List<Long> idList) {
         return R.ok(homePageTextbooknService.batchDelete(idList));
     }
 
-    @ApiOperation(value = "更新首页宣传")
+    @ApiOperation(value = "更新教材宣传")
     @PostMapping("/updateTextbook")
     public R<Boolean> updateTextbook(@RequestBody HomePageTextbook homePageTextbook) {
         return R.ok(homePageTextbooknService.updateTextbook(homePageTextbook));
     }
 
-    @ApiOperation(value = "首页通知公告展示")
+    @ApiOperation(value = "精选教材展示")
     @PostMapping("/getHomePageTextbook")
     public R<List<HomePageTextbookReturnParam>> getHomePageTextbook(@RequestBody HomePagePromotionListSearchParam param) {
         return R.ok(homePageTextbooknService.getHomePageTextbook(param));
     }
 
-    @ApiOperation(value = "首页通知公告查看更多")
-    @PostMapping("/getHomePagePromotionPage")
+    @ApiOperation(value = "首页精选教材查看更多")
+    @PostMapping("/getHomePageTextbookPage")
     public R<PageBaseReturnParam<HomePageTextbookReturnParam>> getHomePageTextbookPage(@RequestBody HomePagePromotionPageSearchParam param) {
         Page<HomePageTextbookReturnParam> page = homePageTextbooknService.getHomePageTextbookPage(param);
         PageBaseReturnParam<HomePageTextbookReturnParam> result = PageBaseReturnParam.ok(page);
@@ -58,13 +58,13 @@ public class SelectedTextbooksController {
     }
 
     @ApiOperation(value = "查看详情")
-    @PostMapping("/getHomePagePromotionDetails")
+    @PostMapping("/getHomePageTextbookDetails")
     public R<HomePageTextbookReturnParam> getHomePagePromotionDetails(@RequestParam("promotionId") Long promotionId) {
         return R.ok(homePageTextbooknService.getHomePageTextbookDetails(promotionId));
     }
 
     @ApiOperation(value = "清空式的更新操作")
-    @PostMapping("/updateClearPromotion")
+    @PostMapping("/updateClearTextbook")
     public R<Boolean> updateClearPromotion(@RequestBody HomePageTextbook homePageTextbook) {
         return R.ok(homePageTextbooknService.updateClearTextbook(homePageTextbook));
     }
