@@ -7,6 +7,7 @@ import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.questionbank.controller.param.SmartPaperGenerationParam;
 import com.upc.modular.questionbank.controller.param.SmartPaperQuestionVO;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchParam;
+import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchReturnVO;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.upc.modular.questionbank.service.ITeachingQuestionService;
 import io.swagger.annotations.Api;
@@ -61,9 +62,9 @@ public R<TeachingQuestion> selectQuestionById(@RequestParam Long id) {
 
     @ApiOperation("分页查询题目信息")
     @PostMapping("selectQuestionPage")
-    public R<PageBaseReturnParam<TeachingQuestion>> selectQuestionPage(@RequestBody TeachingQuestionPageSearchParam teachingQuestion){
-        Page<TeachingQuestion> page = teachingQuestionService.selectQuestionPage(teachingQuestion);
-        PageBaseReturnParam<TeachingQuestion> p = PageBaseReturnParam.ok(page);
+    public R<PageBaseReturnParam<TeachingQuestionPageSearchReturnVO>> selectQuestionPage(@RequestBody TeachingQuestionPageSearchParam teachingQuestion){
+        Page<TeachingQuestionPageSearchReturnVO> page = teachingQuestionService.selectQuestionPage(teachingQuestion);
+        PageBaseReturnParam<TeachingQuestionPageSearchReturnVO> p = PageBaseReturnParam.ok(page);
         return R.page(p);
     }
 

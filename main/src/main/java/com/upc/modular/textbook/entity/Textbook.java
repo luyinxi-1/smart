@@ -111,5 +111,7 @@ public class Textbook implements Serializable {
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
     private LocalDateTime operationDatetime;
 
-
+    @ApiModelProperty("教材归属机构ID")
+    @TableField(value = "belong_institution_id")
+    private Long belongInstitutionId;
 }

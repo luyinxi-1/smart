@@ -1,4 +1,4 @@
-package com.upc.modular.questionbank.entity;
+package com.upc.modular.questionbank.controller.param;
 
 import com.baomidou.mybatisplus.annotation.*;
 
@@ -11,7 +11,7 @@ import lombok.experimental.Accessors;
 
 /**
  * <p>
- * 
+ *
  * </p>
  *
  * @author byh
@@ -21,7 +21,7 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 @TableName("teaching_question")
 @ApiModel(value = "TeachingQuestion对象", description = "")
-public class TeachingQuestion implements Serializable {
+public class TeachingQuestionPageSearchReturnVO implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -98,9 +98,12 @@ public class TeachingQuestion implements Serializable {
     private String chapterName;
 
     @ApiModelProperty("创建人名称")
-    @TableField(exist = false) // 非数据库字段
+    @TableField(exist = false)
     private String creatorName;
-/*    @ApiModelProperty("是否为当前用户创建")
-    @TableField(exist = false) // 非数据库字段
-    private Boolean isCreatedByCurrentUser;*/
+
+    @ApiModelProperty("题目分类名称")
+    @TableField(exist = false)
+    private String teachingQuestionClassificationName;
+
 }
+

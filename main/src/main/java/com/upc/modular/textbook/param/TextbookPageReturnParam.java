@@ -13,6 +13,9 @@ import java.time.LocalDateTime;
 @Accessors(chain = true)
 public class TextbookPageReturnParam extends Textbook {
 
+    @ApiModelProperty("教材归属机构名称")
+    private String belongInstitutionName;
+
     @ApiModelProperty("教材作者姓名")
     private String textbookAuthorName;
 

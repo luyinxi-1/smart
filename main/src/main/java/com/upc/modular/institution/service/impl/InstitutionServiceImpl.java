@@ -51,7 +51,7 @@ public class InstitutionServiceImpl extends ServiceImpl<InstitutionMapper, Insti
         queryWrapper.like(StringUtils.isNotBlank(param.getInstitutionName()), Institution::getInstitutionName, param.getInstitutionName());
         queryWrapper.eq(param.getInstitutionGrade() != null, Institution::getInstitutionGrade, param.getInstitutionGrade());
         queryWrapper.eq(param.getStatus() != null, Institution::getStatus, param.getStatus());
-        queryWrapper.in(Institution::getInstitutionGrade, 0, 1, 2, 3, 4);
+        queryWrapper.in(Institution::getInstitutionGrade, 0, 1, 2, 3, 4, 6);
         queryWrapper.orderBy(true, true, Institution::getSort);
         List<Institution> institutionList = this.list(queryWrapper);
 

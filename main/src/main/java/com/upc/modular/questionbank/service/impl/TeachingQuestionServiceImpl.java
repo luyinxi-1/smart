@@ -6,9 +6,12 @@ import com.upc.common.utils.UserUtils;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.questionbank.controller.param.SmartPaperGenerationParam;
 import com.upc.modular.questionbank.controller.param.SmartPaperQuestionVO;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchParam;
+import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchReturnVO;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.upc.modular.questionbank.mapper.TeachingQuestionMapper;
 import com.upc.modular.questionbank.service.ITeachingQuestionService;
@@ -35,6 +38,8 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
     @Autowired
     TeachingQuestionMapper teachingQuestionMapper;
 
+    @Autowired
+    private SysUserMapper sysUserMapper;
     @Override
     public Void deleteCourseByIds(IdParam idParam) {
         List<Long> idList = idParam.getIdList();
@@ -62,9 +67,7 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
 
         return null;
     }
-
-    @Override
-    public Page<TeachingQuestion> selectQuestionPage(TeachingQuestionPageSearchParam param) {
+/*    public Page<TeachingQuestion> selectQuestionPage(TeachingQuestionPageSearchParam param) {
         Long userId = UserUtils.get().getId();
         Page<TeachingQuestion> page = new Page<>(param.getCurrent(), param.getSize());
         Page<TeachingQuestion> resultPage = teachingQuestionMapper.selectQuestion(page, param, userId);
@@ -77,6 +80,29 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
                 question.setIsCreatedByCurrentUser(false);
             }
         });
+
+        return resultPage;
+    }*/
+    @Override
+    public Page<TeachingQuestionPageSearchReturnVO> selectQuestionPage(TeachingQuestionPageSearchParam param) {
+        // 获取当前登录用户的 ID
+        Long userId = UserUtils.get().getId();
+        // 2. 根据 userId 从数据库实时查询用户信息
+        SysTbuser currentUser = sysUserMapper.selectById(userId);
+        // 如果用户不存在，可以进行异常处理
+        if (currentUser == null) {
+            throw new RuntimeException("当前登录用户不存在！");
+        }
+        // 3. 从查询到的用户对象中获取 userType
+        Integer userType = currentUser.getUserType();
+
+        // 根据 user_type 判断是否为管理员
+        boolean isAdmin = (userType != null && userType == 0);
+        // 创建分页对象
+        Page<TeachingQuestionPageSearchReturnVO> page = new Page<>(param.getCurrent(), param.getSize());
+
+        // 调用 Mapper 方法，并传入 isAdmin 标志
+        Page<TeachingQuestionPageSearchReturnVO> resultPage = teachingQuestionMapper.selectQuestion(page, param, userId, isAdmin);
 
         return resultPage;
     }

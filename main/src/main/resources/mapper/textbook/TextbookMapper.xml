@@ -18,6 +18,7 @@
         <result column="add_datetime" property="addDatetime" />
         <result column="operator" property="operator" />
         <result column="operation_datetime" property="operationDatetime" />
+        <result column="belong_institution_id" property="belongInstitutionId" />
     </resultMap>
     <select id="selectTextbookPage" resultType="com.upc.modular.textbook.param.TextbookPageReturnParam">
         SELECT
@@ -39,8 +40,10 @@
         t.add_datetime,
         t.operator,
         t.operation_datetime,
+        t.belong_institution_id,
         a.name AS textbook_author_name,
         d.name AS type_name,
+        i.institution_name AS belong_institution_name,
         -- 使用CASE语句根据用户类型动态获取创建人姓名
         CASE
         WHEN #{userType} = 1 THEN s.name
@@ -54,6 +57,8 @@
         teacher a ON t.textbook_author_id = a.id
         LEFT JOIN
         sys_dict_data d ON t.type = d.id
+        LEFT JOIN
+        institution i ON t.belong_institution_id = i.id
         LEFT JOIN
         -- 使用子查询关联最新的审核记录，以防重复
         (SELECT textbook_id, MAX(id) AS id FROM textbook_review GROUP BY textbook_id) tr ON t.id = tr.textbook_id
@@ -96,6 +101,9 @@
             <if test="param.endTime != null">
                 AND t.add_datetime &lt;= #{param.endTime}
             </if>
+            <if test="param.belongInstitutionId != null">
+                AND t.belong_institution_id = #{param.belongInstitutionId}
+            </if>
             <if test="classificationIds != null and classificationIds.size > 0">
                 AND t.classification IN
                 <foreach collection="classificationIds" item="cid" open="(" close=")" separator=",">
@@ -127,8 +135,10 @@
             t.add_datetime,
             t.operator,
             t.operation_datetime,
+            t.belong_institution_id,
             a.name AS textbook_author_name,
             d.name AS type_name,
+            i.institution_name AS belong_institution_name,
             -- Add creator's name based on userType
             CASE
                 WHEN #{userType} = 1 THEN s.name
@@ -142,6 +152,8 @@
             teacher a ON t.textbook_author_id = a.id
                 LEFT JOIN
             sys_dict_data d ON t.type = d.id
+                LEFT JOIN
+            institution i ON t.belong_institution_id = i.id
                 LEFT JOIN
             -- Subquery to get the latest review ID for this textbook
                 (SELECT textbook_id, MAX(id) AS id FROM textbook_review WHERE textbook_id = #{textbookId} GROUP BY textbook_id) tr ON t.id = tr.textbook_id
@@ -174,7 +186,8 @@
         t.creator,
         t.add_datetime,
         t.operator,
-        t.operation_datetime
+        t.operation_datetime,
+        t.belong_institution_id
         FROM
         textbook t
         LEFT JOIN
