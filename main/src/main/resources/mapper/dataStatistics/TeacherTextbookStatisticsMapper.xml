@@ -224,7 +224,7 @@
                     ORDER BY add_datetime ASC
                     LIMIT 1
                 )
-            WHERE ll.textbook_id = #{textbookId} AND ll.data_type = 0
+            WHERE ll.textbook_id = #{textbookId}
             GROUP BY ll.creator
         ) reading_stats ON s.user_id = reading_stats.creator
         LEFT JOIN (
@@ -233,7 +233,7 @@
                 ll.creator,
                 COUNT(DISTINCT ll.catalogue_id) as chapter_count
             FROM learning_log ll
-            WHERE ll.textbook_id = #{textbookId} AND ll.data_type = 0
+            WHERE ll.textbook_id = #{textbookId}
             GROUP BY ll.creator
         ) chapter_stats ON s.user_id = chapter_stats.creator
         LEFT JOIN (
@@ -244,7 +244,7 @@
                     SELECT COUNT(*) FROM textbook_catalog WHERE textbook_id = #{textbookId}
                 )), 2) as progress_percentage
             FROM learning_log ll
-            WHERE ll.textbook_id = #{textbookId} AND ll.data_type = 0
+            WHERE ll.textbook_id = #{textbookId}
             GROUP BY ll.creator
         ) progress_stats ON s.user_id = progress_stats.creator
         WHERE ctl.textbook_id = #{textbookId} AND ucl.type = 1
@@ -396,7 +396,7 @@
                     ORDER BY add_datetime ASC
                     LIMIT 1
                 )
-            WHERE ll.textbook_id = #{textbookId} AND ll.data_type = 0 AND ll.creator = (
+            WHERE ll.textbook_id = #{textbookId} AND ll.creator = (
                 SELECT user_id FROM student WHERE id = #{studentId}
             )
             GROUP BY ll.catalogue_id

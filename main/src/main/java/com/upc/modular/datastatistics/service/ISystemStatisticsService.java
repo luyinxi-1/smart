@@ -1,6 +1,7 @@
 package com.upc.modular.datastatistics.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.common.utils.UserInfoToRedis;
 import com.upc.modular.datastatistics.controller.param.*;
 import org.apache.ibatis.annotations.Param;
 
@@ -122,9 +123,10 @@ public interface ISystemStatisticsService {
     /**
      * 获取全系统教材统计概览 (分页)
      * @param page 分页参数
+     * @param currentUser 当前登录用户
      * @return IPage<TextbookStatisticsOverviewParam>
      */
-    IPage<TextbookStatisticsOverviewParam> getSystemTextbookStatisticsOverview(Page<TextbookStatisticsOverviewParam> page);
+    IPage<TextbookStatisticsOverviewParam> getSystemTextbookStatisticsOverview(Page<TextbookStatisticsOverviewParam> page, UserInfoToRedis currentUser);
 
     /**
      * 获取教材阅读人员统计 (分页)

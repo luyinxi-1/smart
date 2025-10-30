@@ -20,7 +20,7 @@ public interface TeacherTextbookStatisticsMapper {
     /**
      * 统计教材阅读人数
      */
-    @Select("SELECT COUNT(DISTINCT creator) FROM learning_log WHERE textbook_id = #{textbookId} AND data_type = 0")
+    @Select("SELECT COUNT(DISTINCT creator) FROM learning_log WHERE textbook_id = #{textbookId}")
     Long countReadersByTextbookId(@Param("textbookId") Long textbookId);
 
     /**
@@ -39,7 +39,7 @@ public interface TeacherTextbookStatisticsMapper {
      * 统计教材阅读时长 - 基于learning_log表计算
      * 通过计算相邻记录的时间差来估算阅读时长
      */
-    @Select("SELECT COALESCE(COUNT(*), 0) FROM learning_log WHERE textbook_id = #{textbookId} AND data_type = 0")
+    @Select("SELECT COALESCE(COUNT(*), 0) FROM learning_log WHERE textbook_id = #{textbookId}")
     Long countReadingDurationByTextbookId(@Param("textbookId") Long textbookId);
 
     /**
@@ -87,13 +87,13 @@ public interface TeacherTextbookStatisticsMapper {
     /**
      * 获取指定教材的学习日志记录 - 用于基于时间间隔的阅读时长计算
      */
-    @Select("SELECT * FROM learning_log WHERE textbook_id = #{textbookId} AND data_type = 0 ORDER BY creator, add_datetime ASC")
+    @Select("SELECT * FROM learning_log WHERE textbook_id = #{textbookId} ORDER BY creator, add_datetime ASC")
     List<LearningLog> findLearningLogsByTextbookId(@Param("textbookId") Long textbookId);
 
     /**
      * 根据时间段获取指定教材的学习日志记录
      */
-    @Select("SELECT * FROM learning_log WHERE textbook_id = #{textbookId} AND data_type = 0 " +
+    @Select("SELECT * FROM learning_log WHERE textbook_id = #{textbookId} " +
             "AND add_datetime BETWEEN #{startTime} AND #{endTime} " +
             "ORDER BY creator, add_datetime ASC")
     List<LearningLog> findLearningLogsByTextbookIdAndTime(@Param("textbookId") Long textbookId,
