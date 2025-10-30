@@ -22,4 +22,6 @@ public interface LearningNotesMapper extends BaseMapper<LearningNotes> {
     Page<LearningNotesPageReturnParam> getPage(@Param("page") Page<LearningNotesPageReturnParam> page, @Param("param") LearningNotesPageSearchParam param);
 
     Page<LearningNotesPageReturnParam> getMyPage(@Param("page") Page<LearningNotesPageReturnParam> page, @Param("param") LearningNotesPageSearchParam param, @Param("id") Long id);
+
+    Page<LearningNotesPageReturnParam> getMyNotesTextbookCenter(@Param("page") Page<LearningNotesPageReturnParam> page, @Param("param") LearningNotesPageSearchParam param, @Param("id") Long id);
 }

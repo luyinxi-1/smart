@@ -147,4 +147,22 @@ public class LearningNotesServiceImpl extends ServiceImpl<LearningNotesMapper, L
         return text.replaceFirst("^[\\d\\.]+\\s*", "").trim();
     }
 
+    @Override
+    public Page<LearningNotesPageReturnParam> getMyNotesTextbookCenter(LearningNotesPageSearchParam param) {
+        Page<LearningNotesPageReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
+        Long id = UserUtils.get().getId();
+        Page<LearningNotesPageReturnParam> resultPage = learningNotesMapper.getMyNotesTextbookCenter(page, param, id);
+
+        for (LearningNotesPageReturnParam record : resultPage.getRecords()) {
+            // 清洗章节名称
+            if (record.getCatalogName() != null) {
+                String rawHtml = record.getCatalogName();
+                String plainText = Jsoup.parse(rawHtml).text(); // 去除HTML标签
+                record.setCatalogName(plainText);
+            }
+        }
+
+        return resultPage;
+    }
+
 }
