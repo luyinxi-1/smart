@@ -18,6 +18,10 @@ import com.upc.modular.institution.service.IInstitutionService;
 import com.upc.modular.institution.service.impl.InstitutionServiceImpl;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.mapper.TeacherMapper;
+import com.upc.modular.teachingactivities.entity.DiscussionTopic;
+import com.upc.modular.teachingactivities.entity.DiscussionTopicReply;
+import com.upc.modular.teachingactivities.mapper.DiscussionTopicMapper;
+import com.upc.modular.teachingactivities.mapper.DiscussionTopicReplyMapper;
 import com.upc.modular.teachingactivities.param.DiscussionTopicSecondReplyPageReturnParam;
 import com.upc.modular.textbook.entity.*;
 import com.upc.modular.textbook.mapper.TextbookAuthorityMapper;
@@ -60,6 +64,11 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     private InstitutionServiceImpl institutionService;
     @Autowired
     private TextbookCatalogMapper textbookCatalogMapper;
+
+    @Autowired
+    private DiscussionTopicReplyMapper discussionTopicReplyMapper;
+    @Autowired
+    private DiscussionTopicMapper discussionTopicMapper;
 
 
     @Override
@@ -565,5 +574,152 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     @Override
     public Page<TextbookHotnessDto> getTextbookHotnessPage(Page<TextbookHotnessDto> page) {
         return textbookMapper.selectTextbookHotnessPage(page);
+    }
+
+    @Override
+    public Page<TextbookCenterPageReturnParam> getTextbookCenter(TextbookCenterPageSearchParam param) {
+        Long userId = UserUtils.get().getId();
+        Integer activityType = param.getActivityType();
+        if (activityType == null || (activityType != 0 && activityType != 1)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "活动类型参数错误");
+        }
+        Set<Long> textbookIds = new HashSet<>();
+        LambdaQueryWrapper<DiscussionTopicReply> replyWrapper = new LambdaQueryWrapper<>();
+        replyWrapper.eq(DiscussionTopicReply::getCreator, userId)
+                .or()
+                .eq(DiscussionTopicReply::getOperator, userId);
+
+        List<DiscussionTopicReply> userReplies = discussionTopicReplyMapper.selectList(replyWrapper);
+
+        Set<Long> topicIds = userReplies.stream()
+                .map(DiscussionTopicReply::getTopicId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        if (!topicIds.isEmpty()) {
+            // 查询这些教学活动对应的教材
+            LambdaQueryWrapper<DiscussionTopic> topicWrapper = new LambdaQueryWrapper<>();
+            topicWrapper.in(DiscussionTopic::getId, topicIds);
+            List<DiscussionTopic> topics = discussionTopicMapper.selectList(topicWrapper);
+
+            // 收集教材ID
+            topics.stream()
+                    .map(DiscussionTopic::getTextbookId)
+                    .filter(Objects::nonNull)
+                    .forEach(textbookIds::add);
+        }
+        //交流反馈
+        if(activityType == 0){
+            LambdaQueryWrapper<DiscussionTopic> userTopicWrapper = new LambdaQueryWrapper<>();
+            userTopicWrapper.eq(DiscussionTopic::getCreator, userId)
+                    .or()
+                    .eq(DiscussionTopic::getOperator, userId);
+            List<DiscussionTopic> userTopics = discussionTopicMapper.selectList(userTopicWrapper);
+            userTopics.stream()
+                    .map(DiscussionTopic::getTextbookId)
+                    .filter(Objects::nonNull)
+                    .forEach(textbookIds::add);
+        }
+        List<Textbook> resultTextbooks = textbookIds.isEmpty() ?
+                Collections.emptyList() : textbookMapper.selectBatchIds(textbookIds);
+        Map<Long, Integer> activityCountMap = countUserActivities(userId, activityType);
+        // 转换为返回参数
+        List<TextbookCenterPageReturnParam> returnList = new ArrayList<>();
+        for (Textbook textbook : resultTextbooks) {
+            TextbookCenterPageReturnParam returnParam = new TextbookCenterPageReturnParam();
+            // 复制Textbook属性到TextbookCenterPageReturnParam
+            org.springframework.beans.BeanUtils.copyProperties(textbook, returnParam);
+            // 设置活动数量
+            returnParam.setActivityCount(activityCountMap.getOrDefault(textbook.getId(), 0));
+            returnList.add(returnParam);
+        }
+
+        // 分页处理
+        long total = returnList.size();
+        long current = param.getCurrent();
+        long size = param.getSize();
+        long fromIndex = (current - 1) * size;
+
+        if (fromIndex >= total) {
+            Page<TextbookCenterPageReturnParam> resultPage = new Page<>(current, size, 0);
+            resultPage.setRecords(new ArrayList<>());
+            return resultPage;
+        }
+
+        long toIndex = Math.min(fromIndex + size, total);
+        List<TextbookCenterPageReturnParam> pageRecords = returnList.subList((int)fromIndex, (int)toIndex);
+
+        Page<TextbookCenterPageReturnParam> resultPage = new Page<>(current, size, total);
+        resultPage.setRecords(pageRecords);
+        return resultPage;
+
+    }
+
+    /**
+     * 统计用户在教材中的活动数量
+     * @param userId 用户ID
+     * @param activityType 活动类型
+     * @return 教材ID到活动数量的映射
+     */
+    private Map<Long, Integer> countUserActivities(Long userId, Integer activityType) {
+        Map<Long, Integer> activityCountMap = new HashMap<>();
+        
+        // 查询用户参与的discussion_topic_reply记录，且type=1（表示活动）
+        LambdaQueryWrapper<DiscussionTopicReply> replyWrapper = new LambdaQueryWrapper<>();
+        replyWrapper.and(wrapper -> wrapper.eq(DiscussionTopicReply::getCreator, userId)
+                                          .or()
+                                          .eq(DiscussionTopicReply::getOperator, userId))
+                   .eq(DiscussionTopicReply::getType, 1); // 只统计type=1的记录，表示直接回复教学活动的记录
+        
+        List<DiscussionTopicReply> userReplies = discussionTopicReplyMapper.selectList(replyWrapper);
+        
+        // 获取这些回复关联的教学活动
+        Set<Long> topicIds = userReplies.stream()
+                .map(DiscussionTopicReply::getTopicId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        
+        if (!topicIds.isEmpty()) {
+            // 查询这些教学活动对应的教材
+            LambdaQueryWrapper<DiscussionTopic> topicWrapper = new LambdaQueryWrapper<>();
+            topicWrapper.in(DiscussionTopic::getId, topicIds);
+            List<DiscussionTopic> topics = discussionTopicMapper.selectList(topicWrapper);
+            
+            // 统计每个教材的活动数量
+            Map<Long, Long> textbookActivityCount = topics.stream()
+                    .map(DiscussionTopic::getTextbookId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.groupingBy(
+                            textbookId -> textbookId,
+                            Collectors.counting()
+                    ));
+            
+            // 转换为Integer
+            textbookActivityCount.forEach((textbookId, count) -> 
+                activityCountMap.put(textbookId, count.intValue()));
+        }
+        
+        // 如果activityType为0，还需要统计用户创建的教学活动
+        if (activityType == 0) {
+            LambdaQueryWrapper<DiscussionTopic> userTopicWrapper = new LambdaQueryWrapper<>();
+            userTopicWrapper.and(wrapper -> wrapper.eq(DiscussionTopic::getCreator, userId)
+                                                  .or()
+                                                  .eq(DiscussionTopic::getOperator, userId));
+            
+            List<DiscussionTopic> userTopics = discussionTopicMapper.selectList(userTopicWrapper);
+            Map<Long, Long> userTopicCount = userTopics.stream()
+                    .map(DiscussionTopic::getTextbookId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.groupingBy(
+                            textbookId -> textbookId,
+                            Collectors.counting()
+                    ));
+            
+            // 合并统计结果
+            userTopicCount.forEach((textbookId, count) -> 
+                activityCountMap.merge(textbookId, count.intValue(), Integer::sum));
+        }
+        
+        return activityCountMap;
     }
 }

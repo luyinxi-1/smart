@@ -86,4 +86,54 @@
         </choose>
     </select>
 
+    <!-- 查询用户有笔记的教材列表（教材中心 - 返回不重复的教材及其最新笔记） -->
+    <select id="getMyNotesTextbookCenter" resultType="com.upc.modular.textbook.param.LearningNotesPageReturnParam">
+        SELECT
+        ln.*,
+        tb.textbook_name AS textbookName,
+        tc.catalog_name AS catalogName,
+        (SELECT COUNT(*) FROM learning_notes ln_count WHERE ln_count.textbook_id = ln.textbook_id AND ln_count.creator = #{id}) AS noteCount
+        FROM (
+            -- 获取每个教材最新的一条笔记（按添加时间倒序）
+            SELECT ln2.* 
+            FROM learning_notes ln2
+            WHERE ln2.creator = #{id}
+            AND ln2.id IN (
+                SELECT MAX(ln3.id)
+                FROM learning_notes ln3
+                WHERE ln3.creator = #{id}
+                <if test="param.textbookName != null and param.textbookName != ''">
+                    AND EXISTS (
+                        SELECT 1 FROM textbook tb_filter 
+                        WHERE tb_filter.id = ln3.textbook_id
+                        AND tb_filter.textbook_name LIKE CONCAT('%', #{param.textbookName}, '%')
+                    )
+                </if>
+                GROUP BY ln3.textbook_id
+            )
+        ) ln
+        LEFT JOIN textbook tb ON ln.textbook_id = tb.id
+        LEFT JOIN textbook_catalog tc ON ln.catalogue_id = tc.id
+        <where>
+            <if test="param.catalogName != null and param.catalogName != ''">
+                AND tc.catalog_name LIKE CONCAT('%', #{param.catalogName}, '%')
+            </if>
+            <if test="param.startTime != null">
+                AND ln.add_datetime &gt;= #{param.startTime}
+            </if>
+            <if test="param.endTime != null">
+                AND ln.add_datetime &lt;= #{param.endTime}
+            </if>
+        </where>
+        ORDER BY ln.add_datetime
+        <choose>
+            <when test="param.isAsc == 1">
+                ASC
+            </when>
+            <otherwise>
+                DESC
+            </otherwise>
+        </choose>
+    </select>
+
 </mapper>

@@ -1,6 +1,5 @@
 package com.upc.modular.textbook.param;
 
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.upc.modular.textbook.entity.LearningNotes;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -17,5 +16,8 @@ public class LearningNotesPageReturnParam extends LearningNotes {
 
     @ApiModelProperty("关联的目录名")
     private String catalogName;
+
+    @ApiModelProperty("该教材的笔记数量")
+    private Long noteCount;
 
 }
