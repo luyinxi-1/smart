@@ -77,7 +77,7 @@ public R<TeachingQuestion> selectQuestionById(@RequestParam Long id) {
         return R.ok(result);
     }
     
-    @ApiOperation("获取题目数量（教师）")
+    @ApiOperation("获取题目数量")
     @PostMapping("/countQuestionsByType")
     public R<List<QuestionCountByTypeReturnParam>> countQuestionsByType(@RequestBody QuestionCountSearchParam param) {
         List<QuestionCountByTypeReturnParam> result = teachingQuestionService.countQuestionsByType(param.getTextbookId(), param.getChapterId());

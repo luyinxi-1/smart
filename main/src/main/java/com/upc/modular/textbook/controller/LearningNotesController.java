@@ -98,4 +98,12 @@ public class LearningNotesController {
         PageBaseReturnParam<LearningNotesPageReturnParam> result = PageBaseReturnParam.ok(page);
         return R.page(result);
     }
+
+    @ApiOperation(value = "查询我有笔记的教材列表")
+    @PostMapping("/getMyNotesTextbookCenter")
+    public R<PageBaseReturnParam<LearningNotesPageReturnParam>> getMyNotesTextbookCenter(@RequestBody LearningNotesPageSearchParam param) {
+        Page<LearningNotesPageReturnParam> page = learningNotesService.getMyNotesTextbookCenter(param);
+        PageBaseReturnParam<LearningNotesPageReturnParam> result = PageBaseReturnParam.ok(page);
+        return R.page(result);
+    }
 }

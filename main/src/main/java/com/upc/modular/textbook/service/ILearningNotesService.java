@@ -33,4 +33,6 @@ public interface ILearningNotesService extends IService<LearningNotes> {
     LearningNotes getOneNote(Long id);
 
     Page<LearningNotesPageReturnParam> getMyPage(LearningNotesPageSearchParam param);
+
+    Page<LearningNotesPageReturnParam> getMyNotesTextbookCenter(LearningNotesPageSearchParam param);
 }
