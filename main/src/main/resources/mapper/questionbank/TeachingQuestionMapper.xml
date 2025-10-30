@@ -22,11 +22,32 @@
         <result column="textbook_name" property="textbookName" />
         <result column="chapter_id" property="chapterId" />
         <result column="chapter_name" property="chapterName" />
-        <result column="teaching_question_classification_name" property="teachingQuestionClassificationName" />
         <result column="creatorName" property="creatorName"/> <!-- 非数据库字段 -->
     </resultMap>
+    <resultMap id="PageSearchResultMap" type="com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchReturnVO">
+        <id column="id" property="id" />
+        <result column="type" property="type" />
+        <result column="content" property="content" />
+        <result column="difficulty" property="difficulty" />
+        <result column="status" property="status" />
+        <result column="answer" property="answer" />
+        <result column="subject" property="subject" />
+        <result column="teaching_question_classification_id" property="teachingQuestionClassificationId" />
+        <result column="choice_question_options" property="choiceQuestionOptions" />
+        <result column="answer_analysis" property="answerAnalysis" />
+        <result column="creator" property="creator" />
+        <result column="add_datetime" property="addDatetime" />
+        <result column="operator" property="operator" />
+        <result column="operation_datetime" property="operationDatetime" />
+        <result column="textbook_id" property="textbookId" />
+        <result column="textbook_name" property="textbookName" />
+        <result column="chapter_id" property="chapterId" />
+        <result column="chapter_name" property="chapterName" />
+        <result column="teaching_question_classification_name" property="teachingQuestionClassificationName" />
+        <result column="creatorName" property="creatorName"/>
+    </resultMap>
 
-    <select id="selectQuestion" resultMap="BaseResultMap">
+    <select id="selectQuestion" resultMap="PageSearchResultMap">
         SELECT
         t.id, t.type, t.content, t.difficulty, t.status, t.answer, t.subject,
         t.creator, t.add_datetime, t.operator, t.operation_datetime,
@@ -121,8 +142,4 @@
                            ON t.creator = u.id             -- 条件：题目表的 creator 对应用户表的 id
         WHERE t.id = #{id}                       -- 只查询指定题目的数据
     </select>
-
-
-
-
 </mapper>

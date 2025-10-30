@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.questionbank.controller.param.QuestionCountByTypeReturnParam;
+import com.upc.modular.questionbank.controller.param.QuestionCountSearchParam;
 import com.upc.modular.questionbank.controller.param.SmartPaperGenerationParam;
 import com.upc.modular.questionbank.controller.param.SmartPaperQuestionVO;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchParam;
@@ -72,6 +74,13 @@ public R<TeachingQuestion> selectQuestionById(@RequestParam Long id) {
     @PostMapping("/smartPaperGeneration")
     public R<List<SmartPaperQuestionVO>> smartPaperGeneration(@RequestBody SmartPaperGenerationParam param) {
         List<SmartPaperQuestionVO> result = teachingQuestionService.smartPaperGeneration(param);
+        return R.ok(result);
+    }
+    
+    @ApiOperation("获取题目数量（教师）")
+    @PostMapping("/countQuestionsByType")
+    public R<List<QuestionCountByTypeReturnParam>> countQuestionsByType(@RequestBody QuestionCountSearchParam param) {
+        List<QuestionCountByTypeReturnParam> result = teachingQuestionService.countQuestionsByType(param.getTextbookId(), param.getChapterId());
         return R.ok(result);
     }
 }

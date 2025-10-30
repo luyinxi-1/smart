@@ -35,7 +35,9 @@
         WHEN 2 THEN '多选题'
         WHEN 3 THEN '判断题'
         WHEN 4 THEN '填空题'
-        WHEN 5 THEN '问答题'
+        WHEN 5 THEN '简答题'
+        WHEN 6 THEN '计算题'
+        WHEN 7 THEN '论述题'
         ELSE CONCAT(tq.type, '：未知题型')
         END AS question_type_name,
         tq.content AS question_content
@@ -90,7 +92,9 @@
                 WHEN 2 THEN '多选题'
                 WHEN 3 THEN '判断题'
                 WHEN 4 THEN '填空题'
-                WHEN 5 THEN '问答题'
+                WHEN 5 THEN '简答题'
+                WHEN 6 THEN '计算题'
+                WHEN 7 THEN '论述题'
                 ELSE '未知题型'
                 END AS question_type_name,
             tq.content AS question_content,

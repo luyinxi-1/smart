@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.materials.mapper.ApplicationMaterialsMappingMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.upc.modular.materials.entity.ApplicationMaterialsMapping">
+        <id column="id" property="id" />
+        <result column="application_material_id" property="applicationMaterialId" />
+        <result column="teaching_material_id" property="teachingMaterialId" />
+        <result column="sequence" property="sequence" />
+        <result column="creator" property="creator" />
+        <result column="add_datetime" property="addDatetime" />
+        <result column="operator" property="operator" />
+        <result column="operation_datetime" property="operationDatetime" />
+    </resultMap>
+
+    <!-- 批量插入应用素材与教学素材关联 -->
+    <insert id="batchInsert">
+        INSERT INTO application_materials_mapping 
+        (application_material_id, teaching_material_id, sequence, creator, add_datetime, operator, operation_datetime)
+        VALUES
+        <foreach collection="mappings" item="item" separator=",">
+            (#{item.applicationMaterialId}, #{item.teachingMaterialId}, #{item.sequence}, 
+            #{item.creator}, #{item.addDatetime}, #{item.operator}, #{item.operationDatetime})
+        </foreach>
+    </insert>
+
+    <!-- 根据应用素材ID删除所有关联 -->
+    <delete id="deleteByApplicationMaterialId">
+        DELETE FROM application_materials_mapping
+        WHERE application_material_id = #{applicationMaterialId}
+    </delete>
+
+    <!-- 获取应用素材关联的教学素材详情列表 -->
+    <select id="getTeachingMaterialsByApplicationId" resultType="com.upc.modular.materials.controller.param.vo.ApplicationMaterialsDetailVO">
+        SELECT
+            amm.id,
+            amm.application_material_id AS applicationMaterialId,
+            amm.teaching_material_id AS teachingMaterialId,
+            tm.name AS teachingMaterialName,
+            tm.type,
+            tm.file_path AS filePath,
+            tm.cover_image_path AS coverImagePath,
+            tm.file_size AS fileSize,
+            amm.sequence
+        FROM application_materials_mapping amm
+        LEFT JOIN teaching_materials tm ON amm.teaching_material_id = tm.id
+        WHERE amm.application_material_id = #{applicationMaterialId}
+        ORDER BY amm.sequence ASC, amm.add_datetime ASC
+    </select>
+    
+</mapper>

@@ -211,6 +211,27 @@ public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required
 
         EasyExcel.write(response.getOutputStream(), TeacherTextbookPopularityParam.class).sheet("排名").doWrite(list);
     }
+    @ApiOperation("导出系统数据")
+    @GetMapping("/export-System-Statistics")
+    public void exportSystemStatistics(HttpServletResponse response) throws IOException {
+        // 1. 调用服务获取数据。这个方法现在返回一个只包含一个统计对象的列表。
+        List<ExportSystemStatisticsParm> list = systemStatisticsService.exportSystemStatistics();
+        // 2. 设置文件名和响应头
+        String fileName = "系统统计数据.xlsx";
+        String fallbackName = "system_statistics_report.xlsx";
+
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
+        String contentDisposition = String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s", fallbackName, encodedFileName);
+        response.setHeader("Content-Disposition", contentDisposition);
+
+        // 3. 使用EasyExcel写入数据
+        EasyExcel.write(response.getOutputStream(), ExportSystemStatisticsParm.class)
+                .sheet("系统统计数据")
+                .doWrite(list);
+    }
 
     @ApiOperation("获取全系统教材统计概览 (分页)")
     @GetMapping("/textbook-overview")

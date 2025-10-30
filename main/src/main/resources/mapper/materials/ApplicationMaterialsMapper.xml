@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.upc.modular.materials.mapper.ApplicationMaterialsMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.upc.modular.materials.entity.ApplicationMaterials">
+        <id column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="description" property="description" />
+        <result column="question_bank_id" property="questionBankId" />
+        <result column="status" property="status" />
+        <result column="creator" property="creator" />
+        <result column="add_datetime" property="addDatetime" />
+        <result column="operator" property="operator" />
+        <result column="operation_datetime" property="operationDatetime" />
+    </resultMap>
+    
+    <!-- 分页查询应用素材列表 -->
+    <select id="selectApplicationMaterialsPage" resultType="com.upc.modular.materials.controller.param.vo.ApplicationMaterialsVO">
+        SELECT
+            am.id,
+            am.name,
+            am.description,
+            am.question_bank_id AS questionBankId,
+            tqb.name AS questionBankName,
+            am.status,
+            am.creator,
+            creator_user.nickname AS creatorName,
+            am.add_datetime AS addDatetime,
+            am.operator,
+            operator_user.nickname AS operatorName,
+            am.operation_datetime AS operationDatetime,
+            COUNT(amm.id) AS teachingMaterialsCount
+        FROM application_materials am
+        LEFT JOIN teaching_question_bank tqb ON am.question_bank_id = tqb.id
+        LEFT JOIN sys_tbuser creator_user ON am.creator = creator_user.id
+        LEFT JOIN sys_tbuser operator_user ON am.operator = operator_user.id
+        LEFT JOIN application_materials_mapping amm ON am.id = amm.application_material_id
+        <where>
+            <if test="param.name != null and param.name != ''">
+                AND am.name LIKE CONCAT('%', #{param.name}, '%')
+            </if>
+            <if test="param.questionBankId != null">
+                AND am.question_bank_id = #{param.questionBankId}
+            </if>
+            <if test="param.status != null">
+                AND am.status = #{param.status}
+            </if>
+            <if test="param.creator != null">
+                AND am.creator = #{param.creator}
+            </if>
+        </where>
+        GROUP BY
+            am.id, am.name, am.description, am.question_bank_id, tqb.name, am.status,
+            am.creator, creator_user.nickname,
+            am.add_datetime, am.operator, operator_user.nickname, am.operation_datetime
+        ORDER BY am.add_datetime
+        <choose>
+            <when test="param.isAsc != null and param.isAsc == 1">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+    </select>
+    
+    <!-- 根据ID查询应用素材详情 -->
+    <select id="selectApplicationMaterialsById" resultType="com.upc.modular.materials.controller.param.vo.ApplicationMaterialsVO">
+        SELECT
+            am.id,
+            am.name,
+            am.description,
+            am.question_bank_id AS questionBankId,
+            tqb.name AS questionBankName,
+            am.status,
+            am.creator,
+            creator_user.nickname AS creatorName,
+            am.add_datetime AS addDatetime,
+            am.operator,
+            operator_user.nickname AS operatorName,
+            am.operation_datetime AS operationDatetime,
+            COUNT(amm.id) AS teachingMaterialsCount
+        FROM application_materials am
+        LEFT JOIN teaching_question_bank tqb ON am.question_bank_id = tqb.id
+        LEFT JOIN sys_tbuser creator_user ON am.creator = creator_user.id
+        LEFT JOIN sys_tbuser operator_user ON am.operator = operator_user.id
+        LEFT JOIN application_materials_mapping amm ON am.id = amm.application_material_id
+        WHERE am.id = #{id}
+        GROUP BY
+            am.id, am.name, am.description, am.question_bank_id, tqb.name, am.status,
+            am.creator, creator_user.nickname,
+            am.add_datetime, am.operator, operator_user.nickname, am.operation_datetime
+    </select>
+    
+</mapper>
