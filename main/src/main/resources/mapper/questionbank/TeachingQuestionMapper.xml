@@ -54,10 +54,13 @@
         t.teaching_question_classification_id, t.textbook_id, t.textbook_name,
         t.chapter_id, t.chapter_name,
         -- 【新增】关联查询出题目分类的名称
-        tqc.teaching_question_classification_name
-        -- 【修改】FROM 语句，使用 LEFT JOIN 关联题目分类表
+        tqc.teaching_question_classification_name,
+        -- 关联查询出创建人姓名
+        u.nickname AS creatorName
+        -- 【修改】FROM 语句，使用 LEFT JOIN 关联题目分类表和用户表
         FROM teaching_question t
         LEFT JOIN teaching_question_classification tqc ON t.teaching_question_classification_id = tqc.id
+        LEFT JOIN sys_tbuser u ON t.creator = u.id
         <where>
             <!-- 题目内容模糊查询 -->
             <if test="param.content != null and param.content != ''">
