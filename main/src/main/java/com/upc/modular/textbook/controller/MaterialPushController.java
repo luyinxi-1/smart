@@ -54,7 +54,7 @@ public class MaterialPushController {
 
     @ApiOperation(value = "根据教材id查询推送资料")
     @PostMapping("/getPushMaterialByTextbookId")
-    public R getPushMaterialByTextbookId(@RequestParam MaterialPushPageSearchParam param) {
+    public R getPushMaterialByTextbookId(@RequestBody MaterialPushPageSearchParam param) {
         if (param.getTextbookId() == null || param.getTextbookId() == 0L) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
