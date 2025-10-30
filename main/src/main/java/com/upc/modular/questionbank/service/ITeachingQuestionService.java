@@ -6,6 +6,7 @@ import com.upc.modular.questionbank.controller.param.SmartPaperGenerationParam;
 import com.upc.modular.questionbank.controller.param.SmartPaperQuestionVO;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchParam;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchReturnVO;
+import com.upc.modular.questionbank.controller.param.QuestionCountByTypeReturnParam;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -32,4 +33,12 @@ public interface ITeachingQuestionService extends IService<TeachingQuestion> {
      * @return 题目列表
      */
     List<SmartPaperQuestionVO> smartPaperGeneration(SmartPaperGenerationParam param);
+    
+    /**
+     * 根据教材ID和章节ID统计各题型题目数量
+     * @param textbookId 教材ID
+     * @param chapterId 章节ID
+     * @return 各题型题目数量列表
+     */
+    List<QuestionCountByTypeReturnParam> countQuestionsByType(Long textbookId, Long chapterId);
 }

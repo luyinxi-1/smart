@@ -22,6 +22,8 @@ import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
+import com.upc.modular.textbook.param.TextbookAuthorityDetailReturnParam;
+import com.upc.modular.textbook.param.TextbookAuthoritySearchParam;
 import com.upc.modular.textbook.service.ITextbookAuthorityService;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.upc.modular.textbook.service.ITextbookService;
@@ -103,13 +105,11 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
 
     @Override
     public Page<DiscussionTopicReturnParam> getDiscussionTopicList(DiscussionTopicSearchParam param) {
-        // 获取当前用户ID，用于后续判断是否为创建者
         Long userId = UserUtils.get().getId();
 
         Page<DiscussionTopic> page = new Page<>(param.getCurrent(), param.getSize());
         QueryWrapper<DiscussionTopic> queryWrapper = new QueryWrapper<>();
 
-        // 1. 构建查询条件 (与您提供的一致)
         queryWrapper.like(StringUtils.isNotBlank(param.getTopicTitle()), "topic_title", param.getTopicTitle());
         queryWrapper.eq(param.getType() != null, "type", param.getType());
         queryWrapper.eq(param.getMessageType() != null, "message_type", param.getMessageType());
@@ -117,7 +117,7 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
         queryWrapper.eq(param.getTextbookCatalogId() != null, "textbook_catalog_id", param.getTextbookCatalogId());
         queryWrapper.eq(param.getIdentityType() != null, "identity_type", param.getIdentityType());
 
-        // 2. 核心排序逻辑
+        // 排序逻辑
         Integer sortType = param.getSortType();
         if (sortType == null) {
             sortType = 0; // 如果前端未提供排序类型，默认为0
@@ -140,16 +140,48 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
         }
 
 
-        // 3. 执行分页查询
         IPage<DiscussionTopic> topicPage = this.page(page, queryWrapper);
 
-        // 如果当前页没有数据，直接返回一个空的分页对象
-        if (topicPage.getRecords().isEmpty()) {
-            return new Page<>(param.getCurrent(), param.getSize(), topicPage.getTotal());
+        // 权限过滤：只返回用户有权限查看的教学活动
+        List<DiscussionTopic> filteredTopics = topicPage.getRecords().stream()
+                .filter(topic -> {
+                    // 1. 如果用户是该教学活动的创建人，则有权限查看
+                    if (topic.getCreator() != null && topic.getCreator().equals(userId)) {
+                        return true;
+                    }
+                    
+                    // 2. 检查用户是否是教材的协作者
+                    if (topic.getTextbookId() != null) {
+                        // 创建查询参数
+                        TextbookAuthoritySearchParam searchParam = new TextbookAuthoritySearchParam();
+                        searchParam.setTextbookId(topic.getTextbookId());
+                        searchParam.setAuthorityType(1); // 1表示协作者
+                        searchParam.setCurrent(1L);
+                        searchParam.setSize(100L); // 设置足够大的页大小以获取所有记录
+                        
+                        // 调用getTextbookAuthorityPage方法查询协作者列表
+                        Page<TextbookAuthorityDetailReturnParam> authorityPage = textbookAuthorityService.getTextbookAuthorityPage(searchParam);
+                        
+                        // 检查返回的协作者列表中是否包含当前用户
+                        if (authorityPage.getRecords() != null && !authorityPage.getRecords().isEmpty()) {
+                            return authorityPage.getRecords().stream()
+                                    .anyMatch(authority -> authority.getTeacher() != null && 
+                                            authority.getTeacher().getUserId() != null && 
+                                            authority.getTeacher().getUserId().equals(userId));
+                        }
+                    }
+                    
+                    // 如果没有通过上述任一权限检查，则无权限查看
+                    return false;
+                })
+                .collect(Collectors.toList());
+
+        if (filteredTopics.isEmpty()) {
+            return new Page<>(param.getCurrent(), param.getSize(), 0);
         }
 
-        // 4. 数据转换 (PO -> DTO)，与您提供的一致
-        List<DiscussionTopicReturnParam> returnList = topicPage.getRecords().stream()
+        // 数据转换
+        List<DiscussionTopicReturnParam> returnList = filteredTopics.stream()
                 .map(discussionTopic -> {
                     DiscussionTopicReturnParam returnParam = new DiscussionTopicReturnParam();
 
@@ -180,16 +212,6 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
                         }
                     }
 
-                    // 关联查询与填充：创建人信息
-                    if (discussionTopic.getCreator() != null) {
-                        SysTbuser sysTbuser = sysTbuserService.getById(discussionTopic.getCreator());
-                        if (sysTbuser != null) {
-                            returnParam.setCreatorName(sysTbuser.getNickname());
-                        }
-                        // 判断是否为当前用户创建
-                        returnParam.setIsCreatedByCurrentUser(discussionTopic.getCreator().equals(userId));
-                    }
-
                     // 关联查询与填充：回复数
                     Integer topicReplyCount = discussionTopicReplyService.getTopicReplyCount(discussionTopic.getId());
                     returnParam.setReplyCount(topicReplyCount != null ? topicReplyCount : 0);
@@ -198,8 +220,8 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
                 })
                 .collect(Collectors.toList());
 
-        // 5. 构建并返回最终的分页结果
-        Page<DiscussionTopicReturnParam> resultPage = new Page<>(topicPage.getCurrent(), topicPage.getSize(), topicPage.getTotal());
+        // 构建并返回最终的分页结果，注意total应该是过滤后的数量
+        Page<DiscussionTopicReturnParam> resultPage = new Page<>(topicPage.getCurrent(), topicPage.getSize(), filteredTopics.size());
         resultPage.setRecords(returnList);
         return resultPage;
     }

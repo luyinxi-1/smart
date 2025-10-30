@@ -113,6 +113,11 @@ public interface ISystemStatisticsService {
      * @return List<TeacherTextbookPopularityParam>
      */
     List<TeacherTextbookPopularityParam> exportSystemTextbookPopularity();
+    /**
+     * 导出系统统计数据
+     * @return List<ExportSystemStatisticsParm>
+     */
+    List<ExportSystemStatisticsParm> exportSystemStatistics();
 
     /**
      * 获取全系统教材统计概览 (分页)

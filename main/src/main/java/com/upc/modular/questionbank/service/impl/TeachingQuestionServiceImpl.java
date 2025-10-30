@@ -12,6 +12,7 @@ import com.upc.modular.questionbank.controller.param.SmartPaperGenerationParam;
 import com.upc.modular.questionbank.controller.param.SmartPaperQuestionVO;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchParam;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchReturnVO;
+import com.upc.modular.questionbank.controller.param.QuestionCountByTypeReturnParam;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.upc.modular.questionbank.mapper.TeachingQuestionMapper;
 import com.upc.modular.questionbank.service.ITeachingQuestionService;
@@ -215,5 +216,13 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
             vo.setDifficulty(question.getDifficulty());
             return vo;
         }).collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<QuestionCountByTypeReturnParam> countQuestionsByType(Long textbookId, Long chapterId) {
+        // 查询数据库获取各题型数量
+        List<QuestionCountByTypeReturnParam> result = teachingQuestionMapper.countQuestionsByType(textbookId, chapterId);
+        
+        return result;
     }
 }
