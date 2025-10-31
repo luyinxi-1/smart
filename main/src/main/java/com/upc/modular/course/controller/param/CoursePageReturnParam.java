@@ -22,6 +22,9 @@ public class CoursePageReturnParam {
     @ApiModelProperty("课程名称")
     private String courseName;
 
+    @ApiModelProperty("课程简称")
+    private String courseShortName;
+
     @ApiModelProperty("课程学分")
     private Integer credit;
 
