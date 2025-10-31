@@ -9,6 +9,7 @@
         <result column="description" property="description" />
         <result column="question_bank_id" property="questionBankId" />
         <result column="textbook_id" property="textbookId" />
+        <result column="chapter_id" property="chapterId" />
         <result column="status" property="status" />
         <result column="creator" property="creator" />
         <result column="add_datetime" property="addDatetime" />
@@ -24,6 +25,7 @@
             am.description,
             am.question_bank_id AS questionBankId,
             am.textbook_id AS textbookId,
+            am.chapter_id AS chapterId,
             am.status,
             am.creator,
             am.add_datetime AS addDatetime,
@@ -31,6 +33,7 @@
             am.operation_datetime AS operationDatetime,
             (SELECT name FROM teaching_question_bank WHERE id = am.question_bank_id LIMIT 1) AS questionBankName,
             (SELECT textbook_name FROM textbook WHERE id = am.textbook_id LIMIT 1) AS textbookName,
+            (SELECT catalog_name FROM textbook_catalog WHERE id = am.chapter_id LIMIT 1) AS chapterName,
             (SELECT nickname FROM sys_tbuser WHERE id = am.creator LIMIT 1) AS creatorName,
             (SELECT nickname FROM sys_tbuser WHERE id = am.operator LIMIT 1) AS operatorName,
             (SELECT COUNT(*) FROM application_materials_mapping WHERE application_material_id = am.id) AS teachingMaterialsCount
@@ -61,6 +64,7 @@
             am.description,
             am.question_bank_id AS questionBankId,
             am.textbook_id AS textbookId,
+            am.chapter_id AS chapterId,
             am.status,
             am.creator,
             am.add_datetime AS addDatetime,
@@ -68,6 +72,7 @@
             am.operation_datetime AS operationDatetime,
             (SELECT name FROM teaching_question_bank WHERE id = am.question_bank_id LIMIT 1) AS questionBankName,
             (SELECT textbook_name FROM textbook WHERE id = am.textbook_id LIMIT 1) AS textbookName,
+            (SELECT catalog_name FROM textbook_catalog WHERE id = am.chapter_id LIMIT 1) AS chapterName,
             (SELECT nickname FROM sys_tbuser WHERE id = am.creator LIMIT 1) AS creatorName,
             (SELECT nickname FROM sys_tbuser WHERE id = am.operator LIMIT 1) AS operatorName,
             (SELECT COUNT(*) FROM application_materials_mapping WHERE application_material_id = am.id) AS teachingMaterialsCount
