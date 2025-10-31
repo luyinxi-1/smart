@@ -71,7 +71,7 @@ public class HomePagePromotionController {
 
     @ApiOperation(value = "清空式的更新操作")
     @PostMapping("/updateClearPromotion")
-    public R<Boolean> updateClearPromotion(@RequestBody HomePagePromotion homePagePromotion) {
+    public R<Boolean> updateClearPromotion(@RequestBody List<HomePagePromotion> homePagePromotion) {
         return R.ok(homePagePromotionService.updateClearPromotion(homePagePromotion));
     }
 }

@@ -3,6 +3,7 @@ package com.upc.modular.homepage.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.homepage.entity.HomePageNotice;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.upc.modular.homepage.param.HomePageNoticeClassListParam;
 import com.upc.modular.homepage.param.HomePageNoticeListSearchParam;
 import com.upc.modular.homepage.param.HomePageNoticePageSearchParam;
 import com.upc.modular.homepage.param.HomePageNoticeReturnParam;
@@ -30,4 +31,6 @@ public interface IHomePageNoticeService extends IService<HomePageNotice> {
     Page<HomePageNoticeReturnParam> getHomePageNoticePage(HomePageNoticePageSearchParam param);
 
     HomePageNoticeReturnParam getHomePageNoticeDetails(Long noticeId);
+
+    Boolean insertTextbookNotice(HomePageNoticeClassListParam homePageNotice);
 }
