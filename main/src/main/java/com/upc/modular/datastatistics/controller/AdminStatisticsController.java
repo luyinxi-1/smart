@@ -1,5 +1,7 @@
 package com.upc.modular.datastatistics.controller;
 
+import com.upc.common.requestparam.PageBaseSearchParam;
+import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.datastatistics.controller.param.ChapterMasteryVO;
 import com.upc.modular.datastatistics.controller.param.TextbookTypeReadingRankExportParam;
@@ -26,11 +28,15 @@ public class AdminStatisticsController {
 
     @ApiOperation("教材阅读时长排名")
     @PostMapping("/textbook-reading-rank")
-    public R<List<Map<String, Object>>> getTextbookReadingRank(
+    public R<PageBaseReturnParam<Map<String, Object>>> getTextbookReadingRank(
             @ApiParam(value = "包含startTime和endTime的JSON对象", required = false) 
-            @RequestBody(required = false) Map<String, Object> params) {
+            @RequestBody(required = false) Map<String, Object> params,
+            @ApiParam(value = "分页参数") PageBaseSearchParam pageParam) {
         try {
-            return R.ok(systemStatisticsService.getTextbookReadingRank(params));
+            if (pageParam == null) {
+                pageParam = new PageBaseSearchParam();
+            }
+            return R.page(systemStatisticsService.getTextbookReadingRank(params, pageParam));
         } catch (Exception e) {
             return R.fail("获取教材阅读时长排名失败: " + e.getMessage());
         }

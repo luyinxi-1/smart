@@ -2,6 +2,8 @@ package com.upc.modular.datastatistics.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.common.requestparam.PageBaseSearchParam;
+import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.utils.UserInfoToRedis;
 import com.upc.modular.datastatistics.controller.param.*;
 import org.apache.ibatis.annotations.Param;
@@ -72,7 +74,7 @@ public interface ISystemStatisticsService {
     /**
      * 教材阅读排名（按时长统计，支持时间范围查询）
      */
-    List<Map<String, Object>> getTextbookReadingRank(Map<String, Object> params);
+    PageBaseReturnParam<Map<String, Object>> getTextbookReadingRank(Map<String, Object> params, PageBaseSearchParam pageParam);
 
     /**
      * 类型阅读排名（按时长统计，支持时间范围查询）
