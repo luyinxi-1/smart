@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.modular.homepage.entity.HomePageNotice;
+import com.upc.modular.homepage.param.HomePageNoticeClassListParam;
 import com.upc.modular.homepage.param.HomePageNoticeListSearchParam;
 import com.upc.modular.homepage.param.HomePageNoticePageSearchParam;
 import com.upc.modular.homepage.param.HomePageNoticeReturnParam;
@@ -69,5 +70,11 @@ public class HomePageNoticeController {
     @PostMapping("/getHomePageNoticeDetails")
     public R<HomePageNoticeReturnParam> getHomePageNoticeDetails(@RequestParam("noticeId") Long noticeId) {
         return R.ok(homePageNoticeService.getHomePageNoticeDetails(noticeId));
+    }
+
+    @ApiOperation(value = "教材通告")
+    @PostMapping("/insertTextbookNotice")
+    public R<Boolean> insertTextbookNotice(@RequestBody HomePageNoticeClassListParam homePageNotice) {
+        return R.ok(homePageNoticeService.insertTextbookNotice(homePageNotice));
     }
 }
