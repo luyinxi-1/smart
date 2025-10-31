@@ -120,6 +120,16 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
         // 3. 保存到数据库
         if (this.save(teachingMaterials)) {
+            // 如果提供了教材ID，则创建教材与素材的绑定关系
+            if (param.getTextbookId() != null) {
+                MaterialsTextbookMapping mapping = new MaterialsTextbookMapping();
+                mapping.setTextbookId(param.getTextbookId());
+                mapping.setMaterialId(teachingMaterials.getId());
+                mapping.setCreator(UserUtils.get().getId());
+                mapping.setAddDatetime(LocalDateTime.now());
+                materialsTextbookMappingService.save(mapping);
+            }
+            
             if (teachingMaterials.getType().equals("link")) {
                 return teachingMaterials.getFilePath();
             }

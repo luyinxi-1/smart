@@ -123,6 +123,15 @@ public interface ISystemStatisticsService {
      * @return List<TeacherTextbookPopularityParam>
      */
     List<TeacherTextbookPopularityParam> exportSystemTextbookPopularity();
+
+    /**
+     * 导出全系统教材统计概览
+     * @param currentUser 当前登录用户
+     * @param textbookName 教材名称筛选参数
+     * @return List<TextbookStatisticsOverviewParam>
+     */
+    List<TextbookStatisticsOverviewParam> exportSystemTextbookStatisticsOverview(UserInfoToRedis currentUser, String textbookName);
+
     /**
      * 导出系统统计数据
      * @return List<ExportSystemStatisticsParm>
@@ -133,9 +142,10 @@ public interface ISystemStatisticsService {
      * 获取全系统教材统计概览 (分页)
      * @param page 分页参数
      * @param currentUser 当前登录用户
+     * @param textbookName 教材名称筛选参数
      * @return IPage<TextbookStatisticsOverviewParam>
      */
-    IPage<TextbookStatisticsOverviewParam> getSystemTextbookStatisticsOverview(Page<TextbookStatisticsOverviewParam> page, UserInfoToRedis currentUser);
+    IPage<TextbookStatisticsOverviewParam> getSystemTextbookStatisticsOverview(Page<TextbookStatisticsOverviewParam> page, UserInfoToRedis currentUser, String textbookName);
 
     /**
      * 获取教材阅读人员统计 (分页)

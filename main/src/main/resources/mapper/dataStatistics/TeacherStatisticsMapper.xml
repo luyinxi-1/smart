@@ -144,12 +144,27 @@
                 COALESCE(fc.communicationFeedbackCount, 0) * 3
             ) AS "popularityScore"
         FROM textbook t
+        INNER JOIN (
+            -- 教师作为作者的教材
+            SELECT DISTINCT t.id as textbook_id
+            FROM textbook t
+            INNER JOIN teacher th ON t.textbook_author_id = th.id
+            WHERE th.id = #{teacherId} AND t.release_status = 1
+            
+            UNION
+            
+            -- 教师作为协作者的教材
+            SELECT DISTINCT t.id as textbook_id
+            FROM textbook t
+            INNER JOIN textbook_authority ta ON t.id = ta.textbook_id
+            WHERE ta.user_id = (SELECT user_id FROM teacher WHERE id = #{teacherId}) 
+              AND ta.authority_type = 1 
+              AND t.release_status = 1
+        ) teacher_textbooks ON t.id = teacher_textbooks.textbook_id
         LEFT JOIN ReaderCounts rc ON t.id = rc.textbook_id
         LEFT JOIN ReadingDurations rd ON t.id = rd.textbook_id
         LEFT JOIN ActivityCounts ac ON t.id = ac.textbook_id
         LEFT JOIN FeedbackCounts fc ON t.id = fc.textbook_id
-        WHERE t.textbook_author_id = #{teacherId}
-          AND t.release_status = 1
         ORDER BY "popularityScore" DESC
     </select>
 
@@ -200,12 +215,27 @@
                 COALESCE(fc.communicationFeedbackCount, 0) * 3
             ) AS "popularityScore"
         FROM textbook t
+        INNER JOIN (
+            -- 教师作为作者的教材
+            SELECT DISTINCT t.id as textbook_id
+            FROM textbook t
+            INNER JOIN teacher th ON t.textbook_author_id = th.id
+            WHERE th.id = #{teacherId} AND t.release_status = 1
+            
+            UNION
+            
+            -- 教师作为协作者的教材
+            SELECT DISTINCT t.id as textbook_id
+            FROM textbook t
+            INNER JOIN textbook_authority ta ON t.id = ta.textbook_id
+            WHERE ta.user_id = (SELECT user_id FROM teacher WHERE id = #{teacherId}) 
+              AND ta.authority_type = 1 
+              AND t.release_status = 1
+        ) teacher_textbooks ON t.id = teacher_textbooks.textbook_id
         LEFT JOIN ReaderCounts rc ON t.id = rc.textbook_id
         LEFT JOIN ReadingDurations rd ON t.id = rd.textbook_id
         LEFT JOIN ActivityCounts ac ON t.id = ac.textbook_id
         LEFT JOIN FeedbackCounts fc ON t.id = fc.textbook_id
-        WHERE t.textbook_author_id = #{teacherId}
-          AND t.release_status = 1
         ORDER BY "popularityScore" DESC
     </select>
 
