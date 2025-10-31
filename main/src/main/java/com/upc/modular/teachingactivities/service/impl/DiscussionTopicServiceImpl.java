@@ -362,5 +362,135 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
             this.updateById(updateEntity);
         }
     }
-
+    
+    @Override
+    public Page<MyDiscussionTopicReturnParam> getMyActivitiesAndReplies(DiscussionTopicSearchParam param) {
+        Long userId = UserUtils.get().getId();
+        
+        Page<DiscussionTopic> page = new Page<>(param.getCurrent(), param.getSize());
+        
+        // 查询用户创建的教学活动
+        QueryWrapper<DiscussionTopic> createdQueryWrapper = new QueryWrapper<>();
+        createdQueryWrapper.eq("creator", userId);
+        this.buildQueryWrapper(createdQueryWrapper, param);
+        
+        // 查询用户回复过的教学活动
+        QueryWrapper<DiscussionTopic> repliedQueryWrapper = new QueryWrapper<>();
+        repliedQueryWrapper.inSql("id", "SELECT DISTINCT topic_id FROM discussion_topic_reply WHERE creator = " + userId);
+        // 排除自己创建的，避免重复
+        repliedQueryWrapper.ne("creator", userId);
+        this.buildQueryWrapper(repliedQueryWrapper, param);
+        
+        // 分别查询并合并结果
+        IPage<DiscussionTopic> createdPage = this.page(new Page<>(1, 1000), createdQueryWrapper);
+        IPage<DiscussionTopic> repliedPage = this.page(new Page<>(1, 1000), repliedQueryWrapper);
+        
+        // 合并结果并去重
+        Map<Long, DiscussionTopic> topicMap = new LinkedHashMap<>();
+        createdPage.getRecords().forEach(topic -> topicMap.put(topic.getId(), topic));
+        repliedPage.getRecords().forEach(topic -> topicMap.put(topic.getId(), topic));
+        
+        List<DiscussionTopic> allTopics = new ArrayList<>(topicMap.values());
+        
+        // 分页处理
+        int fromIndex = (int)((param.getCurrent() - 1) * param.getSize());
+        int toIndex = Math.min(fromIndex + param.getSize().intValue(), allTopics.size());
+        List<DiscussionTopic> pagedTopics = fromIndex < allTopics.size() ? 
+            allTopics.subList(fromIndex, toIndex) : new ArrayList<>();
+        
+        // 数据转换
+        List<MyDiscussionTopicReturnParam> returnList = pagedTopics.stream()
+                .map(discussionTopic -> {
+                    MyDiscussionTopicReturnParam returnParam = new MyDiscussionTopicReturnParam();
+                    
+                    // 基础属性映射
+                    returnParam.setId(discussionTopic.getId());
+                    returnParam.setActivityName(discussionTopic.getTopicTitle());
+                    returnParam.setActivityType(discussionTopic.getType());
+                    if (discussionTopic.getAddDatetime() != null) {
+                        returnParam.setAddDatetime(discussionTopic.getAddDatetime().toString());
+                    }
+                    
+                    // 判断是创建还是回复的
+                    if (userId.equals(discussionTopic.getCreator())) {
+                        returnParam.setIsMyCreated(1);
+                        returnParam.setIsMyReplied(0);
+                    } else {
+                        returnParam.setIsMyCreated(0);
+                        returnParam.setIsMyReplied(1);
+                    }
+                    
+                    // 关联查询与填充：教材名称
+                    if (discussionTopic.getTextbookId() != null) {
+                        Textbook textbook = textbookService.getById(discussionTopic.getTextbookId());
+                        if (textbook != null) {
+                            returnParam.setTextbookName(textbook.getTextbookName());
+                        }
+                    }
+                    
+                    // 关联查询与填充：教材目录
+                    if (discussionTopic.getTextbookCatalogId() != null) {
+                        TextbookCatalog textbookCatalog = textbookCatalogService.getById(discussionTopic.getTextbookCatalogId());
+                        if (textbookCatalog != null && textbookCatalog.getCatalogName() != null) {
+                            String catalogName = Jsoup.parse(textbookCatalog.getCatalogName()).text();
+                            returnParam.setTextbookCatalogName(catalogName);
+                        } else {
+                            returnParam.setTextbookCatalogName("");
+                        }
+                    }
+                    
+                    // 关联查询与填充：创建人姓名
+                    if (discussionTopic.getCreator() != null) {
+                        SysTbuser creator = sysTbuserService.getById(discussionTopic.getCreator());
+                        if (creator != null) {
+                            returnParam.setCreatorName(creator.getNickname());
+                        }
+                    }
+                    
+                    // 关联查询与填充：回复数
+                    Integer topicReplyCount = discussionTopicReplyService.getTopicReplyCount(discussionTopic.getId());
+                    returnParam.setReplyCount(topicReplyCount != null ? topicReplyCount : 0);
+                    
+                    return returnParam;
+                })
+                .collect(Collectors.toList());
+        
+        // 构建并返回最终的分页结果
+        Page<MyDiscussionTopicReturnParam> resultPage = new Page<>(param.getCurrent(), param.getSize(), allTopics.size());
+        resultPage.setRecords(returnList);
+        return resultPage;
+    }
+    
+    /**
+     * 构建查询条件
+     */
+    private void buildQueryWrapper(QueryWrapper<DiscussionTopic> queryWrapper, DiscussionTopicSearchParam param) {
+        queryWrapper.like(StringUtils.isNotBlank(param.getTopicTitle()), "topic_title", param.getTopicTitle());
+        queryWrapper.eq(param.getType() != null, "type", param.getType());
+        queryWrapper.eq(param.getMessageType() != null, "message_type", param.getMessageType());
+        queryWrapper.eq(param.getTextbookId() != null, "textbook_id", param.getTextbookId());
+        queryWrapper.eq(param.getTextbookCatalogId() != null, "textbook_catalog_id", param.getTextbookCatalogId());
+        queryWrapper.eq(param.getIdentityType() != null, "identity_type", param.getIdentityType());
+        
+        // 排序逻辑
+        Integer sortType = param.getSortType();
+        if (sortType == null) {
+            sortType = 0; // 如果前端未提供排序类型，默认为0
+        }
+        
+        switch (sortType) {
+            case 1:
+                // 按最新一条回复时间排序
+                queryWrapper.last("ORDER BY (SELECT MAX(operation_datetime) FROM discussion_topic_reply WHERE discussion_topic_reply.topic_id = discussion_topic.id) DESC NULLS LAST, add_datetime DESC");
+                break;
+            case 2:
+                // 按回复数排序
+                queryWrapper.last("ORDER BY (SELECT COUNT(id) FROM discussion_topic_reply WHERE discussion_topic_reply.topic_id = discussion_topic.id) DESC, add_datetime DESC");
+                break;
+            default:
+                // 默认(sortType=0)排序方式
+                queryWrapper.orderByDesc("add_datetime");
+                break;
+        }
+    }
 }
