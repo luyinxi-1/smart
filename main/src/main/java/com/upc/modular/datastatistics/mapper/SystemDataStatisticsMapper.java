@@ -100,17 +100,34 @@ public interface SystemDataStatisticsMapper {
     /**
      * 获取全系统教材统计概览原始数据 (分页)
      * @param page 分页参数
+     * @param textbookName 教材名称筛选参数
      * @return IPage<Map<String, Object>>
      */
-    IPage<Map<String, Object>> getSystemTextbookStatisticsOverview(Page<TextbookStatisticsOverviewParam> page);
+    IPage<Map<String, Object>> getSystemTextbookStatisticsOverview(Page<TextbookStatisticsOverviewParam> page, @Param("textbookName") String textbookName);
+
+    /**
+     * 导出全系统教材统计概览
+     * @param textbookName 教材名称筛选参数
+     * @return List<Map<String, Object>>
+     */
+    List<Map<String, Object>> exportSystemTextbookStatisticsOverview(@Param("textbookName") String textbookName);
 
     /**
      * 获取教师教材统计概览原始数据 (分页)
      * @param page 分页参数
      * @param userId 教师ID
+     * @param textbookName 教材名称筛选参数
      * @return IPage<Map<String, Object>>
      */
-    IPage<Map<String, Object>> getTeacherTextbookStatisticsOverview(Page<TextbookStatisticsOverviewParam> page, @Param("userId") Long userId);
+    IPage<Map<String, Object>> getTeacherTextbookStatisticsOverview(Page<TextbookStatisticsOverviewParam> page, @Param("userId") Long userId, @Param("textbookName") String textbookName);
+
+    /**
+     * 导出教师教材统计概览
+     * @param userId 教师ID
+     * @param textbookName 教材名称筛选参数
+     * @return List<Map<String, Object>>
+     */
+    List<Map<String, Object>> exportTeacherTextbookStatisticsOverview(@Param("userId") Long userId, @Param("textbookName") String textbookName);
 
     /**
      * 获取教材阅读人员统计 (分页)

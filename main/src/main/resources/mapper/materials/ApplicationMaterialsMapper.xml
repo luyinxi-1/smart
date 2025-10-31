@@ -8,6 +8,8 @@
         <result column="name" property="name" />
         <result column="description" property="description" />
         <result column="question_bank_id" property="questionBankId" />
+        <result column="textbook_id" property="textbookId" />
+        <result column="chapter_id" property="chapterId" />
         <result column="status" property="status" />
         <result column="creator" property="creator" />
         <result column="add_datetime" property="addDatetime" />
@@ -22,23 +24,23 @@
             am.name,
             am.description,
             am.question_bank_id AS questionBankId,
-            tqb.name AS questionBankName,
+            am.textbook_id AS textbookId,
+            am.chapter_id AS chapterId,
             am.status,
             am.creator,
-            creator_user.nickname AS creatorName,
             am.add_datetime AS addDatetime,
             am.operator,
-            operator_user.nickname AS operatorName,
             am.operation_datetime AS operationDatetime,
-            COUNT(amm.id) AS teachingMaterialsCount
+            (SELECT name FROM teaching_question_bank WHERE id = am.question_bank_id LIMIT 1) AS questionBankName,
+            (SELECT textbook_name FROM textbook WHERE id = am.textbook_id LIMIT 1) AS textbookName,
+            (SELECT catalog_name FROM textbook_catalog WHERE id = am.chapter_id LIMIT 1) AS chapterName,
+            (SELECT nickname FROM sys_tbuser WHERE id = am.creator LIMIT 1) AS creatorName,
+            (SELECT nickname FROM sys_tbuser WHERE id = am.operator LIMIT 1) AS operatorName,
+            (SELECT COUNT(*) FROM application_materials_mapping WHERE application_material_id = am.id) AS teachingMaterialsCount
         FROM application_materials am
-        LEFT JOIN teaching_question_bank tqb ON am.question_bank_id = tqb.id
-        LEFT JOIN sys_tbuser creator_user ON am.creator = creator_user.id
-        LEFT JOIN sys_tbuser operator_user ON am.operator = operator_user.id
-        LEFT JOIN application_materials_mapping amm ON am.id = amm.application_material_id
         <where>
             <if test="param.name != null and param.name != ''">
-                AND am.name LIKE CONCAT('%', #{param.name}, '%')
+                AND am.name LIKE '%' || #{param.name} || '%'
             </if>
             <if test="param.questionBankId != null">
                 AND am.question_bank_id = #{param.questionBankId}
@@ -46,14 +48,7 @@
             <if test="param.status != null">
                 AND am.status = #{param.status}
             </if>
-            <if test="param.creator != null">
-                AND am.creator = #{param.creator}
-            </if>
         </where>
-        GROUP BY
-            am.id, am.name, am.description, am.question_bank_id, tqb.name, am.status,
-            am.creator, creator_user.nickname,
-            am.add_datetime, am.operator, operator_user.nickname, am.operation_datetime
         ORDER BY am.add_datetime
         <choose>
             <when test="param.isAsc != null and param.isAsc == 1">ASC</when>
@@ -68,25 +63,21 @@
             am.name,
             am.description,
             am.question_bank_id AS questionBankId,
-            tqb.name AS questionBankName,
+            am.textbook_id AS textbookId,
+            am.chapter_id AS chapterId,
             am.status,
             am.creator,
-            creator_user.nickname AS creatorName,
             am.add_datetime AS addDatetime,
             am.operator,
-            operator_user.nickname AS operatorName,
             am.operation_datetime AS operationDatetime,
-            COUNT(amm.id) AS teachingMaterialsCount
+            (SELECT name FROM teaching_question_bank WHERE id = am.question_bank_id LIMIT 1) AS questionBankName,
+            (SELECT textbook_name FROM textbook WHERE id = am.textbook_id LIMIT 1) AS textbookName,
+            (SELECT catalog_name FROM textbook_catalog WHERE id = am.chapter_id LIMIT 1) AS chapterName,
+            (SELECT nickname FROM sys_tbuser WHERE id = am.creator LIMIT 1) AS creatorName,
+            (SELECT nickname FROM sys_tbuser WHERE id = am.operator LIMIT 1) AS operatorName,
+            (SELECT COUNT(*) FROM application_materials_mapping WHERE application_material_id = am.id) AS teachingMaterialsCount
         FROM application_materials am
-        LEFT JOIN teaching_question_bank tqb ON am.question_bank_id = tqb.id
-        LEFT JOIN sys_tbuser creator_user ON am.creator = creator_user.id
-        LEFT JOIN sys_tbuser operator_user ON am.operator = operator_user.id
-        LEFT JOIN application_materials_mapping amm ON am.id = amm.application_material_id
         WHERE am.id = #{id}
-        GROUP BY
-            am.id, am.name, am.description, am.question_bank_id, tqb.name, am.status,
-            am.creator, creator_user.nickname,
-            am.add_datetime, am.operator, operator_user.nickname, am.operation_datetime
     </select>
     
 </mapper>

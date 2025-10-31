@@ -197,12 +197,6 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             param.setSize(10L);
         }
         
-        // 如果需要只查询当前用户创建的应用素材
-        if (param.getOnlyMine() != null && param.getOnlyMine()) {
-            Long currentUserId = UserUtils.get() != null ? UserUtils.get().getId() : null;
-            param.setCreator(currentUserId);
-        }
-        
         // 创建分页对象
         Page<ApplicationMaterialsVO> page = new Page<>(param.getCurrent(), param.getSize());
         
