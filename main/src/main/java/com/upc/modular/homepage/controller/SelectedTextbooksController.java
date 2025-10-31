@@ -65,7 +65,7 @@ public class SelectedTextbooksController {
 
     @ApiOperation(value = "清空式的更新操作")
     @PostMapping("/updateClearTextbook")
-    public R<Boolean> updateClearPromotion(@RequestBody HomePageTextbook homePageTextbook) {
+    public R<Boolean> updateClearPromotion(@RequestBody List<HomePageTextbook> homePageTextbook) {
         return R.ok(homePageTextbooknService.updateClearTextbook(homePageTextbook));
     }
 }
