@@ -83,4 +83,11 @@ public class DiscussionTopicController {
         discussionTopicService.batchUpdateCatalog(params);
         return R.commonReturn(200, "更新成功", "");
     }
+    
+    @ApiOperation(value = "查询我发布或回复过的教学活动或交流反馈")
+    @PostMapping("/getMyActivitiesAndReplies")
+    public R<Page<MyDiscussionTopicReturnParam>> getMyActivitiesAndReplies(@RequestBody DiscussionTopicSearchParam param) {
+        Page<MyDiscussionTopicReturnParam> result = discussionTopicService.getMyActivitiesAndReplies(param);
+        return R.ok(result);
+    }
 }
