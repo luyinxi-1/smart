@@ -116,9 +116,8 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
             // 2. 根据type和scope_type确定通知范围并获取学生ID列表
             Set<Long> studentUserIdSet = new HashSet<>();
 
-            // ########管理员#########
+            // ########系统通知#########
             if (SYSTEM_NOTICE.equals(homePageNotice.getType())) { // SYSTEM_NOTICE 系统配置
-                if (homePageNotice.getScopeType() == 0) {
                     // 通知所有学生用户
                     List<Student> allStudents = studentMapper.selectList(new LambdaQueryWrapper<Student>());
                     List<Long> allStudentUserIds = allStudents.stream()
@@ -126,21 +125,7 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
                             .filter(Objects::nonNull)
                             .collect(Collectors.toList());
                     studentUserIdSet.addAll(allStudentUserIds);
-                } else if (homePageNotice.getScopeType() == 1) {
-                    // 通知指定班级的学生
-                    if (homePageNoticeParam.getClassList() != null && !homePageNoticeParam.getClassList().isEmpty()) {
-                        List<Student> classStudents = studentMapper.selectList(
-                                new LambdaQueryWrapper<Student>()
-                                        .in(Student::getClassId, homePageNoticeParam.getClassList())
-                        );
-                        List<Long> classStudentUserIds = classStudents.stream()
-                                .map(Student::getUserId)
-                                .filter(Objects::nonNull)
-                                .collect(Collectors.toList());
-                        studentUserIdSet.addAll(classStudentUserIds);
-                    }
-                }
-            //#####教师 #####
+            //#####教师通知#####
             } else if (TEACHER_NOTICE.equals(homePageNotice.getType())) { // TEACHER_NOTICE 教师配置
                 // 获取当前教师ID（从上下文获取）
                 Long teacherUserId = UserUtils.get().getId();
