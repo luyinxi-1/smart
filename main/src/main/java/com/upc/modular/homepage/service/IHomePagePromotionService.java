@@ -31,5 +31,5 @@ public interface IHomePagePromotionService extends IService<HomePagePromotion> {
 
     HomePagePromotionReturnParam getHomePagePromotionDetails(Long promotionId);
 
-    Boolean updateClearPromotion(HomePagePromotion homePagePromotion);
+    Boolean updateClearPromotion(List<HomePagePromotion> homePagePromotion);
 }
