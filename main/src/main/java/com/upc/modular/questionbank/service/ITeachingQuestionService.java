@@ -28,6 +28,12 @@ public interface ITeachingQuestionService extends IService<TeachingQuestion> {
     TeachingQuestion selectQuestionById(Long id);
 
     /**
+     * 保存题目并自动填充教材和章节名称
+     * @param teachingQuestion 题目对象
+     */
+    void saveQuestionWithTextbookInfo(TeachingQuestion teachingQuestion);
+
+    /**
      * 智能组卷
      * @param param 组卷参数
      * @return 题目列表
