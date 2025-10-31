@@ -42,4 +42,10 @@ public class DiscussionTopicSearchParam {
 
     @ApiModelProperty("每页条数")
     private Long size = 10L;
+
+    @ApiModelProperty("教材名称")
+    private String textbookName;
+
+    @ApiModelProperty("教材分类")
+    private String classification;
 }
