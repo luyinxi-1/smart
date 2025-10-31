@@ -28,11 +28,11 @@ public class HomePageNoticeReadStatus {
     private Long id;
 
     @ApiModelProperty("通知公告id")
-    @TableId(value = "notice_id")
+    @TableField("notice_id")
     private Long notice_id;
 
     @ApiModelProperty("用户id")
-    @TableId(value = "user_id")
+    @TableField("user_id")
     private Long user_id;
 
     @ApiModelProperty("阅读状态（0:未读, 1:已读）")
