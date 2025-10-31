@@ -105,7 +105,9 @@ public class SysUserController {
     public R getUserInfo() {
         UserInfoToRedis userInfoToRedis = UserUtils.get();
         Long id = sysUserService.getUserInfo(userInfoToRedis.getId(), userInfoToRedis.getUserType());
-        String userPicture = sysUserService.getUserPicture(userInfoToRedis.getId(), userInfoToRedis.getUserType());
+        // 直接从user表中的user_picture字段获取用户头像
+        SysTbuser user = sysUserService.getById(userInfoToRedis.getId());
+        String userPicture = user.getUserPicture();
         userInfoToRedis.setUserPicture(userPicture);
         return R.ok(userInfoToRedis);
     }
