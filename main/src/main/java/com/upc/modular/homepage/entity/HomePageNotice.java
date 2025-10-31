@@ -44,7 +44,11 @@ public class HomePageNotice implements Serializable {
 
     @ApiModelProperty("通知公告类型")
     @TableField("type")
-    private Integer type;
+    private String type;
+
+    @ApiModelProperty("通知范围类型")
+    @TableField("scope_type")
+    private Integer scopeType;
 
     @ApiModelProperty("通知公告的内容")
     @TableField("content")
@@ -83,5 +87,8 @@ public class HomePageNotice implements Serializable {
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
     private LocalDateTime operationDatetime;
 
+    @ApiModelProperty("通知公告展示类型")
+    @TableField("show_type")
+    private String showType;
 
 }
