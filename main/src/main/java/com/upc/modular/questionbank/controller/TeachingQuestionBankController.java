@@ -64,9 +64,15 @@ public class TeachingQuestionBankController {
         return R.commonReturn(200, "修改成功", "");
     }
 
+
 @ApiOperation("批量更新题库信息")
-@PostMapping("/updateQuestionBankBatch")
-public R<List<Long>> updateQuestionBankBatch(@RequestBody List<TeachingQuestionBank> teachingQuestionBanks) {
+@PostMapping("/updateQuestionBankBatch/{textbookId}")
+public R<List<Long>> updateQuestionBankBatch(@PathVariable Long textbookId, @RequestBody List<TeachingQuestionBank> teachingQuestionBanks) {
+    // 为每个题库设置教材ID
+    for (TeachingQuestionBank bank : teachingQuestionBanks) {
+        bank.setTextbookId(textbookId);
+    }
+    
     List<Long> updatedIds = teachingQuestionBankService.updateQuestionBankBatch(teachingQuestionBanks);
     return R.commonReturn(200, "批量修改成功", updatedIds);
 }

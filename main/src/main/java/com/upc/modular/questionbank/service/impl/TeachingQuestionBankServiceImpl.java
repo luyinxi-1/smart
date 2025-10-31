@@ -283,6 +283,13 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
         if (CollectionUtils.isEmpty(teachingQuestionBanks)) {
             return Collections.emptyList(); // 列表为空，直接返回空列表
         }
+        
+        // 获取教材ID（从第一个元素中获取，假定所有元素的教材ID相同）
+        Long textbookId = teachingQuestionBanks.get(0).getTextbookId();
+        if (textbookId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材ID不能为空");
+        }
+        
         // 1. 收集所有需要通过 UUID 来补全 ID 的记录的 UUID
         List<String> uuidsToResolve = teachingQuestionBanks.stream()
                 .filter(bank -> bank.getTextbookCatalogId() == null && bank.getTextbookCatalogUuId() != null && !bank.getTextbookCatalogUuId().trim().isEmpty())
@@ -392,23 +399,16 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
 
             }
         }
-        // 5. 在更新前，先清除本次操作涉及章节下所有题库的旧绑定关系
-        Set<Long> catalogIdsToClear = teachingQuestionBanks.stream()
-                .map(TeachingQuestionBank::getTextbookCatalogId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        // 5. 【核心修改】在更新前，先清除该教材下所有题库的旧绑定关系
+        LambdaUpdateWrapper<TeachingQuestionBank> clearBindingWrapper = new LambdaUpdateWrapper<>();
+        clearBindingWrapper
+                .eq(TeachingQuestionBank::getTextbookId, textbookId)
+                .set(TeachingQuestionBank::getTextbookCatalogId, null)
+                .set(TeachingQuestionBank::getTextbookId, null);
 
-        // 5.2. 如果存在需要操作的目录，则执行解绑
-        if (!CollectionUtils.isEmpty(catalogIdsToClear)) {
-            LambdaUpdateWrapper<TeachingQuestionBank> clearBindingWrapper = new LambdaUpdateWrapper<>();
-            clearBindingWrapper
-                    .in(TeachingQuestionBank::getTextbookCatalogId, catalogIdsToClear)
-                    .set(TeachingQuestionBank::getTextbookCatalogId, null)
-                    .set(TeachingQuestionBank::getTextbookId, null);
-
-            // 执行批量解绑操作
-            this.update(clearBindingWrapper);
-        }
+        // 执行批量解绑操作
+        this.update(clearBindingWrapper);
+        
         // 5. 所有校验通过，执行批量更新
         this.updateBatchById(teachingQuestionBanks);
         // 6. 【核心修改】返回成功更新的题库ID列表
