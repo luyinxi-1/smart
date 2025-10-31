@@ -32,7 +32,7 @@ public class ExportSystemStatisticsParm {
     @ExcelProperty("题库数量")
     @ApiModelProperty(value = "题库数量")
     private Long teachingQuestionBankCount;
-    @ExcelProperty("在售课程数量")
+    @ExcelProperty("在授课程数量")
     @ApiModelProperty(value = "在授课程数量")
     private Long courseCount;
     @ExcelProperty("教学素材数量")

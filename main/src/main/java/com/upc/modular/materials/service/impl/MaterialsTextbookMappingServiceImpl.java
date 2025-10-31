@@ -129,6 +129,12 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
             return Collections.emptyList();
         }
 
+        // 获取教材ID（从第一个元素中获取，假定所有元素的教材ID相同）
+        Long textbookId = mappings.get(0).getTextbookId();
+        if (textbookId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材ID不能为空");
+        }
+
         // 1.5 如果传入了 chapterUuid，则通过它查询并填充 chapterId
         // 筛选出所有需要通过 UUID 解析 chapterId 的 DTO
         List<String> uuidsToResolve = mappings.stream()
@@ -198,17 +204,10 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
         }
 
         // 3. 【执行删除】
-        // 收集本次操作要修改的所有章节ID (注意：类型应为Long)
-        Set<Long> chapterIdsToModify = mappings.stream()
-                .map(MaterialsTextbookMappingDto::getChapterId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-
-        // 删除这些章节下的所有旧绑定关系
-        if (!chapterIdsToModify.isEmpty()) {
-            this.remove(new LambdaQueryWrapper<MaterialsTextbookMapping>()
-                    .in(MaterialsTextbookMapping::getChapterId, chapterIdsToModify));
-        }
+        // 删除该教材下所有旧的绑定关系
+        this.remove(new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                .eq(MaterialsTextbookMapping::getTextbookId, textbookId));
+                
         // 4. 【最终唯一性校验】
         // 检查 material_id
         LambdaQueryWrapper<MaterialsTextbookMapping> conflictCheckWrapper = new LambdaQueryWrapper<>();

@@ -74,7 +74,7 @@ public class HomePageNoticeController {
 
     @ApiOperation(value = "教材通告")
     @PostMapping("/insertTextbookNotice")
-    public R<Boolean> insertTextbookNotice(@RequestBody HomePageNoticeClassListParam homePageNotice) {
+    public R<Boolean> insertTextbookNotice(@RequestBody List<HomePageNoticeClassListParam> homePageNotice) {
         return R.ok(homePageNoticeService.insertTextbookNotice(homePageNotice));
     }
 }

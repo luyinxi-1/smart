@@ -45,7 +45,7 @@ public class KgNodeController {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }
         kgNodeService.save(kgNode);
-        return R.commonReturn(200, "新增成功", "");
+        return R.commonReturn(200, "新增成功", kgNode);
     }
 
     @ApiOperation(value = "查询节点信息")

@@ -3,6 +3,8 @@ package com.upc.modular.datastatistics.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.common.requestparam.PageBaseSearchParam;
+import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.course.service.ICourseService;
@@ -469,10 +471,30 @@ public SystemAllCountsDto getAllCounts(String dateStr) { // 1. 修改返回类�
     }
 
     @Override
-    public List<Map<String, Object>> getTextbookReadingRank(Map<String, Object> params) {
+    public PageBaseReturnParam<Map<String, Object>> getTextbookReadingRank(Map<String, Object> params, PageBaseSearchParam pageParam) {
         // 处理时间参数
         processTimeParams(params);
-        return systemDataStatisticsMapper.getTextbookReadingRank(params);
+        
+        // 获取所有数据
+        List<Map<String, Object>> allData = systemDataStatisticsMapper.getTextbookReadingRank(params);
+        
+        // 手动分页
+        long total = allData.size();
+        long current = pageParam.getCurrent();
+        long size = pageParam.getSize();
+        
+        long fromIndex = (current - 1) * size;
+        if (fromIndex >= total) {
+            return PageBaseReturnParam.ok(new Page<>(current, size, 0));
+        }
+        
+        long toIndex = Math.min(fromIndex + size, total);
+        List<Map<String, Object>> pageData = allData.subList((int) fromIndex, (int) toIndex);
+        
+        Page<Map<String, Object>> page = new Page<>(current, size, total);
+        page.setRecords(pageData);
+        
+        return PageBaseReturnParam.ok(page);
     }
 
     @Override
