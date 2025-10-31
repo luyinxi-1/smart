@@ -37,7 +37,7 @@ public class TeachingQuestionController {
     @ApiOperation("新增题目")
     @PostMapping("/inserQuestion")
     public R inserQuestion(@RequestBody TeachingQuestion teachingQuestion){
-        teachingQuestionService.save(teachingQuestion);
+        teachingQuestionService.saveQuestionWithTextbookInfo(teachingQuestion);
         return R.commonReturn(200, "新增成功", "");
     }
 

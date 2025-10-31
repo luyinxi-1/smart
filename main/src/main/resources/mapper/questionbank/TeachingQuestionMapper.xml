@@ -132,6 +132,9 @@
             t.status,                            -- 状态（启用/禁用）
             t.answer,                            -- 正确答案
             t.subject,                           -- 所属学科
+            t.textbook_id,                       -- 所属教材 ID
+            t.textbook_name,                      -- 所属教材名称
+            t.chapter_id,                          -- 所属章节 ID
             t.creator,                           -- 创建人（外键，关联 sys_tbuser 表）
             t.add_datetime,                      -- 创建时间
             t.operator,                          -- 最后操作人

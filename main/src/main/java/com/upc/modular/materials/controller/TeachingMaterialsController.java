@@ -35,15 +35,15 @@ public class TeachingMaterialsController {
     @Autowired
     private ITeachingMaterialsService teachingMaterialsService;
 
-@ApiOperation(value = "添加教学素材")
-@PostMapping("/insert-materials")
-public R<String> insertMaterials(@RequestBody TeachingMaterialsSaveOrUpdateParam param) {
-    String result = teachingMaterialsService.insertMaterials(param);
-    if (result == null)
-        return R.fail("修改失败");
-    else
-        return R.ok(result);
-}
+    @ApiOperation(value = "添加教学素材")
+    @PostMapping("/insert-materials")
+    public R<String> insertMaterials(@RequestBody TeachingMaterialsSaveOrUpdateParam param) {
+        String result = teachingMaterialsService.insertMaterials(param);
+        if (result == null)
+            return R.fail("修改失败");
+        else
+            return R.ok(result);
+    }
     @ApiOperation(value = "下载教学素材")
     @GetMapping("/download-file-materials")
     public void downloadFileMaterials(@RequestParam Long id, @RequestParam Integer imageSetId, @RequestParam Long textbookId, @RequestParam String action, HttpServletResponse response) {
