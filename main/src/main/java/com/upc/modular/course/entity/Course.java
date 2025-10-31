@@ -35,6 +35,10 @@ public class Course implements Serializable {
     @TableField("course_name")
     private String courseName;
 
+    @ApiModelProperty("课程简称")
+    @TableField("course_short_name")
+    private String courseShortName;
+
     @ApiModelProperty("课程学分")
     @TableField("credit")
     private Integer credit;
