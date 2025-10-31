@@ -25,6 +25,8 @@ import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.mapper.TextbookMapper;
 import com.upc.modular.textbook.service.IIdeologicalMaterialService;
 import com.upc.modular.textbook.service.ITextbookService;
+
+import com.upc.common.utils.UserInfoToRedis;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -659,8 +661,18 @@ public SystemAllCountsDto getAllCounts(String dateStr) { // 1. 修改返回类�
     }
 
     @Override
-    public IPage<TextbookStatisticsOverviewParam> getSystemTextbookStatisticsOverview(Page<TextbookStatisticsOverviewParam> page) {
-        IPage<Map<String, Object>> rawPage = systemDataStatisticsMapper.getSystemTextbookStatisticsOverview(page);
+    public IPage<TextbookStatisticsOverviewParam> getSystemTextbookStatisticsOverview(Page<TextbookStatisticsOverviewParam> page, UserInfoToRedis currentUser) {
+        IPage<Map<String, Object>> rawPage;
+        
+        // 判断用户类型
+        if (currentUser.getUserType() == 0) { // 管理员
+            rawPage = systemDataStatisticsMapper.getSystemTextbookStatisticsOverview(page);
+        } else if (currentUser.getUserType() == 2) { // 教师
+            rawPage = systemDataStatisticsMapper.getTeacherTextbookStatisticsOverview(page, currentUser.getId());
+        } else { // 其他用户类型，返回空结果
+            rawPage = new Page<>(page.getCurrent(), page.getSize(), 0);
+        }
+        
         return rawPage.convert(data -> {
             TextbookStatisticsOverviewParam param = new TextbookStatisticsOverviewParam();
             param.setTextbookId(getLongValue(data.get("textbookId")));

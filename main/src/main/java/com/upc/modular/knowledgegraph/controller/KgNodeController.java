@@ -79,5 +79,12 @@ public class KgNodeController {
         TextbookKnowledgeGraphReturnParam result = kgNodeService.getTextbookKnowledgeGraph(textbookId);
         return R.commonReturn(200, "查询成功", result);
     }
+    
+    @ApiOperation(value = "同步教材目录到知识图谱")
+    @PostMapping("/syncTextbookCatalogToKnowledgeGraph")
+    public R<Boolean> syncTextbookCatalogToKnowledgeGraph(@RequestParam Long textbookId) {
+        boolean result = kgNodeService.syncTextbookCatalogToKnowledgeGraph(textbookId);
+        return R.commonReturn(200, "同步成功", result);
+    }
 
 }

@@ -105,6 +105,14 @@ public interface SystemDataStatisticsMapper {
     IPage<Map<String, Object>> getSystemTextbookStatisticsOverview(Page<TextbookStatisticsOverviewParam> page);
 
     /**
+     * 获取教师教材统计概览原始数据 (分页)
+     * @param page 分页参数
+     * @param userId 教师ID
+     * @return IPage<Map<String, Object>>
+     */
+    IPage<Map<String, Object>> getTeacherTextbookStatisticsOverview(Page<TextbookStatisticsOverviewParam> page, @Param("userId") Long userId);
+
+    /**
      * 获取教材阅读人员统计 (分页)
      * @param page 分页参数
      * @param textbookId 教材ID
