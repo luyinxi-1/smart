@@ -32,5 +32,5 @@ public interface IHomePageNoticeService extends IService<HomePageNotice> {
 
     HomePageNoticeReturnParam getHomePageNoticeDetails(Long noticeId);
 
-    Boolean insertTextbookNotice(HomePageNoticeClassListParam homePageNotice);
+    Boolean insertTextbookNotice(List<HomePageNoticeClassListParam> homePageNotice);
 }
