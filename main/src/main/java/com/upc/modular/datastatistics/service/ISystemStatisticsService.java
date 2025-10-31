@@ -1,10 +1,12 @@
 package com.upc.modular.datastatistics.service;
+
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.utils.UserInfoToRedis;
 import com.upc.modular.datastatistics.controller.param.*;
 import org.apache.ibatis.annotations.Param;
 
+import javax.servlet.http.HttpServletResponse;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -76,6 +78,13 @@ public interface ISystemStatisticsService {
      * 类型阅读排名（按时长统计，支持时间范围查询）
      */
     List<Map<String, Object>> getTextbookTypeReadingRank(Map<String, Object> params);
+
+    /**
+     * 导出类型阅读时长排名数据到Excel
+     * @param response HttpServletResponse对象
+     * @throws Exception 导出过程中可能抛出的异常
+     */
+    void exportTextbookTypeReadingRank(HttpServletResponse response) throws Exception;
 
     /**
      * 获取指定学生在某教材下各章节的掌握度
