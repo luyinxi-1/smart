@@ -29,7 +29,7 @@ public class ApplicationMaterials implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @ApiModelProperty("主键")
-    @TableId(value = "id", type = IdType.ASSIGN_ID)
+    @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
     @ApiModelProperty("应用素材名称")
@@ -48,9 +48,9 @@ public class ApplicationMaterials implements Serializable {
     @TableField("textbook_id")
     private Long textbookId;
 
-    @ApiModelProperty("章节ID")
-    @TableField("chapter_id")
-    private Long chapterId;
+    @ApiModelProperty("教材章节ID")
+    @TableField("textbook_catalog_id")
+    private Long textbookCatalogId;
 
     @ApiModelProperty("发布状态（0:未发布，1:已发布）")
     @TableField("status")
@@ -75,4 +75,8 @@ public class ApplicationMaterials implements Serializable {
     // 非数据库字段，用于前端传递和接收关联的教学素材ID
     @TableField(exist = false)
     private List<Long> teachingMaterialIds;
+
+    @ApiModelProperty("教材章节UUID（临时ID）")
+    @TableField(exist = false)
+    private String textbookCatalogUuId;
 }
