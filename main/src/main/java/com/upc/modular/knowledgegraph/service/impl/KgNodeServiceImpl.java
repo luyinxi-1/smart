@@ -13,6 +13,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.knowledgegraph.entity.KgEdge;
 import com.upc.modular.knowledgegraph.service.IKgEdgeService;
 import com.upc.modular.textbook.entity.Textbook;
+import com.upc.modular.textbook.entity.TextbookCatalog;
+import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.upc.modular.textbook.service.ITextbookService;
 import com.upc.modular.knowledgegraph.param.TextbookKnowledgeGraphReturnParam;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -40,6 +43,9 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
     
     @Resource
     private ITextbookService textbookService;
+    
+    @Resource
+    private ITextbookCatalogService textbookCatalogService;
 
     @Override
     public void updateKgNodeById(KgNode kgEdge) {
@@ -72,6 +78,133 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
 
         return kgNodeList;
     }
+    
+    @Override
+    @Transactional
+    public boolean syncTextbookCatalogToKnowledgeGraph(Long textbookId) {
+        // 1. 验证参数
+        if (textbookId == null || textbookId <= 0) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材ID不能为空");
+        }
+
+        // 2. 获取教材信息
+        Textbook textbook = textbookService.getById(textbookId);
+        if (textbook == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "指定的教材不存在");
+        }
+
+        // 3. 获取教材的所有目录信息
+        List<TextbookCatalog> textbookCatalogs = textbookCatalogService.downloadTextbookCatalog(textbookId);
+        if (CollectionUtils.isEmpty(textbookCatalogs)) {
+            // 如果没有目录，直接返回成功
+            return true;
+        }
+
+        // 4. 查询已存在的节点（教材节点和目录节点）
+        LambdaQueryWrapper<KgNode> nodeQueryWrapper = new LambdaQueryWrapper<>();
+        nodeQueryWrapper.eq(KgNode::getNodeType, "TEXTBOOK").eq(KgNode::getObjectId, textbookId)
+                .or()
+                .eq(KgNode::getNodeType, "TEXTBOOK_CATALOG").in(KgNode::getObjectId, 
+                        textbookCatalogs.stream().map(TextbookCatalog::getId).collect(Collectors.toList()));
+        
+        List<KgNode> existingNodes = this.list(nodeQueryWrapper);
+        
+        // 5. 分离已存在的节点和需要创建的节点
+        Set<Long> existingTextbookCatalogIds = existingNodes.stream()
+                .filter(node -> "TEXTBOOK_CATALOG".equals(node.getNodeType()))
+                .map(KgNode::getObjectId)
+                .collect(Collectors.toSet());
+        
+        KgNode textbookNode = existingNodes.stream()
+                .filter(node -> "TEXTBOOK".equals(node.getNodeType()) && node.getObjectId().equals(textbookId))
+                .findFirst()
+                .orElse(null);
+        
+        // 6. 创建教材节点（如果不存在）
+        if (textbookNode == null) {
+            textbookNode = new KgNode();
+            textbookNode.setObjectId(textbookId);
+            textbookNode.setNodeType("TEXTBOOK");
+            textbookNode.setNodeName(textbook.getTextbookName());
+            this.save(textbookNode);
+        }
+        
+        // 7. 创建缺失的目录节点
+        List<KgNode> newCatalogNodes = new ArrayList<>();
+        for (TextbookCatalog catalog : textbookCatalogs) {
+            if (!existingTextbookCatalogIds.contains(catalog.getId())) {
+                KgNode catalogNode = new KgNode();
+                catalogNode.setObjectId(catalog.getId());
+                catalogNode.setNodeType("TEXTBOOK_CATALOG");
+                catalogNode.setNodeName(catalog.getCatalogName());
+                newCatalogNodes.add(catalogNode);
+            }
+        }
+        
+        if (!newCatalogNodes.isEmpty()) {
+            this.saveBatch(newCatalogNodes);
+            existingNodes.addAll(newCatalogNodes);
+        }
+        
+        // 8. 重新组织所有节点（包括新创建的）以便后续处理
+        // 创建一个映射，从objectId到KgNode
+        java.util.Map<Long, KgNode> nodeMap = existingNodes.stream()
+                .collect(Collectors.toMap(KgNode::getObjectId, node -> node));
+        
+        // 9. 处理关系 - 删除旧的关系
+        LambdaQueryWrapper<KgEdge> edgeQueryWrapper = new LambdaQueryWrapper<>();
+        edgeQueryWrapper.eq(KgEdge::getSourceNodeId, textbookNode.getId())
+                .or()
+                .in(KgEdge::getSourceNodeId, 
+                        textbookCatalogs.stream().map(c -> nodeMap.get(c.getId()).getId()).collect(Collectors.toList()))
+                .or()
+                .in(KgEdge::getTargetNodeId, 
+                        textbookCatalogs.stream().map(c -> nodeMap.get(c.getId()).getId()).collect(Collectors.toList()));
+        
+        kgEdgeService.remove(edgeQueryWrapper);
+        
+        // 10. 创建新的关系
+        List<KgEdge> newEdges = new ArrayList<>();
+        
+        // 创建教材到章节的关系
+        for (TextbookCatalog catalog : textbookCatalogs) {
+            KgNode catalogNode = nodeMap.get(catalog.getId());
+            if (catalogNode != null) {
+                KgEdge edge = new KgEdge();
+                // 章节是顶级章节（没有父章节）
+                if (catalog.getFatherCatalogId() == null || catalog.getFatherCatalogId() == 0) {
+                    edge.setSourceNodeId(textbookNode.getId());
+                    edge.setTargetNodeId(catalogNode.getId());
+                    edge.setRelationType("CONTAINS");
+                    newEdges.add(edge);
+                }
+            }
+        }
+        
+        // 创建章节到子章节的关系
+        for (TextbookCatalog catalog : textbookCatalogs) {
+            if (catalog.getFatherCatalogId() != null && catalog.getFatherCatalogId() != 0) {
+                KgNode catalogNode = nodeMap.get(catalog.getId());
+                KgNode fatherCatalogNode = nodeMap.get(catalog.getFatherCatalogId());
+                
+                if (catalogNode != null && fatherCatalogNode != null) {
+                    KgEdge edge = new KgEdge();
+                    edge.setSourceNodeId(fatherCatalogNode.getId());
+                    edge.setTargetNodeId(catalogNode.getId());
+                    edge.setRelationType("CONTAINS");
+                    newEdges.add(edge);
+                }
+            }
+        }
+        
+        // 11. 批量保存新的关系
+        if (!newEdges.isEmpty()) {
+            kgEdgeService.saveBatch(newEdges);
+        }
+        
+        return true;
+    }
+    
     @Override
     @Transactional // 增强：添加事务注解，保证数据操作的原子性
     public TextbookKnowledgeGraphReturnParam getTextbookKnowledgeGraph(Long textbookId) {
@@ -109,11 +242,11 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
 
         Long textbookNodeId = textbookNode.getId();
 
-        // 5. 【核心重构】一次性获取所有相关的“边”
+        // 5. 【核心重构】一次性获取所有相关的"边"
         List<KgEdge> allRelatedEdges = getRelatedEdges(textbookNodeId);
         result.setEdges(allRelatedEdges); // 直接将结果设置到返回对象中
 
-        // 6. 从已获取的“边”中提取所有关联节点的ID
+        // 6. 从已获取的"边"中提取所有关联节点的ID
         Set<Long> relatedNodeIds = new HashSet<>();
         if (!CollectionUtils.isEmpty(allRelatedEdges)) {
             // 将所有源节点ID和目标节点ID添加到Set中，利用Set自动去重
@@ -126,7 +259,7 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
         // 始终确保教材节点本身被包含
         relatedNodeIds.add(textbookNodeId);
 
-        // 7. 一次性查询所有相关的“节点”
+        // 7. 一次性查询所有相关的"节点"
         if (!relatedNodeIds.isEmpty()) {
             List<KgNode> allNodes = this.listByIds(relatedNodeIds);
             result.setNodes(allNodes);

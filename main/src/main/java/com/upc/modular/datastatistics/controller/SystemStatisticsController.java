@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
+import com.upc.common.utils.UserInfoToRedis;
+import com.upc.context.LoginContextHolder;
 import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
 import io.swagger.annotations.Api;
@@ -254,7 +256,13 @@ public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required
             }
         }
 
-        return R.ok(systemStatisticsService.getSystemTextbookStatisticsOverview(page));
+        // 获取当前登录用户信息
+        UserInfoToRedis currentUser = LoginContextHolder.getUserInfoToRedis();
+        if (currentUser == null || currentUser.getId() == null) {
+            return R.fail("用户未登录");
+        }
+
+        return R.ok(systemStatisticsService.getSystemTextbookStatisticsOverview(page, currentUser));
     }
     @ApiOperation("获取教材阅读人员统计 (分页)")
     @PostMapping("/reader-statistics")

@@ -2,6 +2,7 @@ package com.upc.modular.datastatistics.controller;
 
 import com.upc.common.responseparam.R;
 import com.upc.modular.datastatistics.controller.param.ChapterMasteryVO;
+import com.upc.modular.datastatistics.controller.param.TextbookTypeReadingRankExportParam;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -9,6 +10,9 @@ import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -42,5 +46,11 @@ public class AdminStatisticsController {
         } catch (Exception e) {
             return R.fail("获取类型阅读时长排名失败: " + e.getMessage());
         }
+    }
+
+    @ApiOperation("导出类型阅读时长排名")
+    @GetMapping("/export-textbook-type-reading-rank")
+    public void exportTextbookTypeReadingRank(HttpServletResponse response) throws Exception {
+        systemStatisticsService.exportTextbookTypeReadingRank(response);
     }
 }

@@ -33,5 +33,5 @@ public interface IHomePageTextbookService extends IService<HomePageTextbook> {
 
     HomePageTextbookReturnParam getHomePageTextbookDetails(Long promotionId);
 
-    Boolean updateClearTextbook(HomePageTextbook homePageTextbook);
+    Boolean updateClearTextbook(List<HomePageTextbook> homePageTextbook);
 }

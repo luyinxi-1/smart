@@ -35,4 +35,11 @@ public interface IDiscussionTopicService extends IService<DiscussionTopic> {
      * @param param 批量更新参数
      */
     void batchUpdateCatalog(List<DiscussionTopicBatchUpdateCatalogParam> param);
+    
+    /**
+     * 查询我发布或回复过的教学活动或交流反馈
+     * @param param 查询参数
+     * @return 分页结果
+     */
+    Page<MyDiscussionTopicReturnParam> getMyActivitiesAndReplies(DiscussionTopicSearchParam param);
 }

@@ -25,6 +25,8 @@ import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.mapper.TextbookMapper;
 import com.upc.modular.textbook.service.IIdeologicalMaterialService;
 import com.upc.modular.textbook.service.ITextbookService;
+
+import com.upc.common.utils.UserInfoToRedis;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -38,6 +40,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.servlet.http.HttpServletResponse;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Service
@@ -477,6 +483,45 @@ public SystemAllCountsDto getAllCounts(String dateStr) { // 1. 修改返回类�
     }
 
     @Override
+    public void exportTextbookTypeReadingRank(HttpServletResponse response) throws Exception {
+        try {
+            List<Map<String, Object>> rawData = getTextbookTypeReadingRank(null);
+            
+            // 转换为导出参数
+            List<TextbookTypeReadingRankExportParam> exportData = new java.util.ArrayList<>();
+            int rank = 1;
+            for (Map<String, Object> item : rawData) {
+                TextbookTypeReadingRankExportParam param = new TextbookTypeReadingRankExportParam();
+                param.setTypeName((String) item.get("typeName"));
+                param.setReadingDuration(((Number) item.get("readingDuration")).longValue());
+                param.setRank(rank++);
+                exportData.add(param);
+            }
+            
+            // 设置响应头
+            String fileName = "类型阅读时长排名.xlsx";
+            
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            
+            // 兼容不同浏览器的文件名编码
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name())
+                    .replaceAll("\\+", "%20");
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
+            
+            // 导出Excel
+            com.alibaba.excel.EasyExcel.write(response.getOutputStream(), TextbookTypeReadingRankExportParam.class)
+                    .sheet("类型阅读时长排名")
+                    .doWrite(exportData);
+        } catch (Exception e) {
+            response.reset();
+            response.setContentType("application/json");
+            response.setCharacterEncoding("utf-8");
+            throw new RuntimeException("导出失败，请重试");
+        }
+    }
+
+    @Override
     public List<ChapterMasteryVO> getStudentChapterMastery(Long studentId, Long textbookId) {
         List<Map<String, Object>> rawData = systemDataStatisticsMapper.getStudentChapterMastery(studentId, textbookId);
         List<ChapterMasteryVO> result = new ArrayList<>();
@@ -659,8 +704,18 @@ public SystemAllCountsDto getAllCounts(String dateStr) { // 1. 修改返回类�
     }
 
     @Override
-    public IPage<TextbookStatisticsOverviewParam> getSystemTextbookStatisticsOverview(Page<TextbookStatisticsOverviewParam> page) {
-        IPage<Map<String, Object>> rawPage = systemDataStatisticsMapper.getSystemTextbookStatisticsOverview(page);
+    public IPage<TextbookStatisticsOverviewParam> getSystemTextbookStatisticsOverview(Page<TextbookStatisticsOverviewParam> page, UserInfoToRedis currentUser) {
+        IPage<Map<String, Object>> rawPage;
+        
+        // 判断用户类型
+        if (currentUser.getUserType() == 0) { // 管理员
+            rawPage = systemDataStatisticsMapper.getSystemTextbookStatisticsOverview(page);
+        } else if (currentUser.getUserType() == 2) { // 教师
+            rawPage = systemDataStatisticsMapper.getTeacherTextbookStatisticsOverview(page, currentUser.getId());
+        } else { // 其他用户类型，返回空结果
+            rawPage = new Page<>(page.getCurrent(), page.getSize(), 0);
+        }
+        
         return rawPage.convert(data -> {
             TextbookStatisticsOverviewParam param = new TextbookStatisticsOverviewParam();
             param.setTextbookId(getLongValue(data.get("textbookId")));

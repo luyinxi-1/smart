@@ -103,7 +103,6 @@
             -- 1. 阅读人数
             SELECT textbook_id, COUNT(DISTINCT creator) AS readerCount
             FROM learning_log
-            WHERE data_type = 0
             GROUP BY textbook_id
         ), ReadingDurations AS (
             -- 2. 阅读时长（分钟）
@@ -113,7 +112,6 @@
                     textbook_id,
                     EXTRACT(EPOCH FROM age(LEAD(add_datetime, 1) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime), add_datetime)) as diff_seconds
                 FROM learning_log
-                WHERE data_type = 0
             ) AS durations
             WHERE diff_seconds BETWEEN 55 AND 65
             GROUP BY textbook_id
@@ -161,7 +159,6 @@
             -- 1. 阅读人数
             SELECT textbook_id, COUNT(DISTINCT creator) AS readerCount
             FROM learning_log
-            WHERE data_type = 0
             GROUP BY textbook_id
         ), ReadingDurations AS (
             -- 2. 阅读时长（分钟）
@@ -171,7 +168,6 @@
                     textbook_id,
                     EXTRACT(EPOCH FROM age(LEAD(add_datetime, 1) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime), add_datetime)) as diff_seconds
                 FROM learning_log
-                WHERE data_type = 0
             ) AS durations
             WHERE diff_seconds BETWEEN 55 AND 65
             GROUP BY textbook_id
