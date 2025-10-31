@@ -34,6 +34,12 @@ public class ApplicationMaterialsVO {
     @ApiModelProperty("题库名称")
     private String questionBankName;
 
+    @ApiModelProperty("教材ID")
+    private Long textbookId;
+    
+    @ApiModelProperty("教材名称")
+    private String textbookName;
+
     @ApiModelProperty("发布状态（0:未发布，1:已发布）")
     private Integer status;
 

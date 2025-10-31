@@ -34,6 +34,9 @@ public class ApplicationMaterialsSaveParam {
     @ApiModelProperty(value = "题库ID", required = true)
     private Long questionBankId;
 
+    @ApiModelProperty(value = "教材ID")
+    private Long textbookId;
+
     @ApiModelProperty("发布状态（0:未发布，1:已发布）")
     private Integer status;
     
