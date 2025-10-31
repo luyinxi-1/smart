@@ -661,14 +661,14 @@ public SystemAllCountsDto getAllCounts(String dateStr) { // 1. 修改返回类�
     }
 
     @Override
-    public IPage<TextbookStatisticsOverviewParam> getSystemTextbookStatisticsOverview(Page<TextbookStatisticsOverviewParam> page, UserInfoToRedis currentUser) {
+    public IPage<TextbookStatisticsOverviewParam> getSystemTextbookStatisticsOverview(Page<TextbookStatisticsOverviewParam> page, UserInfoToRedis currentUser, String textbookName) {
         IPage<Map<String, Object>> rawPage;
         
         // 判断用户类型
         if (currentUser.getUserType() == 0) { // 管理员
-            rawPage = systemDataStatisticsMapper.getSystemTextbookStatisticsOverview(page);
+            rawPage = systemDataStatisticsMapper.getSystemTextbookStatisticsOverview(page, textbookName);
         } else if (currentUser.getUserType() == 2) { // 教师
-            rawPage = systemDataStatisticsMapper.getTeacherTextbookStatisticsOverview(page, currentUser.getId());
+            rawPage = systemDataStatisticsMapper.getTeacherTextbookStatisticsOverview(page, currentUser.getId(), textbookName);
         } else { // 其他用户类型，返回空结果
             rawPage = new Page<>(page.getCurrent(), page.getSize(), 0);
         }
@@ -687,6 +687,37 @@ public SystemAllCountsDto getAllCounts(String dateStr) { // 1. 修改返回类�
             param.setAnnotationCount(getLongValue(data.get("annotationCount")));
             return param;
         });
+    }
+
+    @Override
+    public List<TextbookStatisticsOverviewParam> exportSystemTextbookStatisticsOverview(UserInfoToRedis currentUser, String textbookName) {
+        List<Map<String, Object>> rawData;
+        
+        // 判断用户类型
+        if (currentUser.getUserType() == 0) { // 管理员
+            rawData = systemDataStatisticsMapper.exportSystemTextbookStatisticsOverview(textbookName);
+        } else if (currentUser.getUserType() == 2) { // 教师
+            rawData = systemDataStatisticsMapper.exportTeacherTextbookStatisticsOverview(currentUser.getId(), textbookName);
+        } else { // 其他用户类型，返回空结果
+            rawData = new ArrayList<>();
+        }
+        
+        List<TextbookStatisticsOverviewParam> result = new ArrayList<>();
+        for (Map<String, Object> data : rawData) {
+            TextbookStatisticsOverviewParam param = new TextbookStatisticsOverviewParam();
+            param.setTextbookId(getLongValue(data.get("textbookId")));
+            param.setTextbookName((String) data.get("textbookName"));
+            param.setReaderCount(getLongValue(data.get("readerCount")));
+            param.setTeachingActivityCount(getLongValue(data.get("teachingActivityCount")));
+            param.setMaterialCount(getLongValue(data.get("materialCount")));
+            param.setCommunicationFeedbackCount(getLongValue(data.get("communicationFeedbackCount")));
+            param.setIdeologicalMaterialCount(getLongValue(data.get("ideologicalMaterialCount")));
+            param.setQuestionCorrectRate(getDoubleValue(data.get("questionCorrectRate")));
+            param.setCommunicationParticipationCount(getLongValue(data.get("communicationParticipationCount")));
+            param.setAnnotationCount(getLongValue(data.get("annotationCount")));
+            result.add(param);
+        }
+        return result;
     }
 
     @Override

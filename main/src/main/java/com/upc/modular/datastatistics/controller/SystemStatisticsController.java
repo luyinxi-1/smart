@@ -241,7 +241,8 @@ public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required
             @RequestParam(value = "current", defaultValue = "1") long current,
             @RequestParam(value = "size", defaultValue = "10") long size,
             @RequestParam(value = "sortField", defaultValue = "textbookName") String sortField,
-            @RequestParam(value = "sortOrder", defaultValue = "asc") String sortOrder) {
+            @RequestParam(value = "sortOrder", defaultValue = "asc") String sortOrder,
+            @RequestParam(value = "textbookName", required = false) String textbookName) {
 
         Page<TextbookStatisticsOverviewParam> page = new Page<>(current, size);
 
@@ -262,8 +263,37 @@ public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required
             return R.fail("用户未登录");
         }
 
-        return R.ok(systemStatisticsService.getSystemTextbookStatisticsOverview(page, currentUser));
+        return R.ok(systemStatisticsService.getSystemTextbookStatisticsOverview(page, currentUser, textbookName));
     }
+
+    @ApiOperation("导出全系统教材统计概览")
+    @GetMapping("/export-textbook-overview")
+    public void exportSystemTextbookStatisticsOverview(
+            HttpServletResponse response,
+            @RequestParam(value = "textbookName", required = false) String textbookName) throws IOException {
+        
+        // 获取当前登录用户信息
+        UserInfoToRedis currentUser = LoginContextHolder.getUserInfoToRedis();
+        if (currentUser == null || currentUser.getId() == null) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "用户未登录");
+            return;
+        }
+
+        List<TextbookStatisticsOverviewParam> list = systemStatisticsService.exportSystemTextbookStatisticsOverview(currentUser, textbookName);
+
+        String fileName = "教材数据统计.xlsx";
+        String fallbackName = "textbook_statistics_report.xlsx"; // 纯英文备用文件名
+
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
+        String contentDisposition = String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s", fallbackName, encodedFileName);
+        response.setHeader("Content-Disposition", contentDisposition);
+
+        EasyExcel.write(response.getOutputStream(), TextbookStatisticsOverviewParam.class).sheet("教材数据统计").doWrite(list);
+    }
+
     @ApiOperation("获取教材阅读人员统计 (分页)")
     @PostMapping("/reader-statistics")
     public R<IPage<ReaderStatisticsParam>> getReaderStatistics(
