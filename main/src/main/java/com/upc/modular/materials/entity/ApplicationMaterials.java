@@ -44,6 +44,10 @@ public class ApplicationMaterials implements Serializable {
     @TableField("question_bank_id")
     private Long questionBankId;
 
+    @ApiModelProperty("教材ID")
+    @TableField("textbook_id")
+    private Long textbookId;
+
     @ApiModelProperty("发布状态（0:未发布，1:已发布）")
     @TableField("status")
     private Integer status;

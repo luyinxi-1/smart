@@ -41,6 +41,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.servlet.http.HttpServletResponse;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 @Slf4j
 @Service
 public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
@@ -476,6 +480,45 @@ public SystemAllCountsDto getAllCounts(String dateStr) { // 1. 修改返回类�
         // 处理时间参数
         processTimeParams(params);
         return systemDataStatisticsMapper.getTextbookTypeReadingRank(params);
+    }
+
+    @Override
+    public void exportTextbookTypeReadingRank(HttpServletResponse response) throws Exception {
+        try {
+            List<Map<String, Object>> rawData = getTextbookTypeReadingRank(null);
+            
+            // 转换为导出参数
+            List<TextbookTypeReadingRankExportParam> exportData = new java.util.ArrayList<>();
+            int rank = 1;
+            for (Map<String, Object> item : rawData) {
+                TextbookTypeReadingRankExportParam param = new TextbookTypeReadingRankExportParam();
+                param.setTypeName((String) item.get("typeName"));
+                param.setReadingDuration(((Number) item.get("readingDuration")).longValue());
+                param.setRank(rank++);
+                exportData.add(param);
+            }
+            
+            // 设置响应头
+            String fileName = "类型阅读时长排名.xlsx";
+            
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            
+            // 兼容不同浏览器的文件名编码
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name())
+                    .replaceAll("\\+", "%20");
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
+            
+            // 导出Excel
+            com.alibaba.excel.EasyExcel.write(response.getOutputStream(), TextbookTypeReadingRankExportParam.class)
+                    .sheet("类型阅读时长排名")
+                    .doWrite(exportData);
+        } catch (Exception e) {
+            response.reset();
+            response.setContentType("application/json");
+            response.setCharacterEncoding("utf-8");
+            throw new RuntimeException("导出失败，请重试");
+        }
     }
 
     @Override

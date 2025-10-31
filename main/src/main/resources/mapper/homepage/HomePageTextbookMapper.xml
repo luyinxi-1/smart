@@ -27,7 +27,7 @@
         ORDER BY
         hpt.is_top DESC,
         hpt.add_datetime DESC
-        LIMIT #{param.listNumber}
+        LIMIT #{listNumber}
     </select>
     <select id="selectTextbookPageWithNames"
             resultType="com.upc.modular.homepage.param.HomePageTextbookReturnParam">

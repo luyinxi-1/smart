@@ -92,10 +92,10 @@ public class HomePageTextbookServiceImpl extends ServiceImpl<HomePageTextbookMap
     }
 
     @Override
-    public Boolean updateClearTextbook(HomePageTextbook homePageTextbook) {
+    public Boolean updateClearTextbook(List<HomePageTextbook> homePageTextbook) {
         this.remove(new MyLambdaQueryWrapper<>());
 
-        return this.save(homePageTextbook);
+        return this.saveBatch(homePageTextbook);
     }
 
     private void setTextbookDetails(HomePageTextbookReturnParam home_textbook) {

@@ -7,6 +7,7 @@ import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.homepage.entity.HomePageNotice;
 import com.upc.modular.homepage.mapper.HomePageNoticeMapper;
+import com.upc.modular.homepage.param.HomePageNoticeClassListParam;
 import com.upc.modular.homepage.param.HomePageNoticeListSearchParam;
 import com.upc.modular.homepage.param.HomePageNoticePageSearchParam;
 import com.upc.modular.homepage.param.HomePageNoticeReturnParam;
@@ -72,6 +73,11 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
     @Override
     public HomePageNoticeReturnParam getHomePageNoticeDetails(Long noticeId) {
         return homePageNoticeMapper.getHomePageNoticeDetails(noticeId);
+    }
+
+    @Override
+    public Boolean insertTextbookNotice(HomePageNoticeClassListParam homePageNotice) {
+        return null;
     }
 
 

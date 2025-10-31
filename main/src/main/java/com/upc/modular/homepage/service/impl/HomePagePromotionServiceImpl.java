@@ -92,10 +92,10 @@ public class HomePagePromotionServiceImpl extends ServiceImpl<HomePagePromotionM
     }
 
     @Override
-    public Boolean updateClearPromotion(HomePagePromotion homePagePromotion) {
+    public Boolean updateClearPromotion(List<HomePagePromotion> homePagePromotion) {
         this.remove(new MyLambdaQueryWrapper<>());
 
-        return this.save(homePagePromotion);
+        return this.saveBatch(homePagePromotion);
     }
 
     private void setTextbookDetails(HomePagePromotionReturnParam promotion) {
