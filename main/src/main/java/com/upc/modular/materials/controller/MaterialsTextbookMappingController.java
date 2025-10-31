@@ -13,10 +13,7 @@ import com.upc.modular.materials.service.IMaterialsTextbookMappingService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -54,8 +51,13 @@ public class MaterialsTextbookMappingController {
         return R.fail("添加失败");
     }
     @ApiOperation(value = "批量添加教材与素材的关联")
-    @PostMapping("/insert-mapping-batch")
-    public R insertMappingBatch(@Valid @RequestBody List<MaterialsTextbookMappingDto> mappings) {
+    @PostMapping("/insert-mapping-batch/{textbookId}")
+    public R insertMappingBatch(@PathVariable Long textbookId, @Valid @RequestBody List<MaterialsTextbookMappingDto> mappings) {
+        // 为每个mapping设置教材ID
+        for (MaterialsTextbookMappingDto mapping : mappings) {
+            mapping.setTextbookId(textbookId);
+        }
+        
         try {
             List<Long> newIds = materialsTextbookMappingService.insertMappingBatch(mappings);
             return R.commonReturn(200, "批量添加成功", newIds);
