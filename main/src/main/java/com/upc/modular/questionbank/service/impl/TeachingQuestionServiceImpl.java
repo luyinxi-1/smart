@@ -17,6 +17,10 @@ import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.upc.modular.questionbank.mapper.TeachingQuestionMapper;
 import com.upc.modular.questionbank.service.ITeachingQuestionService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.upc.modular.textbook.entity.Textbook;
+import com.upc.modular.textbook.entity.TextbookCatalog;
+import com.upc.modular.textbook.service.ITextbookCatalogService;
+import com.upc.modular.textbook.service.ITextbookService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -41,6 +45,32 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
 
     @Autowired
     private SysUserMapper sysUserMapper;
+    @Autowired
+    private ITextbookService textbookService;
+    @Autowired
+    private ITextbookCatalogService textbookCatalogService;
+
+    @Override
+    public void saveQuestionWithTextbookInfo(TeachingQuestion teachingQuestion) {
+        // 如果传入了教材ID，则自动获取教材名称
+        if (teachingQuestion.getTextbookId() != null) {
+            Textbook textbook = textbookService.getById(teachingQuestion.getTextbookId());
+            if (textbook != null) {
+                teachingQuestion.setTextbookName(textbook.getTextbookName());
+            }
+        }
+
+        // 如果传入了章节ID，则自动获取章节名称
+        if (teachingQuestion.getChapterId() != null) {
+            TextbookCatalog chapter = textbookCatalogService.getById(teachingQuestion.getChapterId());
+            if (chapter != null) {
+                teachingQuestion.setChapterName(chapter.getCatalogName());
+            }
+        }
+
+        // 保存题目
+        this.save(teachingQuestion);
+    }
     @Override
     public Void deleteCourseByIds(IdParam idParam) {
         List<Long> idList = idParam.getIdList();
