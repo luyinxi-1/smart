@@ -110,7 +110,7 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
 
     @Override
     public TeachingQuestion selectQuestionById(Long id) {
-        return teachingQuestionMapper.selectQuestionById(id); // 👈 使用自定义SQL
+        return teachingQuestionMapper.selectQuestionById(id); //
     }
 
     @Override
