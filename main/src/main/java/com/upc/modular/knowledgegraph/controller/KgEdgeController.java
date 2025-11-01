@@ -36,7 +36,7 @@ public class KgEdgeController {
     public R insertKgEdge(@RequestBody KgEdge kgEdge) {
 
         kgEdgeService.insertKgEdge(kgEdge);
-        return R.commonReturn(200, "新增成功", "");
+        return R.commonReturn(200, "新增成功", kgEdge);
     }
 
     /**

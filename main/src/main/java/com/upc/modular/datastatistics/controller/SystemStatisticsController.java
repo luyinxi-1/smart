@@ -220,14 +220,14 @@ public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required
         List<ExportSystemStatisticsParm> list = systemStatisticsService.exportSystemStatistics();
         // 2. 设置文件名和响应头
         String fileName = "系统统计数据.xlsx";
-        String fallbackName = "system_statistics_report.xlsx";
 
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
 
-        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
-        String contentDisposition = String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s", fallbackName, encodedFileName);
-        response.setHeader("Content-Disposition", contentDisposition);
+        // 兼容不同浏览器的文件名编码
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name())
+                .replaceAll("\\+", "%20");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
 
         // 3. 使用EasyExcel写入数据
         EasyExcel.write(response.getOutputStream(), ExportSystemStatisticsParm.class)

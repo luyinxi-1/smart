@@ -40,11 +40,14 @@ public class ApplicationMaterialsVO {
     @ApiModelProperty("教材名称")
     private String textbookName;
 
-    @ApiModelProperty("章节ID")
-    private Long chapterId;
+    @ApiModelProperty("教材章节ID")
+    private Long textbookCatalogId;
     
-    @ApiModelProperty("章节名称")
-    private String chapterName;
+    @ApiModelProperty("教材章节名称")
+    private String textbookCatalogName;
+
+    @ApiModelProperty("教材章节UUID（临时ID）")
+    private String textbookCatalogUuId;
 
     @ApiModelProperty("发布状态（0:未发布，1:已发布）")
     private Integer status;

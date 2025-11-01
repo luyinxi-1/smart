@@ -1,5 +1,6 @@
 package com.upc.modular.materials.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.utils.UserUtils;
@@ -21,6 +22,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import com.upc.modular.textbook.entity.TextbookCatalog;
+import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +44,9 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
 
     @Autowired
     private ApplicationMaterialsMappingMapper applicationMaterialsMappingMapper;
+
+    @Autowired
+    private TextbookCatalogMapper textbookCatalogMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -98,9 +105,26 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             throw new BusinessException(BusinessErrorEnum.NO_EXIT, "应用素材不存在");
         }
         
+        // 【新增逻辑】解析章节ID：如果textbookCatalogId为空但textbookCatalogUuId不为空，则根据UUID查询转换
+        Long finalChapterId = param.getTextbookCatalogId();
+        if (finalChapterId == null && param.getTextbookCatalogUuId() != null && !param.getTextbookCatalogUuId().trim().isEmpty()) {
+            LambdaQueryWrapper<TextbookCatalog> catalogQuery = new LambdaQueryWrapper<TextbookCatalog>()
+                    .eq(TextbookCatalog::getCatalogUuid, param.getTextbookCatalogUuId())
+                    .select(TextbookCatalog::getId);
+            
+            TextbookCatalog textbookCatalog = textbookCatalogMapper.selectOne(catalogQuery);
+            
+            if (textbookCatalog == null) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "提供的教材目录UUID无效: " + param.getTextbookCatalogUuId());
+            }
+            
+            finalChapterId = textbookCatalog.getId();
+        }
+        
         // 更新应用素材
         ApplicationMaterials applicationMaterials = new ApplicationMaterials();
         BeanUtils.copyProperties(param, applicationMaterials);
+        applicationMaterials.setTextbookCatalogId(finalChapterId); // 设置转换后的章节ID
         
         // 设置默认值
         if (applicationMaterials.getStatus() == null) {
