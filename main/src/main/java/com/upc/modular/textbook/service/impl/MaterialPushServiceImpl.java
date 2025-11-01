@@ -3,8 +3,11 @@ package com.upc.modular.textbook.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
+import com.upc.exception.BusinessErrorEnum;
+import com.upc.exception.BusinessException;
 import com.upc.modular.textbook.entity.MaterialList;
 import com.upc.modular.textbook.entity.MaterialPush;
+import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.MaterialListMapper;
 import com.upc.modular.textbook.mapper.MaterialPushMapper;
 import com.upc.modular.textbook.param.MaterialPushPageSearchParam;
@@ -12,10 +15,13 @@ import com.upc.modular.textbook.param.PushMaterialBatchUpdateCatalogParam;
 import com.upc.modular.textbook.param.PushMaterialInsertAndUpdateParam;
 import com.upc.modular.textbook.service.IMaterialPushService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.upc.modular.textbook.service.ITextbookCatalogService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -31,6 +37,10 @@ import java.util.List;
 public class MaterialPushServiceImpl extends ServiceImpl<MaterialPushMapper, MaterialPush> implements IMaterialPushService {
     @Autowired
     private MaterialListMapper materialListMapper;
+    
+    @Autowired
+    private ITextbookCatalogService textbookCatalogService;
+    
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long insertPushMaterial(PushMaterialInsertAndUpdateParam param) {
@@ -115,19 +125,52 @@ public class MaterialPushServiceImpl extends ServiceImpl<MaterialPushMapper, Mat
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void batchUpdateCatalog(List<PushMaterialBatchUpdateCatalogParam> params) {
-        if (params != null && !params.isEmpty()) {
-            for (PushMaterialBatchUpdateCatalogParam param : params) {
-                // 创建更新对象
-                MaterialPush materialPush = new MaterialPush();
-                materialPush.setId(param.getId());
-                materialPush.setTextbookCatalogId(param.getTextbookCatalogId());
-                materialPush.setTextbookCatalogName(param.getTextbookCatalogName());
+        // 1. 基本参数校验
+        if (CollectionUtils.isEmpty(params)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "请求参数列表不能为空");
+        }
 
-                // 执行更新操作
-                this.updateById(materialPush);
+        // 2. 遍历参数列表进行逐个更新
+        for (PushMaterialBatchUpdateCatalogParam param : params) {
+            if (param.getId() == null) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "资料推送ID不能为空");
             }
+
+            // 校验章节ID和临时UUID至少要有一个
+            if (param.getTextbookCatalogId() == null && !StringUtils.hasText(param.getTextbookCatalogUuid())) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR,
+                        "更新ID为 " + param.getId() + " 的资料时，章节ID和章节UUID必须至少提供一个");
+            }
+
+            Long finalCatalogId;
+            String finalCatalogName;
+
+            // 优先使用章节ID
+            if (param.getTextbookCatalogId() != null) {
+                finalCatalogId = param.getTextbookCatalogId();
+                finalCatalogName = param.getTextbookCatalogName();
+            } else {
+                // 如果章节ID为空，则使用临时UUID去数据库查询对应的ID
+                TextbookCatalog textbookCatalog = textbookCatalogService.getOne(new LambdaQueryWrapper<TextbookCatalog>()
+                        .eq(TextbookCatalog::getCatalogUuid, param.getTextbookCatalogUuid()));
+
+                // 如果根据UUID没有找到对应的章节，则抛出异常
+                if (textbookCatalog == null) {
+                    throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR,
+                            "根据提供的UUID: " + param.getTextbookCatalogUuid() + " 未找到对应的章节");
+                }
+                finalCatalogId = textbookCatalog.getId();
+                finalCatalogName = textbookCatalog.getCatalogName();
+            }
+
+            // 3. 执行单条更新
+            MaterialPush updateEntity = new MaterialPush();
+            updateEntity.setId(param.getId());
+            updateEntity.setTextbookCatalogId(finalCatalogId);
+            updateEntity.setTextbookCatalogName(finalCatalogName);
+
+            // 使用 updateById 方法进行更新，更为精确和高效
+            this.updateById(updateEntity);
         }
     }
-
-
 }
