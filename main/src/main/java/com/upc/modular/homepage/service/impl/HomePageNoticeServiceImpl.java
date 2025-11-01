@@ -7,6 +7,7 @@ import com.upc.common.utils.UserUtils;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.homepage.entity.HomePageNotice;
 import com.upc.modular.homepage.entity.HomePageNoticeReadStatus;
 import com.upc.modular.homepage.mapper.HomePageNoticeMapper;
@@ -59,6 +60,9 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
     
     @Autowired
     private StudentCourseTeacherUserViewMapper studentCourseTeacherUserViewMapper;
+    
+    @Autowired
+    private ISysUserService sysTbuserService;
 
     @Override
     public Boolean insert(HomePageNotice homePageNotice) {
@@ -243,6 +247,61 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
         }
 
         return true;
+    }
+
+    @Override
+    public Page<HomePageNoticeReturnParam> getHomePageNoticePage2(HomePageNoticePageSearchParam param) {
+        // 获取当前用户ID
+        Long userId = UserUtils.get().getId();
+        
+        // 先调用原有的分页查询方法获取通知列表
+        Page<HomePageNoticeReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
+        Page<HomePageNoticeReturnParam> resultPage = homePageNoticeMapper.selectNoticePageWithNames(page, param);
+        
+        // 获取当前用户信息，判断是否为学生
+        com.upc.modular.auth.entity.SysTbuser currentUser = sysTbuserService.getById(userId);
+        boolean isStudent = currentUser != null && currentUser.getUserType() != null && currentUser.getUserType() == 1;
+        
+        // 只有当用户是学生时，才查询阅读状态
+        if (isStudent) {
+            // 获取通知ID列表
+            List<Long> noticeIds = resultPage.getRecords().stream()
+                    .map(HomePageNoticeReturnParam::getId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            
+            // 查询用户的阅读状态
+            if (!noticeIds.isEmpty()) {
+                // 查询当前用户对这些通知的阅读状态
+                List<HomePageNoticeReadStatus> readStatusList = homePageNoticeReadStatusMapper.selectList(
+                        new LambdaQueryWrapper<HomePageNoticeReadStatus>()
+                                .select(HomePageNoticeReadStatus::getNotice_id, HomePageNoticeReadStatus::getRead_status)
+                                .eq(HomePageNoticeReadStatus::getUser_id, userId)
+                                .in(HomePageNoticeReadStatus::getNotice_id, noticeIds)
+                );
+                
+                // 构建通知ID到阅读状态的映射
+                Map<Long, Integer> noticeReadStatusMap = readStatusList.stream()
+                        .collect(Collectors.toMap(
+                                HomePageNoticeReadStatus::getNotice_id,
+                                HomePageNoticeReadStatus::getRead_status
+                        ));
+                
+                // 设置每条通知的阅读状态
+                resultPage.getRecords().forEach(notice -> {
+                    Integer readStatus = noticeReadStatusMap.get(notice.getId());
+                    notice.setReadStatus(readStatus != null ? readStatus : 0); // 默认未读
+                });
+            } else {
+                // 如果没有通知，将所有通知的阅读状态设为未读
+                resultPage.getRecords().forEach(notice -> notice.setReadStatus(0));
+            }
+        } else {
+            // 如果不是学生，将所有通知的阅读状态设为未读
+            resultPage.getRecords().forEach(notice -> notice.setReadStatus(0));
+        }
+        
+        return resultPage;
     }
 
     /**
