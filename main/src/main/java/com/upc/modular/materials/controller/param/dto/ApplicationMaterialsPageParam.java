@@ -33,4 +33,10 @@ public class ApplicationMaterialsPageParam extends PageBaseSearchParam {
     
     @ApiModelProperty("只查询当前用户创建的素材（true/false）")
     private Boolean onlyMine;
+    
+    @ApiModelProperty("教材ID（查询绑定到指定教材的应用素材）")
+    private Long textbookId;
+    
+    @ApiModelProperty("教材章节ID（查询绑定到指定章节的应用素材，需配合textbookId使用）")
+    private Long textbookCatalogId;
 }
