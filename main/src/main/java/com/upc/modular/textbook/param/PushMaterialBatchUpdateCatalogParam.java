@@ -14,4 +14,6 @@ public class PushMaterialBatchUpdateCatalogParam {
     private Long textbookCatalogId;
     @ApiModelProperty(value = "资料推送关联章节名称", required = true)
     private String textbookCatalogName;
+    @ApiModelProperty(value = "教材目录UUID（章节UUID）")
+    private String textbookCatalogUuid;
 }

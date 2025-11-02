@@ -20,4 +20,7 @@ public class HomePageNoticeReturnParam extends HomePageNotice {
     @ApiModelProperty("创建者姓名")
     private String creatorName;
 
+    @ApiModelProperty("阅读状态")
+    private Integer readStatus;
+
 }
