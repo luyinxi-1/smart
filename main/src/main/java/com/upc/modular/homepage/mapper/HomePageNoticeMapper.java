@@ -27,4 +27,6 @@ public interface HomePageNoticeMapper extends BaseMapper<HomePageNotice> {
     List<HomePageNoticeReturnParam> selectNoticeListWithNames(@Param("param") HomePageNoticeListSearchParam param);
 
     Page<HomePageNoticeReturnParam> selectNoticePageWithNames(Page<HomePageNoticeReturnParam> page, @Param("param") HomePageNoticePageSearchParam param);
+    
+    Page<HomePageNoticeReturnParam> selectNoticePageWithNamesAndCreator(Page<HomePageNoticeReturnParam> page, @Param("param") HomePageNoticePageSearchParam param, @Param("creatorId") Long creatorId);
 }

@@ -115,6 +115,53 @@
         hpn.is_top DESC,
         hpn.add_datetime DESC
     </select>
+    
+    <select id="selectNoticePageWithNamesAndCreator"
+            resultType="com.upc.modular.homepage.param.HomePageNoticeReturnParam">
+        SELECT
+        hpn.id,
+        hpn.title,
+        hpn.picture,
+        hpn.type,
+        hpn.is_top,
+        hpn.add_datetime,
+        hpn.operation_datetime,
+        hpn.status,
+        hpn.operator,
+        hpn.show_type,
+        COALESCE(t.name, s.name, u.nickname, u.username) AS authorName,
+        COALESCE(t.name, s.name, u.nickname, u.username) AS creatorName,
+        COALESCE(t_op.name, s_op.name , u_op.nickname, u_op.username) AS operatorName
+        FROM
+        home_page_notice hpn
+        LEFT JOIN sys_tbuser u ON hpn.creator = u.id
+        LEFT JOIN teacher t ON u.id = t.user_id AND u.user_type IN (0, 2)
+        LEFT JOIN student s ON u.id = s.user_id AND u.user_type = 1
+        LEFT JOIN sys_tbuser u_op ON hpn.operator = u_op.id
+        LEFT JOIN teacher t_op ON u_op.id = t_op.user_id AND u_op.user_type IN (0, 2)
+        LEFT JOIN student s_op ON u_op.id = s_op.user_id AND u_op.user_type = 1
+        <where>
+            <if test="param.type != null">
+                AND hpn.type = #{param.type}
+            </if>
+            <if test="param.title != null and param.title != ''">
+                AND hpn.title LIKE CONCAT('%', #{param.title}, '%')
+            </if>
+            <if test="param.status != null">
+                AND hpn.status = #{param.status}
+            </if>
+            <if test="param.deadlineAfter != null">
+                AND (hpn.deadline IS NULL OR hpn.deadline &gt; #{param.deadlineAfter})
+            </if>
+            <if test="param.showType != null">
+                AND hpn.show_type = #{param.showType}
+            </if>
+            <!-- 教师只能查看自己创建的通知 -->
+            AND hpn.creator = #{creatorId}
+        </where>
+        ORDER BY
+        hpn.is_top DESC,
+        hpn.add_datetime DESC
+    </select>
 
 </mapper>
-
