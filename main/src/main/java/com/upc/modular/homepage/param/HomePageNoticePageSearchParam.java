@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 public class HomePageNoticePageSearchParam extends PageBaseSearchParam {
 
     @ApiModelProperty("公告类型")
-    private Integer type;
+    private String type;
 
     @ApiModelProperty("标题")
     private String title;
@@ -27,5 +27,8 @@ public class HomePageNoticePageSearchParam extends PageBaseSearchParam {
     @ApiModelProperty("截止日期筛选")
     @JsonDeserialize(using = MultiFormatLocalDateTimeDeserializer.class)
     private LocalDateTime deadlineAfter;
+
+    @ApiModelProperty("展示类型")
+    private String showType;
 
 }

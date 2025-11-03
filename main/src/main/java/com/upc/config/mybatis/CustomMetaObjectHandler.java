@@ -25,17 +25,32 @@ public class CustomMetaObjectHandler implements MetaObjectHandler {
     @Override
     public void insertFill(MetaObject metaObject) {
         try {
+            Long userId = this.getUser();
+            LocalDateTime now = LocalDateTime.now();
+            
             //为空则设置createUser(BaseEntity)
             Object createUser = metaObject.getValue(CREATOR);
             if (ObjectUtil.isNull(createUser)) {
-                setFieldValByName(CREATOR, this.getUser(), metaObject);
+                setFieldValByName(CREATOR, userId, metaObject);
             }
 //            log.info("测试1：{}",LocalDateTime.now());
             //为空则设置createTime（BaseEntity)
             Object createTime = metaObject.getValue(ADD_DATE_TIME);
             if (ObjectUtil.isNull(createTime)) {
 //                log.info("测试2：{}",LocalDateTime.now());
-                setFieldValByName(ADD_DATE_TIME, LocalDateTime.now(), metaObject);
+                setFieldValByName(ADD_DATE_TIME, now, metaObject);
+            }
+            
+            //为空则设置operator（新增时也设置操作人）
+            Object operator = metaObject.getValue(OPERATOR);
+            if (ObjectUtil.isNull(operator)) {
+                setFieldValByName(OPERATOR, userId, metaObject);
+            }
+            
+            //为空则设置operationDatetime（新增时也设置操作时间）
+            Object operationTime = metaObject.getValue(OPERATION_DATE_TIME);
+            if (ObjectUtil.isNull(operationTime)) {
+                setFieldValByName(OPERATION_DATE_TIME, now, metaObject);
             }
         } catch (ReflectionException e) {
             log.warn(">>> CustomMetaObjectHandler处理过程中无相关字段，不做处理");

@@ -77,4 +77,12 @@ public class HomePageNoticeController {
     public R<Boolean> insertTextbookNotice(@RequestBody List<HomePageNoticeClassListParam> homePageNotice) {
         return R.ok(homePageNoticeService.insertTextbookNotice(homePageNotice));
     }
+
+    @ApiOperation(value = "首页通知公告查看更多2")
+    @PostMapping("/getHomePageNoticePage2")
+    public R<PageBaseReturnParam<HomePageNoticeReturnParam>> getHomePageNoticePage2(@RequestBody HomePageNoticePageSearchParam param) {
+        Page<HomePageNoticeReturnParam> page = homePageNoticeService.getHomePageNoticePage2(param);
+        PageBaseReturnParam<HomePageNoticeReturnParam> result = PageBaseReturnParam.ok(page);
+        return R.page(result);
+    }
 }
