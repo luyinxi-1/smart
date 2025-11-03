@@ -436,8 +436,6 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
     public Page<MyDiscussionTopicReturnParam> getMyActivitiesAndReplies(DiscussionTopicSearchParam param) {
         Long userId = UserUtils.get().getId();
         
-        Page<DiscussionTopic> page = new Page<>(param.getCurrent(), param.getSize());
-        
         // 查询用户创建的教学活动
         QueryWrapper<DiscussionTopic> createdQueryWrapper = new QueryWrapper<>();
         createdQueryWrapper.eq("creator", userId);
@@ -460,6 +458,19 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
         repliedPage.getRecords().forEach(topic -> topicMap.put(topic.getId(), topic));
         
         List<DiscussionTopic> allTopics = new ArrayList<>(topicMap.values());
+        
+        // 如果有教材名称筛选条件，进行额外过滤
+        if (StringUtils.isNotBlank(param.getTextbookName())) {
+            allTopics = allTopics.stream().filter(topic -> {
+                if (topic.getTextbookId() != null) {
+                    Textbook textbook = textbookService.getById(topic.getTextbookId());
+                    if (textbook != null && textbook.getTextbookName() != null) {
+                        return textbook.getTextbookName().contains(param.getTextbookName().trim());
+                    }
+                }
+                return false;
+            }).collect(Collectors.toList());
+        }
         
         // 分页处理
         int fromIndex = (int)((param.getCurrent() - 1) * param.getSize());
