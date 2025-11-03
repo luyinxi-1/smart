@@ -644,8 +644,7 @@
             -- 教师作为作者的教材
             SELECT DISTINCT t.id as textbook_id
             FROM textbook t
-            INNER JOIN teacher th ON t.textbook_author_id = th.id
-            WHERE th.user_id = #{userId} AND t.release_status = '1'
+            WHERE t.creator = #{userId} AND t.release_status = '1'
             
             UNION
             
@@ -983,8 +982,7 @@
             -- 教师作为作者的教材
             SELECT DISTINCT t.id as textbook_id
             FROM textbook t
-            INNER JOIN teacher th ON t.textbook_author_id = th.id
-            WHERE th.user_id = #{userId} AND t.release_status = '1'
+            WHERE t.creator = #{userId} AND t.release_status = '1'
             
             UNION
             

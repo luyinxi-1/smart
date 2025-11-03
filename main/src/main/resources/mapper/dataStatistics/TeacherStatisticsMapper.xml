@@ -24,7 +24,7 @@
     <select id="countTeacherTextbooks" resultType="java.lang.Integer">
         SELECT COUNT(DISTINCT t.id)
         FROM textbook t
-        WHERE t.textbook_author_id = #{teacherId}
+        WHERE t.creator = (SELECT user_id FROM teacher WHERE id = #{teacherId})
           AND t.release_status = 1
     </select>
 
@@ -148,8 +148,7 @@
             -- 教师作为作者的教材
             SELECT DISTINCT t.id as textbook_id
             FROM textbook t
-            INNER JOIN teacher th ON t.textbook_author_id = th.id
-            WHERE th.id = #{teacherId} AND t.release_status = 1
+            WHERE t.creator = (SELECT user_id FROM teacher WHERE id = #{teacherId}) AND t.release_status = 1
             
             UNION
             
@@ -219,8 +218,7 @@
             -- 教师作为作者的教材
             SELECT DISTINCT t.id as textbook_id
             FROM textbook t
-            INNER JOIN teacher th ON t.textbook_author_id = th.id
-            WHERE th.id = #{teacherId} AND t.release_status = 1
+            WHERE t.creator = (SELECT user_id FROM teacher WHERE id = #{teacherId}) AND t.release_status = 1
             
             UNION
             
