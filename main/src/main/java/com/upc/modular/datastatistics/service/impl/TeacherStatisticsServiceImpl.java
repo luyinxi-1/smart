@@ -84,6 +84,28 @@ public class TeacherStatisticsServiceImpl extends ServiceImpl<TeacherStatisticsM
     }
 
     @Override
+    public TeacherClassCountReturnParam getTeacherClassCountAndList(Long teacherId) {
+        TeacherClassCountReturnParam result = new TeacherClassCountReturnParam();
+        
+        // 获取班级列表
+        List<Map<String, Object>> classList = teacherStatisticsMapper.getTeacherClassList(teacherId);
+        
+        // 转换为返回对象
+        List<TeacherClassCountReturnParam.ClassInfo> classInfoList = new ArrayList<>();
+        for (Map<String, Object> classMap : classList) {
+            TeacherClassCountReturnParam.ClassInfo classInfo = new TeacherClassCountReturnParam.ClassInfo();
+            classInfo.setClassId(((Number) classMap.get("classId")).longValue());
+            classInfo.setClassName((String) classMap.get("className"));
+            classInfoList.add(classInfo);
+        }
+        
+        result.setClassCount(classInfoList.size());
+        result.setClassList(classInfoList);
+        
+        return result;
+    }
+
+    @Override
     public Integer countTeacherStudents(Long teacherId) {
         return teacherStatisticsMapper.countTeacherStudents(teacherId);
     }

@@ -55,7 +55,7 @@ public class TeacherStatisticsController {
 
     @ApiOperation("统计教师授课班级数量")
     @PostMapping("/class-count")
-    public R<Integer> countTeacherClasses() {
+    public R<TeacherClassCountReturnParam> countTeacherClasses() {
         // 从当前登录用户获取教师ID
         UserInfoToRedis currentUser = LoginContextHolder.getUserInfoToRedis();
         if (currentUser == null || currentUser.getId() == null) {
@@ -67,7 +67,7 @@ public class TeacherStatisticsController {
             return R.fail("当前用户不是教师");
         }
         
-        return R.ok(teacherStatisticsService.countTeacherClasses(teacherId));
+        return R.ok(teacherStatisticsService.getTeacherClassCountAndList(teacherId));
     }
 
     @ApiOperation("统计教师授课学生数量")

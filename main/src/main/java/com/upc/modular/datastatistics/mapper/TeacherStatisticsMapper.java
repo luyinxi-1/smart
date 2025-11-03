@@ -18,6 +18,11 @@ public interface TeacherStatisticsMapper extends BaseMapper<TeacherStatistics> {
     Integer countTeacherClasses(@Param("teacherId") Long teacherId);
 
     /**
+     * 获取教师授课班级列表
+     */
+    List<Map<String, Object>> getTeacherClassList(@Param("teacherId") Long teacherId);
+
+    /**
      * 统计教师授课学生数量
      */
     Integer countTeacherStudents(@Param("teacherId") Long teacherId);

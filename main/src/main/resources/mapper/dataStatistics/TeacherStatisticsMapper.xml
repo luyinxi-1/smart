@@ -4,38 +4,110 @@
 
     <!-- 统计教师授课班级数量 -->
     <select id="countTeacherClasses" resultType="java.lang.Integer">
-        SELECT COUNT(DISTINCT g.id)
-        FROM `group` g
-                 INNER JOIN user_class_list ucl ON g.id = ucl.class_id
-                 INNER JOIN teacher t ON ucl.user_id = t.user_id
-        WHERE t.id = #{teacherId} AND ucl.type = 2
+        SELECT COUNT(DISTINCT class_id) FROM (
+            -- 方式1：通过user_class_list直接关联的班级
+            SELECT DISTINCT g.id as class_id
+            FROM `group` g
+                     INNER JOIN user_class_list ucl ON g.id = ucl.class_id
+                     INNER JOIN teacher t ON ucl.user_id = t.user_id
+            WHERE t.id = #{teacherId} AND ucl.type = 2
+            
+            UNION
+            
+            -- 方式2：通过教师的课程关联的班级
+            SELECT DISTINCT g.id as class_id
+            FROM course c
+                     INNER JOIN course_class_list ccl ON c.id = ccl.course_id
+                     INNER JOIN `group` g ON ccl.class_id = g.id
+            WHERE c.teacher_id = #{teacherId}
+        ) AS all_classes
+    </select>
+
+    <!-- 获取教师授课班级列表 -->
+    <select id="getTeacherClassList" resultType="java.util.Map">
+        SELECT DISTINCT class_id AS classId, class_name AS className
+        FROM (
+            -- 方式1：通过user_class_list直接关联的班级
+            SELECT DISTINCT g.id as class_id, g.name as class_name
+            FROM `group` g
+                     INNER JOIN user_class_list ucl ON g.id = ucl.class_id
+                     INNER JOIN teacher t ON ucl.user_id = t.user_id
+            WHERE t.id = #{teacherId} AND ucl.type = 2
+            
+            UNION
+            
+            -- 方式2：通过教师的课程关联的班级
+            SELECT DISTINCT g.id as class_id, g.name as class_name
+            FROM course c
+                     INNER JOIN course_class_list ccl ON c.id = ccl.course_id
+                     INNER JOIN `group` g ON ccl.class_id = g.id
+            WHERE c.teacher_id = #{teacherId}
+        ) AS all_classes
+        ORDER BY class_id
     </select>
 
     <!-- 统计教师授课学生数量 -->
     <select id="countTeacherStudents" resultType="java.lang.Integer">
         SELECT COUNT(DISTINCT s.id)
         FROM student s
-                 INNER JOIN user_class_list ucl ON s.class_id = ucl.class_id
-                 INNER JOIN teacher t ON ucl.user_id = t.user_id
-        WHERE t.id = #{teacherId} AND ucl.type = 2
+        WHERE s.class_id IN (
+            -- 方式1：通过user_class_list直接关联的班级
+            SELECT DISTINCT g.id
+            FROM `group` g
+                     INNER JOIN user_class_list ucl ON g.id = ucl.class_id
+                     INNER JOIN teacher t ON ucl.user_id = t.user_id
+            WHERE t.id = #{teacherId} AND ucl.type = 2
+            
+            UNION
+            
+            -- 方式2：通过教师的课程关联的班级
+            SELECT DISTINCT g.id
+            FROM course c
+                     INNER JOIN course_class_list ccl ON c.id = ccl.course_id
+                     INNER JOIN `group` g ON ccl.class_id = g.id
+            WHERE c.teacher_id = #{teacherId}
+        )
     </select>
 
     <!-- 统计教师教材数量 -->
     <select id="countTeacherTextbooks" resultType="java.lang.Integer">
         SELECT COUNT(DISTINCT t.id)
         FROM textbook t
-        WHERE t.creator = (SELECT user_id FROM teacher WHERE id = #{teacherId})
-          AND t.release_status = 1
+        WHERE t.id IN (
+            -- 教师作为创建者的教材
+            SELECT DISTINCT t.id
+            FROM textbook t
+            WHERE t.creator = (SELECT user_id FROM teacher WHERE id = #{teacherId})
+            
+            UNION
+            
+            -- 教师作为协作者的教材
+            SELECT DISTINCT t.id
+            FROM textbook t
+            INNER JOIN textbook_authority ta ON t.id = ta.textbook_id
+            WHERE ta.user_id = (SELECT user_id FROM teacher WHERE id = #{teacherId}) 
+              AND ta.authority_type = 1
+        )
     </select>
 
     <!-- 统计教师授课课程数量 -->
     <select id="countTeacherCourses" resultType="java.lang.Integer">
-        SELECT COUNT(DISTINCT c.id)
-        FROM course c
-                 INNER JOIN course_class_list ccl ON c.id = ccl.course_id
-                 INNER JOIN user_class_list ucl ON ccl.class_id = ucl.class_id
-                 INNER JOIN teacher t ON ucl.user_id = t.user_id
-        WHERE t.id = #{teacherId} AND ucl.type = 2
+        SELECT COUNT(DISTINCT course_id) FROM (
+            -- 方式1：通过user_class_list关联的班级对应的课程
+            SELECT DISTINCT c.id as course_id
+            FROM course c
+                     INNER JOIN course_class_list ccl ON c.id = ccl.course_id
+                     INNER JOIN user_class_list ucl ON ccl.class_id = ucl.class_id
+                     INNER JOIN teacher t ON ucl.user_id = t.user_id
+            WHERE t.id = #{teacherId} AND ucl.type = 2
+            
+            UNION
+            
+            -- 方式2：教师直接创建的课程
+            SELECT DISTINCT c.id as course_id
+            FROM course c
+            WHERE c.teacher_id = #{teacherId}
+        ) AS all_courses
     </select>
 
     <!-- 获取班级学生ID列表 -->
