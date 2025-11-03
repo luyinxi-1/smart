@@ -44,14 +44,6 @@ public class ApplicationMaterials implements Serializable {
     @TableField("question_bank_id")
     private Long questionBankId;
 
-    @ApiModelProperty("教材ID")
-    @TableField("textbook_id")
-    private Long textbookId;
-
-    @ApiModelProperty("教材章节ID")
-    @TableField("textbook_catalog_id")
-    private Long textbookCatalogId;
-
     @ApiModelProperty("发布状态（0:未发布，1:已发布）")
     @TableField("status")
     private Integer status;
@@ -75,8 +67,4 @@ public class ApplicationMaterials implements Serializable {
     // 非数据库字段，用于前端传递和接收关联的教学素材ID
     @TableField(exist = false)
     private List<Long> teachingMaterialIds;
-
-    @ApiModelProperty("教材章节UUID（临时ID）")
-    @TableField(exist = false)
-    private String textbookCatalogUuId;
 }

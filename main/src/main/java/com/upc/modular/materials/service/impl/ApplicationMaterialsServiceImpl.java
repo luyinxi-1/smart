@@ -12,8 +12,10 @@ import com.upc.modular.materials.controller.param.vo.ApplicationMaterialsDetailV
 import com.upc.modular.materials.controller.param.vo.ApplicationMaterialsVO;
 import com.upc.modular.materials.entity.ApplicationMaterials;
 import com.upc.modular.materials.entity.ApplicationMaterialsMapping;
+import com.upc.modular.materials.entity.ApplicationMaterialsTextbookMapping;
 import com.upc.modular.materials.mapper.ApplicationMaterialsMappingMapper;
 import com.upc.modular.materials.mapper.ApplicationMaterialsMapper;
+import com.upc.modular.materials.mapper.ApplicationMaterialsTextbookMappingMapper;
 import com.upc.modular.materials.service.IApplicationMaterialsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -48,6 +50,9 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
     @Autowired
     private TextbookCatalogMapper textbookCatalogMapper;
 
+    @Autowired
+    private ApplicationMaterialsTextbookMappingMapper applicationMaterialsTextbookMappingMapper;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long saveApplicationMaterials(ApplicationMaterialsSaveParam param) {
@@ -80,7 +85,64 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             relateTeachingMaterials(applicationMaterials.getId(), param.getTeachingMaterialIds());
         }
         
+        // 同步创建教材绑定关系（如果有教材ID和章节ID）
+        syncTextbookMappingOnSave(applicationMaterials.getId(), param);
+        
         return applicationMaterials.getId();
+    }
+
+    /**
+     * 保存应用素材时同步创建教材绑定关系
+     * 
+     * @param applicationMaterialId 应用素材ID
+     * @param param 保存参数
+     */
+    private void syncTextbookMappingOnSave(Long applicationMaterialId, ApplicationMaterialsSaveParam param) {
+        // 如果没有教材ID，不需要创建绑定
+        if (param.getTextbookId() == null) {
+            return;
+        }
+        
+        // 解析章节ID
+        Long chapterId = param.getTextbookCatalogId();
+        String chapterName = "";
+        
+        if (chapterId == null && param.getTextbookCatalogUuId() != null && !param.getTextbookCatalogUuId().trim().isEmpty()) {
+            LambdaQueryWrapper<TextbookCatalog> catalogQuery = new LambdaQueryWrapper<TextbookCatalog>()
+                    .eq(TextbookCatalog::getCatalogUuid, param.getTextbookCatalogUuId())
+                    .select(TextbookCatalog::getId, TextbookCatalog::getCatalogName);
+            
+            TextbookCatalog textbookCatalog = textbookCatalogMapper.selectOne(catalogQuery);
+            
+            if (textbookCatalog != null) {
+                chapterId = textbookCatalog.getId();
+                chapterName = textbookCatalog.getCatalogName();
+            }
+        } else if (chapterId != null) {
+            // 如果直接提供了章节ID，查询章节名称
+            TextbookCatalog catalog = textbookCatalogMapper.selectById(chapterId);
+            chapterName = catalog != null ? catalog.getCatalogName() : "";
+        }
+        
+        // 检查是否已存在绑定关系
+        LambdaQueryWrapper<ApplicationMaterialsTextbookMapping> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ApplicationMaterialsTextbookMapping::getApplicationMaterialId, applicationMaterialId);
+        ApplicationMaterialsTextbookMapping existingMapping = applicationMaterialsTextbookMappingMapper.selectOne(queryWrapper);
+        
+        if (existingMapping == null) {
+            // 获取当前登录用户
+            Long currentUserId = UserUtils.get() != null ? UserUtils.get().getId() : null;
+            
+            // 创建新的绑定关系（允许章节ID为null）
+            ApplicationMaterialsTextbookMapping mapping = new ApplicationMaterialsTextbookMapping();
+            mapping.setApplicationMaterialId(applicationMaterialId);
+            mapping.setTextbookId(param.getTextbookId());
+            mapping.setChapterId(chapterId);  // 可以为null
+            mapping.setChapterName(chapterName);  // 如果章节ID为null，则为空字符串
+            mapping.setCreator(currentUserId);
+            mapping.setOperator(currentUserId);
+            applicationMaterialsTextbookMappingMapper.insert(mapping);
+        }
     }
 
     @Override
@@ -124,7 +186,6 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
         // 更新应用素材
         ApplicationMaterials applicationMaterials = new ApplicationMaterials();
         BeanUtils.copyProperties(param, applicationMaterials);
-        applicationMaterials.setTextbookCatalogId(finalChapterId); // 设置转换后的章节ID
         
         // 设置默认值
         if (applicationMaterials.getStatus() == null) {
@@ -147,7 +208,61 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             }
         }
         
+        // 同步更新教材绑定关系
+        syncTextbookMappingOnUpdate(param.getId(), param, finalChapterId);
+        
         return true;
+    }
+
+    /**
+     * 更新应用素材时同步更新教材绑定关系
+     * 
+     * @param applicationMaterialId 应用素材ID
+     * @param param 保存参数
+     * @param chapterId 章节ID
+     */
+    private void syncTextbookMappingOnUpdate(Long applicationMaterialId, ApplicationMaterialsSaveParam param, Long chapterId) {
+        // 查询现有的绑定关系
+        LambdaQueryWrapper<ApplicationMaterialsTextbookMapping> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ApplicationMaterialsTextbookMapping::getApplicationMaterialId, applicationMaterialId);
+        ApplicationMaterialsTextbookMapping existingMapping = applicationMaterialsTextbookMappingMapper.selectOne(queryWrapper);
+        
+        // 如果没有教材ID，删除绑定关系（如果存在）
+        if (param.getTextbookId() == null) {
+            if (existingMapping != null) {
+                applicationMaterialsTextbookMappingMapper.deleteById(existingMapping.getId());
+            }
+            return;
+        }
+        
+        // 获取当前登录用户
+        Long currentUserId = UserUtils.get() != null ? UserUtils.get().getId() : null;
+        
+        // 查询章节名称（允许章节ID为null）
+        String chapterName = "";
+        if (chapterId != null) {
+            TextbookCatalog catalog = textbookCatalogMapper.selectById(chapterId);
+            chapterName = catalog != null ? catalog.getCatalogName() : "";
+        }
+        
+        if (existingMapping != null) {
+            // 更新现有绑定关系
+            existingMapping.setTextbookId(param.getTextbookId());
+            existingMapping.setChapterId(chapterId);  // 可以为null
+            existingMapping.setChapterName(chapterName);
+            existingMapping.setOperator(currentUserId);
+            applicationMaterialsTextbookMappingMapper.updateById(existingMapping);
+        } else {
+            // 创建新的绑定关系（允许章节ID为null）
+            ApplicationMaterialsTextbookMapping mapping = new ApplicationMaterialsTextbookMapping();
+            mapping.setApplicationMaterialId(applicationMaterialId);
+            mapping.setTextbookId(param.getTextbookId());
+            mapping.setChapterId(chapterId);  // 可以为null
+            mapping.setChapterName(chapterName);
+            mapping.setCreator(currentUserId);
+            mapping.setOperator(currentUserId);
+            applicationMaterialsTextbookMappingMapper.insert(mapping);
+        }
     }
 
     @Override
@@ -166,6 +281,11 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
         // 删除关联的教学素材
         applicationMaterialsMappingMapper.deleteByApplicationMaterialId(id);
         
+        // 删除教材绑定关系
+        LambdaQueryWrapper<ApplicationMaterialsTextbookMapping> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ApplicationMaterialsTextbookMapping::getApplicationMaterialId, id);
+        applicationMaterialsTextbookMappingMapper.delete(queryWrapper);
+        
         // 删除应用素材
         return this.removeById(id);
     }
@@ -181,6 +301,11 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
         for (Long id : ids) {
             applicationMaterialsMappingMapper.deleteByApplicationMaterialId(id);
         }
+        
+        // 批量删除教材绑定关系
+        LambdaQueryWrapper<ApplicationMaterialsTextbookMapping> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.in(ApplicationMaterialsTextbookMapping::getApplicationMaterialId, ids);
+        applicationMaterialsTextbookMappingMapper.delete(queryWrapper);
         
         // 批量删除应用素材
         return this.removeByIds(ids);
@@ -211,6 +336,14 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
     public Page<ApplicationMaterialsVO> getApplicationMaterialsPage(ApplicationMaterialsPageParam param) {
         if (param == null) {
             param = new ApplicationMaterialsPageParam();
+        }
+        
+        // 处理 onlyMine 参数：如果为 true，则只查询当前用户创建的素材
+        if (param.getOnlyMine() != null && param.getOnlyMine()) {
+            Long currentUserId = UserUtils.get() != null ? UserUtils.get().getId() : null;
+            if (currentUserId != null) {
+                param.setCreator(currentUserId);
+            }
         }
         
         // 处理分页参数
