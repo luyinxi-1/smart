@@ -74,19 +74,21 @@
         SELECT COUNT(DISTINCT t.id)
         FROM textbook t
         WHERE t.id IN (
-            -- 教师作为创建者的教材
+            -- 教师作为创建者的已发布教材
             SELECT DISTINCT t.id
             FROM textbook t
             WHERE t.creator = (SELECT user_id FROM teacher WHERE id = #{teacherId})
+              AND t.release_status = 1
             
             UNION
             
-            -- 教师作为协作者的教材
+            -- 教师作为协作者的已发布教材
             SELECT DISTINCT t.id
             FROM textbook t
             INNER JOIN textbook_authority ta ON t.id = ta.textbook_id
             WHERE ta.user_id = (SELECT user_id FROM teacher WHERE id = #{teacherId}) 
               AND ta.authority_type = 1
+              AND t.release_status = 1
         )
     </select>
 
