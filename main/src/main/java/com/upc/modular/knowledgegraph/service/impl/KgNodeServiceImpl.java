@@ -255,10 +255,9 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
         result.setTextbookId(textbookId);
         result.setTextbookName(textbook.getTextbookName());
 
-        // 4. 查询或创建教材根节点
+        // 4. 查询教材根节点
         LambdaQueryWrapper<KgNode> nodeQueryWrapper = new LambdaQueryWrapper<>();
         nodeQueryWrapper.eq(KgNode::getObjectId, textbookId).eq(KgNode::getNodeType, "TEXTBOOK");
-        // 使用 one() 方法获取单个对象，更符合业务预期
         KgNode textbookNode = this.getOne(nodeQueryWrapper);
 
         // 如果没有教材节点，则创建一个
@@ -267,41 +266,89 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
             textbookNode.setObjectId(textbookId);
             textbookNode.setNodeType("TEXTBOOK");
             textbookNode.setNodeName(textbook.getTextbookName());
-            // 优化：利用MyBatis-Plus的ID回填特性，保存后 textbookNode 对象即包含数据库生成的ID
             this.save(textbookNode);
+            // 重新查询以获取ID
+            textbookNode = this.getOne(new LambdaQueryWrapper<KgNode>()
+                .eq(KgNode::getObjectId, textbookId).eq(KgNode::getNodeType, "TEXTBOOK"));
         }
 
-        Long textbookNodeId = textbookNode.getId();
-
-        // 5. 【核心重构】一次性获取所有相关的"边"
-        List<KgEdge> allRelatedEdges = getRelatedEdges(textbookNodeId);
-        result.setEdges(allRelatedEdges); // 直接将结果设置到返回对象中
-
-        // 6. 从已获取的"边"中提取所有关联节点的ID
+        // 5. 获取所有与教材相关的节点
+        // 包括直接与教材相关的节点以及通过边连接的所有节点
+        Set<KgNode> relatedNodes = new HashSet<>();
+        relatedNodes.add(textbookNode);
+        
+        // 获取所有与教材节点直接相连的边
+        List<KgEdge> directlyConnectedEdges = getRelatedEdges(textbookNode.getId());
+        
+        // 从这些边中提取所有节点ID
         Set<Long> relatedNodeIds = new HashSet<>();
-        if (!CollectionUtils.isEmpty(allRelatedEdges)) {
-            // 将所有源节点ID和目标节点ID添加到Set中，利用Set自动去重
-            allRelatedEdges.forEach(edge -> {
-                relatedNodeIds.add(edge.getSourceNodeId());
-                relatedNodeIds.add(edge.getTargetNodeId());
-            });
+        relatedNodeIds.add(textbookNode.getId()); // 确保包含教材节点本身
+        
+        for (KgEdge edge : directlyConnectedEdges) {
+            relatedNodeIds.add(edge.getSourceNodeId());
+            relatedNodeIds.add(edge.getTargetNodeId());
         }
-
-        // 始终确保教材节点本身被包含
-        relatedNodeIds.add(textbookNodeId);
-
-        // 7. 一次性查询所有相关的"节点"
+        
+        // 获取所有相关节点
         if (!relatedNodeIds.isEmpty()) {
-            List<KgNode> allNodes = this.listByIds(relatedNodeIds);
-            result.setNodes(allNodes);
-        } else {
-            // 如果没有任何关联边，则只返回教材节点本身
-            List<KgNode> nodeList = new ArrayList<>();
-            nodeList.add(textbookNode);
-            result.setNodes(nodeList);
+            List<KgNode> nodeList = this.listByIds(relatedNodeIds);
+            relatedNodes.addAll(nodeList);
+            
+            // 继续查找与这些节点相连的边和节点（深度查找）
+            List<KgEdge> allRelatedEdges = new ArrayList<>(directlyConnectedEdges);
+            Set<Long> checkedNodeIds = new HashSet<>(relatedNodeIds);
+            Set<Long> newNodeIds = new HashSet<>(relatedNodeIds);
+            
+            // 循环查找直到没有新的节点被发现
+            while (!newNodeIds.isEmpty()) {
+                // 查找与新节点相关的边
+                List<KgEdge> newEdges = getEdgesConnectedToNodes(newNodeIds);
+                allRelatedEdges.addAll(newEdges);
+                
+                // 从新边中提取节点ID
+                newNodeIds.clear();
+                for (KgEdge edge : newEdges) {
+                    // 添加源节点和目标节点（如果尚未检查过）
+                    if (!checkedNodeIds.contains(edge.getSourceNodeId())) {
+                        newNodeIds.add(edge.getSourceNodeId());
+                        checkedNodeIds.add(edge.getSourceNodeId());
+                    }
+                    if (!checkedNodeIds.contains(edge.getTargetNodeId())) {
+                        newNodeIds.add(edge.getTargetNodeId());
+                        checkedNodeIds.add(edge.getTargetNodeId());
+                    }
+                }
+                
+                // 获取新发现的节点
+                if (!newNodeIds.isEmpty()) {
+                    List<KgNode> newNodes = this.listByIds(newNodeIds);
+                    relatedNodes.addAll(newNodes);
+                }
+            }
+            
+            result.setEdges(allRelatedEdges);
         }
+        
+        result.setNodes(new ArrayList<>(relatedNodes));
 
         return result;
+    }
+
+    /**
+     * 获取与指定节点集合中任意节点相关联的所有关系
+     * @param nodeIds 节点ID集合
+     * @return 相关联的关系列表
+     */
+    private List<KgEdge> getEdgesConnectedToNodes(Set<Long> nodeIds) {
+        if (nodeIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        LambdaQueryWrapper<KgEdge> edgeQueryWrapper = new LambdaQueryWrapper<>();
+        edgeQueryWrapper.in(KgEdge::getSourceNodeId, nodeIds)
+                .or()
+                .in(KgEdge::getTargetNodeId, nodeIds);
+        return kgEdgeService.list(edgeQueryWrapper);
     }
 
     /**
