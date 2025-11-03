@@ -14,6 +14,7 @@ import com.upc.modular.knowledgegraph.entity.KgEdge;
 import com.upc.modular.knowledgegraph.service.IKgEdgeService;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
+import com.upc.modular.textbook.param.TextbookTree;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.upc.modular.textbook.service.ITextbookService;
 import com.upc.modular.knowledgegraph.param.TextbookKnowledgeGraphReturnParam;
@@ -93,34 +94,37 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "指定的教材不存在");
         }
 
-        // 3. 获取教材的所有目录信息
-        List<TextbookCatalog> textbookCatalogs = textbookCatalogService.downloadTextbookCatalog(textbookId);
-        if (CollectionUtils.isEmpty(textbookCatalogs)) {
-            // 如果没有目录，直接返回成功
-            return true;
+        // 3. 检查教材是否发布
+        if (textbook.getReleaseStatus() == null || textbook.getReleaseStatus() != 1 || 
+            textbook.getReviewStatus() == null || textbook.getReviewStatus() != 1) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材未发布");
         }
 
-        // 4. 查询已存在的节点（教材节点和目录节点）
+        // 4. 获取教材的所有目录信息（使用getTextbookCatalogTree方法获取完整的目录树结构）
+        List<TextbookTree> textbookTree = textbookCatalogService.getTextbookCatalogTree(textbookId);
+        List<TextbookCatalog> textbookCatalogs = flattenTextbookTree(textbookTree);
+        
+        // 5. 查询已存在的节点（教材节点和目录节点）
         LambdaQueryWrapper<KgNode> nodeQueryWrapper = new LambdaQueryWrapper<>();
         nodeQueryWrapper.eq(KgNode::getNodeType, "TEXTBOOK").eq(KgNode::getObjectId, textbookId)
                 .or()
                 .eq(KgNode::getNodeType, "TEXTBOOK_CATALOG").in(KgNode::getObjectId, 
                         textbookCatalogs.stream().map(TextbookCatalog::getId).collect(Collectors.toList()));
-        
+    
         List<KgNode> existingNodes = this.list(nodeQueryWrapper);
         
-        // 5. 分离已存在的节点和需要创建的节点
+        // 6. 分离已存在的节点和需要创建的节点
         Set<Long> existingTextbookCatalogIds = existingNodes.stream()
                 .filter(node -> "TEXTBOOK_CATALOG".equals(node.getNodeType()))
                 .map(KgNode::getObjectId)
                 .collect(Collectors.toSet());
-        
+    
         KgNode textbookNode = existingNodes.stream()
                 .filter(node -> "TEXTBOOK".equals(node.getNodeType()) && node.getObjectId().equals(textbookId))
                 .findFirst()
                 .orElse(null);
-        
-        // 6. 创建教材节点（如果不存在）
+    
+        // 7. 创建教材节点（如果不存在）
         if (textbookNode == null) {
             textbookNode = new KgNode();
             textbookNode.setObjectId(textbookId);
@@ -128,8 +132,8 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
             textbookNode.setNodeName(textbook.getTextbookName());
             this.save(textbookNode);
         }
-        
-        // 7. 创建缺失的目录节点
+    
+        // 8. 创建缺失的目录节点
         List<KgNode> newCatalogNodes = new ArrayList<>();
         for (TextbookCatalog catalog : textbookCatalogs) {
             if (!existingTextbookCatalogIds.contains(catalog.getId())) {
@@ -140,18 +144,18 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
                 newCatalogNodes.add(catalogNode);
             }
         }
-        
+    
         if (!newCatalogNodes.isEmpty()) {
             this.saveBatch(newCatalogNodes);
             existingNodes.addAll(newCatalogNodes);
         }
-        
-        // 8. 重新组织所有节点（包括新创建的）以便后续处理
+    
+        // 9. 重新组织所有节点（包括新创建的）以便后续处理
         // 创建一个映射，从objectId到KgNode
         java.util.Map<Long, KgNode> nodeMap = existingNodes.stream()
                 .collect(Collectors.toMap(KgNode::getObjectId, node -> node));
-        
-        // 9. 处理关系 - 删除旧的关系
+    
+        // 10. 处理关系 - 删除旧的关系
         LambdaQueryWrapper<KgEdge> edgeQueryWrapper = new LambdaQueryWrapper<>();
         edgeQueryWrapper.eq(KgEdge::getSourceNodeId, textbookNode.getId())
                 .or()
@@ -160,12 +164,12 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
                 .or()
                 .in(KgEdge::getTargetNodeId, 
                         textbookCatalogs.stream().map(c -> nodeMap.get(c.getId()).getId()).collect(Collectors.toList()));
-        
+    
         kgEdgeService.remove(edgeQueryWrapper);
-        
-        // 10. 创建新的关系
+    
+        // 11. 创建新的关系
         List<KgEdge> newEdges = new ArrayList<>();
-        
+    
         // 创建教材到章节的关系
         for (TextbookCatalog catalog : textbookCatalogs) {
             KgNode catalogNode = nodeMap.get(catalog.getId());
@@ -180,7 +184,7 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
                 }
             }
         }
-        
+    
         // 创建章节到子章节的关系
         for (TextbookCatalog catalog : textbookCatalogs) {
             if (catalog.getFatherCatalogId() != null && catalog.getFatherCatalogId() != 0) {
@@ -196,13 +200,40 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
                 }
             }
         }
-        
-        // 11. 批量保存新的关系
+    
+        // 12. 批量保存新的关系
         if (!newEdges.isEmpty()) {
             kgEdgeService.saveBatch(newEdges);
         }
-        
+    
         return true;
+    }
+
+    /**
+     * 将教材目录树结构扁平化为列表
+     * @param treeList 教材目录树
+     * @return 扁平化的教材目录列表
+     */
+    private List<TextbookCatalog> flattenTextbookTree(List<TextbookTree> treeList) {
+        List<TextbookCatalog> result = new ArrayList<>();
+        if (treeList != null) {
+            for (TextbookTree node : treeList) {
+                TextbookCatalog catalog = new TextbookCatalog();
+                catalog.setId(node.getCatalogId());
+                catalog.setTextbookId(node.getTextbookId());
+                catalog.setCatalogName(node.getCatalogName());
+                catalog.setCatalogLevel(node.getCatalogLevel());
+                catalog.setFatherCatalogId(node.getFatherCatalogId());
+                catalog.setSort(node.getSort());
+                result.add(catalog);
+                
+                // 递归处理子节点
+                if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+                    result.addAll(flattenTextbookTree(node.getChildren()));
+                }
+            }
+        }
+        return result;
     }
     
     @Override
