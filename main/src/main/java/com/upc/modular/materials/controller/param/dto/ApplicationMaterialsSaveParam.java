@@ -31,7 +31,7 @@ public class ApplicationMaterialsSaveParam {
     @ApiModelProperty("应用素材描述")
     private String description;
 
-    @ApiModelProperty(value = "题库ID", required = true)
+    @ApiModelProperty("题库ID")
     private Long questionBankId;
 
     @ApiModelProperty(value = "教材ID")
