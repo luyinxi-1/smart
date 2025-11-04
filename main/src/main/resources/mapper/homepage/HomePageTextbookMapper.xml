@@ -75,10 +75,7 @@
         LEFT JOIN sys_tbuser u_op ON hpt.operator = u_op.id
         LEFT JOIN teacher t_op ON u_op.id = t_op.user_id AND u_op.user_type IN (0, 2)
         LEFT JOIN student s_op ON u_op.id = s_op.user_id AND u_op.user_type = 1
-        <where>
-            <if test="promotionId != null">
-                AND hpt.id = #{promotionId}
-            </if>
-        </where>
+        WHERE hpt.id = #{promotionId}
+        LIMIT 1
     </select>
 </mapper>
