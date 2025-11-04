@@ -61,10 +61,6 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "应用素材名称不能为空");
         }
         
-        if (param.getQuestionBankId() == null) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "题库ID不能为空");
-        }
-        
         // 创建应用素材实体
         ApplicationMaterials applicationMaterials = new ApplicationMaterials();
         BeanUtils.copyProperties(param, applicationMaterials);
@@ -155,10 +151,6 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
         
         if (param.getName() == null || param.getName().trim().isEmpty()) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "应用素材名称不能为空");
-        }
-        
-        if (param.getQuestionBankId() == null) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "题库ID不能为空");
         }
         
         // 检查应用素材是否存在

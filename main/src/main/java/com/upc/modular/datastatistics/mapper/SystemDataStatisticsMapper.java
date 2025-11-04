@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-@Mapper
 public interface SystemDataStatisticsMapper {
 
     //获取某天的访问人数
@@ -128,6 +127,14 @@ public interface SystemDataStatisticsMapper {
      * @return List<Map<String, Object>>
      */
     List<Map<String, Object>> exportTeacherTextbookStatisticsOverview(@Param("userId") Long userId, @Param("textbookName") String textbookName);
+
+    /**
+     * 获取教材阅读时长排名 (分页)
+     * @param page 分页参数
+     * @param params 查询参数
+     * @return 分页结果
+     */
+    IPage<Map<String, Object>> getTextbookReadingRank(Page<Map<String, Object>> page, @Param("params") Map<String, Object> params);
 
     /**
      * 获取教材阅读人员统计 (分页)

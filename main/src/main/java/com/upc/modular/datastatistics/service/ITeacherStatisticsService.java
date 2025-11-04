@@ -23,6 +23,11 @@ public interface ITeacherStatisticsService {
     Integer countTeacherClasses(Long teacherId);
 
     /**
+     * 获取教师授课班级数量和列表
+     */
+    TeacherClassCountReturnParam getTeacherClassCountAndList(Long teacherId);
+
+    /**
      * 统计教师授课学生数量
      */
     Integer countTeacherStudents(Long teacherId);

@@ -1,5 +1,6 @@
 package com.upc.modular.datastatistics.controller.param;
 
+import com.alibaba.excel.annotation.ExcelIgnore;
 import com.alibaba.excel.annotation.ExcelProperty;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -14,7 +15,8 @@ import lombok.experimental.Accessors;
 @ApiModel(value = "TextbookStatisticsOverviewParam", description = "教材数据统计概览参数")
 public class TextbookStatisticsOverviewParam {
 
-    @ExcelProperty("教材ID")
+    @ExcelIgnore // 明确忽略此字段，不进行导出
+    //@ExcelProperty("教材ID")
     @ApiModelProperty("教材ID")
     private Long textbookId;
 
