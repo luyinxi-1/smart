@@ -475,26 +475,13 @@ public SystemAllCountsDto getAllCounts(String dateStr) { // 1. 修改返回类�
         // 处理时间参数
         processTimeParams(params);
         
-        // 获取所有数据
-        List<Map<String, Object>> allData = systemDataStatisticsMapper.getTextbookReadingRank(params);
+        // 创建MyBatis-Plus的Page对象
+        Page<Map<String, Object>> page = new Page<>(pageParam.getCurrent(), pageParam.getSize());
         
-        // 手动分页
-        long total = allData.size();
-        long current = pageParam.getCurrent();
-        long size = pageParam.getSize();
+        // 调用Mapper进行分页查询
+        IPage<Map<String, Object>> resultPage = systemDataStatisticsMapper.getTextbookReadingRank(page, params);
         
-        long fromIndex = (current - 1) * size;
-        if (fromIndex >= total) {
-            return PageBaseReturnParam.ok(new Page<>(current, size, 0));
-        }
-        
-        long toIndex = Math.min(fromIndex + size, total);
-        List<Map<String, Object>> pageData = allData.subList((int) fromIndex, (int) toIndex);
-        
-        Page<Map<String, Object>> page = new Page<>(current, size, total);
-        page.setRecords(pageData);
-        
-        return PageBaseReturnParam.ok(page);
+        return PageBaseReturnParam.ok(resultPage);
     }
 
     @Override

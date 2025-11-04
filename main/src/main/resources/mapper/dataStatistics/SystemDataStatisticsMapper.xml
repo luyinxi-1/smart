@@ -270,95 +270,114 @@
         ]]>
 </select>
     <!-- 教材阅读排名（按时长统计，支持时间范围查询） -->
-    <select id="getTextbookReadingRank" parameterType="map" resultType="map">
-        <![CDATA[
-    SELECT
+    <select id="getTextbookReadingRank" resultType="map">
+        SELECT
         t.id AS textbookId,
         t.textbook_name AS textbookName,
-        COUNT(CASE
-            WHEN (EXTRACT(EPOCH FROM l2.add_datetime::timestamp) - EXTRACT(EPOCH FROM l1.add_datetime::timestamp)) BETWEEN 55 AND 65
-            THEN 1
-            ELSE NULL
-        END) AS readingDuration
-    FROM textbook t
-    LEFT JOIN learning_log l1 ON t.id = l1.textbook_id
-    LEFT JOIN learning_log l2 ON l1.creator = l2.creator
-        AND l1.textbook_id = l2.textbook_id
-        AND l2.add_datetime > l1.add_datetime
-        AND l2.id = (
-            SELECT id FROM learning_log
-            WHERE creator = l1.creator
-              AND textbook_id = l1.textbook_id
-              AND add_datetime > l1.add_datetime
-            ORDER BY add_datetime ASC
-            LIMIT 1
-        )
-  ]]>
+        -- 如果左连接的结果为NULL（即没有学习记录），则使用COALESCE函数将时长置为0
+        COALESCE(calculated_durations.readingDuration, 0) AS readingDuration
+        FROM
+        textbook t
+        LEFT JOIN (
+        -- 步骤1: 这个子查询预先计算出每个教材的总阅读时长
+        SELECT
+        log_with_next_time.textbook_id,
+        SUM(
+        CASE
+        -- 计算有效阅读时长（每次计1分钟）
+        WHEN (EXTRACT(EPOCH FROM log_with_next_time.next_add_datetime) - EXTRACT(EPOCH FROM log_with_next_time.add_datetime)) BETWEEN 55 AND 65
+        THEN 1
+        ELSE 0
+        END
+        ) AS readingDuration
+        FROM (
+        -- 步骤2: 使用窗口函数获取下一条学习记录的时间
+        SELECT
+        textbook_id,
+        creator,
+        add_datetime,
+        LEAD(add_datetime, 1) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime) AS next_add_datetime
+        FROM
+        learning_log
         <where>
-            t.release_status = '1'
-            <if test="startTime != null and startTime != ''">
-                <![CDATA[
-        AND l1.add_datetime >= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
-      ]]>
+            <!-- 时间过滤条件放在最内层，尽早减少数据量 -->
+            <if test="params.startTime != null and params.startTime != ''">
+                AND add_datetime >= TO_TIMESTAMP(#{params.startTime}, 'YYYY-MM-DD HH24:MI:SS')
             </if>
-            <if test="endTime != null and endTime != ''">
-                <![CDATA[
-        AND l1.add_datetime <= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
-      ]]>
+            <if test="params.endTime != null and params.endTime != ''">
+                AND add_datetime &lt;= TO_TIMESTAMP(#{params.endTime}, 'YYYY-MM-DD HH24:MI:SS')
             </if>
         </where>
-        <![CDATA[
-    GROUP BY t.id, t.textbook_name
-    ORDER BY readingDuration DESC
-  ]]>
+        ) AS log_with_next_time
+        GROUP BY
+        log_with_next_time.textbook_id
+        ) AS calculated_durations ON t.id = calculated_durations.textbook_id
+        WHERE
+        -- 保证只统计已发布的教材
+        t.release_status = '1'
+        ORDER BY
+        readingDuration DESC
     </select>
 
     <!-- 类型阅读排名（按时长统计，支持时间范围查询） -->
-    <select id="getTextbookTypeReadingRank" parameterType="map" resultType="map">
-        <![CDATA[
-    SELECT
+    <select id="getTextbookTypeReadingRank" resultType="map">
+        SELECT
         tc.classification_name AS typeName,
-        COUNT(CASE
-            WHEN (EXTRACT(EPOCH FROM l2.add_datetime::timestamp) - EXTRACT(EPOCH FROM l1.add_datetime::timestamp)) BETWEEN 55 AND 65
-            THEN 1
-            ELSE NULL
-        END) AS readingDuration
-    FROM textbook t
-    LEFT JOIN textbook_classification tc ON t.classification = tc.id
-    LEFT JOIN learning_log l1 ON t.id = l1.textbook_id
-    LEFT JOIN learning_log l2 ON l1.creator = l2.creator
-        AND l1.textbook_id = l2.textbook_id
-        AND l2.add_datetime > l1.add_datetime
-        AND l2.id = (
-            SELECT id FROM learning_log
-            WHERE creator = l1.creator
-              AND textbook_id = l1.textbook_id
-              AND add_datetime > l1.add_datetime
-            ORDER BY add_datetime ASC
-            LIMIT 1
-        )
-  ]]>
+        -- 使用COALESCE确保没有阅读记录的类型也显示为0
+        COALESCE(SUM(calculated_durations.readingDuration), 0) AS readingDuration
+        FROM
+        textbook_classification tc
+        LEFT JOIN (
+        -- 步骤1: 关联教材表，为后续按类型分组做准备
+        SELECT
+        t.classification,
+        calculated_log.readingDuration
+        FROM
+        textbook t
+        JOIN (
+        -- 步骤2: 预先计算出每个教材的总阅读时长
+        SELECT
+        log_with_next_time.textbook_id,
+        SUM(
+        CASE
+        WHEN (EXTRACT(EPOCH FROM log_with_next_time.next_add_datetime) - EXTRACT(EPOCH FROM log_with_next_time.add_datetime)) BETWEEN 55 AND 65
+        THEN 1
+        ELSE 0
+        END
+        ) AS readingDuration
+        FROM (
+        -- 步骤3: 使用窗口函数获取下一条学习记录的时间
+        SELECT
+        textbook_id,
+        creator,
+        add_datetime,
+        LEAD(add_datetime, 1) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime) AS next_add_datetime
+        FROM
+        learning_log
         <where>
-            t.release_status = '1'
+            <!-- 时间过滤条件放在最内层 -->
             <if test="startTime != null and startTime != ''">
-                <![CDATA[
-        AND l1.add_datetime >= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
-      ]]>
+                AND add_datetime >= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
             </if>
             <if test="endTime != null and endTime != ''">
-                <![CDATA[
-        AND l1.add_datetime <= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
-      ]]>
+                AND add_datetime &lt;= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
             </if>
         </where>
-        <![CDATA[
-    GROUP BY tc.classification_name
-    ORDER BY readingDuration DESC
-  ]]>
+        ) AS log_with_next_time
+        GROUP BY
+        log_with_next_time.textbook_id
+        ) AS calculated_log ON t.id = calculated_log.textbook_id
+        WHERE
+        t.release_status = '1'
+        ) AS calculated_durations ON tc.id = calculated_durations.classification
+        GROUP BY
+        tc.classification_name
+        ORDER BY
+        readingDuration DESC
     </select>
     <!-- 获取指定学生在某教材下各章节的掌握度 -->
     <select id="getStudentChapterMastery" resultType="map">
-  <![CDATA[
+    <![CDATA[
         SELECT
             tc.id AS "chapterId",
             REGEXP_REPLACE(
@@ -374,26 +393,28 @@
                 END AS "masteryPercentage",
             COUNT(qbl.question_id) AS "questionCount"
         FROM textbook_catalog tc
-                 LEFT JOIN teaching_question_bank tqb ON tc.id = tqb.textbook_catalog_id
-                 LEFT JOIN questions_banks_list qbl ON tqb.id = qbl.bank_id
-                 LEFT JOIN student_final_grade sfg
-                           ON tqb.id = sfg.bank_id AND sfg.student_id = #{studentId}
-                 LEFT JOIN student_exercises_content sec
-                           ON qbl.bank_id = sec.teaching_question_bank_id
-                               AND qbl.question_id = sec.teaching_question
-                               AND sec.record_id = (
-                                   SELECT ser.id
-                                   FROM student_exercises_record ser
-                                   WHERE ser.student_id = #{studentId}
-                                     AND ser.teaching_question_bank_id = tqb.id
-                                     AND ser.status = 2
-                                   ORDER BY ser.operation_datetime DESC
+        LEFT JOIN teaching_question_bank tqb ON tc.id = tqb.textbook_catalog_id
+        LEFT JOIN questions_banks_list qbl ON tqb.id = qbl.bank_id
+        LEFT JOIN student_final_grade sfg
+            ON tqb.id = sfg.bank_id AND sfg.student_id = #{studentId}
+        -- Using LATERAL JOIN to efficiently get the latest exercise record for the student in the specific question bank
+        LEFT JOIN LATERAL (
+            SELECT ser.id
+            FROM student_exercises_record ser
+            WHERE ser.student_id = #{studentId}
+              AND ser.teaching_question_bank_id = tqb.id
+              AND ser.status = 2
+            ORDER BY ser.operation_datetime DESC
             LIMIT 1
-            )
+        ) latest_record ON true
+        LEFT JOIN student_exercises_content sec
+            ON qbl.bank_id = sec.teaching_question_bank_id
+            AND qbl.question_id = sec.teaching_question
+            AND sec.record_id = latest_record.id
         WHERE tc.textbook_id = #{textbookId}
         GROUP BY tc.id, tc.catalog_name
         ORDER BY tc.id
-        ]]>
+    ]]>
     </select>
     <select id="countPublishedTextbookByType" resultType="com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto">
         SELECT
