@@ -111,7 +111,7 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
         SysTbuser currentUser = sysTbuserService.getById(userId);
         boolean isAdmin = currentUser != null && currentUser.getUserType() != null && currentUser.getUserType() == 0;
 
-        Page<DiscussionTopic> page = new Page<>(param.getCurrent(), param.getSize());
+        // 先查询所有符合条件的数据，后续再进行权限过滤和分页
         QueryWrapper<DiscussionTopic> queryWrapper = new QueryWrapper<>();
 
         // 处理教材名称和分类筛选
@@ -203,20 +203,23 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
                 break;
         }
 
-
-        IPage<DiscussionTopic> topicPage = this.page(page, queryWrapper);
+        // 查询所有符合条件的数据
+        List<DiscussionTopic> allTopics = this.list(queryWrapper);
 
         // 权限过滤：只返回用户有权限查看的教学活动
-        List<DiscussionTopic> filteredTopics = topicPage.getRecords().stream()
+        List<DiscussionTopic> filteredTopics = allTopics.stream()
             .filter(topic -> {
                 // 如果是管理员，直接返回true，不过滤
                 if (isAdmin) {
                     return true;
                 }
                 
-                // 1. 如果用户是该教学活动的创建人，则有权限查看
-                if (topic.getCreator() != null && topic.getCreator().equals(userId)) {
-                    return true;
+                // 1. 如果用户是该教学活动关联的教材的创建人，则有权限查看
+                if (topic.getTextbookId() != null) {
+                    Textbook textbook = textbookService.getById(topic.getTextbookId());
+                    if (textbook != null && textbook.getCreator() != null && textbook.getCreator().equals(userId)) {
+                        return true;
+                    }
                 }
                 
                 // 2. 检查用户是否是教材的协作者
@@ -245,12 +248,18 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
             })
             .collect(Collectors.toList());
 
-        if (filteredTopics.isEmpty()) {
-            return new Page<>(param.getCurrent(), param.getSize(), 0);
+        // 分页处理
+        int total = filteredTopics.size();
+        int fromIndex = (int) ((param.getCurrent() - 1) * param.getSize());
+        int toIndex = Math.min(fromIndex + param.getSize().intValue(), total);
+        
+        List<DiscussionTopic> pagedTopics = new ArrayList<>();
+        if (fromIndex < total) {
+            pagedTopics = filteredTopics.subList(fromIndex, toIndex);
         }
 
         // 数据转换
-        List<DiscussionTopicReturnParam> returnList = filteredTopics.stream()
+        List<DiscussionTopicReturnParam> returnList = pagedTopics.stream()
             .map(discussionTopic -> {
                 DiscussionTopicReturnParam returnParam = new DiscussionTopicReturnParam();
 
@@ -289,8 +298,8 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
             })
             .collect(Collectors.toList());
 
-        // 构建并返回最终的分页结果，注意total应该是过滤后的数量
-        Page<DiscussionTopicReturnParam> resultPage = new Page<>(topicPage.getCurrent(), topicPage.getSize(), filteredTopics.size());
+        // 构建并返回最终的分页结果
+        Page<DiscussionTopicReturnParam> resultPage = new Page<>(param.getCurrent(), param.getSize(), total);
         resultPage.setRecords(returnList);
         return resultPage;
     }
