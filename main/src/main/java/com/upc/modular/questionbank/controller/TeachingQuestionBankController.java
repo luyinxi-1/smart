@@ -8,6 +8,7 @@ import com.upc.common.responseparam.R;
 import com.upc.common.utils.UserUtils;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.questionbank.controller.param.*;
+import com.upc.modular.questionbank.controller.param.BatchQuestionBankUpdateRequestDto;
 import com.upc.modular.questionbank.entity.QuestionsBanksList;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.upc.modular.questionbank.entity.TeachingQuestionBank;
@@ -66,14 +67,22 @@ public class TeachingQuestionBankController {
 
 
 @ApiOperation("批量更新题库信息")
-@PostMapping("/updateQuestionBankBatch/{textbookId}")
-public R<List<Long>> updateQuestionBankBatch(@PathVariable Long textbookId, @RequestBody List<TeachingQuestionBank> teachingQuestionBanks) {
-    // 为每个题库设置教材ID
-    for (TeachingQuestionBank bank : teachingQuestionBanks) {
-        bank.setTextbookId(textbookId);
+@PostMapping("/updateQuestionBankBatch")
+public R<List<Long>> updateQuestionBankBatch(@RequestBody BatchQuestionBankUpdateRequestDto request) {
+    List<TeachingQuestionBank> teachingQuestionBanks = request.getTeachingQuestionBankList();
+    List<Long> chapterIds = request.getCatalogList();
+
+    // 从第一个元素中提取教材ID（从第一个元素获取）
+    Long textbookId = null;
+    if (teachingQuestionBanks != null && !teachingQuestionBanks.isEmpty()) {
+        textbookId = teachingQuestionBanks.get(0).getTextbookId();
+        // 为每个题库设置教材ID
+        for (TeachingQuestionBank bank : teachingQuestionBanks) {
+            bank.setTextbookId(textbookId);
+        }
     }
-    
-    List<Long> updatedIds = teachingQuestionBankService.updateQuestionBankBatch(teachingQuestionBanks);
+
+    List<Long> updatedIds = teachingQuestionBankService.updateQuestionBankBatchByChapters(textbookId, chapterIds, teachingQuestionBanks);
     return R.commonReturn(200, "批量修改成功", updatedIds);
 }
 

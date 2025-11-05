@@ -29,17 +29,20 @@ public interface ITeachingQuestionBankService extends IService<TeachingQuestionB
     /**
      * 批量更新题库信息
      *
-     * @param teachingQuestionBanks 待更新的题库实体列表
-     */
-    //void updateQuestionBankBatch(List<TeachingQuestionBank> teachingQuestionBanks);
-
-    /**
-     * 批量更新题库信息
-     *
      * @param teachingQuestionBanks 待更新的题库列表
      * @return 成功更新的题库ID列表
      */
     List<Long> updateQuestionBankBatch(List<TeachingQuestionBank> teachingQuestionBanks);
+    
+    /**
+     * 根据章节ID列表批量更新题库信息
+     * 
+     * @param textbookId 教材ID
+     * @param chapterIds 章节ID列表
+     * @param teachingQuestionBanks 待更新的题库列表
+     * @return 成功更新的题库ID列表
+     */
+    List<Long> updateQuestionBankBatchByChapters(Long textbookId, List<Long> chapterIds, List<TeachingQuestionBank> teachingQuestionBanks);
 
     List<QuestionBankWithStatusVO> getQuestionBanksWithStatusForTextbook(QuestionBankWithStatusSearchParam param);
 
