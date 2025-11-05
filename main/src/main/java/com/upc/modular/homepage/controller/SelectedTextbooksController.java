@@ -60,7 +60,9 @@ public class SelectedTextbooksController {
     @ApiOperation(value = "查看详情")
     @PostMapping("/getHomePageTextbookDetails")
     public R<HomePageTextbookReturnParam> getHomePagePromotionDetails(@RequestParam("promotionId") Long promotionId) {
-        return R.ok(homePageTextbooknService.getHomePageTextbookDetails(promotionId));
+        HomePageTextbookReturnParam homePageTextbook = homePageTextbooknService.getHomePageTextbookDetails(promotionId);
+        return R.ok(homePageTextbook);
+//        return R.ok(homePageTextbooknService.getHomePageTextbookDetails(promotionId));
     }
 
     @ApiOperation(value = "清空式的更新操作")
