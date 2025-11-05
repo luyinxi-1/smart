@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessException;
+import com.upc.modular.materials.controller.param.dto.BatchMappingRequestDto;
 import com.upc.modular.materials.controller.param.dto.MaterialsTextbookMappingDto;
 import com.upc.modular.materials.controller.param.dto.MaterialsTextbookMappingPageSearchParam;
 import com.upc.modular.materials.controller.param.vo.MaterialsTextbookMappingReturnParam;
@@ -51,15 +52,21 @@ public class MaterialsTextbookMappingController {
         return R.fail("添加失败");
     }
     @ApiOperation(value = "批量添加教材与素材的关联")
-    @PostMapping("/insert-mapping-batch/{textbookId}")
-    public R insertMappingBatch(@PathVariable Long textbookId, @Valid @RequestBody List<MaterialsTextbookMappingDto> mappings) {
-        // 为每个mapping设置教材ID
-        for (MaterialsTextbookMappingDto mapping : mappings) {
-            mapping.setTextbookId(textbookId);
+    @PostMapping("/insert-mapping-batch")
+    public R insertMappingBatch(@Valid @RequestBody BatchMappingRequestDto request) {
+        // 从name1中提取教材ID（从第一个元素获取）
+        Long textbookId = null;
+        List<MaterialsTextbookMappingDto> mappings = request.getTextbookMaterialsList();
+        if (mappings != null && !mappings.isEmpty()) {
+            textbookId = mappings.get(0).getTextbookId();
+            // 为每个mapping设置教材ID
+            for (MaterialsTextbookMappingDto mapping : mappings) {
+                mapping.setTextbookId(textbookId);
+            }
         }
-        
+
         try {
-            List<Long> newIds = materialsTextbookMappingService.insertMappingBatch(mappings);
+            List<Long> newIds = materialsTextbookMappingService.insertMappingBatchByChapters(textbookId, request.getChapterList(), mappings);
             return R.commonReturn(200, "批量添加成功", newIds);
         } catch (BusinessException e) {
             return R.fail(e.getMessage());

@@ -216,6 +216,132 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
         List<MaterialsTextbookMapping> conflictingBindings = this.list(conflictCheckWrapper);
         if (!conflictingBindings.isEmpty()) {
             String existingDetails = conflictingBindings.stream()
+                    .map(e -> String.format("素材ID:%d，已被教材ID:%d，章节:'%s'，章节ID：'%d'绑定", e.getMaterialId(), e.getTextbookId(), e.getChapterName(), e.getChapterId()))
+                    .collect(Collectors.joining("; "));
+
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "操作失败，部分素材已绑定到本书的其他章节: " + existingDetails);
+        }
+        // 5. 【执行新增】
+        // 数据转换与批量插入
+        List<MaterialsTextbookMapping> entitiesToInsert = mappings.stream().map(dto -> {
+            MaterialsTextbookMapping entity = new MaterialsTextbookMapping();
+            entity.setTextbookId(dto.getTextbookId());
+            entity.setMaterialId(dto.getMaterialId());
+            entity.setChapterName(dto.getChapterName());
+            entity.setChapterId(dto.getChapterId()); // 此处 chapterId 已被正确填充
+            return entity;
+        }).collect(Collectors.toList());
+
+        if (!entitiesToInsert.isEmpty()) {
+            this.saveBatch(entitiesToInsert);
+        }
+
+        // 6. 返回新生成的ID列表
+        return entitiesToInsert.stream()
+                .map(MaterialsTextbookMapping::getId)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public List<Long> insertMappingBatchByChapters(Long textbookId, List<Long> chapterIds, List<MaterialsTextbookMappingDto> mappings) {
+        // 1. 基本参数校验
+        if (CollectionUtils.isEmpty(mappings)) {
+            return Collections.emptyList();
+        }
+
+        if (textbookId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材ID不能为空");
+        }
+        
+        if (CollectionUtils.isEmpty(chapterIds)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "章节ID列表不能为空");
+        }
+
+        // 1.5 如果传入了 chapterUuid，则通过它查询并填充 chapterId
+        // 筛选出所有需要通过 UUID 解析 chapterId 的 DTO
+        List<String> uuidsToResolve = mappings.stream()
+                .filter(dto -> dto.getChapterId() == null && dto.getChapterUuid() != null && !dto.getChapterUuid().trim().isEmpty())
+                .map(MaterialsTextbookMappingDto::getChapterUuid)
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (!CollectionUtils.isEmpty(uuidsToResolve)) {
+            // 批量查询对应的章节目录信息
+            List<TextbookCatalog> catalogs = textbookCatalogMapper.selectList(
+                    new LambdaQueryWrapper<TextbookCatalog>()
+                            .in(TextbookCatalog::getCatalogUuid, uuidsToResolve)
+            );
+            // 创建一个 UUID -> ID 的映射，方便快速查找
+            Map<String, Long> uuidToIdMap = catalogs.stream()
+                    .collect(Collectors.toMap(TextbookCatalog::getCatalogUuid, TextbookCatalog::getId));
+            // 检查是否有UUID未找到对应的目录
+            if (uuidToIdMap.size() != uuidsToResolve.size()) {
+                String notFoundUuids = uuidsToResolve.stream()
+                        .filter(uuid -> !uuidToIdMap.containsKey(uuid))
+                        .collect(Collectors.joining(", "));
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR,
+                        "以下章节UUID无效或不存在: " + notFoundUuids);
+            }
+            // 回填 chapterId到DTO中
+            for (MaterialsTextbookMappingDto dto : mappings) {
+                if (dto.getChapterId() == null && dto.getChapterUuid() != null) {
+                    Long resolvedId = uuidToIdMap.get(dto.getChapterUuid());
+                    if (resolvedId == null) {
+                        // 兜底校验，理论上不会进入此分支
+                        throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR,
+                                "未能找到章节UUID: " + dto.getChapterUuid() + " 对应的章节ID");
+                    }
+                    dto.setChapterId(resolvedId);
+                }
+            }
+        }
+        // 2. 【前置校验】
+        // 2.1 检查请求列表内部是否存在重复的素材ID
+        Set<Long> uniqueMaterialIdsInRequest = new HashSet<>();
+        for (MaterialsTextbookMappingDto dto : mappings) {
+            if (dto.getMaterialId() == null) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "请求参数中存在空的素材ID");
+            }
+            if (!uniqueMaterialIdsInRequest.add(dto.getMaterialId())) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR,
+                        "请求参数中存在重复的素材ID: " + dto.getMaterialId());
+            }
+        }
+
+        // 2.2 【完整校验】批量校验所有涉及的教材ID是否存在
+        Set<Long> textbookIds = mappings.stream().map(MaterialsTextbookMappingDto::getTextbookId).collect(Collectors.toSet());
+        // 添加当前教材ID确保在校验范围内
+        textbookIds.add(textbookId);
+        if (!textbookIds.isEmpty()) {
+            long existingTextbookCount = textbookMapper.selectCount(new LambdaQueryWrapper<Textbook>().in(Textbook::getId, textbookIds));
+            if (existingTextbookCount != textbookIds.size()) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "部分教材ID不存在，请检查后重试！");
+            }
+        }
+        // 2.3 【完整校验】批量校验所有涉及的素材ID是否存在
+        Set<Long> materialIds = mappings.stream().map(MaterialsTextbookMappingDto::getMaterialId).collect(Collectors.toSet());
+        if (!materialIds.isEmpty()) {
+            long existingMaterialCount = teachingMaterialsMapper.selectCount(new LambdaQueryWrapper<TeachingMaterials>().in(TeachingMaterials::getId, materialIds));
+            if (existingMaterialCount != materialIds.size()) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "部分素材ID不存在，请检查后重试！");
+            }
+        }
+
+        // 3. 【执行删除】
+        // 删除该教材下指定章节的旧绑定关系
+        this.remove(new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                .eq(MaterialsTextbookMapping::getTextbookId, textbookId)
+                .in(MaterialsTextbookMapping::getChapterId, chapterIds));
+
+        // 4. 【最终唯一性校验】
+        // 检查 material_id
+        LambdaQueryWrapper<MaterialsTextbookMapping> conflictCheckWrapper = new LambdaQueryWrapper<>();
+        conflictCheckWrapper.in(MaterialsTextbookMapping::getMaterialId, uniqueMaterialIdsInRequest);
+
+        List<MaterialsTextbookMapping> conflictingBindings = this.list(conflictCheckWrapper);
+        if (!conflictingBindings.isEmpty()) {
+            String existingDetails = conflictingBindings.stream()
                     .map(e -> String.format("素材ID:%d，已被教材ID:%d，章节'%s'，章节ID：%d绑定", e.getMaterialId(), e.getTextbookId(), e.getChapterName(), e.getChapterId()))
                     .collect(Collectors.joining("; "));
 
@@ -241,6 +367,7 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
                 .map(MaterialsTextbookMapping::getId)
                 .collect(Collectors.toList());
     }
+
     @Override
     public Page<MaterialsTextbookMappingReturnParam> getPage(MaterialsTextbookMappingPageSearchParam param) {
         if (ObjectUtils.isEmpty(param) || ObjectUtils.isEmpty(param.getTextbookId()))

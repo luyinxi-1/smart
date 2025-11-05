@@ -29,6 +29,17 @@ public interface IMaterialsTextbookMappingService extends IService<MaterialsText
      * @return 新增映射记录的ID列表
      */
     List<Long> insertMappingBatch(List<MaterialsTextbookMappingDto> mappings);
+    
+    /**
+     * 根据章节ID列表批量添加教材与素材的关联
+     * 
+     * @param textbookId 教材ID
+     * @param chapterIds 章节ID列表
+     * @param mappings 映射关系列表
+     * @return 新增映射记录的ID列表
+     */
+    List<Long> insertMappingBatchByChapters(Long textbookId, List<Long> chapterIds, List<MaterialsTextbookMappingDto> mappings);
+
     Page<MaterialsTextbookMappingReturnParam> getPage(MaterialsTextbookMappingPageSearchParam param);
 
     TeachingMaterialsReturnVo getMaterialsByMappingId(Long id);
