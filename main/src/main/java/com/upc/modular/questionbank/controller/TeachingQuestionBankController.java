@@ -24,6 +24,8 @@ import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionBankWithCreatorReturnParam;
+
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -71,6 +73,25 @@ public class TeachingQuestionBankController {
 public R<List<Long>> updateQuestionBankBatch(@RequestBody BatchQuestionBankUpdateRequestDto request) {
     List<TeachingQuestionBank> teachingQuestionBanks = request.getTeachingQuestionBankList();
     List<Long> chapterIds = request.getCatalogList();
+
+    // 当teachingQuestionBankList为空但catalogList不为空时，直接删除指定章节和题库的绑定关系
+    if ((teachingQuestionBanks == null || teachingQuestionBanks.isEmpty()) && chapterIds != null && !chapterIds.isEmpty()) {
+        // 从章节ID中获取教材ID
+        Long textbookId = null;
+        // 如果没有提供textbookId，则通过ChapterId查询textbook_id
+        if (textbookId == null && !chapterIds.isEmpty()) {
+            // 从ChapterList中获取第一个章节ID来查询教材ID
+            Long chapterId = chapterIds.get(0);
+            textbookId = teachingQuestionBankService.getTextbookIdByChapterId(chapterId);
+            if (textbookId == null) {
+                return R.fail("无法找到章节对应的教材信息");
+            }
+        }
+        
+        // 删除指定章节绑定的题库
+        teachingQuestionBankService.removeQuestionBankBindingsByChapterIds(textbookId, chapterIds);
+        return R.commonReturn(200, "删除成功", new ArrayList<>());
+    }
 
     // 从第一个元素中提取教材ID（从第一个元素获取）
     Long textbookId = null;
