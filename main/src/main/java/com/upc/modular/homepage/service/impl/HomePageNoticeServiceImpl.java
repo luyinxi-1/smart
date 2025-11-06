@@ -140,24 +140,14 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
         for (HomePageNoticeClassListParam homePageNoticeParam : homePageNoticeList) {
             // 1. 插入 HomePageNotice 数据到 home_page_notice 表
             HomePageNotice homePageNotice = new HomePageNotice();
-            BeanUtils.copyProperties(homePageNotice, homePageNoticeParam);
+            BeanUtils.copyProperties(homePageNoticeParam,homePageNotice);
             this.save(homePageNotice);
             Long noticeId = homePageNotice.getId();
 
             // 2. 根据type和scope_type确定通知范围并获取学生ID列表
             Set<Long> studentUserIdSet = new HashSet<>();
 
-            // ########系统通知#########
-            if (SYSTEM_NOTICE.equals(homePageNotice.getType())) { // SYSTEM_NOTICE 系统配置
-                    // 通知所有学生用户
-                    List<Student> allStudents = studentMapper.selectList(new LambdaQueryWrapper<Student>());
-                    List<Long> allStudentUserIds = allStudents.stream()
-                            .map(Student::getUserId)
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.toList());
-                    studentUserIdSet.addAll(allStudentUserIds);
-            //#####教师通知#####
-            } else if (TEACHER_NOTICE.equals(homePageNotice.getType())) { // TEACHER_NOTICE 教师配置
+            if (TEACHER_NOTICE.equals(homePageNotice.getType())) { // TEACHER_NOTICE 教师配置
                 // 获取当前教师ID（从上下文获取）
                 Long teacherUserId = UserUtils.get().getId();
 
@@ -287,23 +277,25 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
         
         Page<HomePageNoticeReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
         Page<HomePageNoticeReturnParam> resultPage;
-        
-        // 根据用户类型执行不同的查询逻辑
-        if (userType != null && userType == 0) {
-            // 管理员 - 可以查看所有通知，直接使用原始查询逻辑
+
+        // 根据通知类型执行不同的查询逻辑
+        if (param.getType() != null && SYSTEM_NOTICE.equals(param.getType())) {
+            // 系统通知 - 所有用户都可以查看所有系统通知
             resultPage = homePageNoticeMapper.selectNoticePageWithNames(page, param);
-        } else if (userType != null && userType == 2) {
-            // 教师 - 需要根据通知类型和创建者进行过滤
-            // 对于教师，如果是教师通知，只查询自己创建的；如果是系统通知，查询所有系统通知
-            if (param.getType() != null && TEACHER_NOTICE.equals(param.getType())) {
-                // 教师通知，只查询当前教师创建的
+        } else if (param.getType() != null && TEACHER_NOTICE.equals(param.getType())) {
+            // 教师通知 - 需要根据用户类型和创建者进行过滤
+            if (userType != null && userType == 0) {
+                // 管理员 - 可以查看所有教师通知
+                resultPage = homePageNoticeMapper.selectNoticePageWithNames(page, param);
+            } else if (userType != null && userType == 2) {
+                // 教师 - 只查询自己创建的
                 resultPage = homePageNoticeMapper.selectNoticePageWithNamesAndCreator(page, param, userId);
             } else {
-                // 系统通知或其他情况，查询所有
+                // 学生或其他用户类型，使用原始查询逻辑，但后续需要筛选
                 resultPage = homePageNoticeMapper.selectNoticePageWithNames(page, param);
             }
         } else {
-            // 学生或其他用户类型，使用原始查询逻辑，但后续需要筛选
+            // 未指定类型或其他情况，使用原始查询逻辑
             resultPage = homePageNoticeMapper.selectNoticePageWithNames(page, param);
         }
     
