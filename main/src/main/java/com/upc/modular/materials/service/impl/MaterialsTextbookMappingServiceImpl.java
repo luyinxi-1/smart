@@ -416,24 +416,30 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
 
         return materialsReturnVo;
     }
+    
+    @Override
+    public void removeMappingsByChapterIds(Long textbookId, List<Long> chapterIds) {
+        if (textbookId == null || CollectionUtils.isEmpty(chapterIds)) {
+            return;
+        }
+        
+        this.remove(new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                .eq(MaterialsTextbookMapping::getTextbookId, textbookId)
+                .in(MaterialsTextbookMapping::getChapterId, chapterIds));
+    }
+    
+    @Override
+    public Long getTextbookIdByChapterId(Long chapterId) {
+        if (chapterId == null) {
+            return null;
+        }
+        
+        LambdaQueryWrapper<MaterialsTextbookMapping> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(MaterialsTextbookMapping::getChapterId, chapterId)
+                .select(MaterialsTextbookMapping::getTextbookId)
+                .last("LIMIT 1");
+        
+        MaterialsTextbookMapping mapping = this.getOne(queryWrapper);
+        return mapping != null ? mapping.getTextbookId() : null;
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
