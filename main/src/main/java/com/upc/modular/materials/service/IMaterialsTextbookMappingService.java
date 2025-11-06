@@ -9,6 +9,7 @@ import com.upc.modular.materials.entity.MaterialsTextbookMapping;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.materials.controller.param.dto.MaterialsTextbookMappingDto;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -21,15 +22,27 @@ import java.util.List;
  */
 public interface IMaterialsTextbookMappingService extends IService<MaterialsTextbookMapping> {
 
-    Long insertMapping(Long textbookId, Long materialId, String chapterName, Long chapterId, String chapterUuid);
-    /**
-     * 批量添加多条独立的教材与素材的映射关系
-     *
-     * @param mappings 包含多个映射关系信息的DTO列表
-     * @return 新增映射记录的ID列表
-     */
-    List<Long> insertMappingBatch(List<MaterialsTextbookMappingDto> mappings);
     Page<MaterialsTextbookMappingReturnParam> getPage(MaterialsTextbookMappingPageSearchParam param);
 
+    Long insertMapping(Long textbookId, Long materialId, String chapterName, Long chapterId, String chapterUuid);
+
+    List<Long> insertMappingBatch(List<MaterialsTextbookMappingDto> mappings);
+    
+    List<Long> insertMappingBatchByChapters(Long textbookId, List<Long> chapterIds, List<MaterialsTextbookMappingDto> mappings);
+
     TeachingMaterialsReturnVo getMaterialsByMappingId(Long id);
+    
+    /**
+     * 根据章节ID列表删除教材与素材的绑定关系
+     * @param textbookId 教材ID
+     * @param chapterIds 章节ID列表
+     */
+    void removeMappingsByChapterIds(Long textbookId, List<Long> chapterIds);
+    
+    /**
+     * 根据章节ID获取教材ID
+     * @param chapterId 章节ID
+     * @return 教材ID
+     */
+    Long getTextbookIdByChapterId(Long chapterId);
 }

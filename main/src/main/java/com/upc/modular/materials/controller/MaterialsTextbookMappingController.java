@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessException;
+import com.upc.modular.materials.controller.param.dto.BatchMappingRequestDto;
 import com.upc.modular.materials.controller.param.dto.MaterialsTextbookMappingDto;
 import com.upc.modular.materials.controller.param.dto.MaterialsTextbookMappingPageSearchParam;
 import com.upc.modular.materials.controller.param.vo.MaterialsTextbookMappingReturnParam;
@@ -16,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -51,15 +53,37 @@ public class MaterialsTextbookMappingController {
         return R.fail("添加失败");
     }
     @ApiOperation(value = "批量添加教材与素材的关联")
-    @PostMapping("/insert-mapping-batch/{textbookId}")
-    public R insertMappingBatch(@PathVariable Long textbookId, @Valid @RequestBody List<MaterialsTextbookMappingDto> mappings) {
-        // 为每个mapping设置教材ID
-        for (MaterialsTextbookMappingDto mapping : mappings) {
-            mapping.setTextbookId(textbookId);
+    @PostMapping("/insert-mapping-batch")
+    public R insertMappingBatch(@Valid @RequestBody BatchMappingRequestDto request) {
+        // 从name1中提取教材ID（从第一个元素获取）
+        Long textbookId = null;
+        List<MaterialsTextbookMappingDto> mappings = request.getTextbookMaterialsList();
+        if (mappings != null && !mappings.isEmpty()) {
+            textbookId = mappings.get(0).getTextbookId();
+            // 为每个mapping设置教材ID
+            for (MaterialsTextbookMappingDto mapping : mappings) {
+                mapping.setTextbookId(textbookId);
+            }
         }
-        
+
         try {
-            List<Long> newIds = materialsTextbookMappingService.insertMappingBatch(mappings);
+            // 当TextbookMaterialsList为空但ChapterList不为空时，删除指定章节绑定的教学素材
+            if ((mappings == null || mappings.isEmpty()) && request.getChapterList() != null && !request.getChapterList().isEmpty()) {
+                // 如果没有提供textbookId，则通过ChapterId查询textbook_id
+                if (textbookId == null) {
+                    // 从ChapterList中获取第一个章节ID来查询教材ID
+                    Long chapterId = request.getChapterList().get(0);
+                    textbookId = materialsTextbookMappingService.getTextbookIdByChapterId(chapterId);
+                    if (textbookId == null) {
+                        return R.fail("无法找到章节对应的教材信息");
+                    }
+                }
+                // 删除指定章节绑定的教学素材
+                materialsTextbookMappingService.removeMappingsByChapterIds(textbookId, request.getChapterList());
+                return R.commonReturn(200, "删除成功", new ArrayList<>());
+            }
+            
+            List<Long> newIds = materialsTextbookMappingService.insertMappingBatchByChapters(textbookId, request.getChapterList(), mappings);
             return R.commonReturn(200, "批量添加成功", newIds);
         } catch (BusinessException e) {
             return R.fail(e.getMessage());

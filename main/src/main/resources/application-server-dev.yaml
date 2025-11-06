@@ -7,6 +7,7 @@ spring:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.kingbase8.Driver
     url: jdbc:kingbase8://60.217.79.210:54321/my_new_db?currentSchema=public
+#    url: jdbc:kingbase8://127.0.0.1:54321/kingbase?currentSchema=public
     username: system
     password: 123456
     druid:
@@ -45,7 +46,9 @@ spring:
   redis:
     database: 0
     host: 60.217.79.210
+#    host: 127.0.0.1
     password: qiaolian@888
+#    password: c505
     port: 6379
     timeout: 10000
     lettuce:

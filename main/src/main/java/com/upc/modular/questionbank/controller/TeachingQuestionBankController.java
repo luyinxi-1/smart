@@ -8,6 +8,7 @@ import com.upc.common.responseparam.R;
 import com.upc.common.utils.UserUtils;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.questionbank.controller.param.*;
+import com.upc.modular.questionbank.controller.param.BatchQuestionBankUpdateRequestDto;
 import com.upc.modular.questionbank.entity.QuestionsBanksList;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.upc.modular.questionbank.entity.TeachingQuestionBank;
@@ -23,6 +24,8 @@ import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionBankWithCreatorReturnParam;
+
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -66,14 +69,41 @@ public class TeachingQuestionBankController {
 
 
 @ApiOperation("批量更新题库信息")
-@PostMapping("/updateQuestionBankBatch/{textbookId}")
-public R<List<Long>> updateQuestionBankBatch(@PathVariable Long textbookId, @RequestBody List<TeachingQuestionBank> teachingQuestionBanks) {
-    // 为每个题库设置教材ID
-    for (TeachingQuestionBank bank : teachingQuestionBanks) {
-        bank.setTextbookId(textbookId);
+@PostMapping("/updateQuestionBankBatch")
+public R<List<Long>> updateQuestionBankBatch(@RequestBody BatchQuestionBankUpdateRequestDto request) {
+    List<TeachingQuestionBank> teachingQuestionBanks = request.getTeachingQuestionBankList();
+    List<Long> chapterIds = request.getCatalogList();
+
+    // 当teachingQuestionBankList为空但catalogList不为空时，直接删除指定章节和题库的绑定关系
+    if ((teachingQuestionBanks == null || teachingQuestionBanks.isEmpty()) && chapterIds != null && !chapterIds.isEmpty()) {
+        // 从章节ID中获取教材ID
+        Long textbookId = null;
+        // 如果没有提供textbookId，则通过ChapterId查询textbook_id
+        if (textbookId == null && !chapterIds.isEmpty()) {
+            // 从ChapterList中获取第一个章节ID来查询教材ID
+            Long chapterId = chapterIds.get(0);
+            textbookId = teachingQuestionBankService.getTextbookIdByChapterId(chapterId);
+            if (textbookId == null) {
+                return R.fail("无法找到章节对应的教材信息");
+            }
+        }
+        
+        // 删除指定章节绑定的题库
+        teachingQuestionBankService.removeQuestionBankBindingsByChapterIds(textbookId, chapterIds);
+        return R.commonReturn(200, "删除成功", new ArrayList<>());
     }
-    
-    List<Long> updatedIds = teachingQuestionBankService.updateQuestionBankBatch(teachingQuestionBanks);
+
+    // 从第一个元素中提取教材ID（从第一个元素获取）
+    Long textbookId = null;
+    if (teachingQuestionBanks != null && !teachingQuestionBanks.isEmpty()) {
+        textbookId = teachingQuestionBanks.get(0).getTextbookId();
+        // 为每个题库设置教材ID
+        for (TeachingQuestionBank bank : teachingQuestionBanks) {
+            bank.setTextbookId(textbookId);
+        }
+    }
+
+    List<Long> updatedIds = teachingQuestionBankService.updateQuestionBankBatchByChapters(textbookId, chapterIds, teachingQuestionBanks);
     return R.commonReturn(200, "批量修改成功", updatedIds);
 }
 
