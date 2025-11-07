@@ -326,7 +326,9 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
                 }
             }
             
-            result.setEdges(allRelatedEdges);
+            //result.setEdges(allRelatedEdges);// 在返回前去重
+            result.setEdges(new ArrayList<>(new HashSet<>(allRelatedEdges)));
+
         }
         
         result.setNodes(new ArrayList<>(relatedNodes));
