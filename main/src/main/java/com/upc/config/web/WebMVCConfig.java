@@ -7,7 +7,6 @@ import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import com.upc.config.web.interceptor.PermissionCheckInterceptor;
 import com.upc.config.web.interceptor.RequestInterceptor;
-import com.upc.config.web.interceptor.SecurityHeaderInterceptor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -49,10 +48,6 @@ public class WebMVCConfig implements WebMvcConfigurer {
         return new PermissionCheckInterceptor();
     }
 
-    @Bean
-    public SecurityHeaderInterceptor securityHeaderInterceptor() {
-        return new SecurityHeaderInterceptor();
-    }
 
     /**
      * 配置跨域过滤器，允许跨域访问
@@ -136,11 +131,6 @@ public class WebMVCConfig implements WebMvcConfigurer {
                 .excludePathPatterns(EXCLUDE_PATH_PATTERNS) // 静态资源、swagger等
                 .excludePathPatterns(WEIXIN_PUBLISH_EXCLUDE_PATH_PATTERNS)
                 .order(1);
-//      3.注册第三个拦截器：SecurityHeaderInterceptor，负责设置安全头
-        registry.addInterceptor(securityHeaderInterceptor())
-//    拦截路径
-                .addPathPatterns(ALL_PATH_PATTERN)
-                .order(2);
 //        拦截模块2
 //        registry.addInterceptor(countyRequestInterceptor())
 //                .addPathPatterns(ALL_PATH_PATTERN)
