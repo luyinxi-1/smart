@@ -83,6 +83,12 @@ public class LearningNotesController {
         return R.ok(learningNotesService.getOneNote(id));
     }
 
+    @ApiOperation(value = "根据clientUuid查看笔记")
+    @PostMapping("/getOneNoteByClientUuid")
+    public R<LearningNotes> getOneNoteByClientUuid(@RequestParam("clientUuid") String clientUuid) {
+        return R.ok(learningNotesService.getOneNoteByClientUuid(clientUuid));
+    }
+
     @ApiOperation(value = "分页查询学习笔记（全部）")
     @PostMapping("/getAllPage")
     public R<PageBaseReturnParam<LearningNotesPageReturnParam>> getAllPage(@RequestBody LearningNotesPageSearchParam param) {
