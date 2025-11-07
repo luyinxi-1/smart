@@ -1,16 +1,16 @@
 package com.upc.modular.textbook.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.LearningNotes;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.textbook.param.LearningNotesPageReturnParam;
 import com.upc.modular.textbook.param.LearningNotesPageSearchParam;
 import com.upc.modular.textbook.param.UuidParam;
 
 /**
  * <p>
- *  服务类
+ * 服务类
  * </p>
  *
  * @author byh
@@ -35,4 +35,11 @@ public interface ILearningNotesService extends IService<LearningNotes> {
     Page<LearningNotesPageReturnParam> getMyPage(LearningNotesPageSearchParam param);
 
     Page<LearningNotesPageReturnParam> getMyNotesTextbookCenter(LearningNotesPageSearchParam param);
+    
+    /**
+     * 根据clientUuid获取学习笔记
+     * @param clientUuid 客户端UUID
+     * @return 学习笔记对象
+     */
+    LearningNotes getOneNoteByClientUuid(String clientUuid);
 }

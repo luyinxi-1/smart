@@ -381,6 +381,176 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
         return resultPage;
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean updateTextbookNotice(HomePageNoticeClassListParam homePageNoticeParam) {
+        Long noticeId = homePageNoticeParam.getId();
+        if (noticeId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "通知ID不能为空");
+        }
+
+        // 查询原通知信息
+        HomePageNotice originalNotice = this.getById(noticeId);
+        if (originalNotice == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "通知不存在");
+        }
+
+        // 1. 直接更新 HomePageNotice 数据到 home_page_notice 表
+        HomePageNotice homePageNotice = new HomePageNotice();
+        BeanUtils.copyProperties(homePageNoticeParam, homePageNotice);
+        this.updateById(homePageNotice);
+
+        // 2. 如果是教师通知且传了scopeType，则需要更新通知范围
+        if (TEACHER_NOTICE.equals(homePageNotice.getType()) && homePageNoticeParam.getScopeType() != null) {
+            // 获取通知创建人ID
+            Long creatorId = originalNotice.getCreator();
+
+            // 判断创建人是否为教师
+            SysTbuser creator = sysTbuserService.getById(creatorId);
+            if (creator == null || !Integer.valueOf(2).equals(creator.getUserType())) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "修改教师通知但是教师通知的创建人却不是教师，创建人错误无法进行通知范围修改");
+            }
+
+            // 删除原有的学生通知范围记录
+            homePageNoticeReadStatusMapper.delete(
+                new LambdaQueryWrapper<HomePageNoticeReadStatus>()
+                    .eq(HomePageNoticeReadStatus::getNotice_id, noticeId)
+            );
+
+            // 重新计算学生ID列表
+            Set<Long> studentUserIdSet = new HashSet<>();
+            switch (homePageNotice.getScopeType()) {
+                case 0:
+                    // 指定的三个范围（1、2、3）
+                    // 范围1：收藏教材学生
+                    List<Long> favoriteStudentUserIds = getFavoriteTextbookStudentUserIds(creatorId);
+                    studentUserIdSet.addAll(favoriteStudentUserIds);
+
+                    // 范围2：课程班级学生
+                    List<Long> courseClassStudentUserIds = getCourseClassStudentUserIds(creatorId);
+                    studentUserIdSet.addAll(courseClassStudentUserIds);
+
+                    // 范围3：指定班级学生
+                    if (homePageNoticeParam.getClassList() != null && !homePageNoticeParam.getClassList().isEmpty()) {
+                        List<Student> classStudents = studentMapper.selectList(
+                                new LambdaQueryWrapper<Student>()
+                                        .in(Student::getClassId, homePageNoticeParam.getClassList())
+                        );
+                        List<Long> classStudentUserIds = classStudents.stream()
+                                .map(Student::getUserId)
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toList());
+                        studentUserIdSet.addAll(classStudentUserIds);
+                    }
+                    break;
+                case 1:
+                    // 收藏教材学生
+                    List<Long> favoriteStudentUserIds1 = getFavoriteTextbookStudentUserIds(creatorId);
+                    studentUserIdSet.addAll(favoriteStudentUserIds1);
+                    break;
+                case 2:
+                    // 课程班级学生
+                    List<Long> courseClassStudentUserIds2 = getCourseClassStudentUserIds(creatorId);
+                    studentUserIdSet.addAll(courseClassStudentUserIds2);
+                    break;
+                case 3:
+                    // 指定班级学生
+                    if (homePageNoticeParam.getClassList() != null && !homePageNoticeParam.getClassList().isEmpty()) {
+                        List<Student> classStudents = studentMapper.selectList(
+                                new LambdaQueryWrapper<Student>()
+                                        .in(Student::getClassId, homePageNoticeParam.getClassList())
+                        );
+                        List<Long> classStudentUserIds = classStudents.stream()
+                                .map(Student::getUserId)
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toList());
+                        studentUserIdSet.addAll(classStudentUserIds);
+                    }
+                    break;
+                case 4:
+                    // 1和2的组合
+                    List<Long> favoriteStudentUserIds4 = getFavoriteTextbookStudentUserIds(creatorId);
+                    List<Long> courseClassStudentUserIds4 = getCourseClassStudentUserIds(creatorId);
+                    studentUserIdSet.addAll(favoriteStudentUserIds4);
+                    studentUserIdSet.addAll(courseClassStudentUserIds4);
+                    break;
+                case 5:
+                    // 1和3的组合
+                    List<Long> favoriteStudentUserIds5 = getFavoriteTextbookStudentUserIds(creatorId);
+                    studentUserIdSet.addAll(favoriteStudentUserIds5);
+
+                    if (homePageNoticeParam.getClassList() != null && !homePageNoticeParam.getClassList().isEmpty()) {
+                        List<Student> classStudents = studentMapper.selectList(
+                                new LambdaQueryWrapper<Student>()
+                                        .in(Student::getClassId, homePageNoticeParam.getClassList())
+                        );
+                        List<Long> classStudentUserIds = classStudents.stream()
+                                .map(Student::getUserId)
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toList());
+                        studentUserIdSet.addAll(classStudentUserIds);
+                    }
+                    break;
+                case 6:
+                    // 2和3的组合
+                    List<Long> courseClassStudentUserIds6 = getCourseClassStudentUserIds(creatorId);
+                    studentUserIdSet.addAll(courseClassStudentUserIds6);
+
+                    if (homePageNoticeParam.getClassList() != null && !homePageNoticeParam.getClassList().isEmpty()) {
+                        List<Student> classStudents = studentMapper.selectList(
+                                new LambdaQueryWrapper<Student>()
+                                        .in(Student::getClassId, homePageNoticeParam.getClassList())
+                        );
+                        List<Long> classStudentUserIds = classStudents.stream()
+                                .map(Student::getUserId)
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toList());
+                        studentUserIdSet.addAll(classStudentUserIds);
+                    }
+                    break;
+            }
+
+            // 批量插入home_page_notice_read_status表记录
+            if (!studentUserIdSet.isEmpty()) {
+                List<HomePageNoticeReadStatus> readStatusList = studentUserIdSet.stream()
+                        .map(userId -> {
+                            HomePageNoticeReadStatus readStatus = new HomePageNoticeReadStatus();
+                            readStatus.setNotice_id(noticeId);
+                            readStatus.setUser_id(userId);
+                            readStatus.setRead_status(0); // 默认未读
+                            readStatus.setCreate_time(LocalDateTime.now());
+                            return readStatus;
+                        })
+                        .collect(Collectors.toList());
+
+                // 批量保存到数据库
+                for (HomePageNoticeReadStatus readStatus : readStatusList) {
+                    homePageNoticeReadStatusMapper.insert(readStatus);
+                }
+            }
+        }
+            // 如果是教师通知但没有传scopeType，只更新基本信息，不更改学生通知范围
+
+        return true;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean removeTextbookNoticeById(Long id) {
+        if (id == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "通知ID不能为空");
+        }
+        
+        // 先删除home_page_notice_read_status表中的相关记录
+        homePageNoticeReadStatusMapper.delete(
+            new LambdaQueryWrapper<HomePageNoticeReadStatus>()
+                .eq(HomePageNoticeReadStatus::getNotice_id, id)
+        );
+        
+        // 再删除home_page_notice表中的记录
+        return this.removeById(id);
+    }
+
     /**
      * 获取收藏教材的学生用户ID列表
      * @param teacherUserId 教师用户ID

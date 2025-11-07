@@ -72,17 +72,29 @@ public class HomePageNoticeController {
         return R.ok(homePageNoticeService.getHomePageNoticeDetails(noticeId));
     }
 
-    @ApiOperation(value = "教材通告")
+    @ApiOperation(value = "新增教材通告")
     @PostMapping("/insertTextbookNotice")
     public R<Boolean> insertTextbookNotice(@RequestBody List<HomePageNoticeClassListParam> homePageNotice) {
         return R.ok(homePageNoticeService.insertTextbookNotice(homePageNotice));
     }
 
-    @ApiOperation(value = "首页通知公告查看更多2")
-    @PostMapping("/getHomePageNoticePage2")
-    public R<PageBaseReturnParam<HomePageNoticeReturnParam>> getHomePageNoticePage2(@RequestBody HomePageNoticePageSearchParam param) {
+    @ApiOperation(value = "教材通告查看更多")
+    @PostMapping("/getTextbookNoticePage")
+    public R<PageBaseReturnParam<HomePageNoticeReturnParam>> getTextbookNoticePage(@RequestBody HomePageNoticePageSearchParam param) {
         Page<HomePageNoticeReturnParam> page = homePageNoticeService.getHomePageNoticePage2(param);
         PageBaseReturnParam<HomePageNoticeReturnParam> result = PageBaseReturnParam.ok(page);
         return R.page(result);
+    }
+
+    @ApiOperation(value = "更新教材通告")
+    @PostMapping("/updateTextbookNotice")
+    public R<Boolean> updateTextbookNotice(@RequestBody HomePageNoticeClassListParam homePageNotice) {
+        return R.ok(homePageNoticeService.updateTextbookNotice(homePageNotice));
+    }
+
+    @ApiOperation(value = "删除教材通告")
+    @PostMapping("/deleteTextbookNotice")
+    public R<Boolean> deleteTextbookNotice(@RequestParam("id") Long id) {
+        return R.ok(homePageNoticeService.removeTextbookNoticeById(id));
     }
 }

@@ -75,7 +75,8 @@ public class MaterialsTextbookMappingController {
                     Long chapterId = request.getChapterList().get(0);
                     textbookId = materialsTextbookMappingService.getTextbookIdByChapterId(chapterId);
                     if (textbookId == null) {
-                        return R.fail("无法找到章节对应的教材信息");
+                        // 即使找不到教材ID也返回成功，因为可能本来就没有绑定关系
+                        return R.commonReturn(200, "删除成功", new ArrayList<>());
                     }
                 }
                 // 删除指定章节绑定的教学素材

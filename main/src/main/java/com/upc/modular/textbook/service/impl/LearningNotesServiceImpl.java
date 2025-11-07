@@ -165,4 +165,14 @@ public class LearningNotesServiceImpl extends ServiceImpl<LearningNotesMapper, L
         return resultPage;
     }
 
+    @Override
+    public LearningNotes getOneNoteByClientUuid(String clientUuid) {
+        if (StringUtils.isBlank(clientUuid)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "clientUuid不能为空");
+        }
+        
+        LambdaQueryWrapper<LearningNotes> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(LearningNotes::getClientUuid, clientUuid);
+        return this.getOne(queryWrapper);
+    }
 }
