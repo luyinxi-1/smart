@@ -51,9 +51,9 @@ public class TextbookPackage {
     private TextbookMapper textbookMapper;
 
     // Go 语言编译的工作区
-    //private static final String GO_BUILD_WORKSPACE = "/opt/GoBuildWorkspace";
+    private static final String GO_BUILD_WORKSPACE = "/opt/GoBuildWorkspace";
     // 临时改成这个，部署到linux之前得改回来。
-    private static final String GO_BUILD_WORKSPACE = "D:/GoBuildWorkspace";
+//    private static final String GO_BUILD_WORKSPACE = "D:/GoBuildWorkspace";
 
 
     // *** UPDATED ***: Base path for textbook pictures updated to the specific server path.
