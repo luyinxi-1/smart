@@ -419,6 +419,11 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
     @Override
     @Transactional(rollbackFor = Exception.class)
     public List<Long> updateQuestionBankBatchByChapters(Long textbookId, List<Long> chapterIds, List<TeachingQuestionBank> teachingQuestionBanks) {
+        // 1. 基本参数校验
+        if (CollectionUtils.isEmpty(teachingQuestionBanks)) {
+            return Collections.emptyList();
+        }
+
         if (textbookId == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材ID不能为空");
         }
@@ -426,70 +431,43 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
         if (CollectionUtils.isEmpty(chapterIds)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "章节ID列表不能为空");
         }
-        
-        if (CollectionUtils.isEmpty(teachingQuestionBanks)) {
-            return Collections.emptyList();
-        }
-        
-        // 1. 收集所有需要通过 UUID 来补全 ID 的记录的 UUID
-        List<String> uuidsToResolve = teachingQuestionBanks.stream()
-                .filter(bank -> bank.getTextbookCatalogId() == null && bank.getTextbookCatalogUuId() != null && !bank.getTextbookCatalogUuId().trim().isEmpty())
-                .map(TeachingQuestionBank::getTextbookCatalogUuId)
-                .distinct()
-                .collect(Collectors.toList());
 
-        // 2. 如果存在需要解析的 UUID，则一次性批量查询
-        if (!CollectionUtils.isEmpty(uuidsToResolve)) {
-            // 查询 textbook_catalog 表，获取 UUID 与 ID 的对应关系
-            List<TextbookCatalog> catalogs = textbookCatalogMapper.selectList(
-                    new LambdaQueryWrapper<TextbookCatalog>()
-                            .in(TextbookCatalog::getCatalogUuid, uuidsToResolve)
-                            .select(TextbookCatalog::getId, TextbookCatalog::getCatalogUuid) // 性能优化
-            );
-
-            // 创建一个 UUID -> ID 的快速查找Map
-            Map<String, Long> uuidToIdMap = catalogs.stream()
-                    .collect(Collectors.toMap(TextbookCatalog::getCatalogUuid, TextbookCatalog::getId));
-            // 3. 校验所有传入的 UUID 是否都有效
-            if (uuidToIdMap.size() < uuidsToResolve.size()) {
-                String notFoundUuids = uuidsToResolve.stream()
-                        .filter(uuid -> !uuidToIdMap.containsKey(uuid))
-                        .collect(Collectors.joining(", "));
-                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR,
-                        "更新失败，以下指定的教材目录UUID不存在: " + notFoundUuids);
-            }
-
-            // 4. 遍历输入列表，回填缺失的 textbookCatalogId
-            for (TeachingQuestionBank bank : teachingQuestionBanks) {
-                if (bank.getTextbookCatalogId() == null && bank.getTextbookCatalogUuId() != null && !bank.getTextbookCatalogUuId().trim().isEmpty()) {
-                    bank.setTextbookCatalogId(uuidToIdMap.get(bank.getTextbookCatalogUuId()));
-                }
-            }
-        }
-        
-        // 提取所有待更新记录的ID
+        // 收集所有待更新的题库ID，用于后续返回
         List<Long> questionBankIds = teachingQuestionBanks.stream()
                 .map(TeachingQuestionBank::getId)
-                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
-        if (questionBankIds.size() != teachingQuestionBanks.size()) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "更新失败，部分题库记录未提供ID！");
-        }
-        
-        // 校验所有待更新的题库ID本身是否存在
-        List<TeachingQuestionBank> oldQuestionBanks = this.listByIds(questionBankIds);
-        if (oldQuestionBanks.size() != questionBankIds.size()) {
-            Set<Long> foundIds = oldQuestionBanks.stream().map(TeachingQuestionBank::getId).collect(Collectors.toSet());
-            List<Long> missingIds = questionBankIds.stream().filter(id -> !foundIds.contains(id)).collect(Collectors.toList());
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR,
-                    "ID为 " + missingIds.stream().map(String::valueOf).collect(Collectors.joining(",")) + " 的题库不存在，无法更新！");
 
+        // 1.1 【前置校验】检查请求列表内部是否存在重复的题库ID
+        if (new HashSet<>(questionBankIds).size() != questionBankIds.size()) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "请求参数中存在重复的题库ID");
         }
-        
-        // 准备校验有变动的关联ID (教材ID和目录ID)
-        Map<Long, TeachingQuestionBank> oldBankMap = oldQuestionBanks.stream()
-                .collect(Collectors.toMap(TeachingQuestionBank::getId, bank -> bank));
 
+        // 2. 【数据库存在性校验】
+        // 2.1 校验所有ID对应的题库是否真实存在
+        List<TeachingQuestionBank> existingBanks = this.listByIds(questionBankIds);
+        if (existingBanks.size() != questionBankIds.size()) {
+            // 找出不存在的ID (差集)
+            Set<Long> existingIds = existingBanks.stream().map(TeachingQuestionBank::getId).collect(Collectors.toSet());
+            Set<Long> nonExistentIds = new HashSet<>(questionBankIds);
+            nonExistentIds.removeAll(existingIds);
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "更新失败，以下指定的题库ID不存在: " + nonExistentIds.stream().map(String::valueOf).collect(Collectors.joining(",")));
+        }
+
+        // 2.2 构建一个旧题库ID -> 题库对象的映射，用于后续比较
+        Map<Long, TeachingQuestionBank> oldBankMap = existingBanks.stream()
+                .collect(Collectors.toMap(TeachingQuestionBank::getId, b -> b));
+
+        // 3. 【精确字段校验】
+        // 3.1 检查是否有题库试图修改其关联的教材ID（这是不允许的）
+        for (TeachingQuestionBank newBank : teachingQuestionBanks) {
+            TeachingQuestionBank oldBank = oldBankMap.get(newBank.getId());
+            // 检查教材ID是否发生变化
+            if (!Objects.equals(newBank.getTextbookId(), oldBank.getTextbookId())) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "不允许修改题库的教材ID，题库ID: " + newBank.getId());
+            }
+        }
+
+        // 3.2 收集需要校验的教材ID和目录ID
         Set<Long> textbookIdsToValidate = teachingQuestionBanks.stream()
                 .filter(newBank -> {
                     TeachingQuestionBank oldBank = oldBankMap.get(newBank.getId());
@@ -561,6 +539,40 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
         
         // 返回成功更新的题库ID列表
         return questionBankIds;
+    }
+    
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void removeQuestionBankBindingsByChapterIds(Long textbookId, List<Long> chapterIds) {
+        if (textbookId == null || CollectionUtils.isEmpty(chapterIds)) {
+            return;
+        }
+        
+        // 删除该教材下指定章节的旧绑定关系
+        LambdaUpdateWrapper<TeachingQuestionBank> clearBindingWrapper = new LambdaUpdateWrapper<>();
+        clearBindingWrapper
+                .eq(TeachingQuestionBank::getTextbookId, textbookId)
+                .in(TeachingQuestionBank::getTextbookCatalogId, chapterIds)
+                .set(TeachingQuestionBank::getTextbookCatalogId, null)
+                .set(TeachingQuestionBank::getTextbookId, null);
+        
+        // 执行批量解绑操作
+        this.update(clearBindingWrapper);
+    }
+    
+    @Override
+    public Long getTextbookIdByChapterId(Long chapterId) {
+        if (chapterId == null) {
+            return null;
+        }
+        
+        LambdaQueryWrapper<TeachingQuestionBank> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TeachingQuestionBank::getTextbookCatalogId, chapterId)
+                .select(TeachingQuestionBank::getTextbookId)
+                .last("LIMIT 1");
+        
+        TeachingQuestionBank result = this.getOne(queryWrapper, false);
+        return result != null ? result.getTextbookId() : null;
     }
     
     public TeachingQuestionBankWithCreatorReturnParam getQuestionBankWithCreator(Long id) {

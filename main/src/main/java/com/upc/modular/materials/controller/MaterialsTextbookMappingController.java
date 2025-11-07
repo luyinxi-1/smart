@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -66,6 +67,22 @@ public class MaterialsTextbookMappingController {
         }
 
         try {
+            // 当TextbookMaterialsList为空但ChapterList不为空时，删除指定章节绑定的教学素材
+            if ((mappings == null || mappings.isEmpty()) && request.getChapterList() != null && !request.getChapterList().isEmpty()) {
+                // 如果没有提供textbookId，则通过ChapterId查询textbook_id
+                if (textbookId == null) {
+                    // 从ChapterList中获取第一个章节ID来查询教材ID
+                    Long chapterId = request.getChapterList().get(0);
+                    textbookId = materialsTextbookMappingService.getTextbookIdByChapterId(chapterId);
+                    if (textbookId == null) {
+                        return R.fail("无法找到章节对应的教材信息");
+                    }
+                }
+                // 删除指定章节绑定的教学素材
+                materialsTextbookMappingService.removeMappingsByChapterIds(textbookId, request.getChapterList());
+                return R.commonReturn(200, "删除成功", new ArrayList<>());
+            }
+            
             List<Long> newIds = materialsTextbookMappingService.insertMappingBatchByChapters(textbookId, request.getChapterList(), mappings);
             return R.commonReturn(200, "批量添加成功", newIds);
         } catch (BusinessException e) {

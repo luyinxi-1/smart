@@ -43,7 +43,23 @@ public interface ITeachingQuestionBankService extends IService<TeachingQuestionB
      * @return 成功更新的题库ID列表
      */
     List<Long> updateQuestionBankBatchByChapters(Long textbookId, List<Long> chapterIds, List<TeachingQuestionBank> teachingQuestionBanks);
-
+    
+    /**
+     * 根据章节ID删除题库绑定关系
+     * 
+     * @param textbookId 教材ID
+     * @param chapterIds 章节ID列表
+     */
+    void removeQuestionBankBindingsByChapterIds(Long textbookId, List<Long> chapterIds);
+    
+    /**
+     * 通过章节ID获取教材ID
+     * 
+     * @param chapterId 章节ID
+     * @return 教材ID
+     */
+    Long getTextbookIdByChapterId(Long chapterId);
+    
     List<QuestionBankWithStatusVO> getQuestionBanksWithStatusForTextbook(QuestionBankWithStatusSearchParam param);
 
     /**
