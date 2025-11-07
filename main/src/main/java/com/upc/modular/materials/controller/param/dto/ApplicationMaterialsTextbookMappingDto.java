@@ -9,16 +9,16 @@ public class ApplicationMaterialsTextbookMappingDto {
     @ApiModelProperty("教材id")
     private Long textbookId;
 
-    @ApiModelProperty("应用素材id")
+    @ApiModelProperty("应用素材id（可选）")
     private Long applicationMaterialId;
 
-    @ApiModelProperty("章节名称")
-    private String chapterName;
+    @ApiModelProperty("章节名称（可选）")
+    private String textbookCatalogName;
 
-    @ApiModelProperty("章节ID")
-    private Long chapterId;
+    @ApiModelProperty("章节ID（可选）")
+    private Long textbookCatalogId;
 
     @ApiModelProperty("章节UUID")
-    private String chapterUuid;
+    private String textbookCatalogUuId;
 }
 

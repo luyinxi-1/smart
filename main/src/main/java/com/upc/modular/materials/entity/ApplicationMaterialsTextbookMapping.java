@@ -42,11 +42,11 @@ public class ApplicationMaterialsTextbookMapping implements Serializable {
 
     @ApiModelProperty("素材所在章名")
     @TableField("chapter_name")
-    private String chapterName;
+    private String textbookCatalogName;
 
     @ApiModelProperty("素材所在章id")
     @TableField("chapter_id")
-    private Long chapterId;
+    private Long textbookCatalogId;
 
     @ApiModelProperty("教材中应用素材在线浏览次数")
     @TableField("view_count")

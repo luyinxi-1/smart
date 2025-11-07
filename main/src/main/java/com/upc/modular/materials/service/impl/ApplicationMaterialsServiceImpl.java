@@ -104,20 +104,33 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
         String chapterName = "";
         
         if (chapterId == null && param.getTextbookCatalogUuId() != null && !param.getTextbookCatalogUuId().trim().isEmpty()) {
+            // 使用UUID查询章节，必须属于该教材
             LambdaQueryWrapper<TextbookCatalog> catalogQuery = new LambdaQueryWrapper<TextbookCatalog>()
+                    .eq(TextbookCatalog::getTextbookId, param.getTextbookId())  // 校验章节属于该教材
                     .eq(TextbookCatalog::getCatalogUuid, param.getTextbookCatalogUuId())
                     .select(TextbookCatalog::getId, TextbookCatalog::getCatalogName);
             
             TextbookCatalog textbookCatalog = textbookCatalogMapper.selectOne(catalogQuery);
             
-            if (textbookCatalog != null) {
-                chapterId = textbookCatalog.getId();
-                chapterName = textbookCatalog.getCatalogName();
+            if (textbookCatalog == null) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, 
+                        "提供的章节UUID无效或不属于该教材: " + param.getTextbookCatalogUuId());
             }
+            chapterId = textbookCatalog.getId();
+            chapterName = textbookCatalog.getCatalogName();
         } else if (chapterId != null) {
-            // 如果直接提供了章节ID，查询章节名称
-            TextbookCatalog catalog = textbookCatalogMapper.selectById(chapterId);
-            chapterName = catalog != null ? catalog.getCatalogName() : "";
+            // 如果直接提供了章节ID，查询章节并验证是否属于该教材
+            LambdaQueryWrapper<TextbookCatalog> catalogQuery = new LambdaQueryWrapper<TextbookCatalog>()
+                    .eq(TextbookCatalog::getId, chapterId)
+                    .eq(TextbookCatalog::getTextbookId, param.getTextbookId())  // 校验章节属于该教材
+                    .select(TextbookCatalog::getCatalogName);
+            
+            TextbookCatalog catalog = textbookCatalogMapper.selectOne(catalogQuery);
+            if (catalog == null) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, 
+                        "章节ID不存在或不属于该教材: " + chapterId);
+            }
+            chapterName = catalog.getCatalogName();
         }
         
         // 检查是否已存在绑定关系
@@ -133,8 +146,8 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             ApplicationMaterialsTextbookMapping mapping = new ApplicationMaterialsTextbookMapping();
             mapping.setApplicationMaterialId(applicationMaterialId);
             mapping.setTextbookId(param.getTextbookId());
-            mapping.setChapterId(chapterId);  // 可以为null
-            mapping.setChapterName(chapterName);  // 如果章节ID为null，则为空字符串
+            mapping.setTextbookCatalogId(chapterId);  // 可以为null
+            mapping.setTextbookCatalogName(chapterName);  // 如果章节ID为null，则为空字符串
             mapping.setCreator(currentUserId);
             mapping.setOperator(currentUserId);
             applicationMaterialsTextbookMappingMapper.insert(mapping);
@@ -162,17 +175,42 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
         // 【新增逻辑】解析章节ID：如果textbookCatalogId为空但textbookCatalogUuId不为空，则根据UUID查询转换
         Long finalChapterId = param.getTextbookCatalogId();
         if (finalChapterId == null && param.getTextbookCatalogUuId() != null && !param.getTextbookCatalogUuId().trim().isEmpty()) {
+            // 如果有教材ID，必须验证章节属于该教材
             LambdaQueryWrapper<TextbookCatalog> catalogQuery = new LambdaQueryWrapper<TextbookCatalog>()
-                    .eq(TextbookCatalog::getCatalogUuid, param.getTextbookCatalogUuId())
-                    .select(TextbookCatalog::getId);
+                    .eq(TextbookCatalog::getCatalogUuid, param.getTextbookCatalogUuId());
+            
+            // 如果提供了教材ID，加上教材ID的过滤条件
+            if (param.getTextbookId() != null) {
+                catalogQuery.eq(TextbookCatalog::getTextbookId, param.getTextbookId());
+            }
+            
+            catalogQuery.select(TextbookCatalog::getId);
             
             TextbookCatalog textbookCatalog = textbookCatalogMapper.selectOne(catalogQuery);
             
             if (textbookCatalog == null) {
-                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "提供的教材目录UUID无效: " + param.getTextbookCatalogUuId());
+                if (param.getTextbookId() != null) {
+                    throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, 
+                            "提供的章节UUID无效或不属于该教材: " + param.getTextbookCatalogUuId());
+                } else {
+                    throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, 
+                            "提供的章节UUID无效: " + param.getTextbookCatalogUuId());
+                }
             }
             
             finalChapterId = textbookCatalog.getId();
+        } else if (finalChapterId != null && param.getTextbookId() != null) {
+            // 如果直接提供了章节ID和教材ID，验证章节是否属于该教材
+            LambdaQueryWrapper<TextbookCatalog> catalogQuery = new LambdaQueryWrapper<TextbookCatalog>()
+                    .eq(TextbookCatalog::getId, finalChapterId)
+                    .eq(TextbookCatalog::getTextbookId, param.getTextbookId())
+                    .select(TextbookCatalog::getId);
+            
+            TextbookCatalog catalog = textbookCatalogMapper.selectOne(catalogQuery);
+            if (catalog == null) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, 
+                        "章节ID不存在或不属于该教材: " + finalChapterId);
+            }
         }
         
         // 更新应用素材
@@ -230,18 +268,27 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
         // 获取当前登录用户
         Long currentUserId = UserUtils.get() != null ? UserUtils.get().getId() : null;
         
-        // 查询章节名称（允许章节ID为null）
+        // 查询章节名称并验证章节是否属于该教材（允许章节ID为null）
         String chapterName = "";
         if (chapterId != null) {
-            TextbookCatalog catalog = textbookCatalogMapper.selectById(chapterId);
-            chapterName = catalog != null ? catalog.getCatalogName() : "";
+            LambdaQueryWrapper<TextbookCatalog> catalogQuery = new LambdaQueryWrapper<TextbookCatalog>()
+                    .eq(TextbookCatalog::getId, chapterId)
+                    .eq(TextbookCatalog::getTextbookId, param.getTextbookId())  // 校验章节属于该教材
+                    .select(TextbookCatalog::getCatalogName);
+            
+            TextbookCatalog catalog = textbookCatalogMapper.selectOne(catalogQuery);
+            if (catalog == null) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, 
+                        "章节ID不存在或不属于该教材: " + chapterId);
+            }
+            chapterName = catalog.getCatalogName();
         }
         
         if (existingMapping != null) {
             // 更新现有绑定关系
             existingMapping.setTextbookId(param.getTextbookId());
-            existingMapping.setChapterId(chapterId);  // 可以为null
-            existingMapping.setChapterName(chapterName);
+            existingMapping.setTextbookCatalogId(chapterId);  // 可以为null
+            existingMapping.setTextbookCatalogName(chapterName);
             existingMapping.setOperator(currentUserId);
             applicationMaterialsTextbookMappingMapper.updateById(existingMapping);
         } else {
@@ -249,8 +296,8 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             ApplicationMaterialsTextbookMapping mapping = new ApplicationMaterialsTextbookMapping();
             mapping.setApplicationMaterialId(applicationMaterialId);
             mapping.setTextbookId(param.getTextbookId());
-            mapping.setChapterId(chapterId);  // 可以为null
-            mapping.setChapterName(chapterName);
+            mapping.setTextbookCatalogId(chapterId);  // 可以为null
+            mapping.setTextbookCatalogName(chapterName);
             mapping.setCreator(currentUserId);
             mapping.setOperator(currentUserId);
             applicationMaterialsTextbookMappingMapper.insert(mapping);

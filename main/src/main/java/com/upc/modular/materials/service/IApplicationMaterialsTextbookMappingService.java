@@ -24,12 +24,12 @@ public interface IApplicationMaterialsTextbookMappingService extends IService<Ap
      *
      * @param textbookId            教材ID
      * @param applicationMaterialId 应用素材ID
-     * @param chapterName           章节名称
-     * @param chapterId             章节ID
-     * @param chapterUuid           章节UUID
+     * @param textbookCatalogName   章节名称
+     * @param textbookCatalogId     章节ID
+     * @param textbookCatalogUuId   章节UUID
      * @return 新增映射记录的ID
      */
-    Long insertMapping(Long textbookId, Long applicationMaterialId, String chapterName, Long chapterId, String chapterUuid);
+    Long insertMapping(Long textbookId, Long applicationMaterialId, String textbookCatalogName, Long textbookCatalogId, String textbookCatalogUuId);
 
     /**
      * 批量添加多条独立的教材与应用素材的映射关系
@@ -48,5 +48,31 @@ public interface IApplicationMaterialsTextbookMappingService extends IService<Ap
      * @return 分页结果
      */
     Page<ApplicationMaterialsTextbookMappingReturnParam> getPage(ApplicationMaterialsTextbookMappingPageSearchParam param);
+
+    /**
+     * 通过章节ID获取教材ID
+     *
+     * @param chapterId 章节ID
+     * @return 教材ID
+     */
+    Long getTextbookIdByChapterId(Long chapterId);
+
+    /**
+     * 删除指定章节的应用素材绑定关系
+     *
+     * @param textbookId 教材ID
+     * @param chapterIds 章节ID列表
+     */
+    void removeApplicationMaterialsBindingsByChapterIds(Long textbookId, List<Long> chapterIds);
+
+    /**
+     * 按章节批量更新应用素材绑定关系
+     *
+     * @param textbookId 教材ID
+     * @param chapterIds 章节ID列表（用于删除这些章节下的所有绑定）
+     * @param mappings 新的绑定关系列表
+     * @return 新增映射记录的ID列表
+     */
+    List<Long> updateApplicationMaterialsBatchByChapters(Long textbookId, List<Long> chapterIds, List<ApplicationMaterialsTextbookMappingDto> mappings);
 }
 
