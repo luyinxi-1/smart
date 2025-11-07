@@ -155,7 +155,7 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
         java.util.Map<Long, KgNode> nodeMap = existingNodes.stream()
                 .collect(Collectors.toMap(KgNode::getObjectId, node -> node));
     
-        // 10. 处理关系 - 删除旧的关系
+        // 10. 不再删除旧的关系，而是查询已存在的关系，避免重复创建
         LambdaQueryWrapper<KgEdge> edgeQueryWrapper = new LambdaQueryWrapper<>();
         edgeQueryWrapper.eq(KgEdge::getSourceNodeId, textbookNode.getId())
                 .or()
@@ -164,9 +164,14 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
                 .or()
                 .in(KgEdge::getTargetNodeId, 
                         textbookCatalogs.stream().map(c -> nodeMap.get(c.getId()).getId()).collect(Collectors.toList()));
-    
-        kgEdgeService.remove(edgeQueryWrapper);
-    
+                        
+        List<KgEdge> existingEdges = kgEdgeService.list(edgeQueryWrapper);
+        
+        // 创建已存在关系的集合，用于避免重复创建
+        Set<String> existingEdgeKeys = existingEdges.stream()
+                .map(edge -> edge.getSourceNodeId() + "->" + edge.getTargetNodeId() + ":" + edge.getRelationType())
+                .collect(Collectors.toSet());
+
         // 11. 创建新的关系
         List<KgEdge> newEdges = new ArrayList<>();
     
@@ -180,7 +185,12 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
                     edge.setSourceNodeId(textbookNode.getId());
                     edge.setTargetNodeId(catalogNode.getId());
                     edge.setRelationType("CONTAINS");
-                    newEdges.add(edge);
+                    
+                    // 检查关系是否已存在
+                    String edgeKey = edge.getSourceNodeId() + "->" + edge.getTargetNodeId() + ":" + edge.getRelationType();
+                    if (!existingEdgeKeys.contains(edgeKey)) {
+                        newEdges.add(edge);
+                    }
                 }
             }
         }
@@ -196,7 +206,12 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
                     edge.setSourceNodeId(fatherCatalogNode.getId());
                     edge.setTargetNodeId(catalogNode.getId());
                     edge.setRelationType("CONTAINS");
-                    newEdges.add(edge);
+                    
+                    // 检查关系是否已存在
+                    String edgeKey = edge.getSourceNodeId() + "->" + edge.getTargetNodeId() + ":" + edge.getRelationType();
+                    if (!existingEdgeKeys.contains(edgeKey)) {
+                        newEdges.add(edge);
+                    }
                 }
             }
         }
