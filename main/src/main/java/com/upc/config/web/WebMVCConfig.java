@@ -21,6 +21,7 @@ import org.springframework.web.filter.CorsFilter;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import com.upc.config.web.interceptor.TestAccessInterceptor;
 
 import java.io.File;
 import java.time.LocalDate;
@@ -118,6 +119,11 @@ public class WebMVCConfig implements WebMvcConfigurer {
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        //  0. 注册 TestAccessInterceptor，用于禁止外部访问 /test/** 路径
+        registry.addInterceptor(new TestAccessInterceptor())
+                .addPathPatterns("/test/**")   // 拦截测试目录
+                .order(-1);                    // 优先级最高，最先执行
+
 //      1.注册第一个拦截器：requestInterceptor，负责填充用户信息
         registry.addInterceptor(requestInterceptor())
 //    拦截路径
