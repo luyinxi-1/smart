@@ -162,10 +162,6 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "应用素材ID不能为空");
         }
         
-        if (param.getName() == null || param.getName().trim().isEmpty()) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "应用素材名称不能为空");
-        }
-        
         // 检查应用素材是否存在
         ApplicationMaterials existingMaterial = this.getById(param.getId());
         if (existingMaterial == null) {

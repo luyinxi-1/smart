@@ -24,8 +24,7 @@ public class ApplicationMaterialsSaveParam {
     @ApiModelProperty(value = "应用素材ID(更新时必填)")
     private Long id;
 
-    @ApiModelProperty(value = "应用素材名称", required = true)
-    @NotBlank(message = "应用素材名称不能为空")
+    @ApiModelProperty(value = "应用素材名称")
     private String name;
 
     @ApiModelProperty("应用素材描述")
