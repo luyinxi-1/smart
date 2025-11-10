@@ -45,7 +45,4 @@ public class DiscussionTopicSearchParam {
 
     @ApiModelProperty("教材名称")
     private String textbookName;
-
-    @ApiModelProperty("教材分类")
-    private String classification;
 }
