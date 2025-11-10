@@ -12,4 +12,10 @@ import lombok.experimental.Accessors;
 public class TextbookCenterPageSearchParam extends PageBaseSearchParam {
     @ApiModelProperty("活动类型")
     private Integer activityType;
+
+    @ApiModelProperty("教材名称")
+    private String textbookName;
+
+    @ApiModelProperty("教材分类")
+    private Long textbookClassification;
 }
