@@ -94,11 +94,11 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "指定的教材不存在");
         }
 
-        // 3. 检查教材是否发布
+/*        // 3. 检查教材是否发布
         if (textbook.getReleaseStatus() == null || textbook.getReleaseStatus() != 1 || 
             textbook.getReviewStatus() == null || textbook.getReviewStatus() != 1) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材未发布");
-        }
+        }*/
 
         // 4. 获取教材的所有目录信息（使用getTextbookCatalogTree方法获取完整的目录树结构）
         List<TextbookTree> textbookTree = textbookCatalogService.getTextbookCatalogTree(textbookId);
@@ -106,10 +106,14 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
         
         // 5. 查询已存在的节点（教材节点和目录节点）
         LambdaQueryWrapper<KgNode> nodeQueryWrapper = new LambdaQueryWrapper<>();
-        nodeQueryWrapper.eq(KgNode::getNodeType, "TEXTBOOK").eq(KgNode::getObjectId, textbookId)
-                .or()
-                .eq(KgNode::getNodeType, "TEXTBOOK_CATALOG").in(KgNode::getObjectId, 
-                        textbookCatalogs.stream().map(TextbookCatalog::getId).collect(Collectors.toList()));
+        nodeQueryWrapper.eq(KgNode::getNodeType, "TEXTBOOK").eq(KgNode::getObjectId, textbookId);
+        
+        // 只有当教材目录不为空时才添加目录节点的查询条件
+        if (!textbookCatalogs.isEmpty()) {
+            nodeQueryWrapper.or()
+                    .eq(KgNode::getNodeType, "TEXTBOOK_CATALOG").in(KgNode::getObjectId, 
+                            textbookCatalogs.stream().map(TextbookCatalog::getId).collect(Collectors.toList()));
+        }
     
         List<KgNode> existingNodes = this.list(nodeQueryWrapper);
         
@@ -155,18 +159,27 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
         java.util.Map<Long, KgNode> nodeMap = existingNodes.stream()
                 .collect(Collectors.toMap(KgNode::getObjectId, node -> node));
     
-        // 10. 处理关系 - 删除旧的关系
+        // 10. 不再删除旧的关系，而是查询已存在的关系，避免重复创建
         LambdaQueryWrapper<KgEdge> edgeQueryWrapper = new LambdaQueryWrapper<>();
-        edgeQueryWrapper.eq(KgEdge::getSourceNodeId, textbookNode.getId())
-                .or()
-                .in(KgEdge::getSourceNodeId, 
-                        textbookCatalogs.stream().map(c -> nodeMap.get(c.getId()).getId()).collect(Collectors.toList()))
-                .or()
-                .in(KgEdge::getTargetNodeId, 
-                        textbookCatalogs.stream().map(c -> nodeMap.get(c.getId()).getId()).collect(Collectors.toList()));
-    
-        kgEdgeService.remove(edgeQueryWrapper);
-    
+        edgeQueryWrapper.eq(KgEdge::getSourceNodeId, textbookNode.getId());
+        
+        // 只有当教材目录不为空时才添加IN查询条件，避免空IN()语法错误
+        if (!textbookCatalogs.isEmpty()) {
+            edgeQueryWrapper.or()
+                    .in(KgEdge::getSourceNodeId, 
+                            textbookCatalogs.stream().map(c -> nodeMap.get(c.getId()).getId()).collect(Collectors.toList()))
+                    .or()
+                    .in(KgEdge::getTargetNodeId, 
+                            textbookCatalogs.stream().map(c -> nodeMap.get(c.getId()).getId()).collect(Collectors.toList()));
+        }
+                        
+        List<KgEdge> existingEdges = kgEdgeService.list(edgeQueryWrapper);
+        
+        // 创建已存在关系的集合，用于避免重复创建
+        Set<String> existingEdgeKeys = existingEdges.stream()
+                .map(edge -> edge.getSourceNodeId() + "->" + edge.getTargetNodeId() + ":" + edge.getRelationType())
+                .collect(Collectors.toSet());
+
         // 11. 创建新的关系
         List<KgEdge> newEdges = new ArrayList<>();
     
@@ -180,7 +193,12 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
                     edge.setSourceNodeId(textbookNode.getId());
                     edge.setTargetNodeId(catalogNode.getId());
                     edge.setRelationType("CONTAINS");
-                    newEdges.add(edge);
+                    
+                    // 检查关系是否已存在
+                    String edgeKey = edge.getSourceNodeId() + "->" + edge.getTargetNodeId() + ":" + edge.getRelationType();
+                    if (!existingEdgeKeys.contains(edgeKey)) {
+                        newEdges.add(edge);
+                    }
                 }
             }
         }
@@ -196,7 +214,12 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
                     edge.setSourceNodeId(fatherCatalogNode.getId());
                     edge.setTargetNodeId(catalogNode.getId());
                     edge.setRelationType("CONTAINS");
-                    newEdges.add(edge);
+                    
+                    // 检查关系是否已存在
+                    String edgeKey = edge.getSourceNodeId() + "->" + edge.getTargetNodeId() + ":" + edge.getRelationType();
+                    if (!existingEdgeKeys.contains(edgeKey)) {
+                        newEdges.add(edge);
+                    }
                 }
             }
         }

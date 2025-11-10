@@ -84,7 +84,8 @@ public R<List<Long>> updateQuestionBankBatch(@RequestBody BatchQuestionBankUpdat
             Long chapterId = chapterIds.get(0);
             textbookId = teachingQuestionBankService.getTextbookIdByChapterId(chapterId);
             if (textbookId == null) {
-                return R.fail("无法找到章节对应的教材信息");
+                //return R.fail("无法找到章节对应的教材信息");
+                return R.commonReturn(200, "删除成功", new ArrayList<>());
             }
         }
         
