@@ -94,11 +94,11 @@ public class KgNodeServiceImpl extends ServiceImpl<KgNodeMapper, KgNode> impleme
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "指定的教材不存在");
         }
 
-        // 3. 检查教材是否发布
+/*        // 3. 检查教材是否发布
         if (textbook.getReleaseStatus() == null || textbook.getReleaseStatus() != 1 || 
             textbook.getReviewStatus() == null || textbook.getReviewStatus() != 1) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材未发布");
-        }
+        }*/
 
         // 4. 获取教材的所有目录信息（使用getTextbookCatalogTree方法获取完整的目录树结构）
         List<TextbookTree> textbookTree = textbookCatalogService.getTextbookCatalogTree(textbookId);
