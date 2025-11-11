@@ -181,10 +181,6 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
                 }
             }
 
-            // 计算每个其他难度应分配的题目数量
-            int eachOtherCount = otherDifficulties.size() > 0 ? remainingCount / otherDifficulties.size() : 0;
-            int remainder = otherDifficulties.size() > 0 ? remainingCount % otherDifficulties.size() : 0;
-
             // 从选择的难易程度中抽取题目
             List<TeachingQuestion> selectedQuestions = teachingQuestionMapper.selectQuestionsByCondition(
                     param.getTextbookId(),
@@ -193,41 +189,44 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
                     param.getDifficulty()
             );
 
-            if (selectedQuestions.size() < selectedDifficultyCount) {
+            // 实际从选择的难度中能获取的题目数量
+            int actualSelectedCount = Math.min(selectedQuestions.size(), selectedDifficultyCount);
+            // 如果选择的难度题目不足，计算缺口并分配到其他难度
+            int deficit = selectedDifficultyCount - actualSelectedCount;
+
+            // 添加选择的难度的可用题目
+            if (actualSelectedCount > 0) {
+                result.addAll(convertToVO(selectedQuestions.subList(0, actualSelectedCount)));
+            }
+
+            // 重新计算其他难度需要的题目数量，加上缺口部分
+            int totalOtherCount = remainingCount + deficit;
+            
+            // 先收集所有其他难度的可用题目
+            List<TeachingQuestion> allOtherQuestions = new ArrayList<>();
+            for (Integer otherDifficulty : otherDifficulties) {
+                List<TeachingQuestion> otherQuestions = teachingQuestionMapper.selectQuestionsByCondition(
+                        param.getTextbookId(),
+                        param.getChapterId(),
+                        questionType,
+                        otherDifficulty
+                );
+                allOtherQuestions.addAll(otherQuestions);
+            }
+
+            // 检查总的可用题目是否足够
+            if (actualSelectedCount + allOtherQuestions.size() < totalCount) {
                 throw new BusinessException(
                         BusinessErrorEnum.PARAMETER_VALIDATION_ERROR,
-                        String.format("题型%d的难度%d题目数量不足，需要%d道，实际只有%d道",
-                                questionType, param.getDifficulty(), selectedDifficultyCount, selectedQuestions.size())
+                        String.format("题型%d的题目总数量不足，需要%d道，实际只有%d道（难度%d有%d道，其他难度共%d道）",
+                                questionType, totalCount, actualSelectedCount + allOtherQuestions.size(),
+                                param.getDifficulty(), actualSelectedCount, allOtherQuestions.size())
                 );
             }
 
-            // 添加选择的难度的题目
-            result.addAll(convertToVO(selectedQuestions.subList(0, selectedDifficultyCount)));
-
-            // 从其他难度中抽取题目
-            for (int i = 0; i < otherDifficulties.size(); i++) {
-                Integer otherDifficulty = otherDifficulties.get(i);
-                // 如果有余数，前面几个难度多分配一道题
-                int countForThisDifficulty = eachOtherCount + (i < remainder ? 1 : 0);
-
-                if (countForThisDifficulty > 0) {
-                    List<TeachingQuestion> otherQuestions = teachingQuestionMapper.selectQuestionsByCondition(
-                            param.getTextbookId(),
-                            param.getChapterId(),
-                            questionType,
-                            otherDifficulty
-                    );
-
-                    if (otherQuestions.size() < countForThisDifficulty) {
-                        throw new BusinessException(
-                                BusinessErrorEnum.PARAMETER_VALIDATION_ERROR,
-                                String.format("题型%d的难度%d题目数量不足，需要%d道，实际只有%d道",
-                                        questionType, otherDifficulty, countForThisDifficulty, otherQuestions.size())
-                        );
-                    }
-
-                    result.addAll(convertToVO(otherQuestions.subList(0, countForThisDifficulty)));
-                }
+            // 从其他难度中取所需数量的题目
+            if (totalOtherCount > 0) {
+                result.addAll(convertToVO(allOtherQuestions.subList(0, Math.min(totalOtherCount, allOtherQuestions.size()))));
             }
         }
 

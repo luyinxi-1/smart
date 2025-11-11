@@ -622,6 +622,22 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         }
         List<Textbook> resultTextbooks = textbookIds.isEmpty() ?
                 Collections.emptyList() : textbookMapper.selectBatchIds(textbookIds);
+        
+        // 添加教材名称和教材类型筛选条件
+        if (StringUtils.isNotBlank(param.getTextbookName())) {
+            String textbookName = param.getTextbookName().trim();
+            resultTextbooks = resultTextbooks.stream()
+                    .filter(textbook -> textbook.getTextbookName() != null && 
+                            textbook.getTextbookName().contains(textbookName))
+                    .collect(Collectors.toList());
+        }
+        
+        if (param.getTextbookClassification() != null) {
+            resultTextbooks = resultTextbooks.stream()
+                    .filter(textbook -> Objects.equals(param.getTextbookClassification(), textbook.getClassification()))
+                    .collect(Collectors.toList());
+        }
+        
         Map<Long, Integer> activityCountMap = countUserActivities(userId, activityType);
         // 转换为返回参数
         List<TextbookCenterPageReturnParam> returnList = new ArrayList<>();

@@ -29,21 +29,21 @@ public class HomePageNoticeReadStatus {
 
     @ApiModelProperty("通知公告id")
     @TableField("notice_id")
-    private Long notice_id;
+    private Long noticeId;
 
     @ApiModelProperty("用户id")
     @TableField("user_id")
-    private Long user_id;
+    private Long userId;
 
     @ApiModelProperty("阅读状态（0:未读, 1:已读）")
     @TableField("read_status")
-    private Integer read_status;
+    private Integer readStatus;
 
     @ApiModelProperty("阅读时间")
     @TableField("read_time")
-    private LocalDateTime read_time;
+    private LocalDateTime readTime;
 
     @ApiModelProperty("创建时间")
     @TableField("create_time")
-    private LocalDateTime create_time;
+    private LocalDateTime createTime;
 }

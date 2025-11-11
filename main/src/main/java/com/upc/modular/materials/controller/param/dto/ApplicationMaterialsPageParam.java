@@ -39,4 +39,7 @@ public class ApplicationMaterialsPageParam extends PageBaseSearchParam {
     
     @ApiModelProperty("教材章节ID（查询绑定到指定章节的应用素材，需配合textbookId使用）")
     private Long textbookCatalogId;
+    
+    @ApiModelProperty("是否只查询未绑定教材的素材（true:只查未绑定的, false/null:查询全部）")
+    private Boolean onlyUnbound;
 }

@@ -3,6 +3,7 @@ package com.upc.modular.homepage.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.upc.common.utils.UserInfoToRedis;
 import com.upc.common.utils.UserUtils;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
@@ -118,15 +119,11 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
         // 如果是学生，更新阅读状态为已读
         if (isStudent) {
             // 查询该学生对应该通知的阅读状态记录
-            HomePageNoticeReadStatus readStatusRecord = homePageNoticeReadStatusMapper.selectOne(
-                    new LambdaQueryWrapper<HomePageNoticeReadStatus>()
-                            .eq(HomePageNoticeReadStatus::getNotice_id, noticeId)
-                            .eq(HomePageNoticeReadStatus::getUser_id, userId)
-            );
+            HomePageNoticeReadStatus readStatusRecord = homePageNoticeReadStatusMapper.selectByNoticeIdAndUserId(noticeId, userId);
             
             // 如果存在记录且状态为未读，则更新为已读
-            if (readStatusRecord != null && readStatusRecord.getRead_status() == 0) {
-                readStatusRecord.setRead_status(1);
+            if (readStatusRecord != null && readStatusRecord.getReadStatus() == 0) {
+                readStatusRecord.setReadStatus(1);
                 homePageNoticeReadStatusMapper.updateById(readStatusRecord);
             }
         }
@@ -141,6 +138,15 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
             // 1. 插入 HomePageNotice 数据到 home_page_notice 表
             HomePageNotice homePageNotice = new HomePageNotice();
             BeanUtils.copyProperties(homePageNoticeParam,homePageNotice);
+            
+            // 将classList转换为逗号分隔的字符串存储
+            if (homePageNoticeParam.getClassList() != null && !homePageNoticeParam.getClassList().isEmpty()) {
+                String classListStr = homePageNoticeParam.getClassList().stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(","));
+                homePageNotice.setClassListStr(classListStr);
+            }
+            
             this.save(homePageNotice);
             Long noticeId = homePageNotice.getId();
 
@@ -248,10 +254,10 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
                 List<HomePageNoticeReadStatus> readStatusList = studentUserIdSet.stream()
                         .map(userId -> {
                             HomePageNoticeReadStatus readStatus = new HomePageNoticeReadStatus();
-                            readStatus.setNotice_id(noticeId);
-                            readStatus.setUser_id(userId);
-                            readStatus.setRead_status(0); // 默认未读
-                            readStatus.setCreate_time(LocalDateTime.now());
+                            readStatus.setNoticeId(noticeId);
+                            readStatus.setUserId(userId);
+                            readStatus.setReadStatus(0); // 默认未读
+                            readStatus.setCreateTime(LocalDateTime.now());
                             return readStatus;
                         })
                         .collect(Collectors.toList());
@@ -313,16 +319,16 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
                 // 查询当前用户在这些通知中的阅读状态记录
                 List<HomePageNoticeReadStatus> readStatusList = homePageNoticeReadStatusMapper.selectList(
                         new LambdaQueryWrapper<HomePageNoticeReadStatus>()
-                                .select(HomePageNoticeReadStatus::getNotice_id, HomePageNoticeReadStatus::getRead_status)
-                                .eq(HomePageNoticeReadStatus::getUser_id, userId)
-                                .in(HomePageNoticeReadStatus::getNotice_id, noticeIds)
+                                .select(HomePageNoticeReadStatus::getNoticeId, HomePageNoticeReadStatus::getReadStatus)
+                                .eq(HomePageNoticeReadStatus::getUserId, userId)
+                                .in(HomePageNoticeReadStatus::getNoticeId, noticeIds)
                 );
             
                 // 构建通知ID到阅读状态的映射
                 Map<Long, Integer> noticeReadStatusMap = readStatusList.stream()
                         .collect(Collectors.toMap(
-                                HomePageNoticeReadStatus::getNotice_id,
-                                HomePageNoticeReadStatus::getRead_status
+                                HomePageNoticeReadStatus::getNoticeId,
+                                HomePageNoticeReadStatus::getReadStatus
                         ));
             
                 // 筛选出学生有权查看的通知（即在HomePageNoticeReadStatus表中存在记录的通知）
@@ -398,6 +404,15 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
         // 1. 直接更新 HomePageNotice 数据到 home_page_notice 表
         HomePageNotice homePageNotice = new HomePageNotice();
         BeanUtils.copyProperties(homePageNoticeParam, homePageNotice);
+        
+        // 将classList转换为逗号分隔的字符串存储
+        if (homePageNoticeParam.getClassList() != null && !homePageNoticeParam.getClassList().isEmpty()) {
+            String classListStr = homePageNoticeParam.getClassList().stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(","));
+            homePageNotice.setClassListStr(classListStr);
+        }
+        
         this.updateById(homePageNotice);
 
         // 2. 如果是教师通知且传了scopeType，则需要更新通知范围
@@ -414,7 +429,7 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
             // 删除原有的学生通知范围记录
             homePageNoticeReadStatusMapper.delete(
                 new LambdaQueryWrapper<HomePageNoticeReadStatus>()
-                    .eq(HomePageNoticeReadStatus::getNotice_id, noticeId)
+                    .eq(HomePageNoticeReadStatus::getNoticeId, noticeId)
             );
 
             // 重新计算学生ID列表
@@ -515,10 +530,10 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
                 List<HomePageNoticeReadStatus> readStatusList = studentUserIdSet.stream()
                         .map(userId -> {
                             HomePageNoticeReadStatus readStatus = new HomePageNoticeReadStatus();
-                            readStatus.setNotice_id(noticeId);
-                            readStatus.setUser_id(userId);
-                            readStatus.setRead_status(0); // 默认未读
-                            readStatus.setCreate_time(LocalDateTime.now());
+                            readStatus.setNoticeId(noticeId);
+                            readStatus.setUserId(userId);
+                            readStatus.setReadStatus(0); // 默认未读
+                            readStatus.setCreateTime(LocalDateTime.now());
                             return readStatus;
                         })
                         .collect(Collectors.toList());
@@ -544,7 +559,7 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
         // 先删除home_page_notice_read_status表中的相关记录
         homePageNoticeReadStatusMapper.delete(
             new LambdaQueryWrapper<HomePageNoticeReadStatus>()
-                .eq(HomePageNoticeReadStatus::getNotice_id, id)
+                .eq(HomePageNoticeReadStatus::getNoticeId, id)
         );
         
         // 再删除home_page_notice表中的记录

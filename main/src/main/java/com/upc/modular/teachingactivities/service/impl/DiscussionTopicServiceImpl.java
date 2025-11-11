@@ -114,72 +114,11 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
         // 先查询所有符合条件的数据，后续再进行权限过滤和分页
         QueryWrapper<DiscussionTopic> queryWrapper = new QueryWrapper<>();
 
-        // 处理教材名称和分类筛选
-        List<Long> textbookIdsFromConditions = new ArrayList<>();
-        boolean hasTextbookConditions = StringUtils.isNotBlank(param.getTextbookName()) || StringUtils.isNotBlank(param.getClassification());
-        
-        if (hasTextbookConditions) {
-            // 根据教材名称和分类查询教材ID
-            LambdaQueryWrapper<Textbook> textbookQueryWrapper = new LambdaQueryWrapper<>();
-            textbookQueryWrapper.like(StringUtils.isNotBlank(param.getTextbookName()), Textbook::getTextbookName, param.getTextbookName());
-            
-            // 处理教材分类筛选
-            if (StringUtils.isNotBlank(param.getClassification())) {
-                try {
-                    Long classificationId = Long.parseLong(param.getClassification());
-                    if (classificationId > 0) {
-                        // 获取该分类及其所有子分类
-                        List<Long> classificationIds = textbookClassificationService.selectTextbookClassificationSubtreeIdList(classificationId);
-                        if (CollectionUtils.isNotEmpty(classificationIds)) {
-                            textbookQueryWrapper.in(Textbook::getClassification, classificationIds);
-                        } else {
-                            textbookQueryWrapper.eq(Textbook::getClassification, classificationId);
-                        }
-                    }
-                } catch (NumberFormatException e) {
-                    // 如果classification不是数字，忽略分类筛选
-                }
-            }
-            
-            textbookIdsFromConditions = textbookService.list(textbookQueryWrapper)
-                    .stream()
-                    .map(Textbook::getId)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-            
-            // 如果根据条件没有找到教材，直接返回空结果
-            if (StringUtils.isNotBlank(param.getTextbookName()) && textbookIdsFromConditions.isEmpty()) {
-                return new Page<>(param.getCurrent(), param.getSize(), 0);
-            }
-        }
-
         queryWrapper.like(StringUtils.isNotBlank(param.getTopicTitle()), "topic_title", param.getTopicTitle());
         queryWrapper.eq(param.getType() != null, "type", param.getType());
         queryWrapper.eq(param.getMessageType() != null, "message_type", param.getMessageType());
         queryWrapper.eq(param.getIdentityType() != null, "identity_type", param.getIdentityType());
-
-        // 处理教材ID筛选条件
-        if (param.getTextbookId() != null || !textbookIdsFromConditions.isEmpty()) {
-            List<Long> allTextbookIds = new ArrayList<>();
-            
-            // 添加通过参数传入的教材ID
-            if (param.getTextbookId() != null) {
-                allTextbookIds.add(param.getTextbookId());
-            }
-            
-            // 添加通过教材名称和分类查询到的教材ID
-            allTextbookIds.addAll(textbookIdsFromConditions);
-            
-            // 去重
-            allTextbookIds = allTextbookIds.stream().distinct().collect(Collectors.toList());
-            
-            if (!allTextbookIds.isEmpty()) {
-                queryWrapper.in("textbook_id", allTextbookIds);
-            } else if (param.getTextbookId() != null) {
-                // 如果没有通过条件查询到教材，但有指定的教材ID，则只查询指定的教材
-                queryWrapper.eq("textbook_id", param.getTextbookId());
-            }
-        }
+        queryWrapper.eq(param.getTextbookId() != null, "textbook_id", param.getTextbookId());
 
         // 排序逻辑
         Integer sortType = param.getSortType();
