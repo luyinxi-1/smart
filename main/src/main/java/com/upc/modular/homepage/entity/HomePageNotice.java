@@ -91,4 +91,8 @@ public class HomePageNotice implements Serializable {
     @TableField("show_type")
     private String showType;
 
+    @ApiModelProperty("班级列表")
+    @TableField("class_list")
+    private String classListStr;
+
 }
