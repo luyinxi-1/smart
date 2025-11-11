@@ -39,7 +39,7 @@
         LEFT JOIN application_materials_textbook_mapping amtm ON am.id = amtm.application_material_id
         <where>
             <if test="param.name != null and param.name != ''">
-                AND am.name LIKE '%' || #{param.name} || '%'
+                AND am.name LIKE CONCAT('%', #{param.name}, '%')
             </if>
             <if test="param.questionBankId != null">
                 AND am.question_bank_id = #{param.questionBankId}
@@ -55,6 +55,10 @@
             </if>
             <if test="param.textbookCatalogId != null">
                 AND amtm.chapter_id = #{param.textbookCatalogId}
+            </if>
+            <!-- 只查询未绑定教材的应用素材 -->
+            <if test="param.onlyUnbound != null and param.onlyUnbound == true">
+                AND amtm.application_material_id IS NULL
             </if>
         </where>
         ORDER BY am.add_datetime
