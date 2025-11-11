@@ -58,7 +58,8 @@ public class MaterialPushServiceImpl extends ServiceImpl<MaterialPushMapper, Mat
         List<MaterialList> materialList = param.getMaterialList();
         if(materialList != null && !materialList.isEmpty()){
             for(MaterialList material : materialList){
-                material.setId( null);
+                material.setId(null);
+                material.setMaterialPushId(materialPushId); // 设置外键关联
                 materialListMapper.insert(material);
             }
         }
