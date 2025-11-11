@@ -13,8 +13,17 @@
         <result column="add_datetime" property="addDatetime" />
         <result column="operator" property="operator" />
         <result column="operation_datetime" property="operationDatetime" />
+        <result column="class_list" property="classListStr" />
     </resultMap>
-    <select id="getHomePageNoticeDetails" resultType="com.upc.modular.homepage.param.HomePageNoticeReturnParam"
+    
+    <!-- HomePageNoticeReturnParam结果映射 -->
+    <resultMap id="ReturnParamResultMap" type="com.upc.modular.homepage.param.HomePageNoticeReturnParam" extends="BaseResultMap">
+        <result column="authorName" property="authorName" />
+        <result column="creatorName" property="creatorName" />
+        <result column="operatorName" property="operatorName" />
+        <result column="readStatus" property="readStatus" />
+    </resultMap>
+    <select id="getHomePageNoticeDetails" resultMap="ReturnParamResultMap"
             parameterType="java.lang.Long">
         SELECT
         hpn.*,

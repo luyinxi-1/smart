@@ -127,7 +127,6 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
                 homePageNoticeReadStatusMapper.updateById(readStatusRecord);
             }
         }
-        
         return homePageNoticeMapper.getHomePageNoticeDetails(noticeId);
     }
 
