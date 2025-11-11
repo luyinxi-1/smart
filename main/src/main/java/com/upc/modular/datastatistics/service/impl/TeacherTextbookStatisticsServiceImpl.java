@@ -97,6 +97,25 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
         List<ChapterQuestionCorrectRateParam> result = teacherTextbookStatisticsMapper
                 .getChapterQuestionCorrectRateStatistics(textbookId);
         
+        // 处理章节名称，去除HTML标签和常见HTML实体字符，只返回纯文本名称
+        for (ChapterQuestionCorrectRateParam param : result) {
+            if (param.getChapterName() != null) {
+                // 去除HTML标签
+                String cleanName = param.getChapterName().replaceAll("<[^>]*>", "");
+                // 只替换常见的HTML实体字符，避免误伤正常文本
+                cleanName = cleanName.replace("&nbsp;", " ")
+                        .replace("&amp;", "&")
+                        .replace("&lt;", "<")
+                        .replace("&gt;", ">")
+                        .replace("&quot;", "\"")
+                        .replace("&apos;", "'");
+                // 将多个空格合并为单个空格
+                cleanName = cleanName.replaceAll("\\s+", " ");
+                // 去除首尾空格
+                param.setChapterName(cleanName.trim());
+            }
+        }
+        
         log.info("获取各章节习题正确率统计完成，结果数量: {}", result.size());
         return result;
     }
