@@ -34,6 +34,10 @@ public class ApplicationMaterialsManageController {
     @ApiOperation("新增应用素材")
     @PostMapping("/add")
     public R<Long> addApplicationMaterials(@RequestBody ApplicationMaterialsSaveParam param) {
+        // 设置状态默认为1（发布）
+        if (param.getStatus() == null) {
+            param.setStatus(1);
+        }
         Long id = applicationMaterialsService.saveApplicationMaterials(param);
         return R.ok(id);
     }
