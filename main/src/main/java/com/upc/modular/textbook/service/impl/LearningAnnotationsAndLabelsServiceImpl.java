@@ -1,6 +1,7 @@
 package com.upc.modular.textbook.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.upc.common.utils.UserUtils;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
@@ -15,8 +16,11 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -63,6 +67,8 @@ public class LearningAnnotationsAndLabelsServiceImpl extends ServiceImpl<Learnin
         if (ObjectUtils.isEmpty(param) || ObjectUtils.isEmpty(param.getCatalogId()) || ObjectUtils.isEmpty(param.getTextbookId())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参不能为空");
         }
+        // 默认设置为未同步状态
+        param.setSyncStatus(0);
         MyLambdaQueryWrapper<LearningAnnotationsAndLabels> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
         lambdaQueryWrapper.eq(LearningAnnotationsAndLabels::getCatalogId, param.getCatalogId())
                 .eq(LearningAnnotationsAndLabels::getTextbookId, param.getTextbookId())
@@ -97,6 +103,35 @@ public class LearningAnnotationsAndLabelsServiceImpl extends ServiceImpl<Learnin
         return this.list(new LambdaQueryWrapper<LearningAnnotationsAndLabels>()
                 .eq(LearningAnnotationsAndLabels::getTextbookId, textbookId)
                 .eq(LearningAnnotationsAndLabels::getCatalogId, catalogId));
+    }
+
+    @Override
+    public List<Long> getNewAnnotationIdsForClient() {
+        LambdaQueryWrapper<LearningAnnotationsAndLabels> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.select(LearningAnnotationsAndLabels::getId).eq(LearningAnnotationsAndLabels::getSyncStatus, 0);
+        List<LearningAnnotationsAndLabels> annotations = this.list(queryWrapper);
+        return annotations.stream().map(LearningAnnotationsAndLabels::getId).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<LearningAnnotationsAndLabels> getAnnotationsByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return this.listByIds(ids);
+    }
+
+    @Override
+    @Transactional
+    public boolean confirmAnnotationsSync(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return true;
+        }
+        LambdaUpdateWrapper<LearningAnnotationsAndLabels> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.in(LearningAnnotationsAndLabels::getId, ids)
+                .eq(LearningAnnotationsAndLabels::getSyncStatus, 0)
+                .set(LearningAnnotationsAndLabels::getSyncStatus, 1);
+        return this.update(updateWrapper);
     }
 
 }

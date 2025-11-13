@@ -19,6 +19,8 @@ import org.apache.ibatis.annotations.Delete;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * <p>
  *  前端控制器
@@ -111,5 +113,24 @@ public class LearningNotesController {
         Page<LearningNotesPageReturnParam> page = learningNotesService.getMyNotesTextbookCenter(param);
         PageBaseReturnParam<LearningNotesPageReturnParam> result = PageBaseReturnParam.ok(page);
         return R.page(result);
+    }
+
+    @ApiOperation(value = "获取需要同步的学习笔记ID列表（客户端用）")
+    @GetMapping("/getNewNoteIdsForClient")
+    public R<List<Long>> getNewNoteIdsForClient() {
+        return R.ok(learningNotesService.getNewNoteIdsForClient());
+    }
+
+    @ApiOperation(value = "根据ID列表获取学习笔记完整数据（客户端用）")
+    @PostMapping("/getNotesByIds")
+    public R<List<LearningNotes>> getNotesByIds(@RequestBody List<Long> ids) {
+        return R.ok(learningNotesService.getNotesByIds(ids));
+    }
+
+    @ApiOperation(value = "确认学习笔记已同步（客户端用）")
+    @PostMapping("/confirmNotesSync")
+    public R<Void> confirmNotesSync(@RequestBody List<Long> ids) {
+        boolean success = learningNotesService.confirmNotesSync(ids);
+        return success ? R.ok() : R.fail("确认同步失败");
     }
 }

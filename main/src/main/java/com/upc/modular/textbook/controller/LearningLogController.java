@@ -63,4 +63,25 @@ public class LearningLogController {
         boolean exists = learningLogService.count(queryWrapper) > 0;
         return R.ok(exists);
     }
+    @ApiOperation(value = "获取需要同步的学习日志ID列表（客户端用）")
+    @GetMapping("/getNewLogIdsForClient")
+    public R<List<Long>> getNewLogIdsForClient() {
+        List<Long> ids = learningLogService.getNewLogIdsForClient();
+        return R.ok(ids);
+    }
+
+    @ApiOperation(value = "根据ID列表获取学习日志完整数据（客户端用）")
+    @PostMapping("/getLogsByIds")
+    public R<List<LearningLog>> getLogsByIds(@RequestBody List<Long> ids) {
+        List<LearningLog> logs = learningLogService.getLogsByIds(ids);
+        return R.ok(logs);
+    }
+
+    @ApiOperation(value = "确认学习日志已同步（客户端用）")
+    @PostMapping("/confirmLogsSync")
+    public R<Void> confirmLogsSync(@RequestBody List<Long> ids) {
+        boolean success = learningLogService.confirmLogsSync(ids);
+        return success ? R.ok() : R.fail("确认同步失败");
+    }
+
 }

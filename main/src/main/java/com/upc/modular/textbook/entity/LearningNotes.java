@@ -74,4 +74,8 @@ public class LearningNotes implements Serializable {
     @ApiModelProperty("客户端是否删除标志")
     @TableField("is_delete")
     private  Integer isDelete;
+    
+    @ApiModelProperty("同步状态: 0-未同步, 1-已同步")
+    @TableField("sync_status")
+    private Integer syncStatus;
 }
