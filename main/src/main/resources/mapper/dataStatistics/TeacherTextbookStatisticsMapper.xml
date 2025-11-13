@@ -378,28 +378,31 @@
         LEFT JOIN (
             -- 统计学生章节阅读时长
             SELECT 
-                ll.catalogue_id,
-                COUNT(CASE
-                    WHEN EXTRACT(EPOCH FROM ll2.add_datetime::timestamp) - EXTRACT(EPOCH FROM ll.add_datetime::timestamp) BETWEEN 55 AND 65
-                    THEN 1
-                    ELSE NULL
-                END) as reading_duration
-            FROM learning_log ll
-            LEFT JOIN learning_log ll2 ON ll.creator = ll2.creator
-                AND ll.catalogue_id = ll2.catalogue_id
-                AND ll2.add_datetime > ll.add_datetime
-                AND ll2.id = (
-                    SELECT id FROM learning_log
-                    WHERE creator = ll.creator
-                    AND catalogue_id = ll.catalogue_id
-                    AND add_datetime > ll.add_datetime
-                    ORDER BY add_datetime ASC
-                    LIMIT 1
+                t1.catalogue_id,
+                COUNT(*) as reading_duration
+            FROM (
+                SELECT 
+                    ll.catalogue_id,
+                    ll.add_datetime,
+                    ROW_NUMBER() OVER (PARTITION BY ll.catalogue_id ORDER BY ll.add_datetime) as rn
+                FROM learning_log ll
+                WHERE ll.textbook_id = #{textbookId} AND ll.creator = (
+                    SELECT user_id FROM student WHERE id = #{studentId}
                 )
-            WHERE ll.textbook_id = #{textbookId} AND ll.creator = (
-                SELECT user_id FROM student WHERE id = #{studentId}
-            )
-            GROUP BY ll.catalogue_id
+            ) t1
+            LEFT JOIN (
+                SELECT 
+                    ll.catalogue_id,
+                    ll.add_datetime,
+                    ROW_NUMBER() OVER (PARTITION BY ll.catalogue_id ORDER BY ll.add_datetime) as rn
+                FROM learning_log ll
+                WHERE ll.textbook_id = #{textbookId} AND ll.creator = (
+                    SELECT user_id FROM student WHERE id = #{studentId}
+                )
+            ) t2 ON t1.catalogue_id = t2.catalogue_id AND t1.rn = t2.rn - 1
+            WHERE t2.add_datetime IS NOT NULL 
+                AND EXTRACT(EPOCH FROM t2.add_datetime) - EXTRACT(EPOCH FROM t1.add_datetime) BETWEEN 55 AND 65
+            GROUP BY t1.catalogue_id
         ) reading_stats ON tc.id = reading_stats.catalogue_id
         WHERE tc.textbook_id = #{textbookId}
         ORDER BY tc.catalog_level, tc.sort

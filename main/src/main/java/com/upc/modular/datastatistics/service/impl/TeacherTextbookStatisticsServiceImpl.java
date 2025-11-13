@@ -418,7 +418,24 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
             StudentQuestionAnsweringStatisticsParam param = new StudentQuestionAnsweringStatisticsParam();
             
             param.setChapterId(getLongValue(data.get("chapterId")));
-            param.setChapterName((String) data.get("chapterName"));
+            // 清理章节名称中的HTML标签
+            String chapterName = (String) data.get("chapterName");
+            if (chapterName != null) {
+                // 去除HTML标签
+                chapterName = chapterName.replaceAll("<[^>]*>", "");
+                // 只替换常见的HTML实体字符，避免误伤正常文本
+                chapterName = chapterName.replace("&nbsp;", " ")
+                        .replace("&amp;", "&")
+                        .replace("&lt;", "<")
+                        .replace("&gt;", ">")
+                        .replace("&quot;", "\"")
+                        .replace("&apos;", "'");
+                // 将多个空格合并为单个空格
+                chapterName = chapterName.replaceAll("\\s+", " ");
+                // 去除首尾空格
+                chapterName = chapterName.trim();
+            }
+            param.setChapterName(chapterName);
             param.setQuestionAnsweringDuration(getLongValue(data.get("questionAnsweringDuration")));
             param.setChapterScore(getDoubleValue(data.get("chapterScore")));
             param.setCorrectRate(getDoubleValue(data.get("correctRate")));
