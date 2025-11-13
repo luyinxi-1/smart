@@ -24,6 +24,9 @@ public interface TextbookComprehensiveViewMapper extends BaseMapper<TextbookComp
      * @param teacherUserId 教师用户ID
      * @return 学生用户ID列表
      */
-    @Select("SELECT DISTINCT student_user_id FROM textbook_comprehensive_view WHERE teacher_user_id = #{teacherUserId}")
+    @Select("SELECT DISTINCT student_user_id " +
+            "FROM textbook_comprehensive_view " +
+            "WHERE teacher_user_id = #{teacherUserId} " +
+            "   OR authority_teacher_user_id = #{teacherUserId}")
     List<Long> getStudentUserIdsByTeacherUserId(@Param("teacherUserId") Long teacherUserId);
 }
