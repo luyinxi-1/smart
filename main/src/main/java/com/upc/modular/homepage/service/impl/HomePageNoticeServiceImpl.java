@@ -127,7 +127,6 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
                 homePageNoticeReadStatusMapper.updateById(readStatusRecord);
             }
         }
-        
         return homePageNoticeMapper.getHomePageNoticeDetails(noticeId);
     }
 
@@ -287,15 +286,15 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
         // 根据通知类型执行不同的查询逻辑
         if (param.getType() != null && SYSTEM_NOTICE.equals(param.getType())) {
             // 系统通知 - 所有用户都可以查看所有系统通知
-            resultPage = homePageNoticeMapper.selectNoticePageWithNames(page, param);
+            return homePageNoticeMapper.selectNoticePageWithNames(page, param);
         } else if (param.getType() != null && TEACHER_NOTICE.equals(param.getType())) {
             // 教师通知 - 需要根据用户类型和创建者进行过滤
             if (userType != null && userType == 0) {
                 // 管理员 - 可以查看所有教师通知
-                resultPage = homePageNoticeMapper.selectNoticePageWithNames(page, param);
+                return homePageNoticeMapper.selectNoticePageWithNames(page, param);
             } else if (userType != null && userType == 2) {
                 // 教师 - 只查询自己创建的
-                resultPage = homePageNoticeMapper.selectNoticePageWithNamesAndCreator(page, param, userId);
+                return homePageNoticeMapper.selectNoticePageWithNamesAndCreator(page, param, userId);
             } else {
                 // 学生或其他用户类型，使用原始查询逻辑，但后续需要筛选
                 resultPage = homePageNoticeMapper.selectNoticePageWithNames(page, param);
@@ -572,6 +571,7 @@ public class HomePageNoticeServiceImpl extends ServiceImpl<HomePageNoticeMapper,
      * @return 学生用户ID列表
      */
     private List<Long> getFavoriteTextbookStudentUserIds(Long teacherUserId) {
+        
         return textbookComprehensiveViewMapper.getStudentUserIdsByTeacherUserId(teacherUserId);
     }
 

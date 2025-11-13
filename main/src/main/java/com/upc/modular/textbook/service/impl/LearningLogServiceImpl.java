@@ -1,6 +1,7 @@
 package com.upc.modular.textbook.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.upc.common.utils.UserUtils;
 import com.upc.exception.BusinessErrorEnum;
@@ -15,7 +16,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -42,6 +45,9 @@ public class LearningLogServiceImpl extends ServiceImpl<LearningLogMapper, Learn
         if (ObjectUtils.isEmpty(learningLog) || ObjectUtils.isEmpty(learningLog.getTextbookId()) || ObjectUtils.isEmpty(learningLog.getCatalogueId())) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参不能为空");
         }
+
+        // 默认设置为未同步状态
+        learningLog.setSyncStatus(0);
 
         return this.save(learningLog);
     }
@@ -131,7 +137,7 @@ public class LearningLogServiceImpl extends ServiceImpl<LearningLogMapper, Learn
             return recentStudies;
         }
     }
-    
+
     @Override
     public Boolean batchDeleteByUuid(UuidParam uuidParam) {
         // 1. 参数校验
@@ -147,5 +153,36 @@ public class LearningLogServiceImpl extends ServiceImpl<LearningLogMapper, Learn
         // 3. 执行删除操作
         // this.remove(wrapper) 方法会根据构造的条件执行 DELETE FROM table WHERE ...
         return this.remove(wrapper);
+    }
+
+    @Override
+    public List<Long> getNewLogIdsForClient() {
+        LambdaQueryWrapper<LearningLog> queryWrapper = new LambdaQueryWrapper<>();
+        // 只查询ID，更高效
+        queryWrapper.select(LearningLog::getId).eq(LearningLog::getSyncStatus, 0);
+        List<LearningLog> logs = this.list(queryWrapper);
+        // 提取ID并返回
+        return logs.stream().map(LearningLog::getId).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<LearningLog> getLogsByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return this.listByIds(ids);
+    }
+
+    @Override
+    @Transactional // 建议加上事务，保证这批ID的状态更新是原子性的
+    public boolean confirmLogsSync(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return true; // 没有ID需要更新，也算成功
+        }
+        LambdaUpdateWrapper<LearningLog> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.in(LearningLog::getId, ids) // 只更新传入的ID
+                .eq(LearningLog::getSyncStatus, 0) // 增加一个条件，防止重复更新
+                .set(LearningLog::getSyncStatus, 1);
+        return this.update(updateWrapper);
     }
 }

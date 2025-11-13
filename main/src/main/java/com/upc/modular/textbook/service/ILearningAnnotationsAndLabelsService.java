@@ -28,4 +28,24 @@ public interface ILearningAnnotationsAndLabelsService extends IService<LearningA
     List<LearningAnnotationsAndLabels> selectLabels(Long textbookId);
 
     List<LearningAnnotationsAndLabels> selectLabelsByCatalogId(Long textbookId, Long catalogId);
+
+    /**
+     * 【新】获取所有未同步的批注ID
+     * @return ID列表
+     */
+    List<Long> getNewAnnotationIdsForClient();
+
+    /**
+     * 【新】根据ID列表获取批注实体
+     * @param ids ID列表
+     * @return 实体列表
+     */
+    List<LearningAnnotationsAndLabels> getAnnotationsByIds(List<Long> ids);
+
+    /**
+     * 【新】根据ID列表确认同步状态
+     * @param ids ID列表
+     * @return 是否成功
+     */
+    boolean confirmAnnotationsSync(List<Long> ids);
 }

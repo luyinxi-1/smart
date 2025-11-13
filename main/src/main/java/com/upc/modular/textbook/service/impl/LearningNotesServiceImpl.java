@@ -19,6 +19,11 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.jsoup.Jsoup;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -32,7 +37,7 @@ import org.springframework.stereotype.Service;
 public class LearningNotesServiceImpl extends ServiceImpl<LearningNotesMapper, LearningNotes> implements ILearningNotesService {
     @Autowired
     private LearningNotesMapper learningNotesMapper;
-    
+
     @Override
     public Boolean insert(LearningNotes learningNotes) {
         if (ObjectUtils.isEmpty(learningNotes)) {
@@ -41,6 +46,8 @@ public class LearningNotesServiceImpl extends ServiceImpl<LearningNotesMapper, L
         if (ObjectUtils.isEmpty(UserUtils.get().getId())) {
             throw new BusinessException(BusinessErrorEnum.PLEASE_LOGIN, "用户未登录");
         }
+        // 默认设置为未同步状态
+        learningNotes.setSyncStatus(0);
         return this.save(learningNotes);
     }
 
@@ -170,9 +177,37 @@ public class LearningNotesServiceImpl extends ServiceImpl<LearningNotesMapper, L
         if (StringUtils.isBlank(clientUuid)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "clientUuid不能为空");
         }
-        
+
         LambdaQueryWrapper<LearningNotes> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(LearningNotes::getClientUuid, clientUuid);
         return this.getOne(queryWrapper);
+    }
+    @Override
+    public List<Long> getNewNoteIdsForClient() {
+        LambdaQueryWrapper<LearningNotes> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.select(LearningNotes::getId).eq(LearningNotes::getSyncStatus, 0);
+        List<LearningNotes> notes = this.list(queryWrapper);
+        return notes.stream().map(LearningNotes::getId).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<LearningNotes> getNotesByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return this.listByIds(ids);
+    }
+
+    @Override
+    @Transactional
+    public boolean confirmNotesSync(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return true;
+        }
+        LambdaUpdateWrapper<LearningNotes> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.in(LearningNotes::getId, ids)
+                .eq(LearningNotes::getSyncStatus, 0)
+                .set(LearningNotes::getSyncStatus, 1);
+        return this.update(updateWrapper);
     }
 }

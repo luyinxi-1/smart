@@ -68,4 +68,23 @@ public class LearningAnnotationsAndLabelsController {
     public R<List<LearningAnnotationsAndLabels>> selectLabels(@RequestParam("textbokkId") Long textbookId) {
         return R.ok(learningAnnotationsAndLabelsService.selectLabels(textbookId));
     }
+
+    @ApiOperation(value = "获取需要同步的批注ID列表（客户端用）")
+    @GetMapping("/getNewAnnotationIdsForClient")
+    public R<List<Long>> getNewAnnotationIdsForClient() {
+        return R.ok(learningAnnotationsAndLabelsService.getNewAnnotationIdsForClient());
+    }
+
+    @ApiOperation(value = "根据ID列表获取批注完整数据（客户端用）")
+    @PostMapping("/getAnnotationsByIds")
+    public R<List<LearningAnnotationsAndLabels>> getAnnotationsByIds(@RequestBody List<Long> ids) {
+        return R.ok(learningAnnotationsAndLabelsService.getAnnotationsByIds(ids));
+    }
+
+    @ApiOperation(value = "确认批注已同步（客户端用）")
+    @PostMapping("/confirmAnnotationsSync")
+    public R<Void> confirmAnnotationsSync(@RequestBody List<Long> ids) {
+        boolean success = learningAnnotationsAndLabelsService.confirmAnnotationsSync(ids);
+        return success ? R.ok() : R.fail("确认同步失败");
+    }
 }

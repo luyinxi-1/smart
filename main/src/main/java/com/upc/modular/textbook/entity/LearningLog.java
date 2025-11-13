@@ -62,5 +62,8 @@ public class LearningLog implements Serializable {
     @ApiModelProperty("客户端生成的记录唯一ID(防重复同步)")
     @TableField("client_uuid")
     private String clientUuid;
-
+    
+    @ApiModelProperty("同步状态: 0-未同步, 1-已同步")
+    @TableField("sync_status")
+    private Integer syncStatus;
 }
