@@ -182,32 +182,31 @@ public class LearningNotesServiceImpl extends ServiceImpl<LearningNotesMapper, L
         queryWrapper.eq(LearningNotes::getClientUuid, clientUuid);
         return this.getOne(queryWrapper);
     }
-    @Override
-    public List<Long> getNewNoteIdsForClient() {
-        LambdaQueryWrapper<LearningNotes> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.select(LearningNotes::getId).eq(LearningNotes::getSyncStatus, 0);
-        List<LearningNotes> notes = this.list(queryWrapper);
-        return notes.stream().map(LearningNotes::getId).collect(Collectors.toList());
-    }
 
     @Override
-    public List<LearningNotes> getNotesByIds(List<Long> ids) {
-        if (ids == null || ids.isEmpty()) {
+    public List<LearningNotes> getNewNotesBatch(Long userId, List<Long> textbookIds) {
+        if (textbookIds == null || textbookIds.isEmpty()) {
             return new ArrayList<>();
         }
-        return this.listByIds(ids);
+        return this.lambdaQuery()
+                .eq(LearningNotes::getSyncStatus, 0)
+                .eq(LearningNotes::getCreator, userId)
+                .in(LearningNotes::getTextbookId, textbookIds) // 核心：使用 IN 查询
+                .list();
     }
 
     @Override
     @Transactional
-    public boolean confirmNotesSync(List<Long> ids) {
-        if (ids == null || ids.isEmpty()) {
+    public boolean confirmNotesSyncBatch(Long userId, List<Long> textbookIds, List<Long> syncedIds) {
+        if (syncedIds == null || syncedIds.isEmpty()) {
             return true;
         }
-        LambdaUpdateWrapper<LearningNotes> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.in(LearningNotes::getId, ids)
+        return this.lambdaUpdate()
                 .eq(LearningNotes::getSyncStatus, 0)
-                .set(LearningNotes::getSyncStatus, 1);
-        return this.update(updateWrapper);
+                .eq(LearningNotes::getCreator, userId)
+                .in(LearningNotes::getTextbookId, textbookIds) // 确保只在这些书的范围内
+                .in(LearningNotes::getId, syncedIds) // 核心：只更新这些ID
+                .set(LearningNotes::getSyncStatus, 1)
+                .update();
     }
 }

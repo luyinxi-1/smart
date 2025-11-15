@@ -6,12 +6,13 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.upc.common.responseparam.R;
 import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
 import com.upc.modular.textbook.entity.LearningLog;
-import com.upc.modular.textbook.param.RecentStudyReturnParam;
-import com.upc.modular.textbook.param.UuidParam;
+import com.upc.modular.textbook.entity.LearningNotes;
+import com.upc.modular.textbook.param.*;
 import com.upc.modular.textbook.service.ILearningLogService;
 import io.lettuce.core.output.BooleanListOutput;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -63,25 +64,20 @@ public class LearningLogController {
         boolean exists = learningLogService.count(queryWrapper) > 0;
         return R.ok(exists);
     }
-    @ApiOperation(value = "获取需要同步的学习日志ID列表（客户端用）")
-    @GetMapping("/getNewLogIdsForClient")
-    public R<List<Long>> getNewLogIdsForClient() {
-        List<Long> ids = learningLogService.getNewLogIdsForClient();
-        return R.ok(ids);
+    @ApiOperation(value = "获取指定用户在多本书籍下需要同步的笔记(客户端用)")
+    @PostMapping("/getNewLogsBatch")
+    public R<List<LearningLog>> getNewLogsBatch(@RequestBody BatchSyncRequestDto requestDto) {
+        return R.ok(learningLogService.getNewLogsBatch(requestDto.getUserId(), requestDto.getTextbookIds()));
     }
 
-    @ApiOperation(value = "根据ID列表获取学习日志完整数据（客户端用）")
-    @PostMapping("/getLogsByIds")
-    public R<List<LearningLog>> getLogsByIds(@RequestBody List<Long> ids) {
-        List<LearningLog> logs = learningLogService.getLogsByIds(ids);
-        return R.ok(logs);
+    @ApiOperation(value = "确认指定用户在多本书籍下的笔记已同步(客户端用)")
+    @PostMapping("/confirmLogsSyncBatch")
+    public R<Void> confirmLogsSyncBatch(@RequestBody BatchSyncConfirmationDto confirmationDto) {
+        boolean success = learningLogService.confirmLogsSyncBatch(
+                confirmationDto.getUserId(),
+                confirmationDto.getTextbookIds(),
+                confirmationDto.getSyncedIds()
+        );
+        return success ? R.ok() : R.fail("批量确认同步失败");
     }
-
-    @ApiOperation(value = "确认学习日志已同步（客户端用）")
-    @PostMapping("/confirmLogsSync")
-    public R<Void> confirmLogsSync(@RequestBody List<Long> ids) {
-        boolean success = learningLogService.confirmLogsSync(ids);
-        return success ? R.ok() : R.fail("确认同步失败");
-    }
-
 }

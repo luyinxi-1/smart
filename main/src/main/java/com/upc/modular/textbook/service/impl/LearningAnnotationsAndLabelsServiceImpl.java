@@ -9,6 +9,7 @@ import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
+import com.upc.modular.textbook.entity.LearningLog;
 import com.upc.modular.textbook.mapper.LearningAnnotationsAndLabelsMapper;
 import com.upc.modular.textbook.param.UuidParam;
 import com.upc.modular.textbook.service.ILearningAnnotationsAndLabelsService;
@@ -104,34 +105,31 @@ public class LearningAnnotationsAndLabelsServiceImpl extends ServiceImpl<Learnin
                 .eq(LearningAnnotationsAndLabels::getTextbookId, textbookId)
                 .eq(LearningAnnotationsAndLabels::getCatalogId, catalogId));
     }
-
     @Override
-    public List<Long> getNewAnnotationIdsForClient() {
-        LambdaQueryWrapper<LearningAnnotationsAndLabels> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.select(LearningAnnotationsAndLabels::getId).eq(LearningAnnotationsAndLabels::getSyncStatus, 0);
-        List<LearningAnnotationsAndLabels> annotations = this.list(queryWrapper);
-        return annotations.stream().map(LearningAnnotationsAndLabels::getId).collect(Collectors.toList());
-    }
-
-    @Override
-    public List<LearningAnnotationsAndLabels> getAnnotationsByIds(List<Long> ids) {
-        if (ids == null || ids.isEmpty()) {
+    public List<LearningAnnotationsAndLabels> getNewAnnotationsBatch(Long userId, List<Long> textbookIds) {
+        if (textbookIds == null || textbookIds.isEmpty()) {
             return new ArrayList<>();
         }
-        return this.listByIds(ids);
+        return this.lambdaQuery()
+                .eq(LearningAnnotationsAndLabels::getSyncStatus, 0)
+                .eq(LearningAnnotationsAndLabels::getCreator, userId)
+                .in(LearningAnnotationsAndLabels::getTextbookId, textbookIds) // 核心：使用 IN 查询
+                .list();
     }
 
     @Override
     @Transactional
-    public boolean confirmAnnotationsSync(List<Long> ids) {
-        if (ids == null || ids.isEmpty()) {
+    public boolean confirmAnnotationsSyncBatch(Long userId, List<Long> textbookIds, List<Long> syncedIds) {
+        if (syncedIds == null || syncedIds.isEmpty()) {
             return true;
         }
-        LambdaUpdateWrapper<LearningAnnotationsAndLabels> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.in(LearningAnnotationsAndLabels::getId, ids)
+        return this.lambdaUpdate()
                 .eq(LearningAnnotationsAndLabels::getSyncStatus, 0)
-                .set(LearningAnnotationsAndLabels::getSyncStatus, 1);
-        return this.update(updateWrapper);
+                .eq(LearningAnnotationsAndLabels::getCreator, userId)
+                .in(LearningAnnotationsAndLabels::getTextbookId, textbookIds) // 确保只在这些书的范围内
+                .in(LearningAnnotationsAndLabels::getId, syncedIds) // 核心：只更新这些ID
+                .set(LearningAnnotationsAndLabels::getSyncStatus, 1)
+                .update();
     }
 
 }

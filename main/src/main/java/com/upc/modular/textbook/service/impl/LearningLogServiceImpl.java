@@ -154,35 +154,30 @@ public class LearningLogServiceImpl extends ServiceImpl<LearningLogMapper, Learn
         // this.remove(wrapper) 方法会根据构造的条件执行 DELETE FROM table WHERE ...
         return this.remove(wrapper);
     }
-
     @Override
-    public List<Long> getNewLogIdsForClient() {
-        LambdaQueryWrapper<LearningLog> queryWrapper = new LambdaQueryWrapper<>();
-        // 只查询ID，更高效
-        queryWrapper.select(LearningLog::getId).eq(LearningLog::getSyncStatus, 0);
-        List<LearningLog> logs = this.list(queryWrapper);
-        // 提取ID并返回
-        return logs.stream().map(LearningLog::getId).collect(Collectors.toList());
-    }
-
-    @Override
-    public List<LearningLog> getLogsByIds(List<Long> ids) {
-        if (ids == null || ids.isEmpty()) {
+    public List<LearningLog> getNewLogsBatch(Long userId, List<Long> textbookIds) {
+        if (textbookIds == null || textbookIds.isEmpty()) {
             return new ArrayList<>();
         }
-        return this.listByIds(ids);
+        return this.lambdaQuery()
+                .eq(LearningLog::getSyncStatus, 0)
+                .eq(LearningLog::getCreator, userId)
+                .in(LearningLog::getTextbookId, textbookIds) // 核心：使用 IN 查询
+                .list();
     }
 
     @Override
-    @Transactional // 建议加上事务，保证这批ID的状态更新是原子性的
-    public boolean confirmLogsSync(List<Long> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return true; // 没有ID需要更新，也算成功
+    @Transactional
+    public boolean confirmLogsSyncBatch(Long userId, List<Long> textbookIds, List<Long> syncedIds) {
+        if (syncedIds == null || syncedIds.isEmpty()) {
+            return true;
         }
-        LambdaUpdateWrapper<LearningLog> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.in(LearningLog::getId, ids) // 只更新传入的ID
-                .eq(LearningLog::getSyncStatus, 0) // 增加一个条件，防止重复更新
-                .set(LearningLog::getSyncStatus, 1);
-        return this.update(updateWrapper);
+        return this.lambdaUpdate()
+                .eq(LearningLog::getSyncStatus, 0)
+                .eq(LearningLog::getCreator, userId)
+                .in(LearningLog::getTextbookId, textbookIds) // 确保只在这些书的范围内
+                .in(LearningLog::getId, syncedIds) // 核心：只更新这些ID
+                .set(LearningLog::getSyncStatus, 1)
+                .update();
     }
 }

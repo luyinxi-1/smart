@@ -8,9 +8,7 @@ import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.LearningLog;
 import com.upc.modular.textbook.entity.LearningNotes;
-import com.upc.modular.textbook.param.LearningNotesPageReturnParam;
-import com.upc.modular.textbook.param.LearningNotesPageSearchParam;
-import com.upc.modular.textbook.param.UuidParam;
+import com.upc.modular.textbook.param.*;
 import com.upc.modular.textbook.service.ILearningLogService;
 import com.upc.modular.textbook.service.ILearningNotesService;
 import io.swagger.annotations.Api;
@@ -115,22 +113,20 @@ public class LearningNotesController {
         return R.page(result);
     }
 
-    @ApiOperation(value = "获取需要同步的学习笔记ID列表（客户端用）")
-    @GetMapping("/getNewNoteIdsForClient")
-    public R<List<Long>> getNewNoteIdsForClient() {
-        return R.ok(learningNotesService.getNewNoteIdsForClient());
+    @ApiOperation(value = "获取指定用户在多本书籍下需要同步的笔记(客户端用)")
+    @PostMapping("/getNewNotesBatch")
+    public R<List<LearningNotes>> getNewNotesBatch(@RequestBody BatchSyncRequestDto requestDto) {
+        return R.ok(learningNotesService.getNewNotesBatch(requestDto.getUserId(), requestDto.getTextbookIds()));
     }
 
-    @ApiOperation(value = "根据ID列表获取学习笔记完整数据（客户端用）")
-    @PostMapping("/getNotesByIds")
-    public R<List<LearningNotes>> getNotesByIds(@RequestBody List<Long> ids) {
-        return R.ok(learningNotesService.getNotesByIds(ids));
-    }
-
-    @ApiOperation(value = "确认学习笔记已同步（客户端用）")
-    @PostMapping("/confirmNotesSync")
-    public R<Void> confirmNotesSync(@RequestBody List<Long> ids) {
-        boolean success = learningNotesService.confirmNotesSync(ids);
-        return success ? R.ok() : R.fail("确认同步失败");
+    @ApiOperation(value = "确认指定用户在多本书籍下的笔记已同步(客户端用)")
+    @PostMapping("/confirmNotesSyncBatch")
+    public R<Void> confirmNotesSyncBatch(@RequestBody BatchSyncConfirmationDto confirmationDto) {
+        boolean success = learningNotesService.confirmNotesSyncBatch(
+                confirmationDto.getUserId(),
+                confirmationDto.getTextbookIds(),
+                confirmationDto.getSyncedIds()
+        );
+        return success ? R.ok() : R.fail("批量确认同步失败");
     }
 }

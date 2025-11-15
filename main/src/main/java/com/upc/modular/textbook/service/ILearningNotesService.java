@@ -46,22 +46,12 @@ public interface ILearningNotesService extends IService<LearningNotes> {
     LearningNotes getOneNoteByClientUuid(String clientUuid);
 
     /**
-     * 【新】获取所有未同步的学习笔记ID
-     * @return ID列表
+     * 【批量】获取指定用户在多本书籍下所有未同步的学习笔记
      */
-    List<Long> getNewNoteIdsForClient();
+    List<LearningNotes> getNewNotesBatch(Long userId, List<Long> textbookIds);
 
     /**
-     * 【新】根据ID列表获取学习笔记实体
-     * @param ids ID列表
-     * @return 实体列表
+     * 【批量】根据ID列表确认指定用户和书籍的学习笔记同步状态
      */
-    List<LearningNotes> getNotesByIds(List<Long> ids);
-
-    /**
-     * 【新】根据ID列表确认同步状态
-     * @param ids ID列表
-     * @return 是否成功
-     */
-    boolean confirmNotesSync(List<Long> ids);
+    boolean confirmNotesSyncBatch(Long userId, List<Long> textbookIds, List<Long> syncedIds);
 }

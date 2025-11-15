@@ -6,10 +6,13 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
+import com.upc.modular.textbook.param.BatchSyncConfirmationDto;
+import com.upc.modular.textbook.param.BatchSyncRequestDto;
 import com.upc.modular.textbook.param.UuidParam;
 import com.upc.modular.textbook.service.ILearningAnnotationsAndLabelsService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -68,23 +71,20 @@ public class LearningAnnotationsAndLabelsController {
     public R<List<LearningAnnotationsAndLabels>> selectLabels(@RequestParam("textbokkId") Long textbookId) {
         return R.ok(learningAnnotationsAndLabelsService.selectLabels(textbookId));
     }
-
-    @ApiOperation(value = "获取需要同步的批注ID列表（客户端用）")
-    @GetMapping("/getNewAnnotationIdsForClient")
-    public R<List<Long>> getNewAnnotationIdsForClient() {
-        return R.ok(learningAnnotationsAndLabelsService.getNewAnnotationIdsForClient());
+    @ApiOperation(value = "获取指定用户在多本书籍下需要同步的笔记(客户端用)")
+    @PostMapping("/getNewAnnotationsBatch")
+    public R<List<LearningAnnotationsAndLabels>> getNewAnnotationsBatch(@RequestBody BatchSyncRequestDto requestDto) {
+        return R.ok(learningAnnotationsAndLabelsService.getNewAnnotationsBatch(requestDto.getUserId(), requestDto.getTextbookIds()));
     }
 
-    @ApiOperation(value = "根据ID列表获取批注完整数据（客户端用）")
-    @PostMapping("/getAnnotationsByIds")
-    public R<List<LearningAnnotationsAndLabels>> getAnnotationsByIds(@RequestBody List<Long> ids) {
-        return R.ok(learningAnnotationsAndLabelsService.getAnnotationsByIds(ids));
-    }
-
-    @ApiOperation(value = "确认批注已同步（客户端用）")
-    @PostMapping("/confirmAnnotationsSync")
-    public R<Void> confirmAnnotationsSync(@RequestBody List<Long> ids) {
-        boolean success = learningAnnotationsAndLabelsService.confirmAnnotationsSync(ids);
-        return success ? R.ok() : R.fail("确认同步失败");
+    @ApiOperation(value = "确认指定用户在多本书籍下的笔记已同步(客户端用)")
+    @PostMapping("/confirmAnnotationsSyncBatch")
+    public R<Void> confirmAnnotationsSyncBatch(@RequestBody BatchSyncConfirmationDto confirmationDto) {
+        boolean success = learningAnnotationsAndLabelsService.confirmAnnotationsSyncBatch(
+                confirmationDto.getUserId(),
+                confirmationDto.getTextbookIds(),
+                confirmationDto.getSyncedIds()
+        );
+        return success ? R.ok() : R.fail("批量确认同步失败");
     }
 }

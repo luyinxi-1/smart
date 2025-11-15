@@ -24,23 +24,15 @@ public interface ILearningLogService extends IService<LearningLog> {
     
     Boolean batchDeleteByUuid(UuidParam uuidParam);
 
-    /**
-     * 【新】获取所有未同步的学习日志ID
-     * @return ID列表
-     */
-    List<Long> getNewLogIdsForClient();
+
 
     /**
-     * 【新】根据ID列表获取学习日志实体
-     * @param ids ID列表
-     * @return 实体列表
+     * 【批量】获取指定用户在多本书籍下所有未同步的学习笔记
      */
-    List<LearningLog> getLogsByIds(List<Long> ids);
+    List<LearningLog> getNewLogsBatch(Long userId, List<Long> textbookIds);
 
     /**
-     * 【新】根据ID列表确认同步状态
-     * @param ids ID列表
-     * @return 是否成功
+     * 【批量】根据ID列表确认指定用户和书籍的学习笔记同步状态
      */
-    boolean confirmLogsSync(List<Long> ids);
+    boolean confirmLogsSyncBatch(Long userId, List<Long> textbookIds, List<Long> syncedIds);
 }
