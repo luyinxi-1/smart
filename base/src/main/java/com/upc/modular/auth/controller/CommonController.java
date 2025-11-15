@@ -12,7 +12,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
@@ -31,6 +34,9 @@ public class CommonController {
 
     @Value("${files.path}")
     private String basePath;
+
+    @Value("${files.apkpath:/opt/apkfile}")
+    private String apkFilePath;
 
     /**
      * 文件上传
@@ -90,6 +96,44 @@ public class CommonController {
             fileInputStream.close();
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    @ApiOperation("上传APK文件")
+    @PostMapping("/uploadApk")
+    public R<String> uploadApk(MultipartFile file) {
+        Path folderPath = Paths.get(apkFilePath);
+        String fileName = file.getOriginalFilename();
+        try {
+            if (!Files.exists(folderPath)) {
+                Files.createDirectories(folderPath);
+            }
+            file.transferTo(new File(folderPath.toFile(), fileName));
+            return R.ok(Paths.get(apkFilePath, fileName).toString());
+        } catch (IOException e) {
+            log.error("上传APK文件失败", e);
+            return R.fail("上传APK文件失败");
+        }
+    }
+
+    @ApiOperation("下载APK文件")
+    @GetMapping("/downloadApk")
+    public void downloadApk(@RequestParam String name, HttpServletResponse response) {
+        Path filePath = Paths.get(apkFilePath, name);
+        try (FileInputStream fileInputStream = new FileInputStream(filePath.toFile());
+             ServletOutputStream outputStream = response.getOutputStream()) {
+
+            response.setContentType("application/vnd.android.package-archive");
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + name + "\"");
+
+            int len;
+            byte[] bytes = new byte[1024];
+            while ((len = fileInputStream.read(bytes)) != -1) {
+                outputStream.write(bytes, 0, len);
+            }
+            outputStream.flush();
+        } catch (Exception e) {
+            log.error("下载APK文件失败", e);
         }
     }
 }
