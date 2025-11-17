@@ -1,11 +1,16 @@
 package com.upc.modular.textbook.service.impl;
 
+import com.aspose.words.HtmlLoadOptions;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.aspose.words.SaveFormat;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
@@ -13,9 +18,11 @@ import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.materials.entity.Attachment;
+import com.upc.modular.materials.entity.TeachingMaterials;
 import com.upc.modular.materials.service.IAttachmentService;
 import com.upc.modular.materials.entity.MaterialsTextbookMapping;
 import com.upc.modular.materials.service.IMaterialsTextbookMappingService;
+import com.upc.modular.materials.service.ITeachingMaterialsService;
 import com.upc.modular.questionbank.entity.TeachingQuestionBank;
 import com.upc.modular.questionbank.service.ITeachingQuestionBankService;
 import com.upc.modular.teachingactivities.entity.DiscussionTopic;
@@ -36,6 +43,8 @@ import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.textbook.service.ITextbookService;
 import com.upc.utils.Word2HtmlUtils;
+import org.jsoup.nodes.Node;
+import org.jsoup.nodes.TextNode;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -50,6 +59,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -103,6 +113,9 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
     
     @Autowired
     private IMaterialsTextbookMappingService materialsTextbookMappingService;
+
+    @Autowired
+    private ITeachingMaterialsService teachingMaterialsService;
 
     @Override
     public void processAndSaveHtml(MultipartFile file, Long textbookId) {
@@ -452,12 +465,16 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
     }
 
     @Override
-    public void exportTextbook(HttpServletResponse response, Long textbookId) {
+    public void exportTextbook(HttpServletResponse response, Long textbookId, String baseUrl) {
         if (ObjectUtils.isEmpty(textbookId)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参不能为空");
         }
         try {
             Textbook textbook = textbookMapper.selectById(textbookId);
+            if (textbook == null) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "未找到对应教材");
+            }
+
             // 查询目录
             LambdaQueryWrapper<TextbookCatalog> lambdaQueryWrapper = new LambdaQueryWrapper<>();
             lambdaQueryWrapper.eq(TextbookCatalog::getTextbookId, textbookId);
@@ -466,23 +483,34 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             List<TextbookCatalog> textbookCatalogs = textbookCatalogMapper.selectList(lambdaQueryWrapper);
 
             // 构造 HTML 内容
+            StringBuilder htmlBuilder = new StringBuilder();
+            String h5HeadCode = textbook.getH5HeadCode();
+            htmlBuilder.append(h5HeadCode == null ? "" : h5HeadCode);
+
+            // 保持原来的拼接方式
             List<String> htmlFragments = textbookCatalogs.stream()
                     .flatMap(catalog -> Stream.of(catalog.getCatalogName(), catalog.getContent()))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
-            StringBuilder htmlBuilder = new StringBuilder();
-            String h5HeadCode = textbook.getH5HeadCode();
-            htmlBuilder.append(h5HeadCode);
             for (String fragment : htmlFragments) {
                 htmlBuilder.append(fragment).append("\n");
             }
             htmlBuilder.append("</body></html>");
+
+            // 原始 HTML
             String mergedHtml = htmlBuilder.toString();
+
+            // 处理掉 file-div1 这类“附件块”
+            mergedHtml = processFileDivBlocks(mergedHtml, baseUrl);
 
             // 将 HTML 转为 Word
             try (ByteArrayOutputStream outStream = new ByteArrayOutputStream()) {
-                com.aspose.words.Document doc = new com.aspose.words.Document(new ByteArrayInputStream(mergedHtml.getBytes(StandardCharsets.UTF_8)));
+                HtmlLoadOptions loadOptions = new HtmlLoadOptions();
+                loadOptions.setEncoding(StandardCharsets.UTF_8);
+
+                com.aspose.words.Document doc = new com.aspose.words.Document(
+                        new ByteArrayInputStream(mergedHtml.getBytes(StandardCharsets.UTF_8)), loadOptions);
                 doc.save(outStream, SaveFormat.DOCX);
 
                 // 设置响应头
@@ -505,6 +533,211 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             System.err.println("❌ 导出 Word 出错！");
             e.printStackTrace();
             throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "导出 Word 失败");
+        }
+    }
+
+    private String processFileDivBlocks(String html, String baseUrl) {
+        if (html == null || html.isEmpty()) {
+            return html;
+        }
+
+        Document doc = Jsoup.parse(html);
+        Elements fileDivs = doc.select("div[type=file-div1]");
+
+        if (fileDivs.isEmpty()) {
+            return doc.outerHtml();
+        }
+
+        // 1. 在第一个附件块前插一个“二维码表格容器”
+        Element firstFileDiv = fileDivs.first();
+
+        Element tableWrapper = doc.createElement("div");
+        tableWrapper.attr("style", "width:100%;text-align:center;margin:10px 0;");
+
+        Element table = doc.createElement("table");
+        // 让表格整体居中，边距用 padding/padding
+        table.attr("style", "margin:0 auto;border-collapse:collapse;");
+
+        tableWrapper.appendChild(table);
+        firstFileDiv.before(tableWrapper);
+
+        int maxCols = 3;      // 一行最多几个二维码，可以自己调
+        int colIndex = 0;
+        Element currentRow = null;
+        boolean hasAnyQr = false;
+
+        // 2. 遍历所有附件块
+        for (Element fileDiv : fileDivs) {
+
+            String idStr = fileDiv.attr("id");
+            String fileUrl = null;
+            String displayName = null; // 二维码下面显示的名字
+
+            // 2.1 根据 id 查素材，拼 fileUrl，并取名称
+            if (idStr != null && !idStr.trim().isEmpty()) {
+                try {
+                    Long materialId = Long.valueOf(idStr.trim());
+                    TeachingMaterials tm = teachingMaterialsService.getById(materialId);
+                    if (tm != null && tm.getFilePath() != null && !tm.getFilePath().trim().isEmpty()) {
+
+                        String path = tm.getFilePath().trim();
+
+                        // 拼接 URL
+                        if (path.startsWith("http")) {
+                            fileUrl = path;  // 已是完整 URL
+                        } else {
+                            if (baseUrl.endsWith("/") && path.startsWith("/")) {
+                                fileUrl = baseUrl + path.substring(1);
+                            } else if (!baseUrl.endsWith("/") && !path.startsWith("/")) {
+                                fileUrl = baseUrl + "/" + path;
+                            } else {
+                                fileUrl = baseUrl + path;
+                            }
+                        }
+
+                        // 显示名称：优先 name，其次 fileName
+                        if (tm.getName() != null && !tm.getName().trim().isEmpty()) {
+                            displayName = tm.getName().trim();
+                        } else if (tm.getFileName() != null && !tm.getFileName().trim().isEmpty()) {
+                            displayName = tm.getFileName().trim();
+                        }
+                    }
+                } catch (NumberFormatException ignore) {
+                }
+            }
+
+            // 2.2 找跟在附件块后面的灰色说明 span
+            Element tailSpan = null;
+            Node next = fileDiv.nextSibling();
+            while (next instanceof TextNode && ((TextNode) next).text().trim().isEmpty()) {
+                next = next.nextSibling();
+            }
+            if (next instanceof Element) {
+                Element nextElem = (Element) next;
+                if ("span".equalsIgnoreCase(nextElem.tagName())
+                        && nextElem.attr("style").contains("font-family")
+                        && nextElem.attr("style").contains("宋体")) {
+                    tailSpan = nextElem;
+                }
+            }
+
+            // 2.3 如果 fileUrl 无效 → 只做清理，不生成二维码
+            if (fileUrl == null || fileUrl.isEmpty()) {
+                cleanEmptyParagraphsAfter(fileDiv);
+                fileDiv.remove();
+                if (tailSpan != null) {
+                    tailSpan.remove();
+                }
+                continue;
+            }
+
+            // 2.4 生成二维码
+            String qrDataUrl = generateQrCodeDataUrl(fileUrl);
+            if (qrDataUrl == null || qrDataUrl.isEmpty()) {
+                cleanEmptyParagraphsAfter(fileDiv);
+                fileDiv.remove();
+                if (tailSpan != null) {
+                    tailSpan.remove();
+                }
+                continue;
+            }
+
+            // 2.5 真正有二维码了，开始往 table 里塞卡片
+            hasAnyQr = true;
+            if (currentRow == null || colIndex >= maxCols) {
+                currentRow = doc.createElement("tr");
+                table.appendChild(currentRow);
+                colIndex = 0;
+            }
+
+            Element td = doc.createElement("td");
+            td.attr("style", "padding:10px;vertical-align:top;text-align:center;");
+
+            // 卡片 div（方便将来想加边框啥的）
+            Element cardDiv = doc.createElement("div");
+            cardDiv.attr("style", "width:150px;margin:0 auto;");
+
+            // 二维码图片
+            Element qrImg = doc.createElement("img");
+            qrImg.attr("src", qrDataUrl);
+            qrImg.attr("alt", "附件二维码");
+            qrImg.attr("style",
+                    "width:120px;height:120px;display:block;margin:0 auto;");
+
+            cardDiv.appendChild(qrImg);
+
+            // 下方文件名
+            if (displayName != null && !displayName.isEmpty()) {
+                Element nameDiv = doc.createElement("div");
+                nameDiv.attr("style",
+                        "margin-top:5px;font-size:12px;line-height:1.4;" +
+                                "word-wrap:break-word;word-break:break-all;");
+                nameDiv.text(displayName);
+                cardDiv.appendChild(nameDiv);
+            }
+
+            td.appendChild(cardDiv);
+            currentRow.appendChild(td);
+            colIndex++;
+
+            // 2.6 清理原位置的 fileDiv + tailSpan + 空 p
+            cleanEmptyParagraphsAfter(fileDiv);
+            fileDiv.remove();
+            if (tailSpan != null) {
+                tailSpan.remove();
+            }
+        }
+
+        // 如果一个二维码都没生成，说明 table 是空的，干脆把 wrapper 也删了
+        if (!hasAnyQr) {
+            tableWrapper.remove();
+        }
+
+        return doc.outerHtml();
+    }
+
+    /**
+     * 清理某个节点后面紧挨着的空白文本和空 <p>，避免多余换行
+     */
+    private void cleanEmptyParagraphsAfter(Node node) {
+        Node sib = node.nextSibling();
+        while (sib != null) {
+            if (sib instanceof TextNode && ((TextNode) sib).text().trim().isEmpty()) {
+                Node rm = sib;
+                sib = sib.nextSibling();
+                rm.remove();
+                continue;
+            }
+            if (sib instanceof Element) {
+                Element e = (Element) sib;
+                if ("p".equalsIgnoreCase(e.tagName()) && e.text().trim().isEmpty()) {
+                    Node rm = sib;
+                    sib = sib.nextSibling();
+                    rm.remove();
+                    continue;
+                }
+            }
+            break; // 碰到真正有内容就停
+        }
+    }
+
+
+
+
+    private String generateQrCodeDataUrl(String content) {
+        try {
+            int size = 256; // 二维码尺寸
+            QRCodeWriter qrCodeWriter = new QRCodeWriter();
+            BitMatrix bitMatrix = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, size, size);
+
+            BufferedImage image = MatrixToImageWriter.toBufferedImage(bitMatrix);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            javax.imageio.ImageIO.write(image, "png", baos);
+
+            String base64 = Base64.getEncoder().encodeToString(baos.toByteArray());
+            return "data:image/png;base64," + base64;
+        } catch (Exception e) {
+            return "";
         }
     }
 
