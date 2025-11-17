@@ -39,6 +39,8 @@ import com.upc.utils.Word2HtmlUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 
 import org.jsoup.Jsoup;
@@ -482,17 +484,25 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
 
             // 将 HTML 转为 Word
             try (ByteArrayOutputStream outStream = new ByteArrayOutputStream()) {
-                com.aspose.words.Document doc = new com.aspose.words.Document(new ByteArrayInputStream(mergedHtml.getBytes(StandardCharsets.UTF_8)));
+                // 修复乱码问题：确保使用正确的字符集
+                ByteArrayInputStream htmlStream = new ByteArrayInputStream(mergedHtml.getBytes(StandardCharsets.UTF_8));
+                com.aspose.words.Document doc = new com.aspose.words.Document(htmlStream);
                 doc.save(outStream, SaveFormat.DOCX);
 
                 // 设置响应头
                 response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+                response.setCharacterEncoding("UTF-8");
 
+                // 修复文件名乱码问题
                 String fileName = textbook.getTextbookName() + ".docx";
-                String encodedFileName = URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
 
-                response.setHeader("Content-Disposition",
-                        "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
+                // 4. 使用 ContentDisposition.Builder
+                ContentDisposition contentDisposition = ContentDisposition.builder("attachment")
+                        .filename(fileName, StandardCharsets.UTF_8) // 关键：指定UTF-8
+                        .build();
+
+                // 5. 设置 Header
+                response.setHeader(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString());
 
                 response.setContentLength(outStream.size());
 
@@ -525,10 +535,10 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 
             String fileName = "textbook.docx";
-            String encodedFileName = URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
-
+            
             response.setHeader("Content-Disposition",
-                    "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
+                    "attachment; filename=\"" + new String(fileName.getBytes("UTF-8"), "ISO-8859-1") + 
+                    "\"; filename*=UTF-8''" + URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString()));
             response.setContentLength(outStream.size());
 
             // 写入响应流
