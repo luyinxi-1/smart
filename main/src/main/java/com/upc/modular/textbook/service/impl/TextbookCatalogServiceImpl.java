@@ -87,22 +87,22 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
 
     @Autowired
     private SysUserMapper sysUserMapper;
-    
+
     // 注入相关服务
     @Autowired
     private IAttachmentService attachmentService;
-    
+
     @Autowired
     private ITeachingQuestionBankService teachingQuestionBankService;
-    
+
     @Autowired
     @Lazy
     private IDiscussionTopicService discussionTopicService;
-    
+
     @Autowired
     @Lazy
     private IIdeologicalMaterialService ideologicalMaterialService;
-    
+
     @Autowired
     private IMaterialsTextbookMappingService materialsTextbookMappingService;
 
@@ -416,24 +416,24 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         attachmentQueryWrapper.in(Attachment::getObjectId, allIdsToDelete)
                 .eq(Attachment::getObjectType, "textbook_catalog");
         attachmentService.remove(attachmentQueryWrapper);
-        
+
         // 2. 清空题库中的章节ID字段 (TeachingQuestionBank)
         LambdaQueryWrapper<TeachingQuestionBank> questionBankQueryWrapper = new LambdaQueryWrapper<>();
         questionBankQueryWrapper.in(TeachingQuestionBank::getTextbookCatalogId, allIdsToDelete);
         TeachingQuestionBank updateQuestionBank = new TeachingQuestionBank();
         updateQuestionBank.setTextbookCatalogId(null);
         teachingQuestionBankService.update(updateQuestionBank, questionBankQueryWrapper);
-        
+
         // 3. 删除教学活动 (DiscussionTopic)
         LambdaQueryWrapper<DiscussionTopic> discussionTopicQueryWrapper = new LambdaQueryWrapper<>();
         discussionTopicQueryWrapper.in(DiscussionTopic::getTextbookCatalogId, allIdsToDelete);
         discussionTopicService.remove(discussionTopicQueryWrapper);
-        
+
         // 4. 删除教学思政 (IdeologicalMaterial)
         LambdaQueryWrapper<IdeologicalMaterial> ideologicalMaterialQueryWrapper = new LambdaQueryWrapper<>();
         ideologicalMaterialQueryWrapper.in(IdeologicalMaterial::getTextbookCatalogId, allIdsToDelete);
         ideologicalMaterialService.remove(ideologicalMaterialQueryWrapper);
-        
+
         // 5. 删除教材素材映射关系 (MaterialsTextbookMapping)
         LambdaQueryWrapper<MaterialsTextbookMapping> mappingQueryWrapper = new LambdaQueryWrapper<>();
         mappingQueryWrapper.in(MaterialsTextbookMapping::getChapterId, allIdsToDelete);
@@ -535,10 +535,10 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 
             String fileName = "textbook.docx";
-            
+            String encodedFileName = URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
+
             response.setHeader("Content-Disposition",
-                    "attachment; filename=\"" + new String(fileName.getBytes("UTF-8"), "ISO-8859-1") + 
-                    "\"; filename*=UTF-8''" + URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString()));
+                    "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
             response.setContentLength(outStream.size());
 
             // 写入响应流
