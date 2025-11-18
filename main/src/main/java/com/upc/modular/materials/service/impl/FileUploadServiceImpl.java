@@ -11,11 +11,15 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 @Service
 public class FileUploadServiceImpl implements IFileUploadService {
@@ -42,18 +46,102 @@ public class FileUploadServiceImpl implements IFileUploadService {
         // 路径结构： basePath/teaching_materials/{type}/{yyyyMMdd}
         // 这里将使用处理后的 processedType ("file") 来创建文件夹
         Path folderPath = Paths.get(basePath, "teaching_materials", type, FileManageUtil.yyyyMMddStr());
-
+        String finalPath;
+/*
         // 3. 生成唯一文件名
         String fileName = FileManageUtil.createFileName(file);
 
         // 4. 执行文件上传
-        String filePath = FileManageUtil.uploadFile(file, folderPath, fileName);
+        String filePath = FileManageUtil.uploadFile(file, folderPath, fileName);*/
+        try {
+            if (isZipFile(file)) {
+                // --- 对于ZIP压缩文件 ---
+                // 步骤 1: 先将原始ZIP包作为一个普通文件保存下来
+                String originalFileName = FileManageUtil.createFileName(file);
+                String savedArchivePath = FileManageUtil.uploadFile(file, folderPath, originalFileName);
 
-        // 5. 结果处理和返回
-        if (ObjectUtils.isEmpty(filePath)) {
-            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "文件上传失败");
+                if (ObjectUtils.isEmpty(savedArchivePath)) {
+                    throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "保存原始ZIP文件失败");
+                }
+
+                File savedZipFile = new File(savedArchivePath);
+
+                // 步骤 2: 读取刚刚保存的ZIP文件，并执行解压
+                unzip(savedZipFile, folderPath);
+
+                // 结果返回解压到的文件夹路径
+                finalPath = folderPath.toString();
+
+            } else {
+                // --- 对于普通文件，逻辑不变 ---
+                String fileName = FileManageUtil.createFileName(file);
+                finalPath = FileManageUtil.uploadFile(file, folderPath, fileName);
+            }
+        } catch (IOException e) {
+            // e.printStackTrace(); // 生产环境建议使用日志框架
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "文件处理失败: " + e.getMessage());
         }
 
-        return filePath;
+        if (ObjectUtils.isEmpty(finalPath)) {
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "文件处理失败");
+        }
+
+        // 统一返回路径分隔符为'/'
+        return finalPath.replace(File.separator, "/");
+    }
+    /**
+     * 判断文件是否为ZIP文件
+     * 通过MIME类型和文件后缀名双重判断，提高准确性
+     */
+    private boolean isZipFile(MultipartFile file) {
+        return "application/zip".equals(file.getContentType()) ||
+                (file.getOriginalFilename() != null && file.getOriginalFilename().toLowerCase().endsWith(".zip"));
+    }
+
+    /**
+     * 将ZIP文件解压到目标路径
+     * @param zipFile 要解压的ZIP文件
+     * @param destDirectory 解压的目标目录
+     */
+    private void unzip(File zipFile, Path destDirectory) throws IOException {
+        // 从已保存的File对象创建FileInputStream
+        try (InputStream fis = new FileInputStream(zipFile);
+             ZipInputStream zipIn = new ZipInputStream(fis)) {
+            ZipEntry entry = zipIn.getNextEntry();
+            while (entry != null) {
+                Path filePath = destDirectory.resolve(entry.getName());
+
+                // 安全性检查：防止 "Zip Slip" 路径遍历攻击
+                if (!filePath.toAbsolutePath().startsWith(destDirectory.toAbsolutePath())) {
+                    throw new IOException("解压文件失败：检测到非法路径 " + entry.getName());
+                }
+
+                if (!entry.isDirectory()) {
+                    // 确保父级目录存在
+                    if (!filePath.getParent().toFile().exists()){
+                        filePath.getParent().toFile().mkdirs();
+                    }
+                    extractFile(zipIn, filePath);
+                } else {
+                    Files.createDirectories(filePath);
+                }
+
+                zipIn.closeEntry();
+                entry = zipIn.getNextEntry();
+            }
+        }
+    }
+
+    /**
+     * 从ZipInputStream中提取文件内容并写入
+     */
+    private void extractFile(ZipInputStream zipIn, Path filePath) throws IOException {
+        try (FileOutputStream fos = new FileOutputStream(filePath.toFile())) {
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = zipIn.read(buffer)) != -1) {
+                fos.write(buffer, 0, bytesRead);
+            }
+        }
     }
 }

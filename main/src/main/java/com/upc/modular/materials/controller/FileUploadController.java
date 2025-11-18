@@ -23,7 +23,7 @@ public class FileUploadController {
     @ApiOperation(value = "上传教学素材文件")
     public R<String> uploadMaterialFile(
             @RequestParam("file") MultipartFile file,
-            @ApiParam(value = "素材文件类型。例如: image, video, audio, pdf, word, excel,ppt,H5,simulation, other", required = true)
+            @ApiParam(value = "素材文件类型。例如: image, video, audio, pdf, word, excel,ppt,H5,simulation,zip, other", required = true)
             @RequestParam("type") String type) {
 
         String filePath = fileUploadService.uploadMaterialFile(file, type);
