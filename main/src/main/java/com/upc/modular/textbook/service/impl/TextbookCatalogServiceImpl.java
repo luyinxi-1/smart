@@ -39,6 +39,8 @@ import com.upc.utils.Word2HtmlUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 
 import org.jsoup.Jsoup;
@@ -85,22 +87,22 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
 
     @Autowired
     private SysUserMapper sysUserMapper;
-    
+
     // 注入相关服务
     @Autowired
     private IAttachmentService attachmentService;
-    
+
     @Autowired
     private ITeachingQuestionBankService teachingQuestionBankService;
-    
+
     @Autowired
     @Lazy
     private IDiscussionTopicService discussionTopicService;
-    
+
     @Autowired
     @Lazy
     private IIdeologicalMaterialService ideologicalMaterialService;
-    
+
     @Autowired
     private IMaterialsTextbookMappingService materialsTextbookMappingService;
 
@@ -414,24 +416,24 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         attachmentQueryWrapper.in(Attachment::getObjectId, allIdsToDelete)
                 .eq(Attachment::getObjectType, "textbook_catalog");
         attachmentService.remove(attachmentQueryWrapper);
-        
+
         // 2. 清空题库中的章节ID字段 (TeachingQuestionBank)
         LambdaQueryWrapper<TeachingQuestionBank> questionBankQueryWrapper = new LambdaQueryWrapper<>();
         questionBankQueryWrapper.in(TeachingQuestionBank::getTextbookCatalogId, allIdsToDelete);
         TeachingQuestionBank updateQuestionBank = new TeachingQuestionBank();
         updateQuestionBank.setTextbookCatalogId(null);
         teachingQuestionBankService.update(updateQuestionBank, questionBankQueryWrapper);
-        
+
         // 3. 删除教学活动 (DiscussionTopic)
         LambdaQueryWrapper<DiscussionTopic> discussionTopicQueryWrapper = new LambdaQueryWrapper<>();
         discussionTopicQueryWrapper.in(DiscussionTopic::getTextbookCatalogId, allIdsToDelete);
         discussionTopicService.remove(discussionTopicQueryWrapper);
-        
+
         // 4. 删除教学思政 (IdeologicalMaterial)
         LambdaQueryWrapper<IdeologicalMaterial> ideologicalMaterialQueryWrapper = new LambdaQueryWrapper<>();
         ideologicalMaterialQueryWrapper.in(IdeologicalMaterial::getTextbookCatalogId, allIdsToDelete);
         ideologicalMaterialService.remove(ideologicalMaterialQueryWrapper);
-        
+
         // 5. 删除教材素材映射关系 (MaterialsTextbookMapping)
         LambdaQueryWrapper<MaterialsTextbookMapping> mappingQueryWrapper = new LambdaQueryWrapper<>();
         mappingQueryWrapper.in(MaterialsTextbookMapping::getChapterId, allIdsToDelete);
@@ -482,17 +484,25 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
 
             // 将 HTML 转为 Word
             try (ByteArrayOutputStream outStream = new ByteArrayOutputStream()) {
-                com.aspose.words.Document doc = new com.aspose.words.Document(new ByteArrayInputStream(mergedHtml.getBytes(StandardCharsets.UTF_8)));
+                // 修复乱码问题：确保使用正确的字符集
+                ByteArrayInputStream htmlStream = new ByteArrayInputStream(mergedHtml.getBytes(StandardCharsets.UTF_8));
+                com.aspose.words.Document doc = new com.aspose.words.Document(htmlStream);
                 doc.save(outStream, SaveFormat.DOCX);
 
                 // 设置响应头
                 response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+                response.setCharacterEncoding("UTF-8");
 
+                // 修复文件名乱码问题
                 String fileName = textbook.getTextbookName() + ".docx";
-                String encodedFileName = URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
 
-                response.setHeader("Content-Disposition",
-                        "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
+                // 4. 使用 ContentDisposition.Builder
+                ContentDisposition contentDisposition = ContentDisposition.builder("attachment")
+                        .filename(fileName, StandardCharsets.UTF_8) // 关键：指定UTF-8
+                        .build();
+
+                // 5. 设置 Header
+                response.setHeader(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString());
 
                 response.setContentLength(outStream.size());
 

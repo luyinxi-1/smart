@@ -18,7 +18,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static com.upc.common.utils.FileManageUtil.uploadFile;
 
@@ -135,5 +140,92 @@ public class CommonController {
         } catch (Exception e) {
             log.error("下载APK文件失败", e);
         }
+    }
+
+    @ApiOperation("根据文件扩展名搜索上传目录中的文件")
+    @GetMapping("/files")
+    public R<Map<String, Object>> searchUploadFiles(
+            @RequestParam("extension") String extension,
+            @RequestParam(value = "limit", defaultValue = "10") Integer limit) {
+        
+        // 参数校验
+        if (extension == null || extension.trim().isEmpty()) {
+            return R.fail("参数 extension 不能为空");
+        }
+        
+        // 安全检查，防止目录遍历攻击
+        if (extension.contains("..") || extension.contains("/") || extension.contains("\\")) {
+            return R.fail("无效的文件扩展名");
+        }
+        
+        // 限制参数校验
+        if (limit <= 0) {
+            limit = 10; // 默认值
+        }
+        
+        // 搜索文件
+        //String uploadDirPath = "/opt/textbook-app/upload";
+        //String uploadDirPath = "C:\\Users\\25313\\Desktop\\PostGraduate";
+        String uploadDirPath = "/home/u/cjm/";
+        List<File> files = searchFilesInDirectory(new File(uploadDirPath), extension);
+        
+        // 限制结果数量
+        List<File> limitedFiles = files.stream()
+                .limit(limit)
+                .collect(Collectors.toList());
+        
+        // 构建响应
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", files.size());
+        
+        List<Map<String, String>> fileList = limitedFiles.stream().map(file -> {
+            Map<String, String> fileInfo = new HashMap<>();
+            fileInfo.put("fileName", file.getName());
+            // 构建可访问的URL
+            String relativePath = file.getAbsolutePath().substring(uploadDirPath.length());
+            // 原始代码 (生产环境使用):
+            // fileInfo.put("url", "https://172.20.128.91" + relativePath.replace("\\", "/"));
+            // 本地测试代码 (开发环境使用):
+            fileInfo.put("url", "http://180.201.148.80/home/u/cjm/" + relativePath.replace("\\", "/"));
+            return fileInfo;
+        }).collect(Collectors.toList());
+        
+        result.put("files", fileList);
+        
+        return R.ok(result);
+    }
+
+    /**
+     * 递归搜索目录及其子目录中具有指定扩展名的文件
+     * 
+     * @param directory 要搜索的目录
+     * @param extension 文件扩展名（不含点号）
+     * @return 找到的文件列表
+     */
+    private List<File> searchFilesInDirectory(File directory, String extension) {
+        List<File> result = new ArrayList<>();
+        
+        // 检查目录是否存在
+        if (!directory.exists() || !directory.isDirectory()) {
+            return result;
+        }
+        
+        // 获取目录中的所有文件和子目录
+        File[] files = directory.listFiles();
+        if (files == null) {
+            return result;
+        }
+        
+        for (File file : files) {
+            if (file.isDirectory()) {
+                // 如果是目录，则递归搜索
+                result.addAll(searchFilesInDirectory(file, extension));
+            } else if (file.isFile() && file.getName().endsWith("." + extension)) {
+                // 如果是具有指定扩展名的文件，则添加到结果中
+                result.add(file);
+            }
+        }
+        
+        return result;
     }
 }
