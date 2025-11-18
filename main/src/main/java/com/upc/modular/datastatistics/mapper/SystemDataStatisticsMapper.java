@@ -15,6 +15,11 @@ import java.util.Map;
 
 public interface SystemDataStatisticsMapper {
 
+    // <<< 修改点 1 >>>: 将参数类型从 LocalDate 改为 Map<String, Object>
+    Long getVisitorCountByDate(Map<String, Object> params);
+
+    // <<< 修改点 2 >>>: 将参数类型从 LocalDate 改为 Map<String, Object>
+    Long getStudyDurationByDate(Map<String, Object> params);
     //获取某天的访问人数
     Long getVisitorCountByDate(LocalDate targetDate);
     // 获取某天的总学习时长

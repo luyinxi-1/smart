@@ -8,7 +8,7 @@
         <result property="date" column="date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
     </resultMap>
 
-    <!-- 根据指定日期查询访问学生人数 -->
+    <!--&lt;!&ndash; 根据指定日期查询访问学生人数 &ndash;&gt;
     <select id="getVisitorCountByDate" resultType="long">
         SELECT
             COUNT(DISTINCT s.user_id)
@@ -17,10 +17,51 @@
                 INNER JOIN
             student s ON sl.user_id = s.user_id
         WHERE
-          -- 使用传入的 targetDate 参数
+          &#45;&#45; 使用传入的 targetDate 参数
             sl.add_datetime &gt;= #{targetDate}
           AND sl.add_datetime &lt; (#{targetDate} + INTERVAL '1 day')
+    </select>-->
+
+    <!-- 根据指定日期查询访问学生人数 -->
+    <!-- 修改点 1：将参数类型改为 java.util.Map，并使用 startDate 和 endDate -->
+    <select id="getVisitorCountByDate" parameterType="java.util.Map" resultType="long">
+        SELECT
+            COUNT(DISTINCT s.user_id)
+        FROM
+            sys_log sl
+                INNER JOIN
+            student s ON sl.user_id = s.user_id
+        WHERE
+            sl.add_datetime &gt;= #{startDate}
+          AND sl.add_datetime &lt; #{endDate}
     </select>
+
+    <!-- 根据指定日期统计总阅读时长（秒） -->
+    <!-- 修改点 2：将参数类型改为 java.util.Map，并使用 startDate 和 endDate -->
+    <select id="getStudyDurationByDate" parameterType="java.util.Map" resultType="long">
+        WITH UserLogsWithNext AS (
+            SELECT
+                LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime,
+                add_datetime
+            FROM
+                learning_log
+            WHERE
+                add_datetime &gt;= #{startDate}
+              AND add_datetime &lt; #{endDate}
+        )
+        SELECT
+            COALESCE(SUM(
+                             CASE
+                                 -- 使用 age() 函数计算可靠的时间间隔(interval)，再用 EXTRACT 提取总秒数
+                                 WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+                                     THEN 60 -- 累加60秒
+                                 ELSE 0
+                                 END
+                     ), 0) AS total_reading_seconds
+        FROM
+            UserLogsWithNext;
+    </select>
+
     <!-- 今日访问学生人数 -->
     <select id="getTodayVisitorCount" resultType="long">
         SELECT
@@ -32,7 +73,7 @@
         WHERE
           -- 使用 &gt;= 和 &lt; 来避免 XML 解析错误
             sl.add_datetime &gt;= CURRENT_DATE
-          AND sl.add_datetime &lt; (CURRENT_DATE + INTERVAL '1 day')
+          AND sl.add_datetime &lt; (CURRENT_DATE + 1)
     </select>
     <!-- 按时间段统计本日访问人数 -->
     <select id="getTodayVisitorCountByPeriod" resultType="com.upc.modular.datastatistics.controller.param.StatisticsDto">
@@ -53,7 +94,7 @@
                 student s ON sl.user_id = s.user_id
             WHERE
                 sl.add_datetime &gt;= CURRENT_DATE
-              AND sl.add_datetime &lt; (CURRENT_DATE + INTERVAL '1 day')
+              AND sl.add_datetime &lt; (CURRENT_DATE + 1)
         )
         SELECT
             time_slot AS timeSlot,
@@ -82,7 +123,8 @@
         ORDER BY
         date ASC
     </select>
-    <!-- 根据指定日期统计总阅读时长（秒） -->
+
+<!--    &lt;!&ndash; 根据指定日期统计总阅读时长（秒） &ndash;&gt;
     <select id="getStudyDurationByDate" resultType="long">
         WITH UserLogsWithNext AS (
             SELECT
@@ -97,15 +139,15 @@
         SELECT
             COALESCE(SUM(
                              CASE
-                                 -- 使用 age() 函数计算可靠的时间间隔(interval)，再用 EXTRACT 提取总秒数
+                                 &#45;&#45; 使用 age() 函数计算可靠的时间间隔(interval)，再用 EXTRACT 提取总秒数
                                  WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
-                                     THEN 60 -- 累加60秒
+                                     THEN 60 &#45;&#45; 累加60秒
                                  ELSE 0
                                  END
                      ), 0) AS total_reading_seconds
         FROM
             UserLogsWithNext;
-    </select>
+    </select>-->
     <!-- 统计今日总阅读时长（秒）- 使用 age() 函数的最终正确版本 -->
     <select id="getTodayStudyDuration" resultType="long">
         WITH UserLogsWithNext AS (
@@ -116,7 +158,7 @@
                 learning_log
             WHERE
                 add_datetime &gt;= CURRENT_DATE
-              AND add_datetime &lt; (CURRENT_DATE + INTERVAL '1 day')
+              AND add_datetime &lt; (CURRENT_DATE + 1)
         )
         SELECT
             COALESCE(SUM(
@@ -148,7 +190,7 @@
                 learning_log
             WHERE
                 add_datetime &gt;= CURRENT_DATE
-              AND add_datetime &lt; (CURRENT_DATE + INTERVAL '1 day')
+              AND add_datetime &lt; (CURRENT_DATE + 1)
         ),
              DurationCalculations AS (
                  SELECT
@@ -181,7 +223,7 @@
                 learning_log
             WHERE
                 add_datetime >= #{startDate}::timestamp
-            AND add_datetime &lt; (#{endDate}::date + INTERVAL '1 day')::timestamp
+            AND add_datetime &lt; (#{endDate}::date + 1 )::timestamp
             )
         SELECT
             (add_datetime::date)::timestamp AS "date",
