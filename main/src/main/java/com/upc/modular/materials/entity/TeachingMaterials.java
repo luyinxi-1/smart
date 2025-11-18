@@ -29,7 +29,7 @@ public class TeachingMaterials implements Serializable {
 
     //public static final List<String> SUPPORTED_TYPES = Arrays.asList("image", "imageSet", "video", "audio", "3DModel", "link", "file", "other");
     public static final List<String> SUPPORTED_TYPES = Arrays.asList("image", "imageSet", "video", "audio", "3DModel",
-            "link", "ppt","pdf","word", "excel","H5","simulation","zip","other" );
+            "link", "ppt","pdf","word", "excel","H5","simulation","other" );
     private static final long serialVersionUID = 1L;
 
     @ApiModelProperty("主键")

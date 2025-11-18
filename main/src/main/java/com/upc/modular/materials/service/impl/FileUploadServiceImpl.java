@@ -54,26 +54,40 @@ public class FileUploadServiceImpl implements IFileUploadService {
         // 4. 执行文件上传
         String filePath = FileManageUtil.uploadFile(file, folderPath, fileName);*/
         try {
-            if (isZipFile(file)) {
-                // --- 对于ZIP压缩文件 ---
-                // 步骤 1: 先将原始ZIP包作为一个普通文件保存下来
+            // 核心逻辑变更：判断 type 是否为 "simulation"
+            if ("simulation".equalsIgnoreCase(type)) {
+                // --- 'simulation' 类型的处理流程 ---
+
+                // 验证：确保为 simulation 类型上传的是一个ZIP文件
+                if (!isZipFile(file)) {
+                    throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "simulation类型必须上传ZIP压缩包");
+                }
+
+                // 步骤 1: 将原始ZIP包作为一个普通文件保存下来
                 String originalFileName = FileManageUtil.createFileName(file);
                 String savedArchivePath = FileManageUtil.uploadFile(file, folderPath, originalFileName);
 
                 if (ObjectUtils.isEmpty(savedArchivePath)) {
-                    throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "保存原始ZIP文件失败");
+                    throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "保存simulation压缩包失败");
                 }
 
                 File savedZipFile = new File(savedArchivePath);
 
-                // 步骤 2: 读取刚刚保存的ZIP文件，并执行解压
-                unzip(savedZipFile, folderPath);
+                // --- 主要修改点在这里 ---
+                // 步骤 2: 创建一个专属的子目录用于存放解压内容
+                // 目录名 = 保存后的文件名去掉 .zip 后缀
+                String savedFileName = savedZipFile.getName();
+                String unzipFolderName = savedFileName.substring(0, savedFileName.lastIndexOf('.'));
+                Path unzipDestPath = folderPath.resolve(unzipFolderName); // 例如: .../20251118/一串唯一的UUID/
 
-                // 结果返回解压到的文件夹路径
-                finalPath = folderPath.toString();
+                // 步骤 3: 将ZIP解压到这个新的专属子目录中
+                unzip(savedZipFile, unzipDestPath);
+
+                // 结果返回这个新的、更精确的解压子目录的路径
+                finalPath = unzipDestPath.toString();
 
             } else {
-                // --- 对于普通文件，逻辑不变 ---
+                // --- 其他类型（如 word, ppt 等）的处理流程，保持不变 ---
                 String fileName = FileManageUtil.createFileName(file);
                 finalPath = FileManageUtil.uploadFile(file, folderPath, fileName);
             }
