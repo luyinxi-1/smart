@@ -32,6 +32,9 @@ public enum FileType {
     WEBM("video/webm"),
     // 压缩文件
     ZIP("application/zip"),
+    // 添加浏览器兼容的ZIP类型
+    ZIP_COMPRESSED("application/x-zip-compressed"),
+    ZIP_OCTET_STREAM("application/octet-stream"),
     GZIP("application/gzip"),
     TAR("application/x-tar"),
     RAR("application/x-rar-compressed"),
