@@ -15,10 +15,10 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
 @Service
@@ -73,12 +73,10 @@ public class FileUploadServiceImpl implements IFileUploadService {
 
                 File savedZipFile = new File(savedArchivePath);
 
-                // --- 主要修改点在这里 ---
-                // 步骤 2: 创建一个专属的子目录用于存放解压内容
-                // 目录名 = 保存后的文件名去掉 .zip 后缀
+
                 String savedFileName = savedZipFile.getName();
                 String unzipFolderName = savedFileName.substring(0, savedFileName.lastIndexOf('.'));
-                Path unzipDestPath = folderPath.resolve(unzipFolderName); // 例如: .../20251118/一串唯一的UUID/
+                Path unzipDestPath = folderPath.resolve(unzipFolderName);
 
                 // 步骤 3: 将ZIP解压到这个新的专属子目录中
                 unzip(savedZipFile, unzipDestPath);
@@ -113,37 +111,91 @@ public class FileUploadServiceImpl implements IFileUploadService {
     }
 
     /**
-     * 将ZIP文件解压到目标路径
-     * @param zipFile 要解压的ZIP文件
-     * @param destDirectory 解压的目标目录
+     * 将ZIP文件解压到目标路径，并智能去除顶层单一根目录。
+     * @param zipFileToUnzip 要解压的ZIP文件
+     * @param destDirectory  解压的目标目录
      */
-    private void unzip(File zipFile, Path destDirectory) throws IOException {
-        // 从已保存的File对象创建FileInputStream
-        try (InputStream fis = new FileInputStream(zipFile);
-             ZipInputStream zipIn = new ZipInputStream(fis)) {
-            ZipEntry entry = zipIn.getNextEntry();
-            while (entry != null) {
-                Path filePath = destDirectory.resolve(entry.getName());
+    private void unzip(File zipFileToUnzip, Path destDirectory) throws IOException {
+        // 使用 try-with-resources 确保 ZipFile 被自动关闭
+        try (ZipFile zipFile = new ZipFile(zipFileToUnzip)) {
+
+            // 步骤 1: 分析并找到共同的根目录前缀
+            String commonRootPrefix = findCommonRootPrefix(zipFile);
+
+            Enumeration<? extends ZipEntry> entries = zipFile.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry entry = entries.nextElement();
+                String entryName = entry.getName();
+
+                // 步骤 2: 如果找到了共同前缀，就从每个条目名称中移除它
+                String targetName = (commonRootPrefix != null)
+                        ? entryName.substring(commonRootPrefix.length())
+                        : entryName;
+
+                // 如果剥离前缀后名称为空，说明是根目录本身，跳过
+                if (targetName.isEmpty()) {
+                    continue;
+                }
+
+                Path filePath = destDirectory.resolve(targetName);
 
                 // 安全性检查：防止 "Zip Slip" 路径遍历攻击
                 if (!filePath.toAbsolutePath().startsWith(destDirectory.toAbsolutePath())) {
-                    throw new IOException("解压文件失败：检测到非法路径 " + entry.getName());
+                    throw new IOException("解压文件失败：检测到非法路径 " + targetName);
                 }
 
-                if (!entry.isDirectory()) {
+                if (entry.isDirectory()) {
+                    Files.createDirectories(filePath);
+                } else {
                     // 确保父级目录存在
                     if (!filePath.getParent().toFile().exists()){
                         filePath.getParent().toFile().mkdirs();
                     }
-                    extractFile(zipIn, filePath);
-                } else {
-                    Files.createDirectories(filePath);
+                    // 从 ZipFile 中获取输入流并提取文件
+                    try (InputStream in = zipFile.getInputStream(entry);
+                         FileOutputStream out = new FileOutputStream(filePath.toFile())) {
+                        byte[] buffer = new byte[4096];
+                        int bytesRead;
+                        while ((bytesRead = in.read(buffer)) != -1) {
+                            out.write(buffer, 0, bytesRead);
+                        }
+                    }
                 }
-
-                zipIn.closeEntry();
-                entry = zipIn.getNextEntry();
             }
         }
+    }
+
+    /**
+     * 分析ZipFile的所有条目，判断是否存在一个唯一的共同根目录。
+     * @return 如果存在，返回共同根目录的名称 (例如 "MyProject/")；否则返回 null。
+     */
+    private String findCommonRootPrefix(ZipFile zipFile) {
+        List<String> entryNames = Collections.list(zipFile.entries())
+                .stream()
+                .map(ZipEntry::getName)
+                .collect(Collectors.toList());
+
+        if (entryNames.isEmpty()) {
+            return null;
+        }
+
+        // 找到第一个条目的第一级目录作为候选根目录
+        String firstEntryName = entryNames.get(0);
+        int slashIndex = firstEntryName.indexOf('/');
+        if (slashIndex <= 0) {
+            return null; // 第一个条目就在根目录，不可能有共同根目录
+        }
+
+        String potentialPrefix = firstEntryName.substring(0, slashIndex + 1);
+
+        // 检查所有其他条目是否都以这个前缀开头
+        for (String name : entryNames) {
+            if (!name.startsWith(potentialPrefix)) {
+                return null; // 发现不匹配的条目，说明没有唯一的共同根目录
+            }
+        }
+
+        return potentialPrefix;
     }
 
     /**
