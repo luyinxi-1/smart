@@ -440,7 +440,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         Integer userType = UserUtils.get().getUserType();
 
         // 权限检查逻辑
-        if (!materials.getIsPublic() && !materials.getCreator().equals(currentUserId) && userType != 0) {
+/*        if (!materials.getIsPublic() && !materials.getCreator().equals(currentUserId) && userType != 0) {
             if (textbookId == null)
                 throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，没有权限查看此文件");
             List<MaterialsTextbookMapping> textbookMappingList = materialsTextbookMappingService.list(
@@ -449,7 +449,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                             .eq(MaterialsTextbookMapping::getTextbookId, textbookId));
             if (textbookMappingList.size() == 0)
                 throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，没有权限查看此文件");
-        }
+        }*/
 
         TeachingMaterialsReturnVo materialsReturnVo = new TeachingMaterialsReturnVo();
         BeanUtils.copyProperties(materials, materialsReturnVo);

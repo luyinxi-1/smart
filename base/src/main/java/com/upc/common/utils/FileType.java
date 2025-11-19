@@ -64,11 +64,52 @@ public enum FileType {
     }
 
     public static boolean isValidFileType(MultipartFile file) {
+        // 首先检查标准MIME类型
         for (FileType fileType : FileType.values()) {
             if (fileType.getMimeType().equals(file.getContentType())) {
                 return true;
             }
         }
+
+
+        
+        // 如果标准MIME类型检查失败，尝试通过文件扩展名进行辅助判断
+        String originalFilename = file.getOriginalFilename();
+
+        System.out.println("已忽略MIME类型检查，使用扩展名验证：" + originalFilename);
+        if (originalFilename != null && !originalFilename.isEmpty()) {
+            String contentType = file.getContentType();
+            String extension = getFileExtension(originalFilename).toLowerCase();
+            System.out.println("文件扩展名为:" +  extension);
+            // 对于docx文件，即使MIME类型是通用类型，也允许通过扩展名验证
+            if ("docx".equals(extension) && 
+                ("application/octet-stream".equals(contentType) || 
+                 "application/zip".equals(contentType) || 
+                 "application/x-zip-compressed".equals(contentType) || 
+                 contentType == null || 
+                 contentType.isEmpty())) {
+                System.out.println("已忽略word 的 MIME类型检查，使用扩展名验证：" + originalFilename);
+                return true;
+            }
+            
+            // 可以为其他常用文件类型添加类似处理
+            if ("xlsx".equals(extension) && 
+                ("application/octet-stream".equals(contentType) || 
+                 "application/zip".equals(contentType))) {
+                return true;
+            }
+        }
+        
         return false;
+    }
+    
+    /**
+     * 从文件名中提取扩展名
+     */
+    private static String getFileExtension(String fileName) {
+        if (fileName == null || fileName.lastIndexOf(".") == -1) {
+            return "";
+        }
+        return fileName.substring(fileName.lastIndexOf(".") + 1);
     }
 }
