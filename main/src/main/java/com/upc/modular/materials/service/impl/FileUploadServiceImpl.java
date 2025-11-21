@@ -3,14 +3,12 @@ package com.upc.modular.materials.service.impl;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.common.utils.FileManageUtil;
-// import com.upc.common.utils.UserUtils; // <-- 不再需要，可以移除
 import com.upc.modular.materials.service.IFileUploadService;
-import com.upc.modular.materials.controller.param.dto.FileUploadResultDTO;
 import com.upc.modular.materials.entity.TeachingMaterials;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -55,7 +53,7 @@ public class FileUploadServiceImpl implements IFileUploadService {
         String filePath = FileManageUtil.uploadFile(file, folderPath, fileName);*/
         try {
             // 核心逻辑变更：判断 type 是否为 "simulation"
-            if ("simulation".equalsIgnoreCase(type)) {
+            if ("simulation".equalsIgnoreCase(type) || "H5".equalsIgnoreCase(type)) {
                 // --- 'simulation' 类型的处理流程 ---
 
                 // 验证：确保为 simulation 类型上传的是一个ZIP文件

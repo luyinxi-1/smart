@@ -337,6 +337,14 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 .like(ObjectUtils.isNotEmpty(param.getName()), TeachingMaterials::getName, param.getName())
                 // 当 param.getType() 不为空时，增加 `type = ?` 条件
                 .eq(ObjectUtils.isNotEmpty(param.getType()), TeachingMaterials::getType, param.getType());
+        
+        // 添加创建人筛选条件：非管理员只能查看自己创建的素材
+        if (userType != 0) { // 非管理员用户
+            queryWrapper.eq(TeachingMaterials::getCreator, currentUserId);
+        } else if (param.getAuthorId() != null) { // 管理员指定了作者ID
+            queryWrapper.eq(TeachingMaterials::getCreator, param.getAuthorId());
+        }
+        
         if (param.getUnboundOnly() != null && param.getUnboundOnly()) {
             // 1.1 获取所有已绑定过的素材ID列表
             List<Long> boundMaterialIds = materialsTextbookMappingService.list(
@@ -369,7 +377,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
         // 3.1 获取素材与教材的绑定关系
         Map<Long, Long> materialTextbookIdMap = materialsTextbookMappingService.list(
-                new LambdaQueryWrapper<MaterialsTextbookMapping>().in(MaterialsTextbookMapping::getMaterialId, materialIds)
+            new LambdaQueryWrapper<MaterialsTextbookMapping>().in(MaterialsTextbookMapping::getMaterialId, materialIds)
         ).stream().collect(Collectors.toMap(MaterialsTextbookMapping::getMaterialId, MaterialsTextbookMapping::getTextbookId, (v1, v2) -> v1)); // (v1, v2) -> v1 表示如果一个素材绑定多个教材，只取第一个
 
         // 3.2 如果存在绑定关系，查询教材信息
@@ -598,7 +606,27 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 if (FileUtils.deleteQuietly(filePath.toFile()))
                     this.removeById(materials.getId());
                 else throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，部分素材删除失败");
-            } else {
+            }
+            // "simulation" 或 "H5" 类型：删除文件或文件夹 (处理方式相同)
+            else if (materials.getType().equals("simulation") || materials.getType().equals("H5")) {
+                try {
+                    Path filePath = Paths.get(materials.getFilePath());
+                    // 检查路径是指向文件还是目录
+                    if (Files.isDirectory(filePath)) {
+                        // 如果是目录，递归删除整个目录及其内容
+                        FileUtils.deleteDirectory(filePath.toFile());
+                    } else {
+                        // 如果是文件，直接删除
+                        Files.deleteIfExists(filePath);
+                    }
+                    this.removeById(materials.getId()); // 删除数据库记录
+                } catch (IOException e) {
+                    e.printStackTrace(); // 打印异常栈
+                    // 如果文件或目录删除失败，抛出业务异常
+                    throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，部分 " + materials.getType() + " 素材删除失败");
+                }
+            }
+                else {
                 try {
                     Path filePath = Paths.get(materials.getFilePath());
                     Files.deleteIfExists(filePath);

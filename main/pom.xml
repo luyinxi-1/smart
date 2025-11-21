@@ -32,6 +32,16 @@
             <artifactId>commons-math3</artifactId>
             <version>3.6.1</version> <!-- 请检查并使用最新版本 -->
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>1.21</version> <!-- 使用最新稳定版本 -->
+        </dependency>
+        <dependency>
+            <groupId>com.github.junrar</groupId>
+            <artifactId>junrar</artifactId>
+            <version>7.0.0</version> <!-- 建议使用较新版本 -->
+        </dependency>
     </dependencies>
 
     <build>
