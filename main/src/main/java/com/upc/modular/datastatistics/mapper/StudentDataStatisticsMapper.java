@@ -16,6 +16,15 @@ import java.util.Map;
 public interface StudentDataStatisticsMapper  extends BaseMapper<StudentStatisticsData>{
     @Select("select count(DISTINCT textbook_id) from learning_log where creator = #{currentUserId}")
     Long countTextbookByUserId(Long currentUserId);
+    
+    // 批量查询多个用户的教材阅读总数
+    @Select("<script>" +
+            "SELECT COUNT(DISTINCT textbook_id) FROM learning_log WHERE creator IN " +
+            "<foreach item='item' collection='userIds' open='(' separator=',' close=')'>" +
+            "#{item}" +
+            "</foreach>" +
+            "</script>")
+    Long countTextbookByUserIds(@Param("userIds") List<Long> userIds);
 
     @Select("select count(DISTINCT textbook_id) from user_favorites where creator = #{currentUserId}")
     Long countFavoritebookByUserId(Long currentUserId);

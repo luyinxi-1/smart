@@ -32,4 +32,8 @@ public interface IGroupService extends IService<Group> {
     boolean insertstudentlist(List<Group> groupsList);
 
     Map<String, Long> getUserTypeCountByClassId(Long groupId);
+    
+    List<Group> getGroupsByTeacherUserId(Long userId);
+    
+    Map<String, Object> getClassStatisticsByUserId(Long userId);
 }

@@ -4,6 +4,7 @@ package com.upc.modular.group.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
+import com.upc.common.utils.UserUtils;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.group.controller.param.pageGroup;
 import com.upc.modular.group.controller.param.pageGroupVo;
@@ -11,7 +12,6 @@ import com.upc.modular.group.entity.Group;
 import com.upc.modular.group.service.IGroupService;
 import com.upc.modular.student.controller.param.pageStudent;
 import com.upc.modular.student.entity.Student;
-import com.upc.modular.student.service.IStudentService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -93,6 +93,24 @@ public class GroupController {
     public R<Map<String,Long>> ByIdGetUsers(@RequestParam("groupId") Long groupId) {
         Map<String,Long> result = groupService.getUserTypeCountByClassId(groupId);
         return R.ok(result);
+    }
+    
+    @ApiOperation(value = "根据当前登录教师用户ID查询班级信息")
+    @GetMapping("/getByTeacherUserId")
+    public R<List<Group>> getByTeacherUserId() {
+        // 从登录用户信息中获取用户ID
+        Long userId = UserUtils.get().getId();
+        List<Group> groups = groupService.getGroupsByTeacherUserId(userId);
+        return R.ok(groups);
+    }
+    
+    @ApiOperation(value = "根据当前登录用户ID查询班级统计信息（班级数量、总人数、总阅读量）")
+    @GetMapping("/getClassStatistics")
+    public R<Map<String, Object>> getClassStatistics() {
+        // 从登录用户信息中获取用户ID
+        Long userId = UserUtils.get().getId();
+        Map<String, Object> statistics = groupService.getClassStatisticsByUserId(userId);
+        return R.ok(statistics);
     }
 
 }
