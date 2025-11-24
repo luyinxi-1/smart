@@ -136,6 +136,12 @@ public class StudentDataStatisticsController {
         return R.ok(iStudentDataStatistics.countStudentTextbookSituation(textbookId));
     }
 
-
+    @ApiOperation("根据学生ID查询阅读过的教材，按阅读量排名返回")
+    @GetMapping("/textbook-rank-by-student")
+    public R<List<StudentTextbookRankParam>> countStudentTextbookReadingRankByStudentId(
+            @RequestParam Long studentId
+    ){
+        return R.ok(iStudentDataStatistics.countStudentTextbookReadingRankByStudentId(studentId));
+    }
 
 }

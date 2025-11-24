@@ -46,4 +46,11 @@ public interface IStudentDataStatistics extends IService<StudentStatisticsData> 
     StudentTextbookSituationReturnParam countStudentTextbookSituation(Long textbookId);
 
     List<StudentTextbookRankParam> countStudentTextbookReadingRank();
+    
+    /**
+     * 根据学生ID查询阅读过的教材，按阅读量排名返回
+     * @param studentId 学生ID
+     * @return 教材阅读排行榜列表
+     */
+    List<StudentTextbookRankParam> countStudentTextbookReadingRankByStudentId(Long studentId);
 }
