@@ -9,6 +9,7 @@ import com.upc.modular.datastatistics.controller.param.*;
 import org.apache.ibatis.annotations.Param;
 
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -145,6 +146,15 @@ public interface ISystemStatisticsService {
      */
     List<TextbookStatisticsOverviewParam> exportSystemTextbookStatisticsOverview(UserInfoToRedis currentUser, String textbookName);
 
+    /**
+     * 新增：导出 PDF 到响应流
+     */
+    void exportSystemTextbookStatisticsOverviewPdf(HttpServletResponse response, UserInfoToRedis currentUser, String textbookName) throws IOException;
+
+    /**
+     * 新增：导出 图片 到响应流
+     */
+    void exportSystemTextbookStatisticsOverviewImage(HttpServletResponse response, UserInfoToRedis currentUser, String textbookName) throws IOException;
     /**
      * 导出系统统计数据
      * @return List<ExportSystemStatisticsParm>

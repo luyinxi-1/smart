@@ -1176,6 +1176,102 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
         }
         return result;
     }
+    private List<TextbookStatisticsOverviewParam> getOverviewData(UserInfoToRedis currentUser, String textbookName) {
+        List<Map<String, Object>> rawData;
+
+        // 判断用户类型
+        if (currentUser.getUserType() == 0) { // 管理员
+            rawData = systemDataStatisticsMapper.exportSystemTextbookStatisticsOverview(textbookName);
+        } else if (currentUser.getUserType() == 2) { // 教师
+            rawData = systemDataStatisticsMapper.exportTeacherTextbookStatisticsOverview(currentUser.getId(), textbookName);
+        } else {
+            rawData = new ArrayList<>();
+        }
+
+        List<TextbookStatisticsOverviewParam> result = new ArrayList<>();
+        for (Map<String, Object> data : rawData) {
+            TextbookStatisticsOverviewParam param = new TextbookStatisticsOverviewParam();
+            param.setTextbookId(getLongValue(data.get("textbookId")));
+            param.setTextbookName((String) data.get("textbookName"));
+            param.setReaderCount(getLongValue(data.get("readerCount")));
+            param.setTeachingActivityCount(getLongValue(data.get("teachingActivityCount")));
+            param.setMaterialCount(getLongValue(data.get("materialCount")));
+            param.setCommunicationFeedbackCount(getLongValue(data.get("communicationFeedbackCount")));
+            param.setIdeologicalMaterialCount(getLongValue(data.get("ideologicalMaterialCount")));
+            param.setQuestionCorrectRate(getDoubleValue(data.get("questionCorrectRate")));
+            param.setCommunicationParticipationCount(getLongValue(data.get("communicationParticipationCount")));
+            param.setAnnotationCount(getLongValue(data.get("annotationCount")));
+            result.add(param);
+        }
+        return result;
+    }
+    @Override
+    public void exportSystemTextbookStatisticsOverviewPdf(HttpServletResponse response, UserInfoToRedis currentUser, String textbookName) throws IOException {
+        List<TextbookStatisticsOverviewParam> list = getOverviewData(currentUser, textbookName);
+
+        try (Document document = new Document(PageSize.A4.rotate())) { // 注意：这里使用了 rotate() 横向，因为列数较多
+            PdfWriter.getInstance(document, response.getOutputStream());
+            document.open();
+
+            // 字体设置
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font titleFont = new Font(bfChinese, 16, Font.BOLD);
+            Font headFont = new Font(bfChinese, 10, Font.BOLD);
+            Font textFont = new Font(bfChinese, 10, Font.NORMAL);
+
+            // 标题
+            Paragraph title = new Paragraph("全系统教材统计概览", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            title.setSpacingAfter(15);
+            document.add(title);
+
+            // 定义表头
+            String[] headers = {"教材名称", "阅读人数", "教学活动", "教学资料", "交流反馈", "思政素材", "习题正确率", "交流参与", "批注数量"};
+
+            // 创建表格 (9列)
+            PdfPTable table = new PdfPTable(headers.length);
+            table.setWidthPercentage(100);
+            // 调整列宽比例：教材名称宽一些，数字列窄一些
+            table.setWidths(new float[]{20f, 10f, 10f, 10f, 10f, 10f, 10f, 10f, 10f});
+
+            // 填充表头
+            for (String header : headers) {
+                PdfPCell cell = new PdfPCell(new Paragraph(header, headFont));
+                cell.setBackgroundColor(java.awt.Color.LIGHT_GRAY);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setPadding(5);
+                table.addCell(cell);
+            }
+
+            // 填充数据
+            for (TextbookStatisticsOverviewParam item : list) {
+                // 名称列居左，其他数字居中
+                addCell(table, item.getTextbookName(), textFont, Element.ALIGN_LEFT);
+                addCell(table, String.valueOf(item.getReaderCount()), textFont, Element.ALIGN_CENTER);
+                addCell(table, String.valueOf(item.getTeachingActivityCount()), textFont, Element.ALIGN_CENTER);
+                addCell(table, String.valueOf(item.getMaterialCount()), textFont, Element.ALIGN_CENTER);
+                addCell(table, String.valueOf(item.getCommunicationFeedbackCount()), textFont, Element.ALIGN_CENTER);
+                addCell(table, String.valueOf(item.getIdeologicalMaterialCount()), textFont, Element.ALIGN_CENTER);
+                addCell(table, String.format("%.2f%%", item.getQuestionCorrectRate() * 100), textFont, Element.ALIGN_CENTER);
+                addCell(table, String.valueOf(item.getCommunicationParticipationCount()), textFont, Element.ALIGN_CENTER);
+                addCell(table, String.valueOf(item.getAnnotationCount()), textFont, Element.ALIGN_CENTER);
+            }
+
+            document.add(table);
+        } catch (DocumentException e) {
+            throw new IOException("PDF生成失败", e);
+        }
+    }
+
+    // 辅助方法：添加PDF单元格
+    private void addCell(PdfPTable table, String content, Font font, int align) {
+        PdfPCell cell = new PdfPCell(new Paragraph(content != null ? content : "", font));
+        cell.setHorizontalAlignment(align);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        table.addCell(cell);
+    }
+
 
     @Override
     public IPage<ReaderStatisticsParam> getReaderStatistics(Page<ReaderStatisticsParam> page, Long textbookId) {
@@ -1191,6 +1287,100 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
             param.setProgressPercentage(getDoubleValue(data.get("progressPercentage")));
             return param;
         });
+    }
+    @Override
+    public void exportSystemTextbookStatisticsOverviewImage(HttpServletResponse response, UserInfoToRedis currentUser, String textbookName) throws IOException {
+        List<TextbookStatisticsOverviewParam> list = getOverviewData(currentUser, textbookName);
+
+        // 参数配置
+        int rowHeight = 40;
+        int headerHeight = 60;
+        int tableHeadHeight = 40;
+        // 因为有9列，图片宽度需要足够大，防止文字挤压
+        int width = 1400;
+        int height = headerHeight + tableHeadHeight + (list.size() * rowHeight) + 50;
+
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = image.createGraphics();
+
+        // 1. 白底
+        g2d.setColor(Color.WHITE);
+        g2d.fillRect(0, 0, width, height);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        // 2. 标题
+        g2d.setColor(Color.BLACK);
+        g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.BOLD, 24));
+        String title = "全系统教材统计概览";
+        FontMetrics fmTitle = g2d.getFontMetrics();
+        g2d.drawString(title, (width - fmTitle.stringWidth(title)) / 2, 45);
+
+        // 3. 表头定义
+        String[] headers = {"教材名称", "阅读人数", "教学活动", "教学资料", "交流反馈", "思政素材", "习题正确率", "交流参与", "批注数量"};
+        // 自定义列宽 (总和应接近 width - margin)
+        int[] colWidths = {300, 120, 120, 120, 120, 120, 150, 120, 120};
+        int startX = 50;
+        int y = headerHeight + 25;
+
+        g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.BOLD, 16));
+
+        // 绘制表头背景
+        g2d.setColor(new Color(240, 240, 240));
+        g2d.fillRect(startX - 10, y - 25, width - startX * 2 + 20, rowHeight);
+        g2d.setColor(Color.BLACK);
+
+        // 绘制表头文字
+        int currentX = startX;
+        for (int i = 0; i < headers.length; i++) {
+            g2d.drawString(headers[i], currentX, y);
+            currentX += colWidths[i];
+        }
+        g2d.drawLine(startX - 10, y + 15, width - startX + 10, y + 15);
+
+        // 4. 数据行
+        g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.PLAIN, 15));
+        y += rowHeight;
+
+        for (TextbookStatisticsOverviewParam item : list) {
+            currentX = startX;
+            g2d.setColor(Color.BLACK);
+
+            // 绘制每一列
+            drawText(g2d, item.getTextbookName(), currentX, y, colWidths[0] - 10); currentX += colWidths[0];
+            drawText(g2d, String.valueOf(item.getReaderCount()), currentX, y, colWidths[1]); currentX += colWidths[1];
+            drawText(g2d, String.valueOf(item.getTeachingActivityCount()), currentX, y, colWidths[2]); currentX += colWidths[2];
+            drawText(g2d, String.valueOf(item.getMaterialCount()), currentX, y, colWidths[3]); currentX += colWidths[3];
+            drawText(g2d, String.valueOf(item.getCommunicationFeedbackCount()), currentX, y, colWidths[4]); currentX += colWidths[4];
+            drawText(g2d, String.valueOf(item.getIdeologicalMaterialCount()), currentX, y, colWidths[5]); currentX += colWidths[5];
+            drawText(g2d, String.format("%.2f%%", item.getQuestionCorrectRate() * 100), currentX, y, colWidths[6]); currentX += colWidths[6];
+            drawText(g2d, String.valueOf(item.getCommunicationParticipationCount()), currentX, y, colWidths[7]); currentX += colWidths[7];
+            drawText(g2d, String.valueOf(item.getAnnotationCount()), currentX, y, colWidths[8]);
+
+            // 下划线
+            g2d.setColor(new Color(230, 230, 230));
+            g2d.drawLine(startX - 10, y + 15, width - startX + 10, y + 15);
+            y += rowHeight;
+        }
+
+        // 外框
+        g2d.setColor(Color.GRAY);
+        g2d.drawRect(startX - 10, headerHeight, width - startX * 2 + 20, height - headerHeight - 20);
+
+        g2d.dispose();
+        ImageIO.write(image, "png", response.getOutputStream());
+    }
+    // 简单的超长文本截断辅助方法
+    private void drawText(Graphics2D g2d, String text, int x, int y, int maxWidth) {
+        if (text == null) text = "-";
+        FontMetrics fm = g2d.getFontMetrics();
+        if (fm.stringWidth(text) > maxWidth) {
+            // 简单截断处理，实际生产可能需要更复杂的省略号算法
+            while (text.length() > 0 && fm.stringWidth(text + "...") > maxWidth) {
+                text = text.substring(0, text.length() - 1);
+            }
+            text += "...";
+        }
+        g2d.drawString(text, x, y);
     }
 
     @Override
