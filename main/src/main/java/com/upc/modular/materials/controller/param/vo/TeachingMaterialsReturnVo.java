@@ -58,5 +58,16 @@ public class TeachingMaterialsReturnVo {
      */
     @ApiModelProperty("已绑定的教材名称")
     private String textbookName;
+    
+    /**
+     * 章节ID
+     */
+    @ApiModelProperty("已绑定的章节ID")
+    private Long chapterId;
+    
+    /**
+     * 章节名称
+     */
+    @ApiModelProperty("已绑定的章节名称")
+    private String chapterName;
 }
-

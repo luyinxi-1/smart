@@ -27,4 +27,10 @@ public class TeachingMaterialsPageSearchDto extends PageBaseSearchParam {
 
     @ApiModelProperty("是否公开")
     private Boolean isPublic;
+    
+    @ApiModelProperty("教材ID")
+    private Long textbookId;
+    
+    @ApiModelProperty("章节ID")
+    private Long chapterId;
 }
