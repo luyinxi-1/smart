@@ -59,4 +59,16 @@ public class AdminStatisticsController {
     public void exportTextbookTypeReadingRank(HttpServletResponse response) throws Exception {
         systemStatisticsService.exportTextbookTypeReadingRank(response);
     }
+
+    @ApiOperation("导出类型阅读时长排名-PDF")
+    @GetMapping("/export-textbook-type-reading-rank-pdf")
+    public void exportTextbookTypeReadingRankPdf(HttpServletResponse response) throws Exception {
+        systemStatisticsService.exportTextbookTypeReadingRankPdf(response);
+    }
+
+    @ApiOperation("导出类型阅读时长排名-图片")
+    @GetMapping("/export-textbook-type-reading-rank-image")
+    public void exportTextbookTypeReadingRankImage(HttpServletResponse response) throws Exception {
+        systemStatisticsService.exportTextbookTypeReadingRankImage(response);
+    }
 }

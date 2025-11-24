@@ -373,12 +373,10 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             param = new ApplicationMaterialsPageParam();
         }
         
-        // 处理 onlyMine 参数：如果为 true，则只查询当前用户创建的素材
-        if (param.getOnlyMine() != null && param.getOnlyMine()) {
-            Long currentUserId = UserUtils.get() != null ? UserUtils.get().getId() : null;
-            if (currentUserId != null) {
-                param.setCreator(currentUserId);
-            }
+        // 强制只查询当前登录用户创建的素材（数据权限控制）
+        Long currentUserId = UserUtils.get() != null ? UserUtils.get().getId() : null;
+        if (currentUserId != null) {
+            param.setCreator(currentUserId);
         }
         
         // 处理分页参数

@@ -9,6 +9,8 @@ import com.upc.modular.datastatistics.controller.param.*;
 import org.apache.ibatis.annotations.Param;
 
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -89,6 +91,16 @@ public interface ISystemStatisticsService {
     void exportTextbookTypeReadingRank(HttpServletResponse response) throws Exception;
 
     /**
+     * 导出类型阅读时长排名 (PDF)
+     */
+    void exportTextbookTypeReadingRankPdf(HttpServletResponse response) throws Exception;
+
+    /**
+     * 导出类型阅读时长排名 (图片)
+     */
+    void exportTextbookTypeReadingRankImage(HttpServletResponse response) throws Exception;
+
+    /**
      * 获取指定学生在某教材下各章节的掌握度
      * @param studentId 学生ID
      * @param textbookId 教材ID
@@ -125,7 +137,11 @@ public interface ISystemStatisticsService {
      * @return List<TeacherTextbookPopularityParam>
      */
     List<TeacherTextbookPopularityParam> exportSystemTextbookPopularity();
+    // 新增 PDF 导出接口
+    void exportSystemTextbookPopularityPdf(HttpServletResponse response) throws IOException;
 
+    // 新增 图片 导出接口
+    void exportSystemTextbookPopularityImage(HttpServletResponse response) throws IOException;
     /**
      * 导出全系统教材统计概览
      * @param currentUser 当前登录用户
@@ -135,11 +151,31 @@ public interface ISystemStatisticsService {
     List<TextbookStatisticsOverviewParam> exportSystemTextbookStatisticsOverview(UserInfoToRedis currentUser, String textbookName);
 
     /**
+     * 新增：导出 PDF 到响应流
+     */
+    void exportSystemTextbookStatisticsOverviewPdf(HttpServletResponse response, UserInfoToRedis currentUser, String textbookName) throws IOException;
+
+    /**
+     * 新增：导出 图片 到响应流
+     */
+    void exportSystemTextbookStatisticsOverviewImage(HttpServletResponse response, UserInfoToRedis currentUser, String textbookName) throws IOException;
+    /**
      * 导出系统统计数据
      * @return List<ExportSystemStatisticsParm>
      */
     List<ExportSystemStatisticsParm> exportSystemStatistics();
 
+    /**
+     * 导出 PDF 到输出流
+     * @param outputStream 响应输出流
+     */
+    void exportPdf(OutputStream outputStream);
+
+    /**
+     * 导出 图片 到输出流
+     * @param outputStream 响应输出流
+     */
+    void exportImage(OutputStream outputStream);
     /**
      * 获取全系统教材统计概览 (分页)
      * @param page 分页参数

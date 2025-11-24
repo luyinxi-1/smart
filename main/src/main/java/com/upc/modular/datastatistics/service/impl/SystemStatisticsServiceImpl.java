@@ -27,13 +27,26 @@ import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.mapper.TextbookMapper;
 import com.upc.modular.textbook.service.IIdeologicalMaterialService;
 import com.upc.modular.textbook.service.ITextbookService;
-
+import com.lowagie.text.*;
+import com.lowagie.text.Font;
+import com.lowagie.text.pdf.*;
+import org.springframework.stereotype.Service;
+import org.springframework.core.io.ClassPathResource;
+import java.io.InputStream;
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.*;
+import java.util.List;
 import com.upc.common.utils.UserInfoToRedis;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.io.OutputStream;
 import java.text.DecimalFormat;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -118,6 +131,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
                 .map(slot -> new StatisticsDto(slot, resultMap.getOrDefault(slot, 0L)))
                 .collect(Collectors.toList());
     }
+
     //按时间统计访问人数
     @Override
     public List<VisitorCountDTO> getStudentVisitorCountByTime(String timeRange) {
@@ -165,6 +179,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
                 })
                 .collect(Collectors.toList());
     }
+
     @Override
     public List<DailyStudyDurationDto> getStudyDurationByTime(String timeRange) {
         // 定义业务所需的时区为一个常量，这是最佳实践
@@ -218,6 +233,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
                 })
                 .collect(Collectors.toList());
     }
+
     public Long getTodayStudyDuration() {
         // TODO: 实现今日总学习时长统计逻辑
         return systemDataStatisticsMapper.getTodayStudyDuration();
@@ -263,43 +279,44 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         // 调用 Mapper，传入转换后的 LocalDateTime
         return systemDataStatisticsMapper.getStudyTrendByTimeRange(startTime, endTime, lowerCaseType);
     }
-/*@Override
-public SystemAllCountsDto getAllCounts(String dateStr) { // 1. 修改返回类型
-    SystemAllCountsDto countsDto = new SystemAllCountsDto(); // 2. 创建DTO对象
 
-    LocalDate targetDate;
-    if (dateStr != null && !dateStr.trim().isEmpty()) {
-        try {
-            targetDate = LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
-        } catch (Exception e) {
-            // 如果日期格式不正确，可以记录日志并使用默认值
+    /*@Override
+    public SystemAllCountsDto getAllCounts(String dateStr) { // 1. 修改返回类型
+        SystemAllCountsDto countsDto = new SystemAllCountsDto(); // 2. 创建DTO对象
+
+        LocalDate targetDate;
+        if (dateStr != null && !dateStr.trim().isEmpty()) {
+            try {
+                targetDate = LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
+            } catch (Exception e) {
+                // 如果日期格式不正确，可以记录日志并使用默认值
+                targetDate = LocalDate.now();
+            }
+        } else {
             targetDate = LocalDate.now();
         }
-    } else {
-        targetDate = LocalDate.now();
-    }
-    // 3. 使用setter方法为DTO的每个属性赋值
-    countsDto.setTeacherCount(teacherService.count());
-    countsDto.setStudentCount(studentService.count());
-    countsDto.setGroupCount(groupService.count());
-    countsDto.setTeachingideologicalMaterialCount(ideologicalMaterialService.count());
+        // 3. 使用setter方法为DTO的每个属性赋值
+        countsDto.setTeacherCount(teacherService.count());
+        countsDto.setStudentCount(studentService.count());
+        countsDto.setGroupCount(groupService.count());
+        countsDto.setTeachingideologicalMaterialCount(ideologicalMaterialService.count());
 
-    Long discussionTopicCount = discussionTopicService.lambdaQuery()
-            .eq(DiscussionTopic::getIdentityType, 1)
-            .count();
-    countsDto.setDiscussionTopicCount(discussionTopicCount);
+        Long discussionTopicCount = discussionTopicService.lambdaQuery()
+                .eq(DiscussionTopic::getIdentityType, 1)
+                .count();
+        countsDto.setDiscussionTopicCount(discussionTopicCount);
 
-    countsDto.setDiscussionTopicReplyCount(discussionTopicReplyService.count());
-    countsDto.setTeachingQuestionBankCount(teachingQuestionbankService.count());
-    countsDto.setCourseCount(courseService.count());
-    countsDto.setTeachingMaterialsCount(teachingMaterialsService.count());
+        countsDto.setDiscussionTopicReplyCount(discussionTopicReplyService.count());
+        countsDto.setTeachingQuestionBankCount(teachingQuestionbankService.count());
+        countsDto.setCourseCount(courseService.count());
+        countsDto.setTeachingMaterialsCount(teachingMaterialsService.count());
 
-    Long textbookCount = textbookService.lambdaQuery()
-            .eq(Textbook::getReleaseStatus, "1")
-            .count();
-    countsDto.setTextbookCount(textbookCount);
+        Long textbookCount = textbookService.lambdaQuery()
+                .eq(Textbook::getReleaseStatus, "1")
+                .count();
+        countsDto.setTextbookCount(textbookCount);
 
-    *//*Long todayStudyTimeInSeconds = systemDataStatisticsMapper.getTodayStudyDuration();
+        *//*Long todayStudyTimeInSeconds = systemDataStatisticsMapper.getTodayStudyDuration();
     Long todayStudyTimeInMinutes = todayStudyTimeInSeconds != null ? todayStudyTimeInSeconds / 60 : 0L;
     countsDto.setTodayStudyTime(todayStudyTimeInMinutes);
 
@@ -313,55 +330,56 @@ public SystemAllCountsDto getAllCounts(String dateStr) { // 1. 修改返回类�
 
     return countsDto; // 4. 返回DTO对象
 }*/
-@Override
-public SystemAllCountsDto getAllCounts(String dateStr) {
-    SystemAllCountsDto countsDto = new SystemAllCountsDto();
+    @Override
+    public SystemAllCountsDto getAllCounts(String dateStr) {
+        SystemAllCountsDto countsDto = new SystemAllCountsDto();
 
-    LocalDate targetDate;
-    if (dateStr != null && !dateStr.trim().isEmpty()) {
-        try {
-            targetDate = LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
-        } catch (Exception e) {
+        LocalDate targetDate;
+        if (dateStr != null && !dateStr.trim().isEmpty()) {
+            try {
+                targetDate = LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
+            } catch (Exception e) {
+                targetDate = LocalDate.now();
+            }
+        } else {
             targetDate = LocalDate.now();
         }
-    } else {
-        targetDate = LocalDate.now();
+
+        countsDto.setTeacherCount(teacherService.count());
+        countsDto.setStudentCount(studentService.count());
+        countsDto.setGroupCount(groupService.count());
+        countsDto.setTeachingideologicalMaterialCount(ideologicalMaterialService.count());
+
+        Long discussionTopicCount = discussionTopicService.lambdaQuery()
+                .eq(DiscussionTopic::getIdentityType, 1)
+                .count();
+        countsDto.setDiscussionTopicCount(discussionTopicCount);
+
+        countsDto.setDiscussionTopicReplyCount(discussionTopicReplyService.count());
+        countsDto.setTeachingQuestionBankCount(teachingQuestionbankService.count());
+        countsDto.setCourseCount(courseService.count());
+        countsDto.setTeachingMaterialsCount(teachingMaterialsService.count());
+
+        Long textbookCount = textbookService.lambdaQuery()
+                .eq(Textbook::getReleaseStatus, "1")
+                .count();
+        countsDto.setTextbookCount(textbookCount);
+
+        // 核心修改：创建Map来传递日期范围参数
+        Map<String, Object> dateParams = new HashMap<>();
+        dateParams.put("startDate", targetDate);
+        dateParams.put("endDate", targetDate.plusDays(1));
+
+        // 使用Map参数调用Mapper方法
+        Long studyTimeInSeconds = systemDataStatisticsMapper.getStudyDurationByDate(dateParams);
+        countsDto.setTodayStudyTime(studyTimeInSeconds != null ? studyTimeInSeconds / 60 : 0L);
+
+        // 使用Map参数调用Mapper方法
+        countsDto.setTodayVisitorCount(systemDataStatisticsMapper.getVisitorCountByDate(dateParams));
+
+        return countsDto;
     }
 
-    countsDto.setTeacherCount(teacherService.count());
-    countsDto.setStudentCount(studentService.count());
-    countsDto.setGroupCount(groupService.count());
-    countsDto.setTeachingideologicalMaterialCount(ideologicalMaterialService.count());
-
-    Long discussionTopicCount = discussionTopicService.lambdaQuery()
-            .eq(DiscussionTopic::getIdentityType, 1)
-            .count();
-    countsDto.setDiscussionTopicCount(discussionTopicCount);
-
-    countsDto.setDiscussionTopicReplyCount(discussionTopicReplyService.count());
-    countsDto.setTeachingQuestionBankCount(teachingQuestionbankService.count());
-    countsDto.setCourseCount(courseService.count());
-    countsDto.setTeachingMaterialsCount(teachingMaterialsService.count());
-
-    Long textbookCount = textbookService.lambdaQuery()
-            .eq(Textbook::getReleaseStatus, "1")
-            .count();
-    countsDto.setTextbookCount(textbookCount);
-
-    // 核心修改：创建Map来传递日期范围参数
-    Map<String, Object> dateParams = new HashMap<>();
-    dateParams.put("startDate", targetDate);
-    dateParams.put("endDate", targetDate.plusDays(1));
-
-    // 使用Map参数调用Mapper方法
-    Long studyTimeInSeconds = systemDataStatisticsMapper.getStudyDurationByDate(dateParams);
-    countsDto.setTodayStudyTime(studyTimeInSeconds != null ? studyTimeInSeconds / 60 : 0L);
-
-    // 使用Map参数调用Mapper方法
-    countsDto.setTodayVisitorCount(systemDataStatisticsMapper.getVisitorCountByDate(dateParams));
-
-    return countsDto;
-}
     @Override
     public Long getTeacherCount() {
         // TODO: 实现教师数量统计逻辑
@@ -373,6 +391,7 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
         // TODO: 实现班级数量统计逻辑
         return groupService.count();
     }
+
     @Override
     public Long getCommunicationFeedbackCount() {
         // TODO: 实现交流反馈数量统计逻辑
@@ -384,6 +403,7 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
         // TODO: 实现教学素材数量逻辑
         return teachingMaterialsService.count();
     }
+
     //教材类型统计
     @Override
     public List<TextbookTypeCountDto> getTextbookTypeCount() {
@@ -496,8 +516,7 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
         // 如果没有提供结束时间，默认不限制结束时间
         if (endDate == null) {
             params.put("endTime", null);
-        }
-        else {
+        } else {
             // 如果结束时间晚于今天，设置为今天
             if (endDate.isAfter(today)) {
                 endDate = today;
@@ -523,13 +542,13 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
     public PageBaseReturnParam<Map<String, Object>> getTextbookReadingRank(Map<String, Object> params, PageBaseSearchParam pageParam) {
         // 处理时间参数
         processTimeParams(params);
-        
+
         // 创建MyBatis-Plus的Page对象
         Page<Map<String, Object>> page = new Page<>(pageParam.getCurrent(), pageParam.getSize());
-        
+
         // 调用Mapper进行分页查询
         IPage<Map<String, Object>> resultPage = systemDataStatisticsMapper.getTextbookReadingRank(page, params);
-        
+
         return PageBaseReturnParam.ok(resultPage);
     }
 
@@ -544,7 +563,7 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
     public void exportTextbookTypeReadingRank(HttpServletResponse response) throws Exception {
         try {
             List<Map<String, Object>> rawData = getTextbookTypeReadingRank(null);
-            
+
             // 转换为导出参数
             List<TextbookTypeReadingRankExportParam> exportData = new java.util.ArrayList<>();
             int rank = 1;
@@ -555,18 +574,18 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
                 param.setRank(rank++);
                 exportData.add(param);
             }
-            
+
             // 设置响应头
             String fileName = "类型阅读时长排名.xlsx";
-            
+
             response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-            
+
             // 兼容不同浏览器的文件名编码
             String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name())
                     .replaceAll("\\+", "%20");
             response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
-            
+
             // 导出Excel
             com.alibaba.excel.EasyExcel.write(response.getOutputStream(), TextbookTypeReadingRankExportParam.class)
                     .sheet("类型阅读时长排名")
@@ -577,6 +596,202 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
             response.setCharacterEncoding("utf-8");
             throw new RuntimeException("导出失败，请重试");
         }
+    }
+
+    /**
+     * 私有辅助方法：获取并封装数据
+     * 目的：让Excel、PDF、Image共用同一套数据源，避免逻辑重复
+     */
+    private List<TextbookTypeReadingRankExportParam> getRankExportData() {
+        // 获取原始数据 (假设您这里调用的是 Mapper 或其他 Service)
+        List<Map<String, Object>> rawData = getTextbookTypeReadingRank(null);
+
+        List<TextbookTypeReadingRankExportParam> exportData = new ArrayList<>();
+        if (rawData != null) {
+            int rank = 1;
+            for (Map<String, Object> item : rawData) {
+                TextbookTypeReadingRankExportParam param = new TextbookTypeReadingRankExportParam();
+                // 注意空指针安全处理
+                param.setTypeName(item.get("typeName") != null ? (String) item.get("typeName") : "未知类型");
+                param.setReadingDuration(item.get("readingDuration") != null ? ((Number) item.get("readingDuration")).longValue() : 0L);
+                param.setRank(rank++);
+                exportData.add(param);
+            }
+        }
+        return exportData;
+    }
+
+    @Override
+    public void exportTextbookTypeReadingRankPdf(HttpServletResponse response) throws Exception {
+        try {
+            List<TextbookTypeReadingRankExportParam> list = getRankExportData();
+
+            // 设置响应头
+            String fileName = "类型阅读时长排名.pdf";
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
+            response.setContentType("application/pdf");
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
+
+            // 创建 PDF 文档
+            Document document = new Document(PageSize.A4);
+            PdfWriter.getInstance(document, response.getOutputStream());
+            document.open();
+
+            // 字体设置 (解决中文乱码)
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font titleFont = new Font(bfChinese, 18, Font.BOLD);
+            Font headFont = new Font(bfChinese, 12, Font.BOLD);
+            Font textFont = new Font(bfChinese, 12, Font.NORMAL);
+
+            // 标题
+            Paragraph title = new Paragraph("类型阅读时长排名", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            title.setSpacingAfter(20);
+            document.add(title);
+
+            // 表格 (3列: 排名, 类型名称, 阅读时长)
+            PdfPTable table = new PdfPTable(3);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{20f, 50f, 30f}); // 列宽比例
+
+            // 表头
+            String[] headers = {"排名", "类型名称", "阅读时长"};
+            for (String header : headers) {
+                PdfPCell cell = new PdfPCell(new Paragraph(header, headFont));
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setBackgroundColor(java.awt.Color.LIGHT_GRAY);
+                cell.setPadding(8);
+                table.addCell(cell);
+            }
+
+            // 内容
+            for (TextbookTypeReadingRankExportParam data : list) {
+                PdfPCell c1 = new PdfPCell(new Paragraph(String.valueOf(data.getRank()), textFont));
+                c1.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+                PdfPCell c2 = new PdfPCell(new Paragraph(data.getTypeName(), textFont));
+
+                // 可以在这里格式化时长，例如加上 "分钟" 或 "小时"
+                PdfPCell c3 = new PdfPCell(new Paragraph(String.valueOf(data.getReadingDuration()), textFont));
+                c3.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+                table.addCell(c1);
+                table.addCell(c2);
+                table.addCell(c3);
+            }
+
+            document.add(table);
+            document.close();
+
+        } catch (Exception e) {
+            handleExportError(response, e);
+        }
+    }
+
+    // ================== 3. 新增 图片 导出 ==================
+    @Override
+    public void exportTextbookTypeReadingRankImage(HttpServletResponse response) throws Exception {
+        try {
+            List<TextbookTypeReadingRankExportParam> list = getRankExportData();
+
+            // 设置响应头
+            String fileName = "类型阅读时长排名.png";
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
+            response.setContentType("image/png");
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
+
+            // 计算图片尺寸
+            int rowHeight = 40;
+            int headerHeight = 60; // 标题高度
+            int tableHeadHeight = 40; // 表头高度
+            int margin = 40;
+            int width = 800;
+            int height = headerHeight + tableHeadHeight + (list.size() * rowHeight) + margin * 2;
+
+            // 创建画板
+            BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = image.createGraphics();
+
+            // 1. 背景白底
+            g2d.setColor(java.awt.Color.WHITE);
+            g2d.fillRect(0, 0, width, height);
+
+            // 抗锯齿
+            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            // 2. 绘制主标题
+            g2d.setColor(java.awt.Color.BLACK);
+            // 注意：Linux下需确保有 SimHei 字体
+            //g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.BOLD, 24));
+            g2d.setFont(loadCustomFont(24f, java.awt.Font.BOLD));
+            String title = "类型阅读时长排名";
+            int titleWidth = g2d.getFontMetrics().stringWidth(title);
+            g2d.drawString(title, (width - titleWidth) / 2, 50);
+
+            // 3. 绘制表头
+            int y = headerHeight + 20;
+            int[] colX = {50, 150, 550}; // 列起始X坐标：排名, 名称, 时长
+
+            //g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.BOLD, 16));
+            g2d.setFont(loadCustomFont(16f, java.awt.Font.BOLD));
+            g2d.setColor(new java.awt.Color(240, 240, 240)); // 表头背景灰
+            g2d.fillRect(40, y - 25, width - 80, rowHeight);
+
+            g2d.setColor(java.awt.Color.BLACK);
+            g2d.drawString("排名", colX[0], y);
+            g2d.drawString("类型名称", colX[1], y);
+            g2d.drawString("阅读时长", colX[2], y);
+
+            // 绘制表头下横线
+            g2d.drawLine(40, y + 15, width - 40, y + 15);
+
+            // 4. 绘制数据行
+            g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.PLAIN, 16));
+            y += rowHeight;
+
+            for (TextbookTypeReadingRankExportParam data : list) {
+                g2d.drawString(String.valueOf(data.getRank()), colX[0], y);
+                g2d.drawString(data.getTypeName(), colX[1], y);
+                g2d.drawString(String.valueOf(data.getReadingDuration()), colX[2], y);
+
+                // 虚线或浅色分割线
+                g2d.setColor(new java.awt.Color(230, 230, 230));
+                g2d.drawLine(40, y + 15, width - 40, y + 15);
+                g2d.setColor(java.awt.Color.BLACK); // 恢复文字颜色
+
+                y += rowHeight;
+            }
+
+            // 绘制外边框
+            g2d.setColor(java.awt.Color.GRAY);
+            g2d.drawRect(40, headerHeight - 5, width - 80, height - headerHeight - margin);
+
+            g2d.dispose();
+            ImageIO.write(image, "png", response.getOutputStream());
+
+        } catch (Exception e) {
+            handleExportError(response, e);
+        }
+    }
+
+    /**
+     * 统一异常处理
+     */
+    private void handleExportError(HttpServletResponse response, Exception e) throws java.io.IOException {
+        e.printStackTrace();
+        if (!response.isCommitted()) {
+            response.reset();
+            response.setContentType("application/json");
+            response.setCharacterEncoding("utf-8");
+            response.getWriter().println("{\"code\": 500, \"msg\": \"导出失败: " + e.getMessage() + "\"}");
+        }
+    }
+
+    // 假设您这个接口方法在Service中也有定义，保留它以兼容原代码引用
+    public List<Map<String, Object>> getTextbookTypeReadingRank(Object param) {
+        // 这里应该是调用 Mapper 或 DAO 的逻辑
+        // 为了编译通过，这里返回空列表或示例数据
+        return new ArrayList<>();
     }
 
     @Override
@@ -629,7 +844,6 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
 
         return result;
     }
-
 
 
     // TODO:资源使用数据统计
@@ -715,7 +929,7 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
         for (Map<String, Object> data : rawData) {
             TeacherTextbookPopularityParam param = new TeacherTextbookPopularityParam();
             param.setRank(rank++);
-            param.setTextbookId(getLongValue(data.get("textbookId")));
+            //param.setTextbookId(getLongValue(data.get("textbookId")));
             param.setTextbookName((String) data.get("textbookName"));
             param.setReaderCount(getLongValue(data.get("readerCount")));
             param.setReadingDurationMinutes(getLongValue(data.get("readingDurationMinutes")));
@@ -727,8 +941,174 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
         return result;
     }
 
+    // ================= 新增 PDF 导出实现 =================
+    @Override
+    public void exportSystemTextbookPopularityPdf(HttpServletResponse response) throws IOException {
+        // 1. 复用逻辑获取数据
+        List<TeacherTextbookPopularityParam> list = this.exportSystemTextbookPopularity();
+
+        try (Document document = new Document(PageSize.A4.rotate())) { // 横向 A4
+            PdfWriter.getInstance(document, response.getOutputStream());
+            document.open();
+
+            // 2. 字体设置 (解决中文)
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font titleFont = new Font(bfChinese, 18, Font.BOLD);
+            Font headFont = new Font(bfChinese, 10, Font.BOLD);
+            Font textFont = new Font(bfChinese, 10, Font.NORMAL);
+
+            // 3. 标题
+            Paragraph title = new Paragraph("全系统教材热度排名", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            title.setSpacingAfter(20);
+            document.add(title);
+
+            // 4. 表格设置 (7列)
+            // 列: 排名, 教材名称, 阅读人数, 阅读时长, 教学活动, 交流反馈, 热度值
+            PdfPTable table = new PdfPTable(7);
+            table.setWidthPercentage(100);
+            // 宽度比例：教材名称给宽一点 (40%)，其他平均分配
+            table.setWidths(new float[]{8f, 32f, 12f, 12f, 12f, 12f, 12f});
+
+            // 5. 表头
+            String[] headers = {"排名", "教材名称", "阅读人数", "阅读时长(分)", "教学活动数", "交流反馈数", "热度值"};
+            for (String header : headers) {
+                PdfPCell cell = new PdfPCell(new Paragraph(header, headFont));
+                cell.setBackgroundColor(java.awt.Color.LIGHT_GRAY);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setPadding(6);
+                table.addCell(cell);
+            }
+
+            // 6. 填充数据
+            for (TeacherTextbookPopularityParam item : list) {
+                // 排名
+                addCenteredCell(table, String.valueOf(item.getRank()), textFont);
+                // 名称 (居左)
+                PdfPCell nameCell = new PdfPCell(new Paragraph(item.getTextbookName(), textFont));
+                nameCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                table.addCell(nameCell);
+                // 其他数值
+                addCenteredCell(table, String.valueOf(item.getReaderCount()), textFont);
+                addCenteredCell(table, String.valueOf(item.getReadingDurationMinutes()), textFont);
+                addCenteredCell(table, String.valueOf(item.getTeachingActivityCount()), textFont);
+                addCenteredCell(table, String.valueOf(item.getCommunicationFeedbackCount()), textFont);
+                addCenteredCell(table, String.valueOf(item.getPopularityScore()), textFont);
+            }
+
+            document.add(table);
+        } catch (DocumentException e) {
+            throw new IOException("PDF生成失败", e);
+        }
+    }
+
+    // PDF 单元格辅助方法
+    private void addCenteredCell(PdfPTable table, String text, Font font) {
+        PdfPCell cell = new PdfPCell(new Paragraph(text, font));
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        table.addCell(cell);
+    }
+
+    // ================= 新增 图片 导出实现 =================
+    @Override
+    public void exportSystemTextbookPopularityImage(HttpServletResponse response) throws IOException {
+        // 1. 获取数据
+        List<TeacherTextbookPopularityParam> list = this.exportSystemTextbookPopularity();
+
+        // 2. 尺寸参数
+        int rowHeight = 40;
+        int headerHeight = 70;
+        int width = 1200; // 宽度设大一点容纳7列
+        int height = headerHeight + 40 + (list.size() * rowHeight) + 50; // 40是表头高度
+
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = image.createGraphics();
+
+        // 3. 初始化画笔
+        g2d.setColor(Color.WHITE);
+        g2d.fillRect(0, 0, width, height);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        // 4. 标题
+        g2d.setColor(Color.BLACK);
+        //g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.BOLD, 24));
+        g2d.setFont(loadCustomFont(24f, java.awt.Font.BOLD));
+        String titleStr = "全系统教材热度排名";
+        int titleW = g2d.getFontMetrics().stringWidth(titleStr);
+        g2d.drawString(titleStr, (width - titleW) / 2, 50);
+
+        // 5. 表头配置
+        String[] headers = {"排名", "教材名称", "阅读人数", "时长(分)", "教学活动", "交流反馈", "热度值"};
+        // 自定义列宽 (总和应接近 width - margin)
+        // 排名(80) + 名称(400) + 阅读(120) + 时长(120) + 活动(120) + 反馈(120) + 热度(120)
+        int[] colWidths = {80, 400, 120, 120, 120, 120, 120};
+        int startX = 60;
+        int y = headerHeight + 30;
+
+        // 绘制表头
+        //g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.BOLD, 16));
+        g2d.setFont(loadCustomFont(16f, java.awt.Font.BOLD));
+        g2d.setColor(new Color(240, 240, 240));
+        g2d.fillRect(startX - 10, y - 25, width - startX * 2 + 20, rowHeight); // 表头背景
+        g2d.setColor(Color.BLACK);
+
+        int currentX = startX;
+        for (int i = 0; i < headers.length; i++) {
+            g2d.drawString(headers[i], currentX, y);
+            currentX += colWidths[i];
+        }
+        g2d.drawLine(startX - 10, y + 15, width - startX + 10, y + 15); // 表头下划线
+
+        // 6. 数据行
+        //g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.PLAIN, 15));
+        g2d.setFont(loadCustomFont(15f, java.awt.Font.PLAIN));
+        y += rowHeight;
+
+        for (TeacherTextbookPopularityParam item : list) {
+            currentX = startX;
+            g2d.setColor(Color.BLACK);
+
+            // 使用 drawText 防止文字溢出 (特别是教材名称)
+            drawText(g2d, String.valueOf(item.getRank()), currentX, y, colWidths[0]);
+            currentX += colWidths[0];
+
+            drawText(g2d, item.getTextbookName(), currentX, y, colWidths[1] - 10);
+            currentX += colWidths[1];
+
+            drawText(g2d, String.valueOf(item.getReaderCount()), currentX, y, colWidths[2]);
+            currentX += colWidths[2];
+
+            drawText(g2d, String.valueOf(item.getReadingDurationMinutes()), currentX, y, colWidths[3]);
+            currentX += colWidths[3];
+
+            drawText(g2d, String.valueOf(item.getTeachingActivityCount()), currentX, y, colWidths[4]);
+            currentX += colWidths[4];
+
+            drawText(g2d, String.valueOf(item.getCommunicationFeedbackCount()), currentX, y, colWidths[5]);
+            currentX += colWidths[5];
+
+            drawText(g2d, String.valueOf(item.getPopularityScore()), currentX, y, colWidths[6]);
+
+            // 分割线
+            g2d.setColor(new Color(230, 230, 230));
+            g2d.drawLine(startX - 10, y + 15, width - startX + 10, y + 15);
+            y += rowHeight;
+        }
+
+        // 边框
+        g2d.setColor(Color.GRAY);
+        g2d.drawRect(startX - 10, headerHeight, width - startX * 2 + 20, height - headerHeight - 20);
+
+        g2d.dispose();
+        ImageIO.write(image, "png", response.getOutputStream());
+    }
+
+
     /**
      * 导出系统统计数据
+     *
      * @return 返回一个包含单条系统统计数据的列表。
      */
     @Override
@@ -756,15 +1136,171 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
         exportParm.setCourseCount(countsDto.getCourseCount());
         exportParm.setTeachingMaterialsCount(countsDto.getTeachingMaterialsCount());
         exportParm.setTextbookCount(countsDto.getTextbookCount());
-       // exportParm.setTodayStudyTime(countsDto.getTodayStudyTime());
+        // exportParm.setTodayStudyTime(countsDto.getTodayStudyTime());
         //exportParm.setTodayVisitorCount(countsDto.getTodayVisitorCount());
         return Collections.singletonList(exportParm);
+    }
+
+    /**
+     * 实现 PDF 导出逻辑
+     */
+    @Override
+    public void exportPdf(OutputStream outputStream) {
+        // 1. 获取数据并转换为 Map (方便遍历)
+        Map<String, Object> dataMap = getStatisticsDataMap();
+
+        // 2. 创建 PDF 文档
+        try (Document document = new Document(PageSize.A4)) {
+            PdfWriter.getInstance(document, outputStream);
+            document.open();
+
+            // 3. 设置字体 (关键：解决中文不显示问题)
+            // 使用 STSong-Light 和 UniGB-UCS2-H 需要 iText Asian 支持
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font titleFont = new Font(bfChinese, 18, Font.BOLD);
+            Font cellFont = new Font(bfChinese, 12, Font.NORMAL);
+
+            // 4. 添加标题
+            Paragraph title = new Paragraph("系统统计数据", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            title.setSpacingAfter(20f);
+            document.add(title);
+
+            // 5. 创建表格 (2列：项目名，数值)
+            PdfPTable table = new PdfPTable(2);
+            table.setWidthPercentage(80); // 表格宽度
+            table.setWidths(new float[]{60f, 40f}); // 列宽比例
+
+            // 6. 填充数据
+            for (Map.Entry<String, Object> entry : dataMap.entrySet()) {
+                PdfPCell keyCell = new PdfPCell(new Paragraph(entry.getKey(), cellFont));
+                PdfPCell valCell = new PdfPCell(new Paragraph(String.valueOf(entry.getValue()), cellFont));
+
+                // 样式设置
+                keyCell.setPadding(8f);
+                valCell.setPadding(8f);
+                keyCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                valCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                valCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+                table.addCell(keyCell);
+                table.addCell(valCell);
+            }
+
+            document.add(table);
+        } catch (DocumentException | IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("PDF导出失败", e);
+        }
+    }
+
+    /**
+     * 实现 图片 导出逻辑
+     */
+    @Override
+    public void exportImage(OutputStream outputStream) {
+        // 1. 获取数据
+        Map<String, Object> dataMap = getStatisticsDataMap();
+
+        // 2. 定义图片尺寸和参数
+        int width = 600;
+        int rowHeight = 50;
+        int headerHeight = 80;
+        int height = headerHeight + (dataMap.size() * rowHeight) + 30;
+
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = image.createGraphics();
+
+        try {
+            // 3. 设置背景色（白色）
+            g2d.setColor(java.awt.Color.WHITE);
+            g2d.fillRect(0, 0, width, height);
+
+            // 开启抗锯齿
+            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            // 4. 绘制标题
+            g2d.setColor(java.awt.Color.BLACK);
+            // ------------------ 修改点 1：使用自定义加载字体 ------------------
+            // 原代码：g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.BOLD, 24));
+            g2d.setFont(loadCustomFont(24f, java.awt.Font.BOLD));
+            // -------------------------------------------------------------
+
+            String title = "系统统计数据";
+            FontMetrics fm = g2d.getFontMetrics();
+            int titleX = (width - fm.stringWidth(title)) / 2;
+            g2d.drawString(title, titleX, 50);
+
+            // 5. 绘制表格和内容
+            // ------------------ 修改点 2：使用自定义加载字体 ------------------
+            // 原代码：g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.PLAIN, 16));
+            g2d.setFont(loadCustomFont(16f, java.awt.Font.PLAIN));
+            // -------------------------------------------------------------
+
+            int startY = headerHeight;
+            int padding = 40;
+
+            // 画外框
+            g2d.setColor(java.awt.Color.GRAY);
+            g2d.drawRect(padding, headerHeight - 20, width - (padding * 2), height - headerHeight - 10);
+
+            for (Map.Entry<String, Object> entry : dataMap.entrySet()) {
+                g2d.setColor(java.awt.Color.BLACK);
+                // 绘制 Key
+                g2d.drawString(entry.getKey(), padding + 20, startY + 10);
+
+                // 绘制 Value
+                String valueStr = String.valueOf(entry.getValue());
+                int valWidth = g2d.getFontMetrics().stringWidth(valueStr);
+                g2d.drawString(valueStr, width - padding - 20 - valWidth, startY + 10);
+
+                // 绘制分割线
+                g2d.setColor(new java.awt.Color(220, 220, 220));
+                g2d.drawLine(padding, startY + 25, width - padding, startY + 25);
+
+                startY += rowHeight;
+            }
+
+            ImageIO.write(image, "png", outputStream);
+
+        } catch (IOException e) {
+            throw new RuntimeException("图片导出失败", e);
+        } finally {
+            g2d.dispose();
+        }
+    }
+
+    /**
+     * 私有辅助方法：获取数据并转换为有序Map，用于给 PDF 和 Image 提供统一的数据源和中文Label
+     */
+    private Map<String, Object> getStatisticsDataMap() {
+        List<ExportSystemStatisticsParm> list = this.exportSystemStatistics();
+        ExportSystemStatisticsParm data;
+        if (list != null && !list.isEmpty()) {
+            data = list.get(0);
+        } else {
+            data = new ExportSystemStatisticsParm(); // 空对象防止空指针
+        }
+
+        // 使用 LinkedHashMap 保持插入顺序
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("教师人数", data.getTeacherCount());
+        map.put("学生人数", data.getStudentCount());
+        map.put("班级数量", data.getGroupCount());
+        map.put("教学思政素材数量", data.getTeachingideologicalMaterialCount());
+        map.put("讨论话题数量", data.getDiscussionTopicCount());
+        map.put("话题回复数量", data.getDiscussionTopicReplyCount());
+        map.put("题库数量", data.getTeachingQuestionBankCount());
+        map.put("课程数量", data.getCourseCount());
+        map.put("教学素材数量", data.getTeachingMaterialsCount());
+        map.put("教材数量", data.getTextbookCount());
+        return map;
     }
 
     @Override
     public IPage<TextbookStatisticsOverviewParam> getSystemTextbookStatisticsOverview(Page<TextbookStatisticsOverviewParam> page, UserInfoToRedis currentUser, String textbookName) {
         IPage<Map<String, Object>> rawPage;
-        
+
         // 判断用户类型
         if (currentUser.getUserType() == 0) { // 管理员
             rawPage = systemDataStatisticsMapper.getSystemTextbookStatisticsOverview(page, textbookName);
@@ -773,7 +1309,7 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
         } else { // 其他用户类型，返回空结果
             rawPage = new Page<>(page.getCurrent(), page.getSize(), 0);
         }
-        
+
         return rawPage.convert(data -> {
             TextbookStatisticsOverviewParam param = new TextbookStatisticsOverviewParam();
             param.setTextbookId(getLongValue(data.get("textbookId")));
@@ -793,7 +1329,7 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
     @Override
     public List<TextbookStatisticsOverviewParam> exportSystemTextbookStatisticsOverview(UserInfoToRedis currentUser, String textbookName) {
         List<Map<String, Object>> rawData;
-        
+
         // 判断用户类型
         if (currentUser.getUserType() == 0) { // 管理员
             rawData = systemDataStatisticsMapper.exportSystemTextbookStatisticsOverview(textbookName);
@@ -802,7 +1338,37 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
         } else { // 其他用户类型，返回空结果
             rawData = new ArrayList<>();
         }
-        
+
+        List<TextbookStatisticsOverviewParam> result = new ArrayList<>();
+        for (Map<String, Object> data : rawData) {
+            TextbookStatisticsOverviewParam param = new TextbookStatisticsOverviewParam();
+            param.setTextbookId(getLongValue(data.get("textbookId")));
+            param.setTextbookName((String) data.get("textbookName"));
+            param.setReaderCount(getLongValue(data.get("readerCount")));
+            param.setTeachingActivityCount(getLongValue(data.get("teachingActivityCount")));
+            param.setMaterialCount(getLongValue(data.get("materialCount")));
+            param.setCommunicationFeedbackCount(getLongValue(data.get("communicationFeedbackCount")));
+            param.setIdeologicalMaterialCount(getLongValue(data.get("ideologicalMaterialCount")));
+            param.setQuestionCorrectRate(getDoubleValue(data.get("questionCorrectRate")));
+            param.setCommunicationParticipationCount(getLongValue(data.get("communicationParticipationCount")));
+            param.setAnnotationCount(getLongValue(data.get("annotationCount")));
+            result.add(param);
+        }
+        return result;
+    }
+
+    private List<TextbookStatisticsOverviewParam> getOverviewData(UserInfoToRedis currentUser, String textbookName) {
+        List<Map<String, Object>> rawData;
+
+        // 判断用户类型
+        if (currentUser.getUserType() == 0) { // 管理员
+            rawData = systemDataStatisticsMapper.exportSystemTextbookStatisticsOverview(textbookName);
+        } else if (currentUser.getUserType() == 2) { // 教师
+            rawData = systemDataStatisticsMapper.exportTeacherTextbookStatisticsOverview(currentUser.getId(), textbookName);
+        } else {
+            rawData = new ArrayList<>();
+        }
+
         List<TextbookStatisticsOverviewParam> result = new ArrayList<>();
         for (Map<String, Object> data : rawData) {
             TextbookStatisticsOverviewParam param = new TextbookStatisticsOverviewParam();
@@ -822,6 +1388,74 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
     }
 
     @Override
+    public void exportSystemTextbookStatisticsOverviewPdf(HttpServletResponse response, UserInfoToRedis currentUser, String textbookName) throws IOException {
+        List<TextbookStatisticsOverviewParam> list = getOverviewData(currentUser, textbookName);
+
+        try (Document document = new Document(PageSize.A4.rotate())) { // 注意：这里使用了 rotate() 横向，因为列数较多
+            PdfWriter.getInstance(document, response.getOutputStream());
+            document.open();
+
+            // 字体设置
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font titleFont = new Font(bfChinese, 16, Font.BOLD);
+            Font headFont = new Font(bfChinese, 10, Font.BOLD);
+            Font textFont = new Font(bfChinese, 10, Font.NORMAL);
+
+            // 标题
+            Paragraph title = new Paragraph("全系统教材统计概览", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            title.setSpacingAfter(15);
+            document.add(title);
+
+            // 定义表头
+            String[] headers = {"教材名称", "阅读人数", "教学活动", "教学资料", "交流反馈", "思政素材", "习题正确率", "交流参与", "批注数量"};
+
+            // 创建表格 (9列)
+            PdfPTable table = new PdfPTable(headers.length);
+            table.setWidthPercentage(100);
+            // 调整列宽比例：教材名称宽一些，数字列窄一些
+            table.setWidths(new float[]{20f, 10f, 10f, 10f, 10f, 10f, 10f, 10f, 10f});
+
+            // 填充表头
+            for (String header : headers) {
+                PdfPCell cell = new PdfPCell(new Paragraph(header, headFont));
+                cell.setBackgroundColor(java.awt.Color.LIGHT_GRAY);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setPadding(5);
+                table.addCell(cell);
+            }
+
+            // 填充数据
+            for (TextbookStatisticsOverviewParam item : list) {
+                // 名称列居左，其他数字居中
+                addCell(table, item.getTextbookName(), textFont, Element.ALIGN_LEFT);
+                addCell(table, String.valueOf(item.getReaderCount()), textFont, Element.ALIGN_CENTER);
+                addCell(table, String.valueOf(item.getTeachingActivityCount()), textFont, Element.ALIGN_CENTER);
+                addCell(table, String.valueOf(item.getMaterialCount()), textFont, Element.ALIGN_CENTER);
+                addCell(table, String.valueOf(item.getCommunicationFeedbackCount()), textFont, Element.ALIGN_CENTER);
+                addCell(table, String.valueOf(item.getIdeologicalMaterialCount()), textFont, Element.ALIGN_CENTER);
+                addCell(table, String.format("%.2f%%", item.getQuestionCorrectRate() * 100), textFont, Element.ALIGN_CENTER);
+                addCell(table, String.valueOf(item.getCommunicationParticipationCount()), textFont, Element.ALIGN_CENTER);
+                addCell(table, String.valueOf(item.getAnnotationCount()), textFont, Element.ALIGN_CENTER);
+            }
+
+            document.add(table);
+        } catch (DocumentException e) {
+            throw new IOException("PDF生成失败", e);
+        }
+    }
+
+    // 辅助方法：添加PDF单元格
+    private void addCell(PdfPTable table, String content, Font font, int align) {
+        PdfPCell cell = new PdfPCell(new Paragraph(content != null ? content : "", font));
+        cell.setHorizontalAlignment(align);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        table.addCell(cell);
+    }
+
+
+    @Override
     public IPage<ReaderStatisticsParam> getReaderStatistics(Page<ReaderStatisticsParam> page, Long textbookId) {
         IPage<Map<String, Object>> rawPage = systemDataStatisticsMapper.getReaderStatistics(page, textbookId);
         return rawPage.convert(data -> {
@@ -838,6 +1472,113 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
     }
 
     @Override
+    public void exportSystemTextbookStatisticsOverviewImage(HttpServletResponse response, UserInfoToRedis currentUser, String textbookName) throws IOException {
+        List<TextbookStatisticsOverviewParam> list = getOverviewData(currentUser, textbookName);
+
+        // 参数配置
+        int rowHeight = 40;
+        int headerHeight = 60;
+        int tableHeadHeight = 40;
+        // 因为有9列，图片宽度需要足够大，防止文字挤压
+        int width = 1400;
+        int height = headerHeight + tableHeadHeight + (list.size() * rowHeight) + 50;
+
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = image.createGraphics();
+
+        // 1. 白底
+        g2d.setColor(Color.WHITE);
+        g2d.fillRect(0, 0, width, height);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        // 2. 标题
+        g2d.setColor(Color.BLACK);
+        //g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.BOLD, 24));
+        g2d.setFont(loadCustomFont(24f, java.awt.Font.BOLD));
+        String title = "全系统教材统计概览";
+        FontMetrics fmTitle = g2d.getFontMetrics();
+        g2d.drawString(title, (width - fmTitle.stringWidth(title)) / 2, 45);
+
+        // 3. 表头定义
+        String[] headers = {"教材名称", "阅读人数", "教学活动", "教学资料", "交流反馈", "思政素材", "习题正确率", "交流参与", "批注数量"};
+        // 自定义列宽 (总和应接近 width - margin)
+        int[] colWidths = {300, 120, 120, 120, 120, 120, 150, 120, 120};
+        int startX = 50;
+        int y = headerHeight + 25;
+
+        //g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.BOLD, 16));
+        g2d.setFont(loadCustomFont(16f, java.awt.Font.BOLD));
+
+        // 绘制表头背景
+        g2d.setColor(new Color(240, 240, 240));
+        g2d.fillRect(startX - 10, y - 25, width - startX * 2 + 20, rowHeight);
+        g2d.setColor(Color.BLACK);
+
+        // 绘制表头文字
+        int currentX = startX;
+        for (int i = 0; i < headers.length; i++) {
+            g2d.drawString(headers[i], currentX, y);
+            currentX += colWidths[i];
+        }
+        g2d.drawLine(startX - 10, y + 15, width - startX + 10, y + 15);
+
+        // 4. 数据行
+        //g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.PLAIN, 15));
+        g2d.setFont(loadCustomFont(15f, java.awt.Font.PLAIN));
+        y += rowHeight;
+
+        for (TextbookStatisticsOverviewParam item : list) {
+            currentX = startX;
+            g2d.setColor(Color.BLACK);
+
+            // 绘制每一列
+            drawText(g2d, item.getTextbookName(), currentX, y, colWidths[0] - 10);
+            currentX += colWidths[0];
+            drawText(g2d, String.valueOf(item.getReaderCount()), currentX, y, colWidths[1]);
+            currentX += colWidths[1];
+            drawText(g2d, String.valueOf(item.getTeachingActivityCount()), currentX, y, colWidths[2]);
+            currentX += colWidths[2];
+            drawText(g2d, String.valueOf(item.getMaterialCount()), currentX, y, colWidths[3]);
+            currentX += colWidths[3];
+            drawText(g2d, String.valueOf(item.getCommunicationFeedbackCount()), currentX, y, colWidths[4]);
+            currentX += colWidths[4];
+            drawText(g2d, String.valueOf(item.getIdeologicalMaterialCount()), currentX, y, colWidths[5]);
+            currentX += colWidths[5];
+            drawText(g2d, String.format("%.2f%%", item.getQuestionCorrectRate() * 100), currentX, y, colWidths[6]);
+            currentX += colWidths[6];
+            drawText(g2d, String.valueOf(item.getCommunicationParticipationCount()), currentX, y, colWidths[7]);
+            currentX += colWidths[7];
+            drawText(g2d, String.valueOf(item.getAnnotationCount()), currentX, y, colWidths[8]);
+
+            // 下划线
+            g2d.setColor(new Color(230, 230, 230));
+            g2d.drawLine(startX - 10, y + 15, width - startX + 10, y + 15);
+            y += rowHeight;
+        }
+
+        // 外框
+        g2d.setColor(Color.GRAY);
+        g2d.drawRect(startX - 10, headerHeight, width - startX * 2 + 20, height - headerHeight - 20);
+
+        g2d.dispose();
+        ImageIO.write(image, "png", response.getOutputStream());
+    }
+
+    // 简单的超长文本截断辅助方法
+    private void drawText(Graphics2D g2d, String text, int x, int y, int maxWidth) {
+        if (text == null) text = "-";
+        FontMetrics fm = g2d.getFontMetrics();
+        if (fm.stringWidth(text) > maxWidth) {
+            // 简单截断处理，实际生产可能需要更复杂的省略号算法
+            while (text.length() > 0 && fm.stringWidth(text + "...") > maxWidth) {
+                text = text.substring(0, text.length() - 1);
+            }
+            text += "...";
+        }
+        g2d.drawString(text, x, y);
+    }
+
+    @Override
     public List<TextbookTimeStatisticsReturnParam> getReadingDurationStatisticsByTime(TextbookTimeStatisticsSearchParam param) {
         log.info("按时间统计阅读时长 (Admin)，参数: {}", param);
         List<TextbookTimeStatisticsReturnParam> result = calculateReadingDurationStatisticsByTime(param);
@@ -847,6 +1588,7 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
 
     /**
      * 按时间统计阅读时长 - (Copied from TeacherTextbookStatisticsServiceImpl)
+     *
      * @param param 搜索参数
      * @return 时间统计结果
      */
@@ -859,7 +1601,7 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
         if (param.getTextbookId() == null) {
             throw new IllegalArgumentException("教材ID不能为空");
         }
-        
+
         if (param.getTimeRange() == null || param.getTimeRange().isEmpty()) {
             throw new IllegalArgumentException("时间范围不能为空");
         }
@@ -869,11 +1611,10 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
         String[] timeRange = getTimeRangeByType(param.getTimeRange());
         if (timeRange != null) {
             records = systemDataStatisticsMapper.findLearningLogsByTextbookIdAndTime(
-                    param.getTextbookId(), timeRange[0], timeRange[1]).stream()
+                            param.getTextbookId(), timeRange[0], timeRange[1]).stream()
                     .filter(log -> log.getDataType() == 0)
                     .collect(Collectors.toList());
-        }
-        else {
+        } else {
             records = systemDataStatisticsMapper.findLearningLogsByTextbookId(param.getTextbookId()).stream()
                     .filter(log -> log.getDataType() == 0)
                     .collect(Collectors.toList());
@@ -930,11 +1671,11 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
         result.sort((o1, o2) -> {
             String time1 = o1.getTime();
             String time2 = o2.getTime();
-            
+
             // 统一格式化为可比较的形式
             String formattedTime1 = formatTimeStringForSorting(time1);
             String formattedTime2 = formatTimeStringForSorting(time2);
-            
+
             return formattedTime1.compareTo(formattedTime2);
         });
 
@@ -951,6 +1692,7 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
 
     /**
      * 按时间统计交流反馈数量 - (Copied from TeacherTextbookStatisticsServiceImpl)
+     *
      * @param param 搜索参数
      * @return 时间统计结果
      */
@@ -962,12 +1704,10 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
             if (timeRange != null) {
                 records = systemDataStatisticsMapper.findCommunicationFeedbackByTextbookIdAndTime(
                         param.getTextbookId(), timeRange[0], timeRange[1]);
-            }
-            else {
+            } else {
                 records = systemDataStatisticsMapper.findCommunicationFeedbackByTextbookId(param.getTextbookId());
             }
-        }
-        else {
+        } else {
             records = systemDataStatisticsMapper.findCommunicationFeedbackByTextbookId(param.getTextbookId());
         }
 
@@ -1024,6 +1764,7 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
 
     /**
      * 根据时间范围类型获取开始和结束时间 - (Copied from TeacherTextbookStatisticsServiceImpl)
+     *
      * @param timeRange 时间范围类型
      * @return 包含开始时间和结束时间的数组 [startTime, endTime]
      */
@@ -1048,6 +1789,7 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
 
     /**
      * 格式化时间字符串用于排序
+     *
      * @param timeString 时间字符串
      * @return 格式化后的时间字符串
      */
@@ -1055,18 +1797,19 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
         if (timeString == null || timeString.isEmpty()) {
             return timeString;
         }
-        
+
         // 如果是年月格式(yyyy-MM)，补充为日期格式(yyyy-MM-dd)
         if (timeString.length() == 7 && timeString.charAt(4) == '-') {
             return timeString + "-01";
         }
-        
+
         return timeString;
     }
 
     /**
      * 根据时间范围类型格式化时间 - (Copied from TeacherTextbookStatisticsServiceImpl)
-     * @param dateTime 时间
+     *
+     * @param dateTime  时间
      * @param timeRange 时间范围类型（week/month/year）
      * @return 格式化后的时间字符串
      */
@@ -1126,5 +1869,29 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
             return obj.toString();
         }
         return obj.toString();
+    }
+
+    /**
+     * 辅助方法：加载项目资源中的字体文件
+     *
+     * @param size  字体大小
+     * @param style 字体样式 (Font.BOLD, Font.PLAIN)
+     */
+    private java.awt.Font loadCustomFont(float size, int style) {
+        try {
+            // 读取 resources/fonts/simhei.ttf
+            ClassPathResource resource = new ClassPathResource("fonts/simhei.ttf");
+            InputStream inputStream = resource.getInputStream();
+
+            // 创建字体
+            java.awt.Font font = java.awt.Font.createFont(java.awt.Font.TRUETYPE_FONT, inputStream);
+
+            // 衍生出指定大小和样式的字体
+            return font.deriveFont(style, size);
+        } catch (Exception e) {
+            e.printStackTrace();
+            // 如果加载失败，回退到默认字体（虽然Linux上可能还是乱码，但至少不会崩）
+            return new java.awt.Font("SimHei", style, (int) size);
+        }
     }
 }

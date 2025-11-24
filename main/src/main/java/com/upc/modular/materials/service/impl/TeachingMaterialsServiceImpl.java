@@ -22,6 +22,8 @@ import com.upc.modular.materials.service.ITeachingMaterialsService;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.service.impl.TeacherServiceImpl;
 import com.upc.modular.textbook.entity.Textbook;
+import com.upc.modular.textbook.entity.TextbookCatalog;
+import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import com.upc.modular.textbook.service.ITextbookService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
@@ -42,6 +44,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -74,6 +77,8 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
     private ISysUserService sysUserService;
     @Autowired
     private ITextbookService textbookService;
+    @Autowired
+    private TextbookCatalogMapper textbookCatalogMapper;
 
 
     /**
@@ -125,6 +130,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 MaterialsTextbookMapping mapping = new MaterialsTextbookMapping();
                 mapping.setTextbookId(param.getTextbookId());
                 mapping.setMaterialId(teachingMaterials.getId());
+                mapping.setChapterId(param.getChapterId()); // 设置章节ID
                 mapping.setCreator(UserUtils.get().getId());
                 mapping.setAddDatetime(LocalDateTime.now());
                 materialsTextbookMappingService.save(mapping);
@@ -360,6 +366,24 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             }
             // 如果 boundMaterialIds 为空，则无需操作，查询所有即可
         }
+        
+        // 根据教材ID和章节ID筛选
+        if (param.getTextbookId() != null || param.getChapterId() != null) {
+            // 需要连接查询素材与教材的绑定关系表
+            List<Long> materialIds = materialsTextbookMappingService.list(
+                new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                    .eq(param.getTextbookId() != null, MaterialsTextbookMapping::getTextbookId, param.getTextbookId())
+                    .eq(param.getChapterId() != null, MaterialsTextbookMapping::getChapterId, param.getChapterId())
+            ).stream().map(MaterialsTextbookMapping::getMaterialId).collect(Collectors.toList());
+            
+            if (!materialIds.isEmpty()) {
+                queryWrapper.in(TeachingMaterials::getId, materialIds);
+            } else {
+                // 如果没有匹配的素材ID，则返回空结果
+                queryWrapper.isNull(TeachingMaterials::getId);
+            }
+        }
+        
         // 添加排序条件
         queryWrapper.orderByDesc(TeachingMaterials::getAddDatetime);
 
@@ -376,19 +400,38 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         List<Long> materialIds = materialsList.stream().map(TeachingMaterials::getId).distinct().collect(Collectors.toList());
 
         // 3.1 获取素材与教材的绑定关系
-        Map<Long, Long> materialTextbookIdMap = materialsTextbookMappingService.list(
+        List<MaterialsTextbookMapping> materialTextbookMappings = materialsTextbookMappingService.list(
             new LambdaQueryWrapper<MaterialsTextbookMapping>().in(MaterialsTextbookMapping::getMaterialId, materialIds)
-        ).stream().collect(Collectors.toMap(MaterialsTextbookMapping::getMaterialId, MaterialsTextbookMapping::getTextbookId, (v1, v2) -> v1)); // (v1, v2) -> v1 表示如果一个素材绑定多个教材，只取第一个
+        );
+        Map<Long, MaterialsTextbookMapping> materialMappingMap = materialTextbookMappings.stream()
+                .collect(Collectors.toMap(MaterialsTextbookMapping::getMaterialId, Function.identity()));
 
         // 3.2 如果存在绑定关系，查询教材信息
         Map<Long, String> textbookIdNameMap = new HashMap<>();
-        if (!materialTextbookIdMap.isEmpty()) {
-            List<Long> textbookIds = materialTextbookIdMap.values().stream().distinct().collect(Collectors.toList());
+        Map<Long, String> chapterIdNameMap = new HashMap<>();
+        if (!materialTextbookMappings.isEmpty()) {
+            List<Long> textbookIds = materialTextbookMappings.stream()
+                    .map(MaterialsTextbookMapping::getTextbookId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList());
             if (!CollectionUtils.isEmpty(textbookIds)) {
                 // 假设你有一个 TextbookService 来查询教材信息
                 textbookIdNameMap = textbookService.list(
                         new LambdaQueryWrapper<Textbook>().in(Textbook::getId, textbookIds)
                 ).stream().collect(Collectors.toMap(Textbook::getId, Textbook::getTextbookName));
+            }
+            
+            // 查询章节信息
+            List<Long> chapterIds = materialTextbookMappings.stream()
+                    .map(MaterialsTextbookMapping::getChapterId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList());
+            if (!CollectionUtils.isEmpty(chapterIds)) {
+                chapterIdNameMap = textbookCatalogMapper.selectList(
+                        new LambdaQueryWrapper<TextbookCatalog>().in(TextbookCatalog::getId, chapterIds)
+                ).stream().collect(Collectors.toMap(TextbookCatalog::getId, TextbookCatalog::getCatalogName));
             }
         }
 
@@ -406,6 +449,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
         // 4. 转换VO并返回
         final Map<Long, String> finaltextbookIdNameMap = textbookIdNameMap; // 在lambda中使用
+        final Map<Long, String> finalChapterIdNameMap = chapterIdNameMap; // 在lambda中使用
         List<TeachingMaterialsReturnVo> pageRecordsVO = materialsList.stream()
                 .map(materials -> {
                     TeachingMaterialsReturnVo temp = new TeachingMaterialsReturnVo();
@@ -418,11 +462,13 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                         temp.setIsCreator(false);
                     }
 
-                    // 新增逻辑：设置教材ID和名称
-                    Long textbookId = materialTextbookIdMap.get(materials.getId());
-                    if (textbookId != null) {
-                        temp.setTextbookId(textbookId);
-                        temp.setTextbookName(finaltextbookIdNameMap.get(textbookId));
+                    // 新增逻辑：设置教材ID和名称、章节ID和名称
+                    MaterialsTextbookMapping mapping = materialMappingMap.get(materials.getId());
+                    if (mapping != null) {
+                        temp.setTextbookId(mapping.getTextbookId());
+                        temp.setTextbookName(finaltextbookIdNameMap.get(mapping.getTextbookId()));
+                        temp.setChapterId(mapping.getChapterId());
+                        temp.setChapterName(finalChapterIdNameMap.get(mapping.getChapterId()));
                     }
 
                     return temp;
@@ -549,6 +595,50 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 }
             }
         }
+        
+        // 更新教材和章节ID关联信息
+        if (param.getTextbookId() != null) {
+            // 查询是否存在该素材与教材的映射关系
+            MaterialsTextbookMapping mapping = materialsTextbookMappingService.getOne(
+                new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                    .eq(MaterialsTextbookMapping::getMaterialId, oldData.getId())
+            );
+            
+            if (mapping != null) {
+                // 更新教材ID和章节ID
+                mapping.setTextbookId(param.getTextbookId());
+                if (param.getChapterId() != null) {
+                    mapping.setChapterId(param.getChapterId());
+                }
+                mapping.setOperator(UserUtils.get().getId());
+                mapping.setOperationDatetime(LocalDateTime.now());
+                materialsTextbookMappingService.updateById(mapping);
+            } else {
+                // 如果之前没有映射关系，则创建新的映射关系
+                mapping = new MaterialsTextbookMapping();
+                mapping.setMaterialId(oldData.getId());
+                mapping.setTextbookId(param.getTextbookId());
+                mapping.setChapterId(param.getChapterId());
+                mapping.setCreator(UserUtils.get().getId());
+                mapping.setAddDatetime(LocalDateTime.now());
+                materialsTextbookMappingService.save(mapping);
+            }
+        } else if (param.getChapterId() != null) {
+            // 只更新章节ID（教材ID未提供）
+            MaterialsTextbookMapping mapping = materialsTextbookMappingService.getOne(
+                new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                    .eq(MaterialsTextbookMapping::getMaterialId, oldData.getId())
+            );
+            
+            if (mapping != null) {
+                // 更新章节ID
+                mapping.setChapterId(param.getChapterId());
+                mapping.setOperator(UserUtils.get().getId());
+                mapping.setOperationDatetime(LocalDateTime.now());
+                materialsTextbookMappingService.updateById(mapping);
+            }
+        }
+        
         // 6. 更新操作时间 (保持不变)
         oldData.setOperationDatetime(LocalDateTime.now());
         // 7. 执行数据库更新并返回结果 (保持不变)

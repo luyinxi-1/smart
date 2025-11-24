@@ -764,6 +764,75 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
     }
 
     /**
+     * 根据学生ID查询阅读过的教材，按阅读量排名返回
+     * @param studentId 学生ID
+     * @return 教材阅读排行榜列表
+     */
+    @Override
+    public List<StudentTextbookRankParam> countStudentTextbookReadingRankByStudentId(Long studentId) {
+        //从数据库获取该用户的所有学习日志记录
+        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(studentId);
+
+        if (records == null || records.size() < 2) {
+            return new ArrayList<>();
+        }
+
+        // 定义时间差的容忍范围，用于判断是否为连续阅读
+        final long MIN_DIFF_SECONDS = 55;
+        final long MAX_DIFF_SECONDS = 65;
+
+        // 使用Map按教材ID分组统计有效阅读时长
+        // Key: textbookId, Value: readingTime
+        Map<Long, Long> textbookReadingTimeMap = new HashMap<>();
+
+        for (int i = 0; i < records.size() - 1; i++) {
+            LearningLog currentLog = records.get(i);
+            LearningLog nextLog = records.get(i + 1);
+
+            if (currentLog.getAddDatetime() == null || nextLog.getAddDatetime() == null) {
+                continue;
+            }
+
+            // 必须是同一本教材的连续记录才能计算时长
+            if (!Objects.equals(currentLog.getTextbookId(), nextLog.getTextbookId())) {
+                continue;
+            }
+
+            // 计算两条记录之间的时间差
+            Duration duration = Duration.between(currentLog.getAddDatetime(), nextLog.getAddDatetime());
+            long seconds = duration.getSeconds();
+
+            // 如果时间差在预设范围内，则视为有效阅读，时长+1
+            if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
+                Long textbookId = currentLog.getTextbookId();
+                textbookReadingTimeMap.put(textbookId, textbookReadingTimeMap.getOrDefault(textbookId, 0L) + 1);
+            }
+        }
+
+        //将统计结果从Map转换为List<StudentTextbookRankParam>
+        List<StudentTextbookRankParam> result = new ArrayList<>();
+        for (Map.Entry<Long, Long> entry : textbookReadingTimeMap.entrySet()) {
+            Long textbookId = entry.getKey();
+            Long readingTime = entry.getValue();
+
+            // 根据教材ID获取教材信息
+            Textbook textbook = studentDataStatisticsMapper.getTextbookById(textbookId);
+            String textbookName = (textbook != null) ? textbook.getTextbookName() : "未知教材";
+
+            // 创建并填充排行参数对象
+            result.add(new StudentTextbookRankParam()
+                    .setTextbook_id(textbookId)
+                    .setTextbook_name(textbookName)
+                    .setRead_time(readingTime));
+        }
+
+        // 按阅读时长（read_time）进行降序排序
+        result.sort(Comparator.comparingLong(StudentTextbookRankParam::getRead_time).reversed());
+
+        return result;
+    }
+
+    /**
      * 递归计算树节点总数
      * @param nodes 树节点列表
      * @return 节点总数
