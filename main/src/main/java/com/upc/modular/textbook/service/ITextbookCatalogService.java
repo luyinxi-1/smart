@@ -29,6 +29,8 @@ public interface ITextbookCatalogService extends IService<TextbookCatalog> {
     Boolean updateTextbook(List<TextbookCatalog> param);
 
     void exportTextbook(HttpServletResponse response, Long textbookId, String baseUrl);
+    
+    void exportTextbookToPdf(HttpServletResponse response, Long textbookId, String baseUrl);
 
     void exportTextbookByString(HttpServletResponse response, String html);
 

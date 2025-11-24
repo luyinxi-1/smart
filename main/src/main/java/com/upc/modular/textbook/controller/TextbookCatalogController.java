@@ -69,6 +69,15 @@ public class TextbookCatalogController {
         textbookCatalogService.exportTextbook(response, textbookId, baseUrl);
     }
 
+    @ApiOperation(value = "导出教材为PDF（id）")
+    @PostMapping("/exportTextbookToPdfById")
+    public void exportTextbookToPdf(HttpServletRequest request, HttpServletResponse response, @RequestParam("textbookId") Long textbookId) {
+        String baseUrl = request.getScheme() + "://"   // http 或 https
+                + request.getServerName()              // 域名 / IP
+                + ":" + request.getServerPort();       // 端口
+        textbookCatalogService.exportTextbookToPdf(response, textbookId, baseUrl);
+    }
+
     @ApiOperation(value = "导出教材（html）")
     @PostMapping("/exportTextbookByString")
     public void exportTextbookByString(HttpServletResponse response, @RequestParam("html") String html) {
