@@ -125,6 +125,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 MaterialsTextbookMapping mapping = new MaterialsTextbookMapping();
                 mapping.setTextbookId(param.getTextbookId());
                 mapping.setMaterialId(teachingMaterials.getId());
+                mapping.setChapterId(param.getChapterId()); // 设置章节ID
                 mapping.setCreator(UserUtils.get().getId());
                 mapping.setAddDatetime(LocalDateTime.now());
                 materialsTextbookMappingService.save(mapping);
