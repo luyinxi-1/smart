@@ -550,6 +550,50 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 }
             }
         }
+        
+        // 更新教材和章节ID关联信息
+        if (param.getTextbookId() != null) {
+            // 查询是否存在该素材与教材的映射关系
+            MaterialsTextbookMapping mapping = materialsTextbookMappingService.getOne(
+                new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                    .eq(MaterialsTextbookMapping::getMaterialId, oldData.getId())
+            );
+            
+            if (mapping != null) {
+                // 更新教材ID和章节ID
+                mapping.setTextbookId(param.getTextbookId());
+                if (param.getChapterId() != null) {
+                    mapping.setChapterId(param.getChapterId());
+                }
+                mapping.setOperator(UserUtils.get().getId());
+                mapping.setOperationDatetime(LocalDateTime.now());
+                materialsTextbookMappingService.updateById(mapping);
+            } else {
+                // 如果之前没有映射关系，则创建新的映射关系
+                mapping = new MaterialsTextbookMapping();
+                mapping.setMaterialId(oldData.getId());
+                mapping.setTextbookId(param.getTextbookId());
+                mapping.setChapterId(param.getChapterId());
+                mapping.setCreator(UserUtils.get().getId());
+                mapping.setAddDatetime(LocalDateTime.now());
+                materialsTextbookMappingService.save(mapping);
+            }
+        } else if (param.getChapterId() != null) {
+            // 只更新章节ID（教材ID未提供）
+            MaterialsTextbookMapping mapping = materialsTextbookMappingService.getOne(
+                new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                    .eq(MaterialsTextbookMapping::getMaterialId, oldData.getId())
+            );
+            
+            if (mapping != null) {
+                // 更新章节ID
+                mapping.setChapterId(param.getChapterId());
+                mapping.setOperator(UserUtils.get().getId());
+                mapping.setOperationDatetime(LocalDateTime.now());
+                materialsTextbookMappingService.updateById(mapping);
+            }
+        }
+        
         // 6. 更新操作时间 (保持不变)
         oldData.setOperationDatetime(LocalDateTime.now());
         // 7. 执行数据库更新并返回结果 (保持不变)
