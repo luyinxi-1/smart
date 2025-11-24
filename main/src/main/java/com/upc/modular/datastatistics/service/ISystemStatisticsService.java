@@ -9,6 +9,7 @@ import com.upc.modular.datastatistics.controller.param.*;
 import org.apache.ibatis.annotations.Param;
 
 import javax.servlet.http.HttpServletResponse;
+import java.io.OutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -140,6 +141,17 @@ public interface ISystemStatisticsService {
      */
     List<ExportSystemStatisticsParm> exportSystemStatistics();
 
+    /**
+     * 导出 PDF 到输出流
+     * @param outputStream 响应输出流
+     */
+    void exportPdf(OutputStream outputStream);
+
+    /**
+     * 导出 图片 到输出流
+     * @param outputStream 响应输出流
+     */
+    void exportImage(OutputStream outputStream);
     /**
      * 获取全系统教材统计概览 (分页)
      * @param page 分页参数

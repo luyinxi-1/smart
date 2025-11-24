@@ -27,13 +27,25 @@ import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.mapper.TextbookMapper;
 import com.upc.modular.textbook.service.IIdeologicalMaterialService;
 import com.upc.modular.textbook.service.ITextbookService;
+import com.lowagie.text.*;
+import com.lowagie.text.Font;
+import com.lowagie.text.pdf.*;
+import org.springframework.stereotype.Service;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.*;
+import java.util.List;
 import com.upc.common.utils.UserInfoToRedis;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.io.OutputStream;
 import java.text.DecimalFormat;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -759,6 +771,158 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
        // exportParm.setTodayStudyTime(countsDto.getTodayStudyTime());
         //exportParm.setTodayVisitorCount(countsDto.getTodayVisitorCount());
         return Collections.singletonList(exportParm);
+    }
+    /**
+     * 实现 PDF 导出逻辑
+     */
+    @Override
+    public void exportPdf(OutputStream outputStream) {
+        // 1. 获取数据并转换为 Map (方便遍历)
+        Map<String, Object> dataMap = getStatisticsDataMap();
+
+        // 2. 创建 PDF 文档
+        try (Document document = new Document(PageSize.A4)) {
+            PdfWriter.getInstance(document, outputStream);
+            document.open();
+
+            // 3. 设置字体 (关键：解决中文不显示问题)
+            // 使用 STSong-Light 和 UniGB-UCS2-H 需要 iText Asian 支持
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font titleFont = new Font(bfChinese, 18, Font.BOLD);
+            Font cellFont = new Font(bfChinese, 12, Font.NORMAL);
+
+            // 4. 添加标题
+            Paragraph title = new Paragraph("系统统计数据", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            title.setSpacingAfter(20f);
+            document.add(title);
+
+            // 5. 创建表格 (2列：项目名，数值)
+            PdfPTable table = new PdfPTable(2);
+            table.setWidthPercentage(80); // 表格宽度
+            table.setWidths(new float[]{60f, 40f}); // 列宽比例
+
+            // 6. 填充数据
+            for (Map.Entry<String, Object> entry : dataMap.entrySet()) {
+                PdfPCell keyCell = new PdfPCell(new Paragraph(entry.getKey(), cellFont));
+                PdfPCell valCell = new PdfPCell(new Paragraph(String.valueOf(entry.getValue()), cellFont));
+
+                // 样式设置
+                keyCell.setPadding(8f);
+                valCell.setPadding(8f);
+                keyCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                valCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                valCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+                table.addCell(keyCell);
+                table.addCell(valCell);
+            }
+
+            document.add(table);
+        } catch (DocumentException | IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("PDF导出失败", e);
+        }
+    }
+
+    /**
+     * 实现 图片 导出逻辑
+     */
+    @Override
+    public void exportImage(OutputStream outputStream) {
+        // 1. 获取数据
+        Map<String, Object> dataMap = getStatisticsDataMap();
+
+        // 2. 定义图片尺寸和参数
+        int width = 600;
+        int rowHeight = 50;
+        int headerHeight = 80;
+        int height = headerHeight + (dataMap.size() * rowHeight) + 30; // 动态计算高度
+
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = image.createGraphics();
+
+        try {
+            // 3. 设置背景色（白色）
+            g2d.setColor(java.awt.Color.WHITE);
+            g2d.fillRect(0, 0, width, height);
+
+            // 开启抗锯齿，让文字更清晰
+            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            // 4. 绘制标题
+            g2d.setColor(java.awt.Color.BLACK);
+            // 注意：Linux服务器如果缺少字体，中文会乱码。建议在服务器安装 simhei.ttf 或使用 JDK 加载字体文件
+            java.awt.Font titleFont = new java.awt.Font("SimHei", java.awt.Font.BOLD, 24);
+            g2d.setFont(titleFont);
+
+            String title = "系统统计数据";
+            FontMetrics fm = g2d.getFontMetrics();
+            int titleX = (width - fm.stringWidth(title)) / 2;
+            g2d.drawString(title, titleX, 50);
+
+            // 5. 绘制表格和内容
+            java.awt.Font contentFont = new java.awt.Font("SimHei", java.awt.Font.PLAIN, 16);
+            g2d.setFont(contentFont);
+
+            int startY = headerHeight;
+            int padding = 40;
+
+            // 画外框
+            g2d.setColor(java.awt.Color.GRAY);
+            g2d.drawRect(padding, headerHeight - 20, width - (padding * 2), height - headerHeight - 10);
+
+            for (Map.Entry<String, Object> entry : dataMap.entrySet()) {
+                // 绘制文字
+                g2d.setColor(java.awt.Color.BLACK);
+                g2d.drawString(entry.getKey(), padding + 20, startY + 10);
+
+                String valueStr = String.valueOf(entry.getValue());
+                int valWidth = g2d.getFontMetrics().stringWidth(valueStr);
+                g2d.drawString(valueStr, width - padding - 20 - valWidth, startY + 10);
+
+                // 绘制分割线
+                g2d.setColor(new java.awt.Color(220, 220, 220));
+                g2d.drawLine(padding, startY + 25, width - padding, startY + 25);
+
+                startY += rowHeight;
+            }
+
+            // 6. 写入流
+            ImageIO.write(image, "png", outputStream);
+
+        } catch (IOException e) {
+            throw new RuntimeException("图片导出失败", e);
+        } finally {
+            g2d.dispose();
+        }
+    }
+
+    /**
+     * 私有辅助方法：获取数据并转换为有序Map，用于给 PDF 和 Image 提供统一的数据源和中文Label
+     */
+    private Map<String, Object> getStatisticsDataMap() {
+        List<ExportSystemStatisticsParm> list = this.exportSystemStatistics();
+        ExportSystemStatisticsParm data;
+        if (list != null && !list.isEmpty()) {
+            data = list.get(0);
+        } else {
+            data = new ExportSystemStatisticsParm(); // 空对象防止空指针
+        }
+
+        // 使用 LinkedHashMap 保持插入顺序
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("教师人数", data.getTeacherCount());
+        map.put("学生人数", data.getStudentCount());
+        map.put("班级数量", data.getGroupCount());
+        map.put("教学思政素材数量", data.getTeachingideologicalMaterialCount());
+        map.put("讨论话题数量", data.getDiscussionTopicCount());
+        map.put("话题回复数量", data.getDiscussionTopicReplyCount());
+        map.put("题库数量", data.getTeachingQuestionBankCount());
+        map.put("课程数量", data.getCourseCount());
+        map.put("教学素材数量", data.getTeachingMaterialsCount());
+        map.put("教材数量", data.getTextbookCount());
+        return map;
     }
 
     @Override

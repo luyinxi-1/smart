@@ -234,6 +234,33 @@ public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required
                 .sheet("系统统计数据")
                 .doWrite(list);
     }
+    @ApiOperation("导出系统数据-PDF")
+    @GetMapping("/export-System-Statistics-pdf")
+    public void exportSystemStatisticsPdf(HttpServletResponse response) throws IOException {
+        // 1. 设置响应头
+        String fileName = "系统统计数据.pdf";
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
+
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
+
+        // 2. 调用 Service 将数据写入输出流
+        systemStatisticsService.exportPdf(response.getOutputStream());
+    }
+
+    @ApiOperation("导出系统数据-图片")
+    @GetMapping("/export-System-Statistics-image")
+    public void exportSystemStatisticsImage(HttpServletResponse response) throws IOException {
+        // 1. 设置响应头
+        String fileName = "系统统计数据.png";
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
+
+        response.setContentType("image/png");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
+
+        // 2. 调用 Service 将数据写入输出流
+        systemStatisticsService.exportImage(response.getOutputStream());
+    }
 
     @ApiOperation("获取全系统教材统计概览 (分页)")
     @GetMapping("/textbook-overview")
