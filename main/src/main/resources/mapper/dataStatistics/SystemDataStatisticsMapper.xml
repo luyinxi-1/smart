@@ -313,52 +313,75 @@
 </select>
     <!-- 教材阅读排名（按时长统计，支持时间范围查询） -->
     <select id="getTextbookReadingRank" resultType="map">
+        WITH ReaderCounts AS (
+            -- 1. 阅读人数
+            SELECT textbook_id, COUNT(DISTINCT creator) AS readerCount
+            FROM learning_log
+            <where>
+                <!-- 时间过滤条件 -->
+                <if test="params.startTime != null and params.startTime != ''">
+                    AND add_datetime >= TO_TIMESTAMP(#{params.startTime}, 'YYYY-MM-DD HH24:MI:SS')
+                </if>
+                <if test="params.endTime != null and params.endTime != ''">
+                    AND add_datetime &lt;= TO_TIMESTAMP(#{params.endTime}, 'YYYY-MM-DD HH24:MI:SS')
+                </if>
+            </where>
+            GROUP BY textbook_id
+        ), ReadingDurations AS (
+            -- 2. 阅读时长（分钟）
+            SELECT textbook_id, COUNT(*) AS readingDurationMinutes
+            FROM (
+                SELECT
+                    textbook_id,
+                    EXTRACT(EPOCH FROM age(LEAD(add_datetime, 1) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime), add_datetime)) as diff_seconds
+                FROM learning_log
+                <where>
+                    <!-- 时间过滤条件 -->
+                    <if test="params.startTime != null and params.startTime != ''">
+                        AND add_datetime >= TO_TIMESTAMP(#{params.startTime}, 'YYYY-MM-DD HH24:MI:SS')
+                    </if>
+                    <if test="params.endTime != null and params.endTime != ''">
+                        AND add_datetime &lt;= TO_TIMESTAMP(#{params.endTime}, 'YYYY-MM-DD HH24:MI:SS')
+                    </if>
+                </where>
+            ) AS durations
+            WHERE diff_seconds BETWEEN 55 AND 65
+            GROUP BY textbook_id
+        ), ActivityCounts AS (
+            -- 3. 教学活动数量
+            SELECT textbook_id, COUNT(*) AS teachingActivityCount
+            FROM discussion_topic
+            WHERE identity_type = 1
+            GROUP BY textbook_id
+        ), FeedbackCounts AS (
+            -- 4. 交流反馈数量
+            SELECT t.id as textbook_id, COUNT(dtr.id) AS communicationFeedbackCount
+            FROM textbook t
+            LEFT JOIN discussion_topic dt ON t.id = dt.textbook_id
+            LEFT JOIN discussion_topic_reply dtr ON dt.id = dtr.topic_id
+            GROUP BY t.id
+        )
+        -- 5. 组合并计算热度值
         SELECT
-        t.id AS textbookId,
-        t.textbook_name AS textbookName,
-        -- 如果左连接的结果为NULL（即没有学习记录），则使用COALESCE函数将时长置为0
-        COALESCE(calculated_durations.readingDuration, 0) AS readingDuration
-        FROM
-        textbook t
-        LEFT JOIN (
-        -- 步骤1: 这个子查询预先计算出每个教材的总阅读时长
-        SELECT
-        log_with_next_time.textbook_id,
-        SUM(
-        CASE
-        -- 计算有效阅读时长（每次计1分钟）
-        WHEN (EXTRACT(EPOCH FROM log_with_next_time.next_add_datetime) - EXTRACT(EPOCH FROM log_with_next_time.add_datetime)) BETWEEN 55 AND 65
-        THEN 1
-        ELSE 0
-        END
-        ) AS readingDuration
-        FROM (
-        -- 步骤2: 使用窗口函数获取下一条学习记录的时间
-        SELECT
-        textbook_id,
-        creator,
-        add_datetime,
-        LEAD(add_datetime, 1) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime) AS next_add_datetime
-        FROM
-        learning_log
-        <where>
-            <!-- 时间过滤条件放在最内层，尽早减少数据量 -->
-            <if test="params.startTime != null and params.startTime != ''">
-                AND add_datetime >= TO_TIMESTAMP(#{params.startTime}, 'YYYY-MM-DD HH24:MI:SS')
-            </if>
-            <if test="params.endTime != null and params.endTime != ''">
-                AND add_datetime &lt;= TO_TIMESTAMP(#{params.endTime}, 'YYYY-MM-DD HH24:MI:SS')
-            </if>
-        </where>
-        ) AS log_with_next_time
-        GROUP BY
-        log_with_next_time.textbook_id
-        ) AS calculated_durations ON t.id = calculated_durations.textbook_id
-        WHERE
-        -- 保证只统计已发布的教材
-        t.release_status = '1'
-        ORDER BY
-        readingDuration DESC
+            t.id AS "textbookId",
+            t.textbook_name AS "textbookName",
+            COALESCE(rc.readerCount, 0) AS "readerCount",
+            COALESCE(rd.readingDurationMinutes, 0) AS "readingDurationMinutes",
+            COALESCE(ac.teachingActivityCount, 0) AS "teachingActivityCount",
+            COALESCE(fc.communicationFeedbackCount, 0) AS "communicationFeedbackCount",
+            (
+                COALESCE(rc.readerCount, 0) * 10 +
+                COALESCE(rd.readingDurationMinutes, 0) * 2 +
+                COALESCE(ac.teachingActivityCount, 0) * 5 +
+                COALESCE(fc.communicationFeedbackCount, 0) * 3
+            ) AS "readingDuration"
+        FROM textbook t
+        LEFT JOIN ReaderCounts rc ON t.id = rc.textbook_id
+        LEFT JOIN ReadingDurations rd ON t.id = rd.textbook_id
+        LEFT JOIN ActivityCounts ac ON t.id = ac.textbook_id
+        LEFT JOIN FeedbackCounts fc ON t.id = fc.textbook_id
+        WHERE t.release_status = '1'
+        ORDER BY "readingDuration" DESC
     </select>
 
     <!-- 类型阅读排名（按时长统计，支持时间范围查询） -->
