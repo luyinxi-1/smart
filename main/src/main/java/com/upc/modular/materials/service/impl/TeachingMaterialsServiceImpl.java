@@ -38,6 +38,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -270,8 +271,67 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             if (imageSetId < 0 || imageSetId >= files.size())
                 throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，图片不存在");
             filePath = files.get(imageSetId);
-        } else
+        } else {
             filePath = Paths.get(materials.getFilePath());
+
+            // 对于 H5 和 simulation 类型，如果 filePath 指向的是目录，则尝试查找同级的原始压缩包
+            if (("H5".equalsIgnoreCase(materials.getType()) || "simulation".equalsIgnoreCase(materials.getType()))
+                    && Files.isDirectory(filePath)) {
+                log.debug("Attempting to find original archive for {} type material with directory path: {}",
+                        materials.getType(), filePath);
+
+                // 查找同级目录下的原始压缩包
+                Path parent = filePath.getParent();
+                String baseName = filePath.getFileName().toString();
+                // 允许的压缩包后缀
+                String[] exts = {".zip", ".7z", ".tar", ".tgz"};
+
+                Path candidate = null;
+                // 首先尝试精确匹配 baseName + ext
+                for (String ext : exts) {
+                    Path p1 = parent.resolve(baseName + ext);
+                    if (Files.exists(p1) && Files.isRegularFile(p1)) {
+                        candidate = p1;
+                        break;
+                    }
+                }
+
+                // 如果上面没找到，再退一步：在 parent 目录下遍历，
+                // 找「文件名以 baseName 开头且后缀在 exts 内」的文件
+                if (candidate == null) {
+                    try (DirectoryStream<Path> stream = Files.newDirectoryStream(parent)) {
+                        for (Path p : stream) {
+                            if (Files.isRegularFile(p)) {
+                                String name = p.getFileName().toString();
+                                if (name.startsWith(baseName)) {
+                                    for (String ext : exts) {
+                                        if (name.endsWith(ext)) {
+                                            candidate = p;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            if (candidate != null) break;
+                        }
+                    } catch (IOException e) {
+                        log.warn("Failed to search directory for original archive: {}", parent, e);
+                    }
+                }
+
+                // 如果找到压缩包，就用 candidate 作为真正的下载文件
+                if (candidate != null) {
+                    filePath = candidate;
+                    log.debug("Found original archive for {} type material: {}", materials.getType(), filePath);
+                } else {
+                    // 找不到则记录 warn 日志并抛出业务异常
+                    log.warn("Original archive not found for {} type material with directory path: {}, baseName: {}",
+                            materials.getType(), filePath, baseName);
+                    throw new BusinessException(BusinessErrorEnum.FILE_NOT_EXIST, "原始压缩包不存在或已被删除");
+                }
+            }
+        }
+
         if (!Files.exists(filePath))
             throw new BusinessException(BusinessErrorEnum.FILE_NOT_EXIST, "，文件不存在");
 

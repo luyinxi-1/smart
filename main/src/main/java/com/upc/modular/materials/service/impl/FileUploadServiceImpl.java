@@ -20,10 +20,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import java.nio.file.DirectoryStream;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 
 @Service
@@ -69,7 +76,8 @@ public class FileUploadServiceImpl implements IFileUploadService {
                 // 2. 执行解压 (带自动去皮逻辑)
                 extractArchive(savedArchiveFile, unzipDestPath);
 
-                finalPath = unzipDestPath.toString();
+                // 修改：返回原始压缩包路径而不是解压目录路径
+                finalPath = savedArchivePath;
 
             } else {
                 String fileName = FileManageUtil.createFileName(file);
@@ -122,37 +130,88 @@ public class FileUploadServiceImpl implements IFileUploadService {
             return;
         }
 
-        List<Path> subDirs = new ArrayList<>();
-        boolean hasFile = false;
+        // 收集真实子目录和文件（忽略垃圾文件/目录）
+        List<Path> realSubDirs = new ArrayList<>();
+        List<Path> realFiles = new ArrayList<>();
 
-        // 统计 destDirectory 下的第一层内容
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(destDirectory)) {
             for (Path child : stream) {
+                // 过滤垃圾目录/文件
+                String fileName = child.getFileName().toString();
+                if (fileName.startsWith(".") || "Thumbs.db".equals(fileName) || "__MACOSX".equals(fileName)) {
+                    continue;
+                }
+
                 if (Files.isDirectory(child)) {
-                    subDirs.add(child);
+                    realSubDirs.add(child);
                 } else if (Files.isRegularFile(child)) {
-                    hasFile = true;
+                    realFiles.add(child);
                 }
             }
         }
 
-        // 如果根目录下已经有文件，或者子目录不是唯一的一个，就不做扁平化
-        if (hasFile || subDirs.size() != 1) {
+        // 如果根目录下已经有真实文件，或者真实子目录不是唯一的一个，就不做扁平化
+        if (!realFiles.isEmpty() || realSubDirs.size() != 1) {
             return;
         }
 
-        Path singleDir = subDirs.get(0);
+        Path singleDir = realSubDirs.get(0);
 
-        // 将 singleDir 的所有直接子项移动到 destDirectory 下
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(singleDir)) {
-            for (Path child : stream) {
-                Path target = destDirectory.resolve(child.getFileName().toString());
-                Files.move(child, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        // 记录日志
+        log.debug("Flattening directory: {} -> {}", singleDir, destDirectory);
+
+        try {
+            // 遍历 singleDir 下的所有内容并移动到 destDirectory
+            Files.walk(singleDir)
+                .filter(path -> !path.equals(singleDir)) // 排除 singleDir 本身
+                .sorted(
+                    Comparator
+                        .comparingInt((Path p) -> p.getNameCount())
+                        .reversed()
+                        .thenComparing(Path::toString) // 先处理深层路径再处理浅层路径
+                )
+                .forEach(path -> {
+                    try {
+                        Path relativePath = singleDir.relativize(path);
+                        Path targetPath = destDirectory.resolve(relativePath);
+
+                        // 确保目标父目录存在
+                        if (Files.isDirectory(path)) {
+                            Files.createDirectories(targetPath);
+                        } else {
+                            if (targetPath.getParent() != null && !Files.exists(targetPath.getParent())) {
+                                Files.createDirectories(targetPath.getParent());
+                            }
+                            // 移动文件，必要时覆盖
+                            Files.move(path, targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+
+            // 使用 walkFileTree 自底向上删除空的 singleDir
+            Files.walkFileTree(singleDir, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.delete(file);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                    Files.delete(dir);
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+
+            log.debug("Successfully flattened directory: {}", destDirectory);
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof IOException) {
+                throw (IOException) e.getCause();
             }
+            throw new IOException("Error during directory flattening", e);
         }
-
-        // 移除空的壳目录
-        Files.delete(singleDir);
     }
 
 
@@ -240,6 +299,7 @@ public class FileUploadServiceImpl implements IFileUploadService {
     /**
      * 终极算法：寻找公共根目录
      * 逻辑：提取所有文件的第一层目录名，放入 Set。如果 Set 大小为 1，且该根确实是文件夹，则返回。
+     * 支持UTF-8和GBK编码的双重尝试机制，以处理不同系统打包的zip文件。
      */
     private String findCommonRootPrefix(File archiveFile) {
         Set<String> rootDirs = new HashSet<>();
@@ -261,18 +321,22 @@ public class FileUploadServiceImpl implements IFileUploadService {
                     }
                 }
             } else {
-                try (InputStream is = new BufferedInputStream(new FileInputStream(archiveFile));
-                     ArchiveInputStream ais = createArchiveInputStream(is, archiveFile.getName())) {
-                    ArchiveEntry entry;
-                    while ((entry = ais.getNextEntry()) != null) {
-                        if (ais.canReadEntryData(entry)) {
-                            String name = normalizePath(entry.getName());
-                            if (!isJunkFile(name)) {
-                                processPathForRootDetection(name, rootDirs);
-                                if (name.contains("/")) hasDeepPaths = true;
-                            }
-                        }
+                // 首先尝试使用UTF-8编码处理ZIP文件
+                try {
+                    processZipFileWithCharset(archiveFile, rootDirs, hasDeepPaths, StandardCharsets.UTF_8);
+                } catch (IllegalArgumentException e) {
+                    // 如果UTF-8解码失败，尝试使用GBK编码
+                    try {
+                        processZipFileWithCharset(archiveFile, rootDirs, hasDeepPaths, Charset.forName("GBK"));
+                    } catch (Exception gbkException) {
+                        log.warn("使用GBK编码处理ZIP文件时发生异常: {}", gbkException.getMessage());
+                        // 回退到通用处理方法
+                        processGenericArchive(archiveFile, rootDirs, hasDeepPaths);
                     }
+                } catch (Exception utf8Exception) {
+                    log.warn("使用UTF-8编码处理ZIP文件时发生异常: {}", utf8Exception.getMessage());
+                    // 回退到通用处理方法
+                    processGenericArchive(archiveFile, rootDirs, hasDeepPaths);
                 }
             }
         } catch (Exception e) {
@@ -298,6 +362,49 @@ public class FileUploadServiceImpl implements IFileUploadService {
         }
 
         return null;
+    }
+
+    /**
+     * 使用指定字符集处理ZIP文件
+     */
+    private void processZipFileWithCharset(File archiveFile, Set<String> rootDirs, boolean hasDeepPaths, Charset charset) throws IOException {
+        try (ZipFile zipFile = new ZipFile(archiveFile, charset)) {
+            Enumeration<? extends ZipEntry> entries = zipFile.entries();
+            while (entries.hasMoreElements()) {
+                try {
+                    ZipEntry entry = entries.nextElement();
+                    if (entry != null) {
+                        String name = normalizePath(entry.getName());
+                        if (!isJunkFile(name)) {
+                            processPathForRootDetection(name, rootDirs);
+                            if (name.contains("/")) hasDeepPaths = true;
+                        }
+                    }
+                } catch (IllegalArgumentException e) {
+                    log.warn("在处理ZIP条目时遇到编码问题，跳过该条目");
+                    continue;
+                }
+            }
+        }
+    }
+
+    /**
+     * 处理通用归档文件格式
+     */
+    private void processGenericArchive(File archiveFile, Set<String> rootDirs, boolean hasDeepPaths) throws Exception {
+        try (InputStream is = new BufferedInputStream(new FileInputStream(archiveFile));
+             ArchiveInputStream ais = createArchiveInputStream(is, archiveFile.getName())) {
+            ArchiveEntry entry;
+            while ((entry = ais.getNextEntry()) != null) {
+                if (ais.canReadEntryData(entry)) {
+                    String name = normalizePath(entry.getName());
+                    if (!isJunkFile(name)) {
+                        processPathForRootDetection(name, rootDirs);
+                        if (name.contains("/")) hasDeepPaths = true;
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -479,9 +586,9 @@ public class FileUploadServiceImpl implements IFileUploadService {
     }
     */
 /**
-     * 判断文件是否为ZIP文件
-     * 通过MIME类型和文件后缀名双重判断，提高准确性
-     *//*
+ * 判断文件是否为ZIP文件
+ * 通过MIME类型和文件后缀名双重判断，提高准确性
+ *//*
 
     private boolean isZipFile(MultipartFile file) {
         return "application/zip".equals(file.getContentType()) ||
@@ -490,10 +597,10 @@ public class FileUploadServiceImpl implements IFileUploadService {
 
     */
 /**
-     * 将ZIP文件解压到目标路径，并智能去除顶层单一根目录。
-     * @param zipFileToUnzip 要解压的ZIP文件
-     * @param destDirectory  解压的目标目录
-     *//*
+ * 将ZIP文件解压到目标路径，并智能去除顶层单一根目录。
+ * @param zipFileToUnzip 要解压的ZIP文件
+ * @param destDirectory  解压的目标目录
+ *//*
 
     private void unzip(File zipFileToUnzip, Path destDirectory) throws IOException {
         // 使用 try-with-resources 确保 ZipFile 被自动关闭
@@ -547,9 +654,9 @@ public class FileUploadServiceImpl implements IFileUploadService {
 
     */
 /**
-     * 分析ZipFile的所有条目，判断是否存在一个唯一的共同根目录。
-     * @return 如果存在，返回共同根目录的名称 (例如 "MyProject/")；否则返回 null。
-     *//*
+ * 分析ZipFile的所有条目，判断是否存在一个唯一的共同根目录。
+ * @return 如果存在，返回共同根目录的名称 (例如 "MyProject/")；否则返回 null。
+ *//*
 
     private String findCommonRootPrefix(ZipFile zipFile) {
         List<String> entryNames = Collections.list(zipFile.entries())
@@ -582,8 +689,8 @@ public class FileUploadServiceImpl implements IFileUploadService {
 
     */
 /**
-     * 从ZipInputStream中提取文件内容并写入
-     *//*
+ * 从ZipInputStream中提取文件内容并写入
+ *//*
 
     private void extractFile(ZipInputStream zipIn, Path filePath) throws IOException {
         try (FileOutputStream fos = new FileOutputStream(filePath.toFile())) {
