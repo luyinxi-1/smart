@@ -29,7 +29,7 @@ public class TeachingMaterials implements Serializable {
 
     //public static final List<String> SUPPORTED_TYPES = Arrays.asList("image", "imageSet", "video", "audio", "3DModel", "link", "file", "other");
     public static final List<String> SUPPORTED_TYPES = Arrays.asList("image", "imageSet", "video", "audio", "3DModel",
-            "link", "file", "other" );//file包括"ppt","pdf","word", "excel"
+            "link", "ppt","pdf","word", "excel","H5","simulation","other" );
     private static final long serialVersionUID = 1L;
 
     @ApiModelProperty("主键")
@@ -42,7 +42,7 @@ public class TeachingMaterials implements Serializable {
 
     //  image imageSet video audio 3DModel link pdf word excel ppt other
 //  图片   图集      视频  音频   3D模型   链接 pdf word excel ppt 其他类型
-    @ApiModelProperty("素材类型：image imageSet video audio 3DModel link file(pdf word excel ppt) other")
+    @ApiModelProperty("素材类型：image imageSet video audio 3DModel link pdf word excel ppt h5 3D仿真 other")
     @TableField("type")
     private String type;
 

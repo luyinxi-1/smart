@@ -31,8 +31,8 @@ public class FileManageUtil {
      */
     public static String uploadFile(MultipartFile file, Path folderPath, String fileName) {
         // 验证文件类型
-        if (!FileType.isValidFileType(file))
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，只能上传指定的文件类型");
+//        if (!FileType.isValidFileType(file))
+//            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "，只能上传指定的文件类型");
         // 验证目标路径
         if (folderPath == null || folderPath.toString().trim().isEmpty())
             throw new RuntimeException("请指定正确的保存路径");

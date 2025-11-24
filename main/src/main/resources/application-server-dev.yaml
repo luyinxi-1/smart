@@ -37,8 +37,10 @@ spring:
   servlet:
     multipart:
       enabled: true
-      max-file-size: 100MB
-      max-request-size: 200MB
+#      max-file-size: 100MB
+#      max-request-size: 200MB
+      max-file-size: 2000MB
+      max-request-size: 2000MB
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher # 确保使用 AntPathMatcher 进行路径匹配
