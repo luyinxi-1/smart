@@ -1,6 +1,8 @@
 package com.upc.modular.textbook.service.impl;
 
 import com.aspose.words.HtmlLoadOptions;
+import com.aspose.words.PdfSaveOptions;
+import com.aspose.words.PdfTextCompression;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.aspose.words.SaveFormat;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -1140,6 +1142,101 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         } else {
             // 如果整个文档都没有任何标题，则返回完整的HTML内容
             return htmlContent;
+        }
+    }
+
+    @Override
+    public void exportTextbookToPdf(HttpServletResponse response, Long textbookId, String baseUrl) {
+        if (ObjectUtils.isEmpty(textbookId)) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参不能为空");
+        }
+        try {
+            Textbook textbook = textbookMapper.selectById(textbookId);
+            if (textbook == null) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "未找到对应教材");
+            }
+
+            // 查询目录
+            LambdaQueryWrapper<TextbookCatalog> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+            lambdaQueryWrapper.eq(TextbookCatalog::getTextbookId, textbookId);
+            lambdaQueryWrapper.orderByAsc(TextbookCatalog::getSort);
+
+            List<TextbookCatalog> textbookCatalogs = textbookCatalogMapper.selectList(lambdaQueryWrapper);
+
+            // 构造 HTML 内容
+            StringBuilder htmlBuilder = new StringBuilder();
+            String h5HeadCode = textbook.getH5HeadCode();
+            htmlBuilder.append(h5HeadCode == null ? "" : h5HeadCode);
+
+            // 保持原来的拼接方式
+            List<String> htmlFragments = textbookCatalogs.stream()
+                    .flatMap(catalog -> Stream.of(catalog.getCatalogName(), catalog.getContent()))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            for (String fragment : htmlFragments) {
+                htmlBuilder.append(fragment).append("\n");
+            }
+            htmlBuilder.append("</body></html>");
+
+            // 原始 HTML
+            String mergedHtml = htmlBuilder.toString();
+
+            // 处理掉 file-div1 这类"附件块"
+            mergedHtml = processFileDivBlocks(mergedHtml, baseUrl);
+
+            // 将 HTML 转为 PDF
+            try (ByteArrayOutputStream outStream = new ByteArrayOutputStream()) {
+                // 设置 HTML 加载选项，配置资源加载路径
+                HtmlLoadOptions loadOptions = new HtmlLoadOptions();
+                loadOptions.setEncoding(StandardCharsets.UTF_8);
+                loadOptions.setBaseUri(baseUrl); // 设置基础 URI 以正确加载相对路径图片
+
+                // 创建 PDF 保存选项
+                PdfSaveOptions pdfOptions = new PdfSaveOptions();
+
+                // 1. 开启图像压缩（通常默认是开启的，但可以通过降采样来显式控制）
+                pdfOptions.setDownsampleOptions(new com.aspose.words.DownsampleOptions());
+                pdfOptions.getDownsampleOptions().setDownsampleImages(true);
+                // 设置分辨率阈值（例如 220 ppi），低于此分辨率不压缩
+                pdfOptions.getDownsampleOptions().setResolution(220);
+
+                // 2. 设置 JPEG 质量（0-100），数值越小压缩越高，体积越小
+                // 这相当于旧版本的 setImageCompressionLevel
+                pdfOptions.setJpegQuality(70);
+
+                // 3. 开启文本压缩（推荐开启以减小体积）
+                pdfOptions.setTextCompression(PdfTextCompression.FLATE);
+
+                // 字体兼容性处理（Linux 部署防乱码）- 预留配置代码
+                // FontSettings.setFontsFolder("/usr/share/fonts", true);
+
+                com.aspose.words.Document doc = new com.aspose.words.Document(
+                        new ByteArrayInputStream(mergedHtml.getBytes(StandardCharsets.UTF_8)), loadOptions);
+                
+                // 保存为 PDF 格式并应用优化配置
+                doc.save(outStream, pdfOptions);
+
+                // 设置响应头为 PDF 格式
+                response.setContentType("application/pdf");
+
+                String fileName = textbook.getTextbookName() + ".pdf";
+                String encodedFileName = URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
+
+                response.setHeader("Content-Disposition",
+                        "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
+
+                response.setContentLength(outStream.size());
+
+                // 写入响应流
+                OutputStream responseOutputStream = response.getOutputStream();
+                outStream.writeTo(responseOutputStream);
+                responseOutputStream.flush();
+            }
+        } catch (Exception e) {
+            System.err.println("❌ 导出 PDF 出错！");
+            e.printStackTrace();
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "导出 PDF 失败");
         }
     }
 }
