@@ -1,6 +1,7 @@
 package com.upc.modular.datastatistics.controller;
 
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
 import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
@@ -144,7 +145,7 @@ public class StudentDataStatisticsController {
             @RequestParam(defaultValue = "1") Long current,
             @RequestParam(defaultValue = "10") Long size) {
 
-        Page<StudentReadingRankParam> page = studentDataStatistics.getStudentReadingRankByPage(groupName, studentName, current, size);
+        Page<StudentReadingRankParam> page = iStudentDataStatistics.getStudentReadingRankByPage(groupName, studentName, current, size);
         return R.ok(page);
     }
     @ApiOperation("根据学生ID查询阅读过的教材，按阅读量排名返回")

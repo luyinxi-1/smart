@@ -57,4 +57,6 @@ public interface IStudentDataStatistics extends IService<StudentStatisticsData> 
      * @return 分页结果
      */
     Page<StudentReadingRankParam> getStudentReadingRankByPage(String groupName, String studentName, Long current, Long size);
+
+    List<StudentTextbookRankParam> countStudentTextbookReadingRankByStudentId(Long studentId);
 }
