@@ -1,5 +1,6 @@
 package com.upc.modular.datastatistics.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
@@ -46,4 +47,14 @@ public interface IStudentDataStatistics extends IService<StudentStatisticsData> 
     StudentTextbookSituationReturnParam countStudentTextbookSituation(Long textbookId);
 
     List<StudentTextbookRankParam> countStudentTextbookReadingRank();
+
+    /**
+     * 根据班级名称和学生姓名分页查询学生阅读排名
+     * @param groupName 班级名称
+     * @param studentName 学生姓名
+     * @param current 当前页码
+     * @param size 每页大小
+     * @return 分页结果
+     */
+    Page<StudentReadingRankParam> getStudentReadingRankByPage(String groupName, String studentName, Long current, Long size);
 }

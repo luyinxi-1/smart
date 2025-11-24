@@ -1,11 +1,22 @@
 package com.upc.modular.datastatistics.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.utils.UserUtils;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.mapper.SysUserMapper;
+import com.upc.modular.auth.service.ISysUserService;
+import com.upc.modular.course.entity.Course;
+import com.upc.modular.course.entity.CourseClassList;
+import com.upc.modular.course.service.ICourseClassListService;
+import com.upc.modular.course.service.ICourseService;
+import com.upc.modular.course.service.ICourseTextbookListService;
 import com.upc.modular.datastatistics.controller.param.*;
+import com.upc.modular.group.entity.Group;
+import com.upc.modular.group.mapper.GroupMapper;
+import com.upc.modular.teacher.mapper.TeacherMapper;
 import org.apache.commons.math3.stat.descriptive.moment.Variance;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 import com.upc.modular.datastatistics.mapper.StudentDataStatisticsMapper;
@@ -40,6 +51,23 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
 
     @Autowired
     private SysUserMapper sysUserMapper;
+
+    @Autowired
+    private ISysUserService sysUserService;
+    
+    // 新增注入GroupMapper
+    @Autowired
+    private GroupMapper groupMapper;
+    
+    // 新增注入TeacherMapper
+    @Autowired
+    private TeacherMapper teacherMapper;
+
+    @Autowired
+    private ICourseService courseService;
+
+    @Autowired
+    private ICourseClassListService courseClassListService;
 
     /**
      * 统计学生阅读的教材数量
@@ -751,5 +779,152 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             count += countTreeNodes(node.getChildren()); // 递归计算子节点
         }
         return count;
+    }
+    
+    /**
+     * 根据班级名称和学生姓名分页查询学生阅读排名
+     * @param groupName 班级名称
+     * @param studentName 学生姓名
+     * @param current 当前页码
+     * @param size 每页大小
+     * @return 分页结果
+     */
+    public Page<StudentReadingRankParam> getStudentReadingRankByPage(String groupName, String studentName, Long current, Long size) {
+        Long currentUserId = UserUtils.get().getId();
+        // 获取当前用户信息
+        SysTbuser currentUser = sysUserMapper.selectById(currentUserId);
+        
+        // 获取有权限的班级列表
+        List<Group> authorizedGroups = getGroupsByTeacherUserId(currentUserId);
+        Set<Long> authorizedGroupIds = authorizedGroups.stream().map(Group::getId).collect(Collectors.toSet());
+        
+        // 如果没有权限访问任何班级，返回空结果
+        if (authorizedGroupIds.isEmpty()) {
+            Page<StudentReadingRankParam> emptyPage = new Page<>(current, size);
+            emptyPage.setRecords(new ArrayList<>());
+            emptyPage.setTotal(0L);
+            return emptyPage;
+        }
+        
+        // 构造查询条件
+        LambdaQueryWrapper<Student> queryWrapper = new LambdaQueryWrapper<>();
+        if (studentName != null && !studentName.isEmpty()) {
+            queryWrapper.like(Student::getName, studentName);
+        }
+        
+        // 只查询有权限的班级中的学生
+        queryWrapper.in(Student::getClassId, authorizedGroupIds);
+        
+        // 分页查询学生
+        Page<Student> studentPage = new Page<>(current, size);
+        Page<Student> pageResult = studentMapper.selectPage(studentPage, queryWrapper);
+        
+        List<StudentReadingRankParam> result = new ArrayList<>();
+        // 处理每个学生的信息
+        for (Student student : pageResult.getRecords()) {
+            Long classId = student.getClassId();
+            // 检查班级是否在授权列表中
+            if (!authorizedGroupIds.contains(classId)) {
+                continue;
+            }
+            
+            // 获取班级信息
+            Group group = groupMapper.selectById(classId);
+            if (group == null) {
+                continue;
+            }
+            
+            // 检查班级名称是否匹配
+            if (groupName != null && !groupName.isEmpty() && !groupName.equals(group.getName())) {
+                continue;
+            }
+            
+            StudentReadingRankParam param = new StudentReadingRankParam();
+            param.setStudentId(student.getId())
+                 .setStudentName(student.getName())
+                 .setGroupId(group.getId())
+                 .setGroupName(group.getName());
+            
+            // 计算该学生的教材阅读数量
+            Long readingCount = studentDataStatisticsMapper.countTextbookByUserId(student.getUserId());
+            param.setReadingCount(readingCount == null ? 0L : readingCount);
+            
+            result.add(param);
+        }
+        
+        // 根据阅读量排序并设置排名
+        result.sort((a, b) -> b.getReadingCount().compareTo(a.getReadingCount()));
+        for (int i = 0; i < result.size(); i++) {
+            result.get(i).setRank((long) (i + 1));
+        }
+        
+        // 构造返回的分页结果
+        Page<StudentReadingRankParam> finalPage = new Page<>(current, size);
+        finalPage.setRecords(result);
+        finalPage.setTotal(pageResult.getTotal());
+        
+        return finalPage;
+    }
+    
+    /**
+     * 根据教师用户ID获取有权限的班级列表
+     * 管理员可查看所有班级，教师只能查看自己负责的班级
+     * @param userId 用户ID
+     * @return 班级列表
+     */
+    private List<Group> getGroupsByTeacherUserId(Long userId) {
+        // 检查用户是否为管理员（userType == 0 表示管理员）
+        SysTbuser currentUser = sysUserService.getById(userId);
+        if (currentUser != null && currentUser.getUserType() != null && currentUser.getUserType() == 0) {
+            // 如果是管理员，返回所有班级
+            return groupMapper.selectList(new LambdaQueryWrapper<Group>().eq(Group::getStatus, 1));
+        }
+        
+        // 1. 根据用户ID获取教师ID
+        Long teacherId = teacherMapper.getTeacherIdByUserId(userId);
+        if (teacherId == null) {
+            return new ArrayList<>(); // 如果找不到对应的教师，返回空列表
+        }
+        
+        // 2. 创建用于存储班级ID的Set，以实现去重
+        Set<Long> groupIds = new HashSet<>();
+        
+        // 3. 根据教师ID在group表中查找对应的班级
+        LambdaQueryWrapper<Group> groupQueryWrapper = new LambdaQueryWrapper<>();
+        groupQueryWrapper.eq(Group::getTeacherId, teacherId)
+                .eq(Group::getStatus, 1); // 只查找状态为1的班级
+        List<Group> groupsByTeacher = groupMapper.selectList(groupQueryWrapper);
+        
+        // 4. 收集这些班级的ID
+        groupsByTeacher.forEach(group -> groupIds.add(group.getId()));
+        
+        // 5. 根据教师ID查找该教师对应的课程ID
+        LambdaQueryWrapper<Course> courseQueryWrapper = new LambdaQueryWrapper<>();
+        courseQueryWrapper.eq(Course::getTeacherId, teacherId);
+        List<Course> courses = courseService.list(courseQueryWrapper);
+        List<Long> courseIds = courses.stream()
+                .map(Course::getId)
+                .collect(Collectors.toList());
+        
+        // 6. 如果存在课程，根据课程ID查找对应的班级ID
+        if (!courseIds.isEmpty()) {
+            // 通过course_class_list表查找班级ID
+            LambdaQueryWrapper<CourseClassList> courseClassListQueryWrapper = new LambdaQueryWrapper<>();
+            courseClassListQueryWrapper.in(CourseClassList::getCourseId, courseIds);
+            List<CourseClassList> courseClassLists = courseClassListService.list(courseClassListQueryWrapper);
+            
+            // 收集班级ID
+            courseClassLists.forEach(courseClassList -> groupIds.add(courseClassList.getClassId()));
+        }
+        
+        // 7. 根据收集到的班级ID查找所有班级信息
+        if (!groupIds.isEmpty()) {
+            LambdaQueryWrapper<Group> finalGroupQueryWrapper = new LambdaQueryWrapper<>();
+            finalGroupQueryWrapper.in(Group::getId, groupIds)
+                    .eq(Group::getStatus, 1); // 只查找状态为1的班级
+            return groupMapper.selectList(finalGroupQueryWrapper);
+        }
+        
+        return groupsByTeacher;
     }
 }

@@ -2,6 +2,8 @@ package com.upc.modular.datastatistics.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
+import com.upc.modular.student.entity.Student;
+import com.upc.modular.group.entity.Group;
 import com.upc.modular.textbook.entity.LearningLog;
 import com.upc.modular.textbook.entity.Textbook;
 import org.apache.ibatis.annotations.MapKey;
