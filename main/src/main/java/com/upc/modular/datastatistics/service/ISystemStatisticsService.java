@@ -90,6 +90,16 @@ public interface ISystemStatisticsService {
     void exportTextbookTypeReadingRank(HttpServletResponse response) throws Exception;
 
     /**
+     * 导出类型阅读时长排名 (PDF)
+     */
+    void exportTextbookTypeReadingRankPdf(HttpServletResponse response) throws Exception;
+
+    /**
+     * 导出类型阅读时长排名 (图片)
+     */
+    void exportTextbookTypeReadingRankImage(HttpServletResponse response) throws Exception;
+
+    /**
      * 获取指定学生在某教材下各章节的掌握度
      * @param studentId 学生ID
      * @param textbookId 教材ID

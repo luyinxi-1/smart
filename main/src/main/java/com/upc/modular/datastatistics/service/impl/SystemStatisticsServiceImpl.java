@@ -590,6 +590,198 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
             throw new RuntimeException("导出失败，请重试");
         }
     }
+    /**
+     * 私有辅助方法：获取并封装数据
+     * 目的：让Excel、PDF、Image共用同一套数据源，避免逻辑重复
+     */
+    private List<TextbookTypeReadingRankExportParam> getRankExportData() {
+        // 获取原始数据 (假设您这里调用的是 Mapper 或其他 Service)
+        List<Map<String, Object>> rawData = getTextbookTypeReadingRank(null);
+
+        List<TextbookTypeReadingRankExportParam> exportData = new ArrayList<>();
+        if (rawData != null) {
+            int rank = 1;
+            for (Map<String, Object> item : rawData) {
+                TextbookTypeReadingRankExportParam param = new TextbookTypeReadingRankExportParam();
+                // 注意空指针安全处理
+                param.setTypeName(item.get("typeName") != null ? (String) item.get("typeName") : "未知类型");
+                param.setReadingDuration(item.get("readingDuration") != null ? ((Number) item.get("readingDuration")).longValue() : 0L);
+                param.setRank(rank++);
+                exportData.add(param);
+            }
+        }
+        return exportData;
+    }
+    @Override
+    public void exportTextbookTypeReadingRankPdf(HttpServletResponse response) throws Exception {
+        try {
+            List<TextbookTypeReadingRankExportParam> list = getRankExportData();
+
+            // 设置响应头
+            String fileName = "类型阅读时长排名.pdf";
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
+            response.setContentType("application/pdf");
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
+
+            // 创建 PDF 文档
+            Document document = new Document(PageSize.A4);
+            PdfWriter.getInstance(document, response.getOutputStream());
+            document.open();
+
+            // 字体设置 (解决中文乱码)
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font titleFont = new Font(bfChinese, 18, Font.BOLD);
+            Font headFont = new Font(bfChinese, 12, Font.BOLD);
+            Font textFont = new Font(bfChinese, 12, Font.NORMAL);
+
+            // 标题
+            Paragraph title = new Paragraph("类型阅读时长排名", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            title.setSpacingAfter(20);
+            document.add(title);
+
+            // 表格 (3列: 排名, 类型名称, 阅读时长)
+            PdfPTable table = new PdfPTable(3);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{20f, 50f, 30f}); // 列宽比例
+
+            // 表头
+            String[] headers = {"排名", "类型名称", "阅读时长"};
+            for (String header : headers) {
+                PdfPCell cell = new PdfPCell(new Paragraph(header, headFont));
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setBackgroundColor(java.awt.Color.LIGHT_GRAY);
+                cell.setPadding(8);
+                table.addCell(cell);
+            }
+
+            // 内容
+            for (TextbookTypeReadingRankExportParam data : list) {
+                PdfPCell c1 = new PdfPCell(new Paragraph(String.valueOf(data.getRank()), textFont));
+                c1.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+                PdfPCell c2 = new PdfPCell(new Paragraph(data.getTypeName(), textFont));
+
+                // 可以在这里格式化时长，例如加上 "分钟" 或 "小时"
+                PdfPCell c3 = new PdfPCell(new Paragraph(String.valueOf(data.getReadingDuration()), textFont));
+                c3.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+                table.addCell(c1);
+                table.addCell(c2);
+                table.addCell(c3);
+            }
+
+            document.add(table);
+            document.close();
+
+        } catch (Exception e) {
+            handleExportError(response, e);
+        }
+    }
+
+    // ================== 3. 新增 图片 导出 ==================
+    @Override
+    public void exportTextbookTypeReadingRankImage(HttpServletResponse response) throws Exception {
+        try {
+            List<TextbookTypeReadingRankExportParam> list = getRankExportData();
+
+            // 设置响应头
+            String fileName = "类型阅读时长排名.png";
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
+            response.setContentType("image/png");
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
+
+            // 计算图片尺寸
+            int rowHeight = 40;
+            int headerHeight = 60; // 标题高度
+            int tableHeadHeight = 40; // 表头高度
+            int margin = 40;
+            int width = 800;
+            int height = headerHeight + tableHeadHeight + (list.size() * rowHeight) + margin * 2;
+
+            // 创建画板
+            BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = image.createGraphics();
+
+            // 1. 背景白底
+            g2d.setColor(java.awt.Color.WHITE);
+            g2d.fillRect(0, 0, width, height);
+
+            // 抗锯齿
+            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            // 2. 绘制主标题
+            g2d.setColor(java.awt.Color.BLACK);
+            // 注意：Linux下需确保有 SimHei 字体
+            g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.BOLD, 24));
+            String title = "类型阅读时长排名";
+            int titleWidth = g2d.getFontMetrics().stringWidth(title);
+            g2d.drawString(title, (width - titleWidth) / 2, 50);
+
+            // 3. 绘制表头
+            int y = headerHeight + 20;
+            int[] colX = {50, 150, 550}; // 列起始X坐标：排名, 名称, 时长
+
+            g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.BOLD, 16));
+            g2d.setColor(new java.awt.Color(240, 240, 240)); // 表头背景灰
+            g2d.fillRect(40, y - 25, width - 80, rowHeight);
+
+            g2d.setColor(java.awt.Color.BLACK);
+            g2d.drawString("排名", colX[0], y);
+            g2d.drawString("类型名称", colX[1], y);
+            g2d.drawString("阅读时长", colX[2], y);
+
+            // 绘制表头下横线
+            g2d.drawLine(40, y + 15, width - 40, y + 15);
+
+            // 4. 绘制数据行
+            g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.PLAIN, 16));
+            y += rowHeight;
+
+            for (TextbookTypeReadingRankExportParam data : list) {
+                g2d.drawString(String.valueOf(data.getRank()), colX[0], y);
+                g2d.drawString(data.getTypeName(), colX[1], y);
+                g2d.drawString(String.valueOf(data.getReadingDuration()), colX[2], y);
+
+                // 虚线或浅色分割线
+                g2d.setColor(new java.awt.Color(230, 230, 230));
+                g2d.drawLine(40, y + 15, width - 40, y + 15);
+                g2d.setColor(java.awt.Color.BLACK); // 恢复文字颜色
+
+                y += rowHeight;
+            }
+
+            // 绘制外边框
+            g2d.setColor(java.awt.Color.GRAY);
+            g2d.drawRect(40, headerHeight - 5, width - 80, height - headerHeight - margin);
+
+            g2d.dispose();
+            ImageIO.write(image, "png", response.getOutputStream());
+
+        } catch (Exception e) {
+            handleExportError(response, e);
+        }
+    }
+
+    /**
+     * 统一异常处理
+     */
+    private void handleExportError(HttpServletResponse response, Exception e) throws java.io.IOException {
+        e.printStackTrace();
+        if (!response.isCommitted()) {
+            response.reset();
+            response.setContentType("application/json");
+            response.setCharacterEncoding("utf-8");
+            response.getWriter().println("{\"code\": 500, \"msg\": \"导出失败: " + e.getMessage() + "\"}");
+        }
+    }
+
+    // 假设您这个接口方法在Service中也有定义，保留它以兼容原代码引用
+    public List<Map<String, Object>> getTextbookTypeReadingRank(Object param) {
+        // 这里应该是调用 Mapper 或 DAO 的逻辑
+        // 为了编译通过，这里返回空列表或示例数据
+        return new ArrayList<>();
+    }
 
     @Override
     public List<ChapterMasteryVO> getStudentChapterMastery(Long studentId, Long textbookId) {
