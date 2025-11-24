@@ -715,7 +715,7 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
         for (Map<String, Object> data : rawData) {
             TeacherTextbookPopularityParam param = new TeacherTextbookPopularityParam();
             param.setRank(rank++);
-            param.setTextbookId(getLongValue(data.get("textbookId")));
+            //param.setTextbookId(getLongValue(data.get("textbookId")));
             param.setTextbookName((String) data.get("textbookName"));
             param.setReaderCount(getLongValue(data.get("readerCount")));
             param.setReadingDurationMinutes(getLongValue(data.get("readingDurationMinutes")));

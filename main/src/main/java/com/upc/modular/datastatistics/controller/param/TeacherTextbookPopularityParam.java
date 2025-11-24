@@ -1,14 +1,12 @@
 package com.upc.modular.datastatistics.controller.param;
 
+import com.alibaba.excel.annotation.ExcelIgnore;
 import com.alibaba.excel.annotation.ExcelProperty;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-/**
- * 教师教材热度参数
- */
 @Data
 @Accessors(chain = true)
 @ApiModel(value = "TeacherTextbookPopularityParam", description = "教师教材热度参数")
@@ -18,7 +16,7 @@ public class TeacherTextbookPopularityParam {
     @ApiModelProperty("排名")
     private Integer rank;
 
-    @ExcelProperty("教材ID")
+    @ExcelIgnore
     @ApiModelProperty("教材ID")
     private Long textbookId;
 
