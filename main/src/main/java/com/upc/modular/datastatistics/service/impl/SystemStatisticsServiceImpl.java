@@ -1206,7 +1206,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         int width = 600;
         int rowHeight = 50;
         int headerHeight = 80;
-        int height = headerHeight + (dataMap.size() * rowHeight) + 30; // 动态计算高度
+        int height = headerHeight + (dataMap.size() * rowHeight) + 30;
 
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = image.createGraphics();
@@ -1216,14 +1216,15 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
             g2d.setColor(java.awt.Color.WHITE);
             g2d.fillRect(0, 0, width, height);
 
-            // 开启抗锯齿，让文字更清晰
+            // 开启抗锯齿
             g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
             // 4. 绘制标题
             g2d.setColor(java.awt.Color.BLACK);
-            // 注意：Linux服务器如果缺少字体，中文会乱码。建议在服务器安装 simhei.ttf 或使用 JDK 加载字体文件
-            java.awt.Font titleFont = new java.awt.Font("SimHei", java.awt.Font.BOLD, 24);
-            g2d.setFont(titleFont);
+            // ------------------ 修改点 1：使用自定义加载字体 ------------------
+            // 原代码：g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.BOLD, 24));
+            g2d.setFont(loadCustomFont(24f, java.awt.Font.BOLD));
+            // -------------------------------------------------------------
 
             String title = "系统统计数据";
             FontMetrics fm = g2d.getFontMetrics();
@@ -1231,8 +1232,10 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
             g2d.drawString(title, titleX, 50);
 
             // 5. 绘制表格和内容
-            java.awt.Font contentFont = new java.awt.Font("SimHei", java.awt.Font.PLAIN, 16);
-            g2d.setFont(contentFont);
+            // ------------------ 修改点 2：使用自定义加载字体 ------------------
+            // 原代码：g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.PLAIN, 16));
+            g2d.setFont(loadCustomFont(16f, java.awt.Font.PLAIN));
+            // -------------------------------------------------------------
 
             int startY = headerHeight;
             int padding = 40;
@@ -1242,10 +1245,11 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
             g2d.drawRect(padding, headerHeight - 20, width - (padding * 2), height - headerHeight - 10);
 
             for (Map.Entry<String, Object> entry : dataMap.entrySet()) {
-                // 绘制文字
                 g2d.setColor(java.awt.Color.BLACK);
+                // 绘制 Key
                 g2d.drawString(entry.getKey(), padding + 20, startY + 10);
 
+                // 绘制 Value
                 String valueStr = String.valueOf(entry.getValue());
                 int valWidth = g2d.getFontMetrics().stringWidth(valueStr);
                 g2d.drawString(valueStr, width - padding - 20 - valWidth, startY + 10);
@@ -1257,7 +1261,6 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
                 startY += rowHeight;
             }
 
-            // 6. 写入流
             ImageIO.write(image, "png", outputStream);
 
         } catch (IOException e) {
