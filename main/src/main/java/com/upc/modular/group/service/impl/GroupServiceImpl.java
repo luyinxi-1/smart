@@ -69,7 +69,8 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
             queryWrapper.in(Group::getInstitutionId, institutionIds);
         }
 
-        queryWrapper.orderByDesc(Group::getAddDatetime);
+        // 修改排序方式：按照修改时间降序排列
+        queryWrapper.orderByDesc(Group::getOperationDatetime);
 
         Page<Group> groupPage = baseMapper.selectPage(page, queryWrapper);
 
