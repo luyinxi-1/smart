@@ -930,6 +930,167 @@ public SystemAllCountsDto getAllCounts(String dateStr) {
         }
         return result;
     }
+    // ================= 新增 PDF 导出实现 =================
+    @Override
+    public void exportSystemTextbookPopularityPdf(HttpServletResponse response) throws IOException {
+        // 1. 复用逻辑获取数据
+        List<TeacherTextbookPopularityParam> list = this.exportSystemTextbookPopularity();
+
+        try (Document document = new Document(PageSize.A4.rotate())) { // 横向 A4
+            PdfWriter.getInstance(document, response.getOutputStream());
+            document.open();
+
+            // 2. 字体设置 (解决中文)
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font titleFont = new Font(bfChinese, 18, Font.BOLD);
+            Font headFont = new Font(bfChinese, 10, Font.BOLD);
+            Font textFont = new Font(bfChinese, 10, Font.NORMAL);
+
+            // 3. 标题
+            Paragraph title = new Paragraph("全系统教材热度排名", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            title.setSpacingAfter(20);
+            document.add(title);
+
+            // 4. 表格设置 (7列)
+            // 列: 排名, 教材名称, 阅读人数, 阅读时长, 教学活动, 交流反馈, 热度值
+            PdfPTable table = new PdfPTable(7);
+            table.setWidthPercentage(100);
+            // 宽度比例：教材名称给宽一点 (40%)，其他平均分配
+            table.setWidths(new float[]{8f, 32f, 12f, 12f, 12f, 12f, 12f});
+
+            // 5. 表头
+            String[] headers = {"排名", "教材名称", "阅读人数", "阅读时长(分)", "教学活动数", "交流反馈数", "热度值"};
+            for (String header : headers) {
+                PdfPCell cell = new PdfPCell(new Paragraph(header, headFont));
+                cell.setBackgroundColor(java.awt.Color.LIGHT_GRAY);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setPadding(6);
+                table.addCell(cell);
+            }
+
+            // 6. 填充数据
+            for (TeacherTextbookPopularityParam item : list) {
+                // 排名
+                addCenteredCell(table, String.valueOf(item.getRank()), textFont);
+                // 名称 (居左)
+                PdfPCell nameCell = new PdfPCell(new Paragraph(item.getTextbookName(), textFont));
+                nameCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                table.addCell(nameCell);
+                // 其他数值
+                addCenteredCell(table, String.valueOf(item.getReaderCount()), textFont);
+                addCenteredCell(table, String.valueOf(item.getReadingDurationMinutes()), textFont);
+                addCenteredCell(table, String.valueOf(item.getTeachingActivityCount()), textFont);
+                addCenteredCell(table, String.valueOf(item.getCommunicationFeedbackCount()), textFont);
+                addCenteredCell(table, String.valueOf(item.getPopularityScore()), textFont);
+            }
+
+            document.add(table);
+        } catch (DocumentException e) {
+            throw new IOException("PDF生成失败", e);
+        }
+    }
+
+    // PDF 单元格辅助方法
+    private void addCenteredCell(PdfPTable table, String text, Font font) {
+        PdfPCell cell = new PdfPCell(new Paragraph(text, font));
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        table.addCell(cell);
+    }
+
+    // ================= 新增 图片 导出实现 =================
+    @Override
+    public void exportSystemTextbookPopularityImage(HttpServletResponse response) throws IOException {
+        // 1. 获取数据
+        List<TeacherTextbookPopularityParam> list = this.exportSystemTextbookPopularity();
+
+        // 2. 尺寸参数
+        int rowHeight = 40;
+        int headerHeight = 70;
+        int width = 1200; // 宽度设大一点容纳7列
+        int height = headerHeight + 40 + (list.size() * rowHeight) + 50; // 40是表头高度
+
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = image.createGraphics();
+
+        // 3. 初始化画笔
+        g2d.setColor(Color.WHITE);
+        g2d.fillRect(0, 0, width, height);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        // 4. 标题
+        g2d.setColor(Color.BLACK);
+        g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.BOLD, 24));
+        String titleStr = "全系统教材热度排名";
+        int titleW = g2d.getFontMetrics().stringWidth(titleStr);
+        g2d.drawString(titleStr, (width - titleW) / 2, 50);
+
+        // 5. 表头配置
+        String[] headers = {"排名", "教材名称", "阅读人数", "时长(分)", "教学活动", "交流反馈", "热度值"};
+        // 自定义列宽 (总和应接近 width - margin)
+        // 排名(80) + 名称(400) + 阅读(120) + 时长(120) + 活动(120) + 反馈(120) + 热度(120)
+        int[] colWidths = {80, 400, 120, 120, 120, 120, 120};
+        int startX = 60;
+        int y = headerHeight + 30;
+
+        // 绘制表头
+        g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.BOLD, 16));
+        g2d.setColor(new Color(240, 240, 240));
+        g2d.fillRect(startX - 10, y - 25, width - startX * 2 + 20, rowHeight); // 表头背景
+        g2d.setColor(Color.BLACK);
+
+        int currentX = startX;
+        for (int i = 0; i < headers.length; i++) {
+            g2d.drawString(headers[i], currentX, y);
+            currentX += colWidths[i];
+        }
+        g2d.drawLine(startX - 10, y + 15, width - startX + 10, y + 15); // 表头下划线
+
+        // 6. 数据行
+        g2d.setFont(new java.awt.Font("SimHei", java.awt.Font.PLAIN, 15));
+        y += rowHeight;
+
+        for (TeacherTextbookPopularityParam item : list) {
+            currentX = startX;
+            g2d.setColor(Color.BLACK);
+
+            // 使用 drawText 防止文字溢出 (特别是教材名称)
+            drawText(g2d, String.valueOf(item.getRank()), currentX, y, colWidths[0]);
+            currentX += colWidths[0];
+
+            drawText(g2d, item.getTextbookName(), currentX, y, colWidths[1] - 10);
+            currentX += colWidths[1];
+
+            drawText(g2d, String.valueOf(item.getReaderCount()), currentX, y, colWidths[2]);
+            currentX += colWidths[2];
+
+            drawText(g2d, String.valueOf(item.getReadingDurationMinutes()), currentX, y, colWidths[3]);
+            currentX += colWidths[3];
+
+            drawText(g2d, String.valueOf(item.getTeachingActivityCount()), currentX, y, colWidths[4]);
+            currentX += colWidths[4];
+
+            drawText(g2d, String.valueOf(item.getCommunicationFeedbackCount()), currentX, y, colWidths[5]);
+            currentX += colWidths[5];
+
+            drawText(g2d, String.valueOf(item.getPopularityScore()), currentX, y, colWidths[6]);
+
+            // 分割线
+            g2d.setColor(new Color(230, 230, 230));
+            g2d.drawLine(startX - 10, y + 15, width - startX + 10, y + 15);
+            y += rowHeight;
+        }
+
+        // 边框
+        g2d.setColor(Color.GRAY);
+        g2d.drawRect(startX - 10, headerHeight, width - startX * 2 + 20, height - headerHeight - 20);
+
+        g2d.dispose();
+        ImageIO.write(image, "png", response.getOutputStream());
+    }
+
 
     /**
      * 导出系统统计数据

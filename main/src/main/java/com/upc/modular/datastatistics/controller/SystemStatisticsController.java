@@ -213,6 +213,31 @@ public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required
 
         EasyExcel.write(response.getOutputStream(), TeacherTextbookPopularityParam.class).sheet("排名").doWrite(list);
     }
+    @ApiOperation("导出全系统教材热度排名-PDF")
+    @GetMapping("/export-textbook-popularity-pdf")
+    public void exportSystemTextbookPopularityPdf(HttpServletResponse response) throws IOException {
+        // 1. 设置响应头
+        String fileName = "全系统教材热度排名.pdf";
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
+
+        // 2. 调用 Service
+        systemStatisticsService.exportSystemTextbookPopularityPdf(response);
+    }
+
+    @ApiOperation("导出全系统教材热度排名-图片")
+    @GetMapping("/export-textbook-popularity-image")
+    public void exportSystemTextbookPopularityImage(HttpServletResponse response) throws IOException {
+        // 1. 设置响应头
+        String fileName = "全系统教材热度排名.png";
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
+        response.setContentType("image/png");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
+
+        // 2. 调用 Service
+        systemStatisticsService.exportSystemTextbookPopularityImage(response);
+    }
     @ApiOperation("导出系统数据")
     @GetMapping("/export-System-Statistics")
     public void exportSystemStatistics(HttpServletResponse response) throws IOException {

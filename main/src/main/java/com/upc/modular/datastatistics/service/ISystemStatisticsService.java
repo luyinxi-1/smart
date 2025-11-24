@@ -137,7 +137,11 @@ public interface ISystemStatisticsService {
      * @return List<TeacherTextbookPopularityParam>
      */
     List<TeacherTextbookPopularityParam> exportSystemTextbookPopularity();
+    // 新增 PDF 导出接口
+    void exportSystemTextbookPopularityPdf(HttpServletResponse response) throws IOException;
 
+    // 新增 图片 导出接口
+    void exportSystemTextbookPopularityImage(HttpServletResponse response) throws IOException;
     /**
      * 导出全系统教材统计概览
      * @param currentUser 当前登录用户
