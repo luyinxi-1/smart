@@ -81,5 +81,14 @@ public class SysTbuser implements Serializable {
     @TableField(exist = false)
     private String creatorName;
 
+    // 统一认证相关字段
+    @ApiModelProperty("统一认证sub")
+    @TableField("cas_sub")
+    private String casSub;
+
+    @ApiModelProperty("统一认证姓名")
+    @TableField("cas_name")
+    private String casName;
+
 
 }

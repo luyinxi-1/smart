@@ -15,6 +15,7 @@ import org.springframework.format.FormatterRegistry;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
@@ -49,6 +50,14 @@ public class WebMVCConfig implements WebMvcConfigurer {
         return new PermissionCheckInterceptor();
     }
 
+    /**
+     * 创建RestTemplate Bean用于HTTP请求
+     * @return RestTemplate实例
+     */
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
 
     /**
      * 配置跨域过滤器，允许跨域访问
@@ -128,6 +137,8 @@ public class WebMVCConfig implements WebMvcConfigurer {
         registry.addInterceptor(requestInterceptor())
 //    拦截路径
                 .addPathPatterns(ALL_PATH_PATTERN)
+                // 放行SSO相关路径
+                .excludePathPatterns("/sso/**")
                 .order(0);
 //      2.注册第二个拦截器：PermissionCheckInterceptor，负责检查权限
         registry.addInterceptor(permissionCheckInterceptor())
@@ -136,6 +147,7 @@ public class WebMVCConfig implements WebMvcConfigurer {
 //    放行路径
                 .excludePathPatterns(EXCLUDE_PATH_PATTERNS) // 静态资源、swagger等
                 .excludePathPatterns(WEIXIN_PUBLISH_EXCLUDE_PATH_PATTERNS)
+                .excludePathPatterns("/sso/**") // 放行SSO相关路径
                 .order(1);
 //        拦截模块2
 //        registry.addInterceptor(countyRequestInterceptor())
