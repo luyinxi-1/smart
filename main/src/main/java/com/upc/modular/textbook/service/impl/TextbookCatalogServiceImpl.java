@@ -31,15 +31,12 @@ import com.upc.modular.teachingactivities.entity.DiscussionTopic;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
 import com.upc.modular.textbook.entity.IdeologicalMaterial;
 import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
+import com.upc.modular.textbook.param.*;
 import com.upc.modular.textbook.service.IIdeologicalMaterialService;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import com.upc.modular.textbook.mapper.TextbookMapper;
-import com.upc.modular.textbook.param.ReadTextbookReturnParam;
-import com.upc.modular.textbook.param.TextbookCatalogDto;
-import com.upc.modular.textbook.param.TextbookCatalogInsertParam;
-import com.upc.modular.textbook.param.TextbookTree;
 import com.upc.modular.textbook.service.ILearningAnnotationsAndLabelsService;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -1237,6 +1234,71 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             System.err.println("❌ 导出 PDF 出错！");
             e.printStackTrace();
             throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "导出 PDF 失败");
+        }
+    }
+
+    @Override
+    public List<MaterialTypeCountReturnParam> getMaterialTypeCountByTextbookId(Long textbookId) {
+        // 定义所有支持的素材类型
+        List<String> allTypes = TeachingMaterials.SUPPORTED_TYPES;
+        
+        // 初始化结果列表
+        List<MaterialTypeCountReturnParam> result = new ArrayList<>();
+        
+        // 查询教材关联的素材映射关系
+        List<MaterialsTextbookMapping> mappings = materialsTextbookMappingService.list(
+                new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                        .eq(MaterialsTextbookMapping::getTextbookId, textbookId)
+        );
+        
+        // 获取所有关联的素材ID
+        List<Long> materialIds = mappings.stream()
+                .map(MaterialsTextbookMapping::getMaterialId)
+                .collect(Collectors.toList());
+        
+        // 查询这些素材的类型统计
+        Map<String, Long> typeCountMap = new HashMap<>();
+        if (!materialIds.isEmpty()) {
+            List<TeachingMaterials> materials = teachingMaterialsService.listByIds(materialIds);
+            typeCountMap = materials.stream()
+                    .collect(Collectors.groupingBy(
+                            TeachingMaterials::getType,
+                            Collectors.counting()
+                    ));
+        }
+        
+        // 构建返回结果，确保所有类型都包含在内，没有对应数量的返回0
+        for (String type : allTypes) {
+            MaterialTypeCountReturnParam param = new MaterialTypeCountReturnParam();
+            param.setType(getTypeName(type));
+            param.setNum(typeCountMap.getOrDefault(type, 0L));
+            result.add(param);
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 将素材类型代码转换为中文名称
+     * @param type 素材类型代码
+     * @return 中文名称
+     */
+    private String getTypeName(String type) {
+        switch (type) {
+            case "image": return "图片";
+            case "imageSet": return "图集";
+            case "video": return "视频";
+            case "audio": return "音频";
+            case "3DModel": return "3D模型";
+            case "link": return "链接";
+            case "ppt": return "PPT";
+            case "pdf": return "PDF";
+            case "word": return "Word";
+            case "excel": return "Excel";
+            case "H5": return "H5页面";
+            case "simulation": return "3D仿真";
+            case "other": return "其他";
+            default: return type;
         }
     }
 }

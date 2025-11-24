@@ -4,6 +4,7 @@ package com.upc.modular.textbook.controller;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.TextbookCatalog;
+import com.upc.modular.textbook.param.MaterialTypeCountReturnParam;
 import com.upc.modular.textbook.param.ReadTextbookReturnParam;
 import com.upc.modular.textbook.param.TextbookCatalogDto;
 import com.upc.modular.textbook.param.TextbookCatalogInsertParam;
@@ -111,6 +112,13 @@ public class TextbookCatalogController {
     @GetMapping("/downloadTextbookCatalog")
     public R<List<TextbookCatalog>> downloadTextbookCatalog(@RequestParam("textbookId") Long textbookId) {
         List<TextbookCatalog> result = textbookCatalogService.downloadTextbookCatalog(textbookId);
+        return R.ok(result);
+    }
+    
+    @ApiOperation(value = "根据教材id查询素材分类及数量")
+    @GetMapping("/getMaterialTypeCountByTextbookId")
+    public R<List<MaterialTypeCountReturnParam>> getMaterialTypeCountByTextbookId(@RequestParam("textbookId") Long textbookId) {
+        List<MaterialTypeCountReturnParam> result = textbookCatalogService.getMaterialTypeCountByTextbookId(textbookId);
         return R.ok(result);
     }
 
