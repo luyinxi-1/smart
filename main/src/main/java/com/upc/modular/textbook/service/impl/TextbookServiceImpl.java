@@ -32,6 +32,7 @@ import com.upc.modular.textbook.service.ITextbookAuthorityService;
 import com.upc.modular.textbook.service.ITextbookClassificationService;
 import com.upc.modular.textbook.service.ITextbookService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.upc.modular.textbook.service.ITextbookTemplateService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -69,7 +70,9 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     private DiscussionTopicReplyMapper discussionTopicReplyMapper;
     @Autowired
     private DiscussionTopicMapper discussionTopicMapper;
-
+    
+    @Autowired
+    private ITextbookTemplateService textbookTemplateService;
 
     @Override
     public TextbookIntelligentQueryReturnParam smartSearch(String query) {
@@ -195,6 +198,11 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             }
         }
         this.save(textbook);
+        
+        // 保存教材后，初始化默认模板
+        if (textbook.getId() != null) {
+            textbookTemplateService.initDefaultTemplate(textbook.getId());
+        }
     }
 
     @Override
