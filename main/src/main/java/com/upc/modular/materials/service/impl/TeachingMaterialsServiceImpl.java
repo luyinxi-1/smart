@@ -35,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -117,7 +118,54 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             teachingMaterials.setFileName(imageSetName);
             teachingMaterials.setFilePath(directoryPath);
 
-        } else {
+        }
+        else if ("simulation".equalsIgnoreCase(param.getType()) || "H5".equalsIgnoreCase(param.getType())) {
+            // 【修复点】：针对 H5/Simulation 获取真实带后缀的文件名
+
+            // 1. 基础校验
+            if (StringUtils.isBlank(param.getFilePath())) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "素材路径不能为空");
+            }
+
+            Path folderPath = Paths.get(param.getFilePath());
+            // 假设 folderPath 是 .../20251125/8173b53e-20b1... (文件夹)
+
+            String folderName = folderPath.getFileName().toString(); // 获取 UUID 文件夹名
+            String finalFileName = folderName; // 默认值
+
+            // 2. 获取父目录 (.../20251125/)
+            Path parentPath = folderPath.getParent();
+
+            // 3. 安全检查：必须判断 parentPath 是否为 null
+            if (parentPath != null) {
+                File parentDir = parentPath.toFile();
+
+                // 4. 在父目录下查找同名压缩包
+                if (parentDir.exists() && parentDir.isDirectory()) {
+                    // 查找规则：名字以 "UUID." 开头，例如 "8173b53e....rar"
+                    File[] matchingFiles = parentDir.listFiles((dir, name) ->
+                            name.startsWith(folderName + ".") && !name.equals(folderName)
+                    );
+
+                    if (matchingFiles != null && matchingFiles.length > 0) {
+                        // 找到了！直接使用第一个匹配的文件名（含后缀，如 .rar, .tgz, .zip）
+                        finalFileName = matchingFiles[0].getName();
+                    } else {
+                        // 没找到（极少情况），手动补一个 .zip 后缀作为兜底
+                        finalFileName = folderName + ".zip";
+                    }
+                }
+            } else {
+                // 如果没有父目录（例如路径就是根目录），兜底补后缀
+                finalFileName = folderName + ".zip";
+            }
+
+            teachingMaterials.setFileName(finalFileName);
+            // 数据库存的文件路径依然是指向解压后的文件夹，因为 H5 需要访问里面的 index.html
+            teachingMaterials.setFilePath(param.getFilePath());
+
+        }
+        else {
             // 其他文件类型
             // filePath 已经是完整的、最终的路径了
             Path filePathObj = Paths.get(param.getFilePath());
