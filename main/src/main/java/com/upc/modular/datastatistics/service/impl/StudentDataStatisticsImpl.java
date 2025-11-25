@@ -770,8 +770,16 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
      */
     @Override
     public List<StudentTextbookRankParam> countStudentTextbookReadingRankByStudentId(Long studentId) {
+        // 先根据studentId获取userId
+        Student student = studentMapper.selectById(studentId);
+        if (student == null || student.getUserId() == null) {
+            return new ArrayList<>(); // 学生不存在或没有关联用户
+        }
+        
+        Long userId = student.getUserId();
+        
         //从数据库获取该用户的所有学习日志记录
-        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(studentId);
+        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(userId);
 
         if (records == null || records.size() < 2) {
             return new ArrayList<>();
