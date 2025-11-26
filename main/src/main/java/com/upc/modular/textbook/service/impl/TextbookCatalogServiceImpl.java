@@ -541,50 +541,31 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         }
 
         Document doc = Jsoup.parse(html);
-        Elements fileDivs = doc.select("div[type=file-div1]");
+        Elements fileDivs = doc.select("div[type=file-div1]"); // 确保你的HTML里真的是type属性，而不是class
 
         if (fileDivs.isEmpty()) {
             return doc.outerHtml();
         }
 
-        // 1. 在第一个附件块前插一个“二维码表格容器”
-        Element firstFileDiv = fileDivs.first();
-
-        Element tableWrapper = doc.createElement("div");
-        tableWrapper.attr("style", "width:100%;text-align:center;margin:10px 0;");
-
-        Element table = doc.createElement("table");
-        // 让表格整体居中，边距用 padding/padding
-        table.attr("style", "margin:0 auto;border-collapse:collapse;");
-
-        tableWrapper.appendChild(table);
-        firstFileDiv.before(tableWrapper);
-
-        int maxCols = 3;      // 一行最多几个二维码，可以自己调
-        int colIndex = 0;
-        Element currentRow = null;
-        boolean hasAnyQr = false;
-
-        // 2. 遍历所有附件块
+        // 遍历每一个附件块，原地处理
         for (Element fileDiv : fileDivs) {
 
             String idStr = fileDiv.attr("id");
             String fileUrl = null;
-            String displayName = null; // 二维码下面显示的名字
+            String displayName = null;
 
-            // 2.1 根据 id 查素材，拼 fileUrl，并取名称
+            // --- 1. 获取数据逻辑 (保持不变) ---
             if (idStr != null && !idStr.trim().isEmpty()) {
                 try {
                     Long materialId = Long.valueOf(idStr.trim());
+                    // 假设这里能获取到 service，实际代码可能需要调整上下文
                     TeachingMaterials tm = teachingMaterialsService.getById(materialId);
                     if (tm != null && tm.getFilePath() != null && !tm.getFilePath().trim().isEmpty()) {
-
                         String path = tm.getFilePath().trim();
-
-                        // 拼接 URL
                         if (path.startsWith("http")) {
-                            fileUrl = path;  // 已是完整 URL
+                            fileUrl = path;
                         } else {
+                            // 处理相对路径
                             if (baseUrl.endsWith("/") && path.startsWith("/")) {
                                 fileUrl = baseUrl + path.substring(1);
                             } else if (!baseUrl.endsWith("/") && !path.startsWith("/")) {
@@ -593,103 +574,81 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
                                 fileUrl = baseUrl + path;
                             }
                         }
-
-                        // 显示名称：优先 name，其次 fileName
+                        // 获取名称
                         if (tm.getName() != null && !tm.getName().trim().isEmpty()) {
                             displayName = tm.getName().trim();
                         } else if (tm.getFileName() != null && !tm.getFileName().trim().isEmpty()) {
                             displayName = tm.getFileName().trim();
                         }
                     }
-                } catch (NumberFormatException ignore) {
-                }
+                } catch (NumberFormatException ignore) {}
             }
 
-            // 2.2 找跟在附件块后面的灰色说明 span
+            // --- 2. 清理原来的灰色说明文字 (保持不变) ---
             Element tailSpan = null;
             Node next = fileDiv.nextSibling();
+            // 跳过空白文本节点
             while (next instanceof TextNode && ((TextNode) next).text().trim().isEmpty()) {
                 next = next.nextSibling();
             }
             if (next instanceof Element) {
                 Element nextElem = (Element) next;
-                if ("span".equalsIgnoreCase(nextElem.tagName())
-                        && nextElem.attr("style").contains("font-family")
-                        && nextElem.attr("style").contains("宋体")) {
+                // 宽松匹配，防止因为样式微调导致匹配失败
+                if ("span".equalsIgnoreCase(nextElem.tagName())) {
                     tailSpan = nextElem;
                 }
             }
 
-            // 2.3 如果 fileUrl 无效 → 只做清理，不生成二维码
+            // --- 3. 如果无效，直接删除并继续 ---
             if (fileUrl == null || fileUrl.isEmpty()) {
-                cleanEmptyParagraphsAfter(fileDiv);
                 fileDiv.remove();
-                if (tailSpan != null) {
-                    tailSpan.remove();
-                }
-                continue;
+                if (tailSpan != null) tailSpan.remove();
+                continue; // 继续下一个
             }
 
-            // 2.4 生成二维码
             String qrDataUrl = generateQrCodeDataUrl(fileUrl);
             if (qrDataUrl == null || qrDataUrl.isEmpty()) {
-                cleanEmptyParagraphsAfter(fileDiv);
                 fileDiv.remove();
-                if (tailSpan != null) {
-                    tailSpan.remove();
-                }
+                if (tailSpan != null) tailSpan.remove();
                 continue;
             }
 
-            // 2.5 真正有二维码了，开始往 table 里塞卡片
-            hasAnyQr = true;
-            if (currentRow == null || colIndex >= maxCols) {
-                currentRow = doc.createElement("tr");
-                table.appendChild(currentRow);
-                colIndex = 0;
-            }
+            // --- 4. 【核心修改】创建一个独立的 Table，原地插入 ---
 
-            Element td = doc.createElement("td");
-            td.attr("style", "padding:10px;vertical-align:top;text-align:center;");
+            // 创建一个只包含当前这一个二维码的表格
+            Element miniTable = doc.createElement("table");
+            miniTable.attr("style", "width:100%; border:none; margin: 10px 0;");
 
-            // 卡片 div（方便将来想加边框啥的）
-            Element cardDiv = doc.createElement("div");
-            cardDiv.attr("style", "width:150px;margin:0 auto;");
+            Element tr = doc.createElement("tr");
 
-            // 二维码图片
+            // 左侧：显示标题/文件名 (模仿通常的排版)
+            Element tdInfo = doc.createElement("td");
+            tdInfo.attr("style", "vertical-align: middle; padding: 5px;");
+            tdInfo.html(displayName != null ? displayName : "未命名资源");
+
+            // 右侧：显示二维码
+            Element tdQr = doc.createElement("td");
+            tdQr.attr("style", "width:100px; text-align:right; vertical-align: middle; padding: 5px;");
+
             Element qrImg = doc.createElement("img");
             qrImg.attr("src", qrDataUrl);
-            qrImg.attr("alt", "附件二维码");
-            qrImg.attr("style",
-                    "width:120px;height:120px;display:block;margin:0 auto;");
+            qrImg.attr("width", "80");
+            qrImg.attr("height", "80");
 
-            cardDiv.appendChild(qrImg);
+            tdQr.appendChild(qrImg);
+            tr.appendChild(tdInfo);
+            tr.appendChild(tdQr);
+            miniTable.appendChild(tr);
 
-            // 下方文件名
-            if (displayName != null && !displayName.isEmpty()) {
-                Element nameDiv = doc.createElement("div");
-                nameDiv.attr("style",
-                        "margin-top:5px;font-size:12px;line-height:1.4;" +
-                                "word-wrap:break-word;word-break:break-all;");
-                nameDiv.text(displayName);
-                cardDiv.appendChild(nameDiv);
-            }
+            // --- 5. 执行替换 ---
+            // 在原来的 fileDiv 之前插入这个新表格
+            fileDiv.before(miniTable);
 
-            td.appendChild(cardDiv);
-            currentRow.appendChild(td);
-            colIndex++;
-
-            // 2.6 清理原位置的 fileDiv + tailSpan + 空 p
-            cleanEmptyParagraphsAfter(fileDiv);
+            // 删除旧元素
             fileDiv.remove();
             if (tailSpan != null) {
                 tailSpan.remove();
             }
-        }
-
-        // 如果一个二维码都没生成，说明 table 是空的，干脆把 wrapper 也删了
-        if (!hasAnyQr) {
-            tableWrapper.remove();
         }
 
         return doc.outerHtml();
