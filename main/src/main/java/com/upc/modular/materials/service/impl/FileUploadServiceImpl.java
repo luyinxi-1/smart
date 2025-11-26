@@ -77,7 +77,9 @@ public class FileUploadServiceImpl implements IFileUploadService {
                 extractArchive(savedArchiveFile, unzipDestPath);
 
                 // 修改：返回原始压缩包路径而不是解压目录路径
-                finalPath = savedArchivePath;
+                //finalPath = savedArchivePath;
+                //返回解压后的目录路径
+                finalPath = unzipDestPath.toString();
 
             } else {
                 String fileName = FileManageUtil.createFileName(file);

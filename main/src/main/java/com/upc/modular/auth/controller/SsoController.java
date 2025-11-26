@@ -4,6 +4,8 @@ import com.upc.common.responseparam.R;
 import com.upc.modular.auth.dto.UserDTO;
 import com.upc.modular.auth.service.AuthService;
 import com.upc.modular.auth.service.impl.AuthServiceImpl;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +20,7 @@ import java.io.IOException;
 @Slf4j
 @RestController
 @RequestMapping("/sso")
+@Api(tags = "统一身份认证")
 public class SsoController {
 
     @Autowired
@@ -29,6 +32,7 @@ public class SsoController {
      * @param response 响应
      * @throws IOException IO异常
      */
+    @ApiOperation("登录入口")
     @GetMapping("/login")
     public void login(HttpSession session, HttpServletResponse response) throws IOException {
         String authorizeUrl = authService.buildAuthorizeUrl(session);
@@ -43,6 +47,7 @@ public class SsoController {
      * @param response 响应
      * @throws IOException IO异常
      */
+    @ApiOperation("回调地址")
     @GetMapping("/callback")
     public void callback(@RequestParam String code,
                          @RequestParam String state,
@@ -63,6 +68,7 @@ public class SsoController {
      * @param session 会话
      * @return 用户信息
      */
+    @ApiOperation("获取当前登录用户信息")
     @GetMapping("/me")
     public R<UserDTO> getCurrentUser(HttpSession session) {
         UserDTO userDTO = authService.getCurrentUser(session);
@@ -78,6 +84,7 @@ public class SsoController {
      * @param response 响应
      * @throws IOException IO异常
      */
+    @ApiOperation("统一登出")
     @GetMapping("/logout")
     public void logout(HttpSession session, HttpServletResponse response) throws IOException {
         try {
@@ -96,6 +103,7 @@ public class SsoController {
      * @param session 会话
      * @throws IOException IO异常
      */
+    @ApiOperation("跳转到统一认证用户信息界面")
     @GetMapping("/account")
     public void account(HttpServletResponse response, HttpSession session) throws IOException {
         // 检查本系统是否已登录
