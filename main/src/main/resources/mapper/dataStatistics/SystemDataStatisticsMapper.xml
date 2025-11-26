@@ -714,7 +714,7 @@
 
     <!-- 教师教材统计概览 -->
     <select id="getTeacherTextbookStatisticsOverview" resultType="map">
-        SELECT DISTINCT
+        SELECT
             t.id AS "textbookId",
             t.textbook_name AS "textbookName",
             COALESCE(reader_stats.reader_count, 0) as "readerCount",
