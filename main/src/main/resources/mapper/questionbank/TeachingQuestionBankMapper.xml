@@ -41,41 +41,103 @@
         LEFT JOIN sys_tbuser u ON t.creator = u.id
         LEFT JOIN textbook tb on t.textbook_id = tb.id
         <where>
+            <!-- 教师只能看自己创建的 -->
             <if test="userRole != null and userRole == 'teacher'">
                 AND t.creator = #{userId}
             </if>
+
             <!-- 条件1: 根据题库名称模糊查询 -->
             <if test="param.name != null and param.name != ''">
                 AND t.name LIKE CONCAT('%', #{param.name}, '%')
             </if>
+
             <!-- 条件2: 根据题库说明模糊查询 -->
             <if test="param.description != null and param.description != ''">
                 AND t.description LIKE CONCAT('%', #{param.description}, '%')
             </if>
+
             <!-- 条件3: 根据教学题库状态精确查询 -->
             <if test="param.status != null">
                 AND t.status = #{param.status}
             </if>
-            <!-- 条件4: 根据关联教材ID精确查询 -->
-            <if test="param.textbookId != null">
-                AND t.textbook_id = #{param.textbookId}
+
+            <!-- ========== 核心：未绑定模式 / 普通模式 分支 ========== -->
+
+            <!-- 未绑定模式：isUnbound = 1 -->
+            <if test="param.isUnbound != null and param.isUnbound == 1">
+                <!-- 有教材ID：教材页面选题库 -->
+                <if test="param.textbookId != null">
+                    AND (
+                    t.textbook_id IS NULL
+                    OR (t.textbook_id = #{param.textbookId}
+                    AND t.textbook_catalog_id IS NULL)
+                    )
+                </if>
+                <!-- 没有教材ID：全局只看“没绑定任何教材”的题库 -->
+                <if test="param.textbookId == null">
+                    AND t.textbook_id IS NULL
+                </if>
+                <!-- 注意：未绑定模式下，不再单独使用 textbookCatalogId 作为过滤条件 -->
             </if>
-            <!-- 条件5: 根据关联教材目录ID精确查询 -->
-            <if test="param.textbookCatalogId != null">
-                AND t.textbook_catalog_id = #{param.textbookCatalogId}
+
+            <!-- 普通模式：isUnbound != 1 -->
+            <if test="param.isUnbound == null || param.isUnbound != 1">
+                <!-- 条件4: 根据关联教材ID精确查询 -->
+                <if test="param.textbookId != null">
+                    AND t.textbook_id = #{param.textbookId}
+                </if>
+                <!-- 条件5: 根据关联教材目录ID精确查询 -->
+                <if test="param.textbookCatalogId != null">
+                    AND t.textbook_catalog_id = #{param.textbookCatalogId}
+                </if>
             </if>
+
             <!-- 条件6: 根据答题次数限制精确查询 -->
             <if test="param.maxAttempts != null">
                 AND t.max_attempts = #{param.maxAttempts}
             </if>
+
             <!-- 条件7: 根据成绩取值方式精确查询 -->
+            <if test="param.scorePolicy != null">
+                AND t.score_policy = #{param.scorePolicy}
+            </if>
+        </where>
+        <!--<where>
+            <if test="userRole != null and userRole == 'teacher'">
+                AND t.creator = #{userId}
+            </if>
+            &lt;!&ndash; 条件1: 根据题库名称模糊查询 &ndash;&gt;
+            <if test="param.name != null and param.name != ''">
+                AND t.name LIKE CONCAT('%', #{param.name}, '%')
+            </if>
+            &lt;!&ndash; 条件2: 根据题库说明模糊查询 &ndash;&gt;
+            <if test="param.description != null and param.description != ''">
+                AND t.description LIKE CONCAT('%', #{param.description}, '%')
+            </if>
+            &lt;!&ndash; 条件3: 根据教学题库状态精确查询 &ndash;&gt;
+            <if test="param.status != null">
+                AND t.status = #{param.status}
+            </if>
+            &lt;!&ndash; 条件4: 根据关联教材ID精确查询 &ndash;&gt;
+            <if test="param.textbookId != null">
+                AND t.textbook_id = #{param.textbookId}
+            </if>
+            &lt;!&ndash; 条件5: 根据关联教材目录ID精确查询 &ndash;&gt;
+            <if test="param.textbookCatalogId != null">
+                AND t.textbook_catalog_id = #{param.textbookCatalogId}
+            </if>
+            &lt;!&ndash; 条件6: 根据答题次数限制精确查询 &ndash;&gt;
+            <if test="param.maxAttempts != null">
+                AND t.max_attempts = #{param.maxAttempts}
+            </if>
+            &lt;!&ndash; 条件7: 根据成绩取值方式精确查询 &ndash;&gt;
             <if test="param.scorePolicy != null">
                 AND t.score_policy = #{param.scorePolicy}
             </if>
             <if test="param.isUnbound != null and param.isUnbound == 1">
                 AND t.textbook_catalog_id IS NULL
             </if>
-        </where>
+        </where>-->
         GROUP BY
         t.id, t.name, t.description, t.status, t.textbook_id, tb.textbook_name,
         t.textbook_catalog_id, t.max_attempts, t.score_policy,
