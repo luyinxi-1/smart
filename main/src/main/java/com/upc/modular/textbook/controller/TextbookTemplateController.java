@@ -4,11 +4,14 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.upc.modular.textbook.entity.TextbookTemplate;
 import com.upc.modular.textbook.service.ITextbookTemplateService;
 import com.upc.common.responseparam.R;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/textbookTemplate")
+@Api(tags = "教材模板")
 public class TextbookTemplateController {
 
     @Autowired
@@ -17,6 +20,7 @@ public class TextbookTemplateController {
     /**
      * 新增模板
      */
+    @ApiOperation(value = "新增模板")
     @PostMapping("/add")
     public R addTemplate(@RequestBody TextbookTemplate template) {
         textbookTemplateService.addTemplate(template);
@@ -26,6 +30,7 @@ public class TextbookTemplateController {
     /**
      * 删除模板
      */
+    @ApiOperation(value = "删除模板")
     @DeleteMapping("/delete")
     public R deleteById(@RequestParam Long id) {
         textbookTemplateService.deleteById(id);
@@ -35,6 +40,7 @@ public class TextbookTemplateController {
     /**
      * 分页查询模板
      */
+    @ApiOperation(value = "分页查询模板")
     @GetMapping("/page")
     public R<IPage<TextbookTemplate>> pageByTextbookIdAndStatus(
             @RequestParam Long textbookId,
@@ -48,6 +54,7 @@ public class TextbookTemplateController {
     /**
      * 设置启用模板
      */
+    @ApiOperation(value = "设置启用模板")
     @PostMapping("/setActive")
     public R setActiveTemplate(@RequestBody setActiveTemplateRequest request) {
         textbookTemplateService.setActiveTemplate(request.getTextbookId(), request.getTemplateId());
@@ -57,6 +64,7 @@ public class TextbookTemplateController {
     /**
      * 查询当前启用模板
      */
+    @ApiOperation(value = "查询当前启用模板")
     @GetMapping("/active")
     public R<TextbookTemplate> getActiveTemplate(@RequestParam Long textbookId) {
         TextbookTemplate template = textbookTemplateService.getActiveTemplate(textbookId);
