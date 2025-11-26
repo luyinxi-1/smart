@@ -451,15 +451,69 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 .like(ObjectUtils.isNotEmpty(param.getName()), TeachingMaterials::getName, param.getName())
                 // 当 param.getType() 不为空时，增加 `type = ?` 条件
                 .eq(ObjectUtils.isNotEmpty(param.getType()), TeachingMaterials::getType, param.getType());
-        
+        boolean unboundOnly = Boolean.TRUE.equals(param.getUnboundOnly());
+        Long textbookId = param.getTextbookId();
+        Long chapterId = param.getChapterId();
+
         // 添加创建人筛选条件：非管理员只能查看自己创建的素材
         if (userType != 0) { // 非管理员用户
             queryWrapper.eq(TeachingMaterials::getCreator, currentUserId);
         } else if (param.getAuthorId() != null) { // 管理员指定了作者ID
             queryWrapper.eq(TeachingMaterials::getCreator, param.getAuthorId());
         }
+        if (unboundOnly) {
+            if (textbookId != null) {
+                // ✅ 有教材ID：按“当前教材维度”计算要排除的素材
+                // 规则：
+                // 1）被其它教材占用的素材（textbook_id != 当前教材）
+                // 2）在当前教材下，已经绑定过章节的素材（chapter_id != null）
+                LambdaQueryWrapper<MaterialsTextbookMapping> mappingWrapper =
+                        new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                                .select(MaterialsTextbookMapping::getMaterialId)
+                                .and(w -> w
+                                        // (1) 其它教材占用
+                                        .ne(MaterialsTextbookMapping::getTextbookId, textbookId)
+                                        .or()
+                                        // (2) 当前教材下已绑定章节
+                                        .and(w2 -> w2.eq(MaterialsTextbookMapping::getTextbookId, textbookId)
+                                                .isNotNull(MaterialsTextbookMapping::getChapterId))
+                                );
+
+                List<Long> excludedIds = materialsTextbookMappingService.list(mappingWrapper)
+                        .stream()
+                        .map(MaterialsTextbookMapping::getMaterialId)
+                        .distinct()
+                        .collect(Collectors.toList());
+
+                if (!CollectionUtils.isEmpty(excludedIds)) {
+                    queryWrapper.notIn(TeachingMaterials::getId, excludedIds);
+                }
+                // 注意：这里不会用 in(...) 限定，只是排除掉“不能用”的素材
+                // 所以：
+                // - 完全没有 mapping 的“新素材”会留下来
+                // - 当前教材下 chapter_id = null 的素材也会留下来
+
+            } else {
+                // ❓ 没有教材ID，只能退回“全局未绑定章节”的逻辑（看你要不要用）
+                LambdaQueryWrapper<MaterialsTextbookMapping> mappingWrapper =
+                        new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                                .select(MaterialsTextbookMapping::getMaterialId)
+                                .isNotNull(MaterialsTextbookMapping::getChapterId);
+
+                List<Long> excludedIds = materialsTextbookMappingService.list(mappingWrapper)
+                        .stream()
+                        .map(MaterialsTextbookMapping::getMaterialId)
+                        .distinct()
+                        .collect(Collectors.toList());
+
+                if (!CollectionUtils.isEmpty(excludedIds)) {
+                    queryWrapper.notIn(TeachingMaterials::getId, excludedIds);
+                }
+            }
+        }
+
         
-        if (param.getUnboundOnly() != null && param.getUnboundOnly()) {
+    /*    if (param.getUnboundOnly() != null && param.getUnboundOnly()) {
             // 1.1 获取所有已绑定过的素材ID列表
             List<Long> boundMaterialIds = materialsTextbookMappingService.list(
                             new LambdaQueryWrapper<MaterialsTextbookMapping>().select(MaterialsTextbookMapping::getMaterialId)
@@ -473,10 +527,26 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 queryWrapper.notIn(TeachingMaterials::getId, boundMaterialIds);
             }
             // 如果 boundMaterialIds 为空，则无需操作，查询所有即可
+        }*/
+
+        // 根据教材ID和章节ID筛选（⚠️ 只在非 unboundOnly 情况下使用）
+        if (!unboundOnly && (textbookId != null || chapterId != null)) {
+            List<Long> materialIds = materialsTextbookMappingService.list(
+                    new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                            .eq(textbookId != null, MaterialsTextbookMapping::getTextbookId, textbookId)
+                            .eq(chapterId != null, MaterialsTextbookMapping::getChapterId, chapterId)
+            ).stream().map(MaterialsTextbookMapping::getMaterialId).collect(Collectors.toList());
+
+            if (!materialIds.isEmpty()) {
+                queryWrapper.in(TeachingMaterials::getId, materialIds);
+            } else {
+                // 没有匹配素材时，让查询结果为空
+                queryWrapper.isNull(TeachingMaterials::getId);
+            }
         }
-        
+
         // 根据教材ID和章节ID筛选
-        if (param.getTextbookId() != null || param.getChapterId() != null) {
+/*        if (param.getTextbookId() != null || param.getChapterId() != null) {
             // 需要连接查询素材与教材的绑定关系表
             List<Long> materialIds = materialsTextbookMappingService.list(
                 new LambdaQueryWrapper<MaterialsTextbookMapping>()
@@ -490,7 +560,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 // 如果没有匹配的素材ID，则返回空结果
                 queryWrapper.isNull(TeachingMaterials::getId);
             }
-        }
+        }*/
         
         // 添加排序条件
         queryWrapper.orderByDesc(TeachingMaterials::getAddDatetime);
