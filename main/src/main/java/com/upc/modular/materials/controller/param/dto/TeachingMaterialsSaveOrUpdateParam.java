@@ -21,6 +21,9 @@ public class TeachingMaterialsSaveOrUpdateParam {
     @TableField("chapter_id")
     private Long chapterId;
 
+    @ApiModelProperty("备用章节id")
+    @TableField("chapter_id2")
+    private Long chapterId2;
     @ApiModelProperty("教学素材名称")
     @TableField("name")
     private String name;
