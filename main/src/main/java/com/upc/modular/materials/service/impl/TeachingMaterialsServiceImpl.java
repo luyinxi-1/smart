@@ -455,6 +455,8 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         boolean unboundOnly = Boolean.TRUE.equals(param.getUnboundOnly());
         Long textbookId = param.getTextbookId();
         Long chapterId = param.getChapterId();
+        Long chapterId2 = param.getChapterId2();
+
 
         // 添加创建人筛选条件：非管理员只能查看自己创建的素材
         if (userType != 0) { // 非管理员用户
@@ -462,7 +464,113 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         } else if (param.getAuthorId() != null) { // 管理员指定了作者ID
             queryWrapper.eq(TeachingMaterials::getCreator, param.getAuthorId());
         }
+
         if (unboundOnly) {
+
+            // ============ 场景 0：老逻辑（不传 textbookId） ============ //
+            if (textbookId == null && chapterId2 == null) {
+                // 保持你原来的“全局未绑定”规则：排除所有已绑定到任何章节的素材
+                LambdaQueryWrapper<MaterialsTextbookMapping> mappingWrapper =
+                        new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                                .select(MaterialsTextbookMapping::getMaterialId)
+                                .isNotNull(MaterialsTextbookMapping::getChapterId);
+
+                List<Long> excludedIds = materialsTextbookMappingService.list(mappingWrapper)
+                        .stream()
+                        .map(MaterialsTextbookMapping::getMaterialId)
+                        .distinct()
+                        .collect(Collectors.toList());
+
+                if (!CollectionUtils.isEmpty(excludedIds)) {
+                    queryWrapper.notIn(TeachingMaterials::getId, excludedIds);
+                }
+                // 直接 return，不走下面新逻辑
+            }
+
+            // ============ 场景 1 & 2：有 textbookId，是新需求 ============ //
+            if (textbookId != null) {
+
+                // ---------- 1. 先算“要排除的素材”（已被别处占用） ----------
+                List<Long> excludedIds;
+                LambdaQueryWrapper<MaterialsTextbookMapping> excludeWrapper =
+                        new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                                .select(MaterialsTextbookMapping::getMaterialId);
+
+                if (chapterId2 != null) {
+                    // 场景 1：编辑当前章节富文本
+                    // 排除：其它教材的 + 当前教材下其它章节的
+                    excludeWrapper.and(w -> w
+                            // (1) 被其他教材占用
+                            .ne(MaterialsTextbookMapping::getTextbookId, textbookId)
+                            .or()
+                            // (2) 当前教材下，但在“不是当前章节”的章节里
+                            .and(w2 -> w2.eq(MaterialsTextbookMapping::getTextbookId, textbookId)
+                                    .isNotNull(MaterialsTextbookMapping::getChapterId)
+                                    .ne(MaterialsTextbookMapping::getChapterId, chapterId2))
+                    );
+                } else {
+                    // 场景 2：教材维度查看
+                    // 排除：被其他教材占用的（当前教材占用的反而要保留）
+                    excludeWrapper.ne(MaterialsTextbookMapping::getTextbookId, textbookId);
+                }
+
+                excludedIds = materialsTextbookMappingService.list(excludeWrapper)
+                        .stream()
+                        .map(MaterialsTextbookMapping::getMaterialId)
+                        .distinct()
+                        .collect(Collectors.toList());
+
+                // ---------- 2. 再算“需要强制保留的素材”（已绑定本教材/本章节） ----------
+                List<Long> includeIds;
+                LambdaQueryWrapper<MaterialsTextbookMapping> includeWrapper =
+                        new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                                .select(MaterialsTextbookMapping::getMaterialId)
+                                .eq(MaterialsTextbookMapping::getTextbookId, textbookId);
+
+                if (chapterId2 != null) {
+                    // 编辑本章节：只加回本章节已绑定的
+                    includeWrapper.eq(MaterialsTextbookMapping::getChapterId, chapterId2);
+                }
+                // 否则教材维度：所有绑定在本教材的都加回来
+
+                includeIds = materialsTextbookMappingService.list(includeWrapper)
+                        .stream()
+                        .map(MaterialsTextbookMapping::getMaterialId)
+                        .distinct()
+                        .collect(Collectors.toList());
+
+                // ---------- 3. 为 lambda 准备 final 变量 ----------
+                final List<Long> finalExcludedIds = excludedIds;
+                final List<Long> finalIncludeIds  = includeIds;
+
+                // ---------- 4. 组合条件 ----------
+                if (CollectionUtils.isEmpty(finalIncludeIds)) {
+                    // 没有要强制保留的：退回“只排除已占用”的老逻辑
+                    if (!CollectionUtils.isEmpty(finalExcludedIds)) {
+                        queryWrapper.notIn(TeachingMaterials::getId, finalExcludedIds);
+                    }
+                } else if (CollectionUtils.isEmpty(finalExcludedIds)) {
+                    // 只有要强制保留的：直接 in
+                    queryWrapper.in(TeachingMaterials::getId, finalIncludeIds);
+                } else {
+                    // 既有要排除的，又有要强制保留的：
+                    // 其它筛选条件 AND ( id NOT IN excludedIds OR id IN includeIds )
+                    queryWrapper.and(q -> q
+                            .notIn(TeachingMaterials::getId, finalExcludedIds)
+                            .or()
+                            .in(TeachingMaterials::getId, finalIncludeIds)
+                    );
+                }
+            }
+
+            // 提示：如果 textbookId == null 但 chapterId2 != null，这里没特别处理，
+            // 一般编辑富文本一定会有 textbookId；如果真的出现这种情况，按你业务再决定是否兜底。
+        }
+
+
+
+
+       /* if (unboundOnly) {
             if (textbookId != null) {
                 // ✅ 有教材ID：按“当前教材维度”计算要排除的素材
                 // 规则：
@@ -507,7 +615,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                     queryWrapper.notIn(TeachingMaterials::getId, excludedIds);
                 }
             }
-        }
+        }*/
         // 根据教材ID和章节ID筛选（⚠️ 只在非 unboundOnly 情况下使用）
         if (!unboundOnly && (textbookId != null || chapterId != null)) {
             List<Long> materialIds = materialsTextbookMappingService.list(
@@ -560,7 +668,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                         new LambdaQueryWrapper<Textbook>().in(Textbook::getId, textbookIds)
                 ).stream().collect(Collectors.toMap(Textbook::getId, Textbook::getTextbookName));
             }
-            
+
             // 查询章节信息
             List<Long> chapterIds = materialTextbookMappings.stream()
                     .map(MaterialsTextbookMapping::getChapterId)

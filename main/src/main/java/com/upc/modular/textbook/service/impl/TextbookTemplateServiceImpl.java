@@ -95,20 +95,19 @@ public class TextbookTemplateServiceImpl extends ServiceImpl<TextbookTemplateMap
 
     @Override
     public IPage<TextbookTemplate> pageByTextbookIdAndStatus(Long textbookId, Long status, long pageNo, long pageSize) {
-        // 检查参数
-        if (textbookId == null) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材ID不能为空");
-        }
-
-        if (status == null) {
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "状态不能为空");
-        }
-
         // 分页查询
         Page<TextbookTemplate> page = new Page<>(pageNo, pageSize);
         LambdaQueryWrapper<TextbookTemplate> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(TextbookTemplate::getTextbookId, textbookId)
-                .eq(TextbookTemplate::getStatus, status);
+        
+        // 如果提供了textbookId，则添加到查询条件中
+        if (textbookId != null) {
+            wrapper.eq(TextbookTemplate::getTextbookId, textbookId);
+        }
+        
+        // 如果提供了status，则添加到查询条件中
+        if (status != null) {
+            wrapper.eq(TextbookTemplate::getStatus, status);
+        }
 
         return this.page(page, wrapper);
     }

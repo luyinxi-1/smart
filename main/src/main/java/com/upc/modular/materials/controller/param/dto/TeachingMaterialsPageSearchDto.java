@@ -33,4 +33,7 @@ public class TeachingMaterialsPageSearchDto extends PageBaseSearchParam {
     
     @ApiModelProperty("章节ID")
     private Long chapterId;
+
+    @ApiModelProperty("备用章节ID（和 chapterId 值一样，用于控制已绑定范围）")
+    private Long chapterId2;
 }

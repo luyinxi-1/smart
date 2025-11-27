@@ -31,7 +31,7 @@ public class TextbookTemplateController {
      * 删除模板
      */
     @ApiOperation(value = "删除模板")
-    @DeleteMapping("/delete")
+    @PostMapping("/delete")
     public R deleteById(@RequestParam Long id) {
         textbookTemplateService.deleteById(id);
         return R.ok();
@@ -43,8 +43,8 @@ public class TextbookTemplateController {
     @ApiOperation(value = "分页查询模板")
     @GetMapping("/page")
     public R<IPage<TextbookTemplate>> pageByTextbookIdAndStatus(
-            @RequestParam Long textbookId,
-            @RequestParam Long status,
+            @RequestParam(required = false) Long textbookId,
+            @RequestParam(required = false) Long status,
             @RequestParam(defaultValue = "1") Long pageNo,
             @RequestParam(defaultValue = "10") Long pageSize) {
         IPage<TextbookTemplate> page = textbookTemplateService.pageByTextbookIdAndStatus(textbookId, status, pageNo, pageSize);
