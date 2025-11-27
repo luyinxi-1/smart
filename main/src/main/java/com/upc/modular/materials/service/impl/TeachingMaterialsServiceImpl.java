@@ -749,6 +749,9 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 if (param.getChapterId() != null) {
                     mapping.setChapterId(param.getChapterId());
                 }
+                if (param.getChapterId2() != null) {
+                    mapping.setChapterId2(param.getChapterId2());
+                }
                 mapping.setOperator(UserUtils.get().getId());
                 mapping.setOperationDatetime(LocalDateTime.now());
                 materialsTextbookMappingService.updateById(mapping);
@@ -758,6 +761,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 mapping.setMaterialId(oldData.getId());
                 mapping.setTextbookId(param.getTextbookId());
                 mapping.setChapterId(param.getChapterId());
+                mapping.setChapterId2(param.getChapterId2());
                 mapping.setCreator(UserUtils.get().getId());
                 mapping.setAddDatetime(LocalDateTime.now());
                 materialsTextbookMappingService.save(mapping);
@@ -772,6 +776,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             if (mapping != null) {
                 // 更新章节ID
                 mapping.setChapterId(param.getChapterId());
+                mapping.setChapterId2(param.getChapterId2());
                 mapping.setOperator(UserUtils.get().getId());
                 mapping.setOperationDatetime(LocalDateTime.now());
                 materialsTextbookMappingService.updateById(mapping);
