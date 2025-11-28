@@ -51,6 +51,10 @@ public class TeachingQuestionBank implements Serializable {
     @TableField("textbook_catalog_id")
     private Long textbookCatalogId;
 
+    @ApiModelProperty("备用教材目录Id")
+    @TableField("textbook_catalog_id2")
+    private Long textbookCatalogId2;
+
     @ApiModelProperty("关联的教材目录UUid")
     @TableField(exist = false)
     private String textbookCatalogUuId;
