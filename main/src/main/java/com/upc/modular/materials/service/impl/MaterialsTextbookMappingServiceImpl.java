@@ -114,7 +114,8 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
         mapping.setTextbookId(textbookId);
         mapping.setMaterialId(materialId);
         mapping.setChapterName(chapterName);
-        mapping.setChapterId(finalChapterId); // 使用最终确定的章节ID
+        mapping.setChapterId(finalChapterId);
+        mapping.setChapterId2(finalChapterId);// 使用最终确定的章节ID
 
         if (this.save(mapping)) {
             return mapping.getId();
@@ -355,6 +356,7 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
             entity.setMaterialId(dto.getMaterialId());
             entity.setChapterName(dto.getChapterName());
             entity.setChapterId(dto.getChapterId()); // 此处 chapterId 已被正确填充
+            entity.setChapterId2(dto.getChapterId());
             return entity;
         }).collect(Collectors.toList());
 

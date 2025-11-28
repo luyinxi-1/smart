@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.*;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Data
 @TableName("textbook_template")
 public class TextbookTemplate {
@@ -42,4 +44,8 @@ public class TextbookTemplate {
     @ApiModelProperty("状态 0禁用 1启用")
     @TableField(value ="status")
     private Long status;
+
+    @ApiModelProperty("新增时间")
+    @TableField("add_datetime")
+    private LocalDateTime addDatetime;
 }

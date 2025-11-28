@@ -108,7 +108,7 @@ public class TextbookTemplateServiceImpl extends ServiceImpl<TextbookTemplateMap
         if (status != null) {
             wrapper.eq(TextbookTemplate::getStatus, status);
         }
-
+        wrapper.orderByDesc(TextbookTemplate::getAddDatetime);
         return this.page(page, wrapper);
     }
 
