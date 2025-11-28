@@ -10,7 +10,7 @@
         <result column="status" property="status" />
         <result column="textbook_id" property="textbookId" />
         <result column="textbook_catalog_id" property="textbookCatalogId" />
-        <result column="textbook_catalog_id2" property="textbookCatalogId2" />
+        <!--<result column="textbook_catalog_id2" property="textbookCatalogId2" />-->
         <result column="max_attempts" property="maxAttempts" />
         <result column="score_policy" property="scorePolicy" />
         <result column="creator" property="creator" />
@@ -136,7 +136,8 @@
         ORDER BY
         t.add_datetime
         <choose>
-            <when test="param.isAsc != null && param.isAsc == 1">ASC</when>
+            <when test="param.isAsc != null and param.isAsc == 1">ASC</when>
+
             <otherwise>DESC</otherwise>
         </choose>
     </select>
