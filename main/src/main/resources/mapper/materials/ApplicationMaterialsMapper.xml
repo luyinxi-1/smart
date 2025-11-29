@@ -14,30 +14,33 @@
         <result column="operator" property="operator" />
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
-    
     <!-- 分页查询应用素材列表 -->
-    <select id="selectApplicationMaterialsPage" resultType="com.upc.modular.materials.controller.param.vo.ApplicationMaterialsVO">
+    <select id="selectApplicationMaterialsPage"
+            resultType="com.upc.modular.materials.controller.param.vo.ApplicationMaterialsVO">
         SELECT
-            am.id,
-            am.name,
-            am.description,
-            am.question_bank_id AS questionBankId,
-            amtm.textbook_id AS textbookId,
-            amtm.chapter_id AS textbookCatalogId,
-            am.status,
-            am.creator,
-            am.add_datetime AS addDatetime,
-            am.operator,
-            am.operation_datetime AS operationDatetime,
-            (SELECT name FROM teaching_question_bank WHERE id = am.question_bank_id LIMIT 1) AS questionBankName,
-            (SELECT textbook_name FROM textbook WHERE id = amtm.textbook_id LIMIT 1) AS textbookName,
-            (SELECT catalog_name FROM textbook_catalog WHERE id = amtm.chapter_id LIMIT 1) AS textbookCatalogName,
-            (SELECT nickname FROM sys_tbuser WHERE id = am.creator LIMIT 1) AS creatorName,
-            (SELECT nickname FROM sys_tbuser WHERE id = am.operator LIMIT 1) AS operatorName,
-            (SELECT COUNT(*) FROM application_materials_mapping WHERE application_material_id = am.id) AS teachingMaterialsCount
+        am.id,
+        am.name,
+        am.description,
+        am.question_bank_id AS questionBankId,
+        amtm.textbook_id AS textbookId,
+        amtm.chapter_id AS textbookCatalogId,
+        amtm.chapter_id2 AS textbookCatalogId2,
+        am.status,
+        am.creator,
+        am.add_datetime AS addDatetime,
+        am.operator,
+        am.operation_datetime AS operationDatetime,
+        (SELECT name FROM teaching_question_bank WHERE id = am.question_bank_id LIMIT 1) AS questionBankName,
+        (SELECT textbook_name FROM textbook WHERE id = amtm.textbook_id LIMIT 1) AS textbookName,
+        (SELECT catalog_name FROM textbook_catalog WHERE id = amtm.chapter_id LIMIT 1) AS textbookCatalogName,
+        (SELECT nickname FROM sys_tbuser WHERE id = am.creator LIMIT 1) AS creatorName,
+        (SELECT nickname FROM sys_tbuser WHERE id = am.operator LIMIT 1) AS operatorName,
+        (SELECT COUNT(*) FROM application_materials_mapping WHERE application_material_id = am.id) AS teachingMaterialsCount
         FROM application_materials am
-        LEFT JOIN application_materials_textbook_mapping amtm ON am.id = amtm.application_material_id
+        LEFT JOIN application_materials_textbook_mapping amtm
+        ON am.id = amtm.application_material_id
         <where>
+            <!-- 基础筛选条件 -->
             <if test="param.name != null and param.name != ''">
                 AND am.name LIKE CONCAT('%', #{param.name}, '%')
             </if>
@@ -50,23 +53,145 @@
             <if test="param.creator != null">
                 AND am.creator = #{param.creator}
             </if>
-            <if test="param.textbookId != null">
-                AND amtm.textbook_id = #{param.textbookId}
-            </if>
-            <if test="param.textbookCatalogId != null">
-                AND amtm.chapter_id = #{param.textbookCatalogId}
-            </if>
-            <!-- 只查询未绑定教材的应用素材 -->
-            <if test="param.onlyUnbound != null and param.onlyUnbound == true">
-                AND amtm.application_material_id IS NULL
-            </if>
+
+            <!-- ===============================
+                 核心：未绑定模式 / 普通模式 分支
+                 =============================== -->
+            <choose>
+                <!-- 未绑定模式：onlyUnbound = true -->
+                <when test="param.onlyUnbound != null and param.onlyUnbound == true">
+
+                    <!-- 规则 3：凡是在 mapping 表中存在 chapter_id 有值的记录，一律排除 -->
+                    AND NOT EXISTS (
+                    SELECT 1
+                    FROM application_materials_textbook_mapping amtm2
+                    WHERE amtm2.application_material_id = am.id
+                    AND amtm2.chapter_id IS NOT NULL
+                    )
+
+                    <choose>
+                        <!-- 有 textbookId：按当前教材维度进一步控制 -->
+                        <when test="param.textbookId != null">
+                            AND amtm.textbook_id = #{param.textbookId}
+
+                            <choose>
+                                <!-- 规则 2：textbookCatalogId2 有真实值（>0），当前章节已入库 -->
+                                <when test="param.textbookCatalogId2 != null and param.textbookCatalogId2 != 0">
+                                    <!--
+                                        属于当前教材；
+                                        chapter_id 仍为空（未正式绑定章节）；
+                                        chapter_id2 = 当前章节ID 或 chapter_id2 为空
+                                    -->
+                                    AND amtm.chapter_id IS NULL
+                                    AND (
+                                    amtm.chapter_id2 = #{param.textbookCatalogId2}
+                                    OR amtm.chapter_id2 IS NULL
+                                    )
+                                </when>
+
+                                <!-- 规则 1：textbookCatalogId2 未传或 =0，临时章节 -->
+                                <otherwise>
+                                    <!--
+                                        属于当前教材；
+                                        chapter_id 为空（未绑定章节）；
+                                        chapter_id2 也为空（没有临时占用记录）
+                                     -->
+                                    AND amtm.chapter_id IS NULL
+                                    AND amtm.chapter_id2 IS NULL
+                                </otherwise>
+                            </choose>
+                        </when>
+
+                        <!-- 没有 textbookId：统一“全局未绑定章节”逻辑 -->
+                        <otherwise>
+                            <!--
+                                这里只依赖 NOT EXISTS (chapter_id IS NOT NULL)
+                                即：只要没绑定任何章节的应用素材，都算“未绑定章节”
+                                （哪本教材、有没有 textbookId 在 mapping 里记录都不限制）
+                            -->
+                        </otherwise>
+                    </choose>
+                </when>
+
+                <!-- 普通模式：onlyUnbound = false/null -->
+                <otherwise>
+                    <!-- 条件：按教材过滤 -->
+                    <if test="param.textbookId != null">
+                        AND amtm.textbook_id = #{param.textbookId}
+                    </if>
+
+                    <!-- 优先按备用章节ID（临时章节）过滤 -->
+                    <if test="param.textbookCatalogId2 != null and param.textbookCatalogId2 != 0">
+                        AND amtm.chapter_id2 = #{param.textbookCatalogId2}
+                    </if>
+
+                    <!-- 再按正式章节ID过滤 -->
+                    <if test="param.textbookCatalogId != null">
+                        AND amtm.chapter_id = #{param.textbookCatalogId}
+                    </if>
+                </otherwise>
+            </choose>
         </where>
+
         ORDER BY am.add_datetime
         <choose>
             <when test="param.isAsc != null and param.isAsc == 1">ASC</when>
             <otherwise>DESC</otherwise>
         </choose>
     </select>
+
+    <!--    &lt;!&ndash; 分页查询应用素材列表 &ndash;&gt;
+        <select id="selectApplicationMaterialsPage" resultType="com.upc.modular.materials.controller.param.vo.ApplicationMaterialsVO">
+            SELECT
+                am.id,
+                am.name,
+                am.description,
+                am.question_bank_id AS questionBankId,
+                amtm.textbook_id AS textbookId,
+                amtm.chapter_id AS textbookCatalogId,
+                am.status,
+                am.creator,
+                am.add_datetime AS addDatetime,
+                am.operator,
+                am.operation_datetime AS operationDatetime,
+                (SELECT name FROM teaching_question_bank WHERE id = am.question_bank_id LIMIT 1) AS questionBankName,
+                (SELECT textbook_name FROM textbook WHERE id = amtm.textbook_id LIMIT 1) AS textbookName,
+                (SELECT catalog_name FROM textbook_catalog WHERE id = amtm.chapter_id LIMIT 1) AS textbookCatalogName,
+                (SELECT nickname FROM sys_tbuser WHERE id = am.creator LIMIT 1) AS creatorName,
+                (SELECT nickname FROM sys_tbuser WHERE id = am.operator LIMIT 1) AS operatorName,
+                (SELECT COUNT(*) FROM application_materials_mapping WHERE application_material_id = am.id) AS teachingMaterialsCount
+            FROM application_materials am
+            LEFT JOIN application_materials_textbook_mapping amtm ON am.id = amtm.application_material_id
+            <where>
+                <if test="param.name != null and param.name != ''">
+                    AND am.name LIKE CONCAT('%', #{param.name}, '%')
+                </if>
+                <if test="param.questionBankId != null">
+                    AND am.question_bank_id = #{param.questionBankId}
+                </if>
+                <if test="param.status != null">
+                    AND am.status = #{param.status}
+                </if>
+                <if test="param.creator != null">
+                    AND am.creator = #{param.creator}
+                </if>
+                <if test="param.textbookId != null">
+                    AND amtm.textbook_id = #{param.textbookId}
+                </if>
+                <if test="param.textbookCatalogId != null">
+                    AND amtm.chapter_id = #{param.textbookCatalogId}
+                </if>
+                &lt;!&ndash; 只查询未绑定教材的应用素材 &ndash;&gt;
+                <if test="param.onlyUnbound != null and param.onlyUnbound == true">
+                    AND amtm.application_material_id IS NULL
+                </if>
+            </where>
+            ORDER BY am.add_datetime
+            <choose>
+                <when test="param.isAsc != null and param.isAsc == 1">ASC</when>
+                <otherwise>DESC</otherwise>
+            </choose>
+        </select>-->
     
     <!-- 根据ID查询应用素材详情 -->
     <select id="selectApplicationMaterialsById" resultType="com.upc.modular.materials.controller.param.vo.ApplicationMaterialsVO">

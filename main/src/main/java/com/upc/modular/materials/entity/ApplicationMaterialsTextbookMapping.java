@@ -48,6 +48,10 @@ public class ApplicationMaterialsTextbookMapping implements Serializable {
     @TableField("chapter_id")
     private Long textbookCatalogId;
 
+    @ApiModelProperty("备用章id（临时章节/草稿章节）")
+    @TableField("chapter_id2")
+    private Long textbookCatalogId2;
+
     @ApiModelProperty("教材中应用素材在线浏览次数")
     @TableField("view_count")
     private Long viewCount;
