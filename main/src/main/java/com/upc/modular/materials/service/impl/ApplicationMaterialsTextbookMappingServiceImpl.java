@@ -104,6 +104,7 @@ public class ApplicationMaterialsTextbookMappingServiceImpl extends ServiceImpl<
         mapping.setApplicationMaterialId(applicationMaterialId);
         mapping.setTextbookCatalogName(textbookCatalogName);
         mapping.setTextbookCatalogId(finalTextbookCatalogId); // 使用最终确定的章节ID
+        mapping.setTextbookCatalogId2(finalTextbookCatalogId); // 设置备用章节ID，与主章节ID相同
         mapping.setCreator(currentUserId); // 设置创建人
         mapping.setOperator(currentUserId); // 设置操作人
 
@@ -170,6 +171,11 @@ public class ApplicationMaterialsTextbookMappingServiceImpl extends ServiceImpl<
                     dto.setTextbookCatalogId(catalog.getId());
                     dto.setTextbookCatalogName(catalog.getCatalogName());
                 }
+                
+                // 如果textbookCatalogId2为空但textbookCatalogId不为空，则将textbookCatalogId2设置为与textbookCatalogId相同的值
+                if (dto.getTextbookCatalogId2() == null && dto.getTextbookCatalogId() != null) {
+                    dto.setTextbookCatalogId2(dto.getTextbookCatalogId());
+                }
             }
         }
 
@@ -235,6 +241,11 @@ public class ApplicationMaterialsTextbookMappingServiceImpl extends ServiceImpl<
                     if (catalogName != null) {
                         dto.setTextbookCatalogName(catalogName);
                     }
+                }
+                
+                // 如果textbookCatalogId2为空但textbookCatalogId不为空，则将textbookCatalogId2设置为与textbookCatalogId相同的值
+                if (dto.getTextbookCatalogId2() == null && dto.getTextbookCatalogId() != null) {
+                    dto.setTextbookCatalogId2(dto.getTextbookCatalogId());
                 }
             }
         }
@@ -490,7 +501,14 @@ public class ApplicationMaterialsTextbookMappingServiceImpl extends ServiceImpl<
             entity.setApplicationMaterialId(dto.getApplicationMaterialId());
             entity.setTextbookCatalogName(dto.getTextbookCatalogName());
             entity.setTextbookCatalogId(dto.getTextbookCatalogId());
-            entity.setTextbookCatalogId2(dto.getTextbookCatalogId2()); // 设置备用章节ID
+            
+            // 如果textbookCatalogId2为空但textbookCatalogId不为空，则将textbookCatalogId2设置为与textbookCatalogId相同的值
+            if (dto.getTextbookCatalogId2() == null && dto.getTextbookCatalogId() != null) {
+                entity.setTextbookCatalogId2(dto.getTextbookCatalogId());
+            } else {
+                entity.setTextbookCatalogId2(dto.getTextbookCatalogId2());
+            }
+            
             entity.setCreator(currentUserId);
             entity.setOperator(currentUserId);
             return entity;
