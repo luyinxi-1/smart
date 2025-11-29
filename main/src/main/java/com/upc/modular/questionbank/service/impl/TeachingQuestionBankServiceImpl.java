@@ -193,6 +193,7 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
     public Long inserQuestionBank(TeachingQuestionBank param) {
         Long textbookId = param.getTextbookId();
         Long textbookCatalogId = param.getTextbookCatalogId();
+        Long textbookCatalogId2 = param.getTextbookCatalogId2();
 
         // 教材ID和教材目录ID是外键，需要判断是否存在
         if (textbookId != null) {
@@ -211,6 +212,21 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
             if (!isTextbookCatalogExists) {
                 throw new RuntimeException("ID为 " + textbookCatalogId + " 的教材目录不存在！");
             }
+        }
+
+        // 如果textbookCatalogId2不为空，校验其有效性
+        if (textbookCatalogId2 != null) {
+            LambdaQueryWrapper<TextbookCatalog> queryWrapper3 = new LambdaQueryWrapper<>();
+            queryWrapper3.eq(TextbookCatalog::getId, textbookCatalogId2);
+            boolean isTextbookCatalogExists = textbookCatalogMapper.exists(queryWrapper3);
+            if (!isTextbookCatalogExists) {
+                throw new RuntimeException("ID为 " + textbookCatalogId2 + " 的教材目录不存在！");
+            }
+        }
+
+        // 如果textbookCatalogId2为空但textbookCatalogId不为空，则将textbookCatalogId2设置为与textbookCatalogId相同的值
+        if (textbookCatalogId2 == null && textbookCatalogId != null) {
+            param.setTextbookCatalogId2(textbookCatalogId);
         }
 
         this.save(param);
@@ -273,24 +289,40 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
             }
         }
 
+        // 校验textbookCatalogId2（如果提供了该字段）
+        Long textbookCatalogId2 = teachingQuestionbank.getTextbookCatalogId2();
+        if (ObjectUtils.isNotEmpty(textbookCatalogId2) && ObjectUtils.isNotNull(textbookCatalogId2)) {
+            boolean isTextbookCatalogExists = textbookCatalogMapper.exists(
+                    new LambdaQueryWrapper<TextbookCatalog>().eq(TextbookCatalog::getId, textbookCatalogId2)
+            );
+            if (!isTextbookCatalogExists) {
+                throw new RuntimeException("ID为 " + textbookCatalogId2 + " 的教材目录不存在！");
+            }
+        }
+
+        // 如果textbookCatalogId2为空但textbookCatalogId不为空，则将textbookCatalogId2设置为与textbookCatalogId相同的值
+        if (textbookCatalogId2 == null && textbookCatalogId != null) {
+            teachingQuestionbank.setTextbookCatalogId2(textbookCatalogId);
+        }
+
         // 4. 所有校验通过，执行更新操作
         // updateById 会根据 teachingQuestionbank 对象的ID去更新其他非空字段
         this.updateById(teachingQuestionbank);
     }
-    
+
     @Override
     @Transactional(rollbackFor = Exception.class) // 事务保持不变
     public List<Long> updateQuestionBankBatch(List<TeachingQuestionBank> teachingQuestionBanks) {
         if (CollectionUtils.isEmpty(teachingQuestionBanks)) {
             return Collections.emptyList(); // 列表为空，直接返回空列表
         }
-        
+
         // 获取教材ID（从第一个元素中获取，假定所有元素的教材ID相同）
         Long textbookId = teachingQuestionBanks.get(0).getTextbookId();
         if (textbookId == null) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材ID不能为空");
         }
-        
+
         // 1. 收集所有需要通过 UUID 来补全 ID 的记录的 UUID
         List<String> uuidsToResolve = teachingQuestionBanks.stream()
                 .filter(bank -> bank.getTextbookCatalogId() == null && bank.getTextbookCatalogUuId() != null && !bank.getTextbookCatalogUuId().trim().isEmpty())
@@ -323,6 +355,11 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
             for (TeachingQuestionBank bank : teachingQuestionBanks) {
                 if (bank.getTextbookCatalogId() == null && bank.getTextbookCatalogUuId() != null && !bank.getTextbookCatalogUuId().trim().isEmpty()) {
                     bank.setTextbookCatalogId(uuidToIdMap.get(bank.getTextbookCatalogUuId()));
+                }
+                
+                // 如果textbookCatalogId2为空但textbookCatalogId不为空，则将textbookCatalogId2设置为与textbookCatalogId相同的值
+                if (bank.getTextbookCatalogId2() == null && bank.getTextbookCatalogId() != null) {
+                    bank.setTextbookCatalogId2(bank.getTextbookCatalogId());
                 }
             }
         }
@@ -362,6 +399,14 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
                 })
                 .map(TeachingQuestionBank::getTextbookCatalogId)
                 .collect(Collectors.toSet());
+                
+        Set<Long> catalogIds2ToValidate = teachingQuestionBanks.stream()
+                .filter(newBank -> {
+                    TeachingQuestionBank oldBank = oldBankMap.get(newBank.getId());
+                    return newBank.getTextbookCatalogId2() != null && !newBank.getTextbookCatalogId2().equals(oldBank.getTextbookCatalogId2());
+                })
+                .map(TeachingQuestionBank::getTextbookCatalogId2)
+                .collect(Collectors.toSet());
 
         // 4. 【核心修改】执行精确校验
         if (!CollectionUtils.isEmpty(textbookIdsToValidate)) {
@@ -400,6 +445,25 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
 
             }
         }
+        
+        // 校验教材目录ID2
+        if (!CollectionUtils.isEmpty(catalogIds2ToValidate)) {
+            // 查询数据库中实际存在的ID
+            List<Long> foundCatalogIds2 = textbookCatalogMapper.selectList(new LambdaQueryWrapper<TextbookCatalog>()
+                            .select(TextbookCatalog::getId)
+                            .in(TextbookCatalog::getId, catalogIds2ToValidate))
+                    .stream()
+                    .map(TextbookCatalog::getId)
+                    .collect(Collectors.toList());
+
+            if (foundCatalogIds2.size() < catalogIds2ToValidate.size()) {
+                // 找出不存在的ID (差集)
+                Set<Long> nonExistentIds = new HashSet<>(catalogIds2ToValidate);
+                nonExistentIds.removeAll(foundCatalogIds2);
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "更新失败，以下指定的教材目录ID2不存在: " + nonExistentIds.stream().map(String::valueOf).collect(Collectors.joining(",")));
+
+            }
+        }
         // 5. 【核心修改】在更新前，先清除该教材下所有题库的旧绑定关系
         LambdaUpdateWrapper<TeachingQuestionBank> clearBindingWrapper = new LambdaUpdateWrapper<>();
         clearBindingWrapper
@@ -409,13 +473,13 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
 
         // 执行批量解绑操作
         this.update(clearBindingWrapper);
-        
+
         // 5. 所有校验通过，执行批量更新
         this.updateBatchById(teachingQuestionBanks);
         // 6. 【核心修改】返回成功更新的题库ID列表
         return questionBankIds;
     }
-    
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public List<Long> updateQuestionBankBatchByChapters(Long textbookId, List<Long> chapterIds, List<TeachingQuestionBank> teachingQuestionBanks) {
@@ -465,6 +529,11 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
             if (!Objects.equals(newBank.getTextbookId(), oldBank.getTextbookId())) {
                 throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "不允许修改题库的教材ID，题库ID: " + newBank.getId());
             }
+            
+            // 如果textbookCatalogId2为空但textbookCatalogId不为空，则将textbookCatalogId2设置为与textbookCatalogId相同的值
+            if (newBank.getTextbookCatalogId2() == null && newBank.getTextbookCatalogId() != null) {
+                newBank.setTextbookCatalogId2(newBank.getTextbookCatalogId());
+            }
         }
 
         // 3.2 收集需要校验的教材ID和目录ID
@@ -482,6 +551,14 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
                     return newBank.getTextbookCatalogId() != null && !newBank.getTextbookCatalogId().equals(oldBank.getTextbookCatalogId());
                 })
                 .map(TeachingQuestionBank::getTextbookCatalogId)
+                .collect(Collectors.toSet());
+                
+        Set<Long> catalogIds2ToValidate = teachingQuestionBanks.stream()
+                .filter(newBank -> {
+                    TeachingQuestionBank oldBank = oldBankMap.get(newBank.getId());
+                    return newBank.getTextbookCatalogId2() != null && !newBank.getTextbookCatalogId2().equals(oldBank.getTextbookCatalogId2());
+                })
+                .map(TeachingQuestionBank::getTextbookCatalogId2)
                 .collect(Collectors.toSet());
 
         // 执行精确校验
@@ -519,6 +596,25 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
                 Set<Long> nonExistentIds = new HashSet<>(catalogIdsToValidate);
                 nonExistentIds.removeAll(foundCatalogIds);
                 throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "更新失败，以下指定的教材目录ID不存在: " + nonExistentIds.stream().map(String::valueOf).collect(Collectors.joining(",")));
+
+            }
+        }
+        
+        // 校验教材目录ID2
+        if (!CollectionUtils.isEmpty(catalogIds2ToValidate)) {
+            // 查询数据库中实际存在的ID
+            List<Long> foundCatalogIds2 = textbookCatalogMapper.selectList(new LambdaQueryWrapper<TextbookCatalog>()
+                            .select(TextbookCatalog::getId)
+                            .in(TextbookCatalog::getId, catalogIds2ToValidate))
+                    .stream()
+                    .map(TextbookCatalog::getId)
+                    .collect(Collectors.toList());
+
+            if (foundCatalogIds2.size() < catalogIds2ToValidate.size()) {
+                // 找出不存在的ID (差集)
+                Set<Long> nonExistentIds = new HashSet<>(catalogIds2ToValidate);
+                nonExistentIds.removeAll(foundCatalogIds2);
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "更新失败，以下指定的教材目录ID2不存在: " + nonExistentIds.stream().map(String::valueOf).collect(Collectors.joining(",")));
 
             }
         }

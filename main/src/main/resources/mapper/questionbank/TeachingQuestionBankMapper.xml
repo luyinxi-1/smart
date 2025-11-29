@@ -10,7 +10,7 @@
         <result column="status" property="status" />
         <result column="textbook_id" property="textbookId" />
         <result column="textbook_catalog_id" property="textbookCatalogId" />
-        <!--<result column="textbook_catalog_id2" property="textbookCatalogId2" />-->
+        <result column="textbook_catalog_id2" property="textbookCatalogId2" />
         <result column="max_attempts" property="maxAttempts" />
         <result column="score_policy" property="scorePolicy" />
         <result column="creator" property="creator" />

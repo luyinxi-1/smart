@@ -101,6 +101,11 @@ public R<List<Long>> updateQuestionBankBatch(@RequestBody BatchQuestionBankUpdat
         // 为每个题库设置教材ID
         for (TeachingQuestionBank bank : teachingQuestionBanks) {
             bank.setTextbookId(textbookId);
+            
+            // 如果textbookCatalogId2为空但textbookCatalogId不为空，则将textbookCatalogId2设置为与textbookCatalogId相同的值
+            if (bank.getTextbookCatalogId2() == null && bank.getTextbookCatalogId() != null) {
+                bank.setTextbookCatalogId2(bank.getTextbookCatalogId());
+            }
         }
     }
 
