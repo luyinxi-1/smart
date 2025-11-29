@@ -19,7 +19,6 @@
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
 
-
     <select id="selectQuestionBank"
             resultType="com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageMidReturnParam">
         SELECT
@@ -30,6 +29,7 @@
         t.textbook_id AS textbookId,
         tb.textbook_name as textbookName,
         t.textbook_catalog_id AS textbookCatalogId,
+        t.textbook_catalog_id2 AS textbookCatalogId2,
         t.max_attempts AS maxAttempts,
         t.score_policy AS scorePolicy,
         t.creator,
@@ -62,68 +62,85 @@
                 AND t.status = #{param.status}
             </if>
 
-            <!-- ========== 核心：未绑定模式 / 普通模式 分支 ========== -->
+            <!-- ===============================
+                 核心：未绑定模式 / 普通模式 分支
+                 =============================== -->
 
             <!-- 未绑定模式：isUnbound = 1 -->
             <if test="param.isUnbound != null and param.isUnbound == 1">
+
+                <!-- 规则 3：凡是 textbook_catalog_id 有值，说明题库已经绑定章节，统统排除 -->
+                AND t.textbook_catalog_id IS NULL
+
                 <choose>
-                    <!-- 场景 C：isUnbound=1 + 有 textbookId + 有 textbookCatalogId2 -->
-                    <when test="param.textbookId != null and param.textbookCatalogId2 != null">
-                        AND (
-                        /* 未绑定题库（旧规则：未绑定章节） */
-                        (t.textbook_id IS NULL
-                        OR (t.textbook_id = #{param.textbookId}
-                        AND t.textbook_catalog_id IS NULL))
-                        OR
-                        /* 已经绑定到当前教材 + 当前章节的题库 */
-                        (t.textbook_id = #{param.textbookId}
-                        AND t.textbook_catalog_id = #{param.textbookCatalogId2})
-                        )
-                        AND (t.textbook_id IS NULL OR t.textbook_id = #{param.textbookId})
+                    <!-- 有 textbookId 的情况：按当前教材维度筛选 -->
+                    <when test="param.textbookId != null">
+                        AND t.textbook_id = #{param.textbookId}
+
+                        <choose>
+                            <!-- 场景 2：textbookCatalogId2 有真实值（>0），当前章节已入库 -->
+                            <when test="param.textbookCatalogId2 != null and param.textbookCatalogId2 != 0">
+                                <!--
+                                    规则 2：
+                                    - 属于当前教材；
+                                    - textbook_catalog_id 仍为空（未正式绑定章节）；
+                                    - textbook_catalog_id2 = 当前章节ID 或 textbook_catalog_id2 为空
+                                  -->
+                                AND (
+                                t.textbook_catalog_id2 = #{param.textbookCatalogId2}
+                                OR t.textbook_catalog_id2 IS NULL
+                                )
+                            </when>
+
+                            <!-- 场景 1：textbookCatalogId2 未传或 =0，临时章节 -->
+                            <otherwise>
+                                <!--
+                                    规则 1：
+                                    - 属于当前教材；
+                                    - textbook_catalog_id 为空（未绑定章节）；
+                                    - textbook_catalog_id2 也为空（没有临时占用记录）
+                                  -->
+                                AND t.textbook_catalog_id2 IS NULL
+                            </otherwise>
+                        </choose>
                     </when>
 
-                    <!-- 场景 B：isUnbound=1 + 有 textbookId + 没有 textbookCatalogId2 -->
-                    <when test="param.textbookId != null and param.textbookCatalogId2 == null">
-                        AND (
-                        /* 未绑定题库（旧规则：未绑定章节） */
-                        (t.textbook_id IS NULL
-                        OR (t.textbook_id = #{param.textbookId}
-                        AND t.textbook_catalog_id IS NULL))
-                        OR
-                        /* 属于当前教材的所有题库 */
-                        (t.textbook_id = #{param.textbookId})
-                        )
-                        AND (t.textbook_id IS NULL OR t.textbook_id = #{param.textbookId})
-                    </when>
-
-                    <!-- 场景 A / 兜底：保持原有“未绑定题库”逻辑 -->
+                    <!-- 没有 textbookId 的情况：全局“未绑定章节”模式 -->
                     <otherwise>
-                        AND t.textbook_catalog_id IS NULL
-                        <if test="param.textbookId != null">
-                            AND t.textbook_id = #{param.textbookId}
-                        </if>
+                        <!--
+                            这里仅依赖上面的
+                            AND t.textbook_catalog_id IS NULL
+                            即：只要没绑定任何章节的题库，都算未绑定题库
+                            （textbook_id 可以为 null 或某本教材，看你后续是否要再限制）
+                        -->
                     </otherwise>
                 </choose>
             </if>
 
-            <!-- 普通模式：isUnbound != 1，保持原有逻辑 -->
+            <!-- 普通模式：isUnbound != 1 -->
             <if test="param.isUnbound == null || param.isUnbound != 1">
                 <!-- 条件4: 根据关联教材ID精确查询 -->
                 <if test="param.textbookId != null">
                     AND t.textbook_id = #{param.textbookId}
                 </if>
-                <!-- 条件5: 根据关联教材目录ID精确查询 -->
+
+                <!-- 条件5: 优先根据备用教材目录 ID（编辑章节使用） -->
+                <if test="param.textbookCatalogId2 != null and param.textbookCatalogId2 != 0">
+                    AND t.textbook_catalog_id2 = #{param.textbookCatalogId2}
+                </if>
+
+                <!-- 条件6: 再根据正式教材目录 ID 精确查询 -->
                 <if test="param.textbookCatalogId != null">
                     AND t.textbook_catalog_id = #{param.textbookCatalogId}
                 </if>
             </if>
 
-            <!-- 条件6: 根据答题次数限制精确查询 -->
+            <!-- 条件7: 根据答题次数限制精确查询 -->
             <if test="param.maxAttempts != null">
                 AND t.max_attempts = #{param.maxAttempts}
             </if>
 
-            <!-- 条件7: 根据成绩取值方式精确查询 -->
+            <!-- 条件8: 根据成绩取值方式精确查询 -->
             <if test="param.scorePolicy != null">
                 AND t.score_policy = #{param.scorePolicy}
             </if>
@@ -131,16 +148,139 @@
 
         GROUP BY
         t.id, t.name, t.description, t.status, t.textbook_id, tb.textbook_name,
-        t.textbook_catalog_id, t.max_attempts, t.score_policy,
+        t.textbook_catalog_id, t.textbook_catalog_id2,
+        t.max_attempts, t.score_policy,
         t.creator, u.nickname, t.add_datetime
         ORDER BY
         t.add_datetime
         <choose>
             <when test="param.isAsc != null and param.isAsc == 1">ASC</when>
-
             <otherwise>DESC</otherwise>
         </choose>
     </select>
+
+
+    <!--    <select id="selectQuestionBank"
+                resultType="com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageMidReturnParam">
+            SELECT
+            t.id, &#45;&#45; 主键
+            t.name,
+            t.description,
+            t.status,
+            t.textbook_id AS textbookId,
+            tb.textbook_name as textbookName,
+            t.textbook_catalog_id AS textbookCatalogId,
+            t.max_attempts AS maxAttempts,
+            t.score_policy AS scorePolicy,
+            t.creator,
+            u.nickname AS creatorName,
+            t.add_datetime AS addDatetime,
+            COUNT(qbl.id) AS questionCount
+            FROM
+            teaching_question_bank t
+            LEFT JOIN questions_banks_list qbl ON t.id = qbl.bank_id
+            LEFT JOIN sys_tbuser u ON t.creator = u.id
+            LEFT JOIN textbook tb ON t.textbook_id = tb.id
+            <where>
+                &lt;!&ndash; 教师只能看自己创建的 &ndash;&gt;
+                <if test="userRole != null and userRole == 'teacher'">
+                    AND t.creator = #{userId}
+                </if>
+
+                &lt;!&ndash; 条件1: 根据题库名称模糊查询 &ndash;&gt;
+                <if test="param.name != null and param.name != ''">
+                    AND t.name LIKE CONCAT('%', #{param.name}, '%')
+                </if>
+
+                &lt;!&ndash; 条件2: 根据题库说明模糊查询 &ndash;&gt;
+                <if test="param.description != null and param.description != ''">
+                    AND t.description LIKE CONCAT('%', #{param.description}, '%')
+                </if>
+
+                &lt;!&ndash; 条件3: 根据教学题库状态精确查询 &ndash;&gt;
+                <if test="param.status != null">
+                    AND t.status = #{param.status}
+                </if>
+
+                &lt;!&ndash; ========== 核心：未绑定模式 / 普通模式 分支 ========== &ndash;&gt;
+
+                &lt;!&ndash; 未绑定模式：isUnbound = 1 &ndash;&gt;
+                <if test="param.isUnbound != null and param.isUnbound == 1">
+                    <choose>
+                        &lt;!&ndash; 场景 C：isUnbound=1 + 有 textbookId + 有 textbookCatalogId2 &ndash;&gt;
+                        <when test="param.textbookId != null and param.textbookCatalogId2 != null">
+                            AND (
+                            /* 未绑定题库（旧规则：未绑定章节） */
+                            (t.textbook_id IS NULL
+                            OR (t.textbook_id = #{param.textbookId}
+                            AND t.textbook_catalog_id IS NULL))
+                            OR
+                            /* 已经绑定到当前教材 + 当前章节的题库 */
+                            (t.textbook_id = #{param.textbookId}
+                            AND t.textbook_catalog_id = #{param.textbookCatalogId2})
+                            )
+                            AND (t.textbook_id IS NULL OR t.textbook_id = #{param.textbookId})
+                        </when>
+
+                        &lt;!&ndash; 场景 B：isUnbound=1 + 有 textbookId + 没有 textbookCatalogId2 &ndash;&gt;
+                        <when test="param.textbookId != null and param.textbookCatalogId2 == null">
+                            AND (
+                            /* 未绑定题库（旧规则：未绑定章节） */
+                            (t.textbook_id IS NULL
+                            OR (t.textbook_id = #{param.textbookId}
+                            AND t.textbook_catalog_id IS NULL))
+                            OR
+                            /* 属于当前教材的所有题库 */
+                            (t.textbook_id = #{param.textbookId})
+                            )
+                            AND (t.textbook_id IS NULL OR t.textbook_id = #{param.textbookId})
+                        </when>
+
+                        &lt;!&ndash; 场景 A / 兜底：保持原有“未绑定题库”逻辑 &ndash;&gt;
+                        <otherwise>
+                            AND t.textbook_catalog_id IS NULL
+                            <if test="param.textbookId != null">
+                                AND t.textbook_id = #{param.textbookId}
+                            </if>
+                        </otherwise>
+                    </choose>
+                </if>
+
+                &lt;!&ndash; 普通模式：isUnbound != 1，保持原有逻辑 &ndash;&gt;
+                <if test="param.isUnbound == null || param.isUnbound != 1">
+                    &lt;!&ndash; 条件4: 根据关联教材ID精确查询 &ndash;&gt;
+                    <if test="param.textbookId != null">
+                        AND t.textbook_id = #{param.textbookId}
+                    </if>
+                    &lt;!&ndash; 条件5: 根据关联教材目录ID精确查询 &ndash;&gt;
+                    <if test="param.textbookCatalogId != null">
+                        AND t.textbook_catalog_id = #{param.textbookCatalogId}
+                    </if>
+                </if>
+
+                &lt;!&ndash; 条件6: 根据答题次数限制精确查询 &ndash;&gt;
+                <if test="param.maxAttempts != null">
+                    AND t.max_attempts = #{param.maxAttempts}
+                </if>
+
+                &lt;!&ndash; 条件7: 根据成绩取值方式精确查询 &ndash;&gt;
+                <if test="param.scorePolicy != null">
+                    AND t.score_policy = #{param.scorePolicy}
+                </if>
+            </where>
+
+            GROUP BY
+            t.id, t.name, t.description, t.status, t.textbook_id, tb.textbook_name,
+            t.textbook_catalog_id, t.max_attempts, t.score_policy,
+            t.creator, u.nickname, t.add_datetime
+            ORDER BY
+            t.add_datetime
+            <choose>
+                <when test="param.isAsc != null and param.isAsc == 1">ASC</when>
+
+                <otherwise>DESC</otherwise>
+            </choose>
+        </select>-->
 
 
 
