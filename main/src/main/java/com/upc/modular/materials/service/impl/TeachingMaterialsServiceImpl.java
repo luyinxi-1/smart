@@ -431,8 +431,248 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             response.setHeader("Content-Disposition", "attachment; filename=\"download.file\"");
         }
     }
-
     @Override
+    public Page<TeachingMaterialsReturnVo> getPage(TeachingMaterialsPageSearchDto param) {
+
+        // 从上下文中获取当前登录用户的信息
+        Integer userType = UserUtils.get().getUserType();
+        Long currentUserId = UserUtils.get().getId();
+        // 角色权限判断：学生无权限
+        if (userType == 1) {
+            throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS);
+        }
+
+        // 1. 构建对 TeachingMaterials 的基础查询条件
+        MyLambdaQueryWrapper<TeachingMaterials> queryWrapper = new MyLambdaQueryWrapper<>();
+        queryWrapper
+                .eq(ObjectUtils.isNotEmpty(param.getAuthorId()), TeachingMaterials::getCreator, param.getAuthorId())
+                .like(ObjectUtils.isNotEmpty(param.getName()), TeachingMaterials::getName, param.getName())
+                .eq(ObjectUtils.isNotEmpty(param.getType()), TeachingMaterials::getType, param.getType());
+
+        boolean unboundOnly = Boolean.TRUE.equals(param.getUnboundOnly());
+        Long textbookId = param.getTextbookId();
+        Long chapterId = param.getChapterId();      // 旧字段，后面只在非 unboundOnly 时用到（如果你还需要）
+        Long chapterId2 = param.getChapterId2();    // 备用章节ID（控制范围）
+
+        // 添加创建人筛选条件：非管理员只能查看自己创建的素材
+        if (userType != 0) { // 非管理员用户
+            queryWrapper.eq(TeachingMaterials::getCreator, currentUserId);
+        } else if (param.getAuthorId() != null) { // 管理员指定了作者ID
+            queryWrapper.eq(TeachingMaterials::getCreator, param.getAuthorId());
+        }
+
+        /*
+         * =========================
+         *   2. unboundOnly 相关逻辑
+         * =========================
+         */
+        if (unboundOnly) {
+
+            // 3️⃣ 规则：凡是在 mapping 表中存在 chapter_id 有值的素材，都认为已经绑定章节，
+            // 在「只看未绑定」模式下一律排除。
+            List<Long> boundIds = materialsTextbookMappingService.list(
+                            new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                                    .select(MaterialsTextbookMapping::getMaterialId)
+                                    .isNotNull(MaterialsTextbookMapping::getChapterId)
+                    ).stream()
+                    .map(MaterialsTextbookMapping::getMaterialId)
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            if (!CollectionUtils.isEmpty(boundIds)) {
+                queryWrapper.notIn(TeachingMaterials::getId, boundIds);
+            }
+
+            // 如果没有教材ID，只根据“没有绑定章节”的条件筛一遍就行（上面的 notIn 已经完成）
+            if (textbookId != null) {
+
+                // chapterId2 = 0 也当作 “未传 / 临时章节”
+                boolean hasRealChapter2 = (chapterId2 != null && chapterId2 > 0L);
+
+                // 1️⃣ 和 2️⃣ 的核心都是先在 mapping 表中算出“允许出现的 materialId”
+                LambdaQueryWrapper<MaterialsTextbookMapping> allowWrapper =
+                        new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                                .select(MaterialsTextbookMapping::getMaterialId)
+                                .eq(MaterialsTextbookMapping::getTextbookId, textbookId)
+                                .isNull(MaterialsTextbookMapping::getChapterId);  // 只看未绑定正式章节的记录
+
+                if (!hasRealChapter2) {
+                    // 1️⃣ 规则：chapterId2 = 0 或者不传
+                    // 只要 textbookId 对应，且 chapterId 和 chapterId2 都是空的
+                    allowWrapper.isNull(MaterialsTextbookMapping::getChapterId2);
+                } else {
+                    // 2️⃣ 规则：chapterId2 有值（已入库）
+                    // textbookId 对应，chapterId 为空，
+                    // 且 (chapterId2 = 传入参数 或 chapterId2 仍然为空)
+                    allowWrapper.and(w -> w
+                            .eq(MaterialsTextbookMapping::getChapterId2, chapterId2)
+                            .or()
+                            .isNull(MaterialsTextbookMapping::getChapterId2)
+                    );
+                }
+
+                List<Long> allowedIds = materialsTextbookMappingService.list(allowWrapper)
+                        .stream()
+                        .map(MaterialsTextbookMapping::getMaterialId)
+                        .distinct()
+                        .collect(Collectors.toList());
+
+                if (!CollectionUtils.isEmpty(allowedIds)) {
+                    // 其它筛选条件 AND id IN allowedIds AND id NOT IN boundIds
+                    queryWrapper.in(TeachingMaterials::getId, allowedIds);
+                } else {
+                    // 没有任何符合条件的素材，直接让结果为空
+                    queryWrapper.isNull(TeachingMaterials::getId);
+                }
+            }
+
+        } else {
+            /*
+             * =========================
+             *   3. unboundOnly = false
+             *      正常查询绑定记录
+             * =========================
+             *
+             * 要求：直接根据 chapterId2（以及 textbookId 等）进行过滤，
+             * 不再强制要求 chapterId 为空。
+             */
+            if (textbookId != null || chapterId2 != null || chapterId != null) {
+
+                LambdaQueryWrapper<MaterialsTextbookMapping> mappingWrapper =
+                        new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                                .select(MaterialsTextbookMapping::getMaterialId)
+                                .eq(textbookId != null, MaterialsTextbookMapping::getTextbookId, textbookId);
+
+                // 优先用 chapterId2 过滤；如果你还想兼容旧的 chapterId，也可以再加一行 and/or
+                if (chapterId2 != null && chapterId2 > 0L) {
+                    mappingWrapper.eq(MaterialsTextbookMapping::getChapterId2, chapterId2);
+                } else if (chapterId != null) {
+                    // 如果前端传的是旧的 chapterId，这里兜底一下
+                    mappingWrapper.eq(MaterialsTextbookMapping::getChapterId, chapterId);
+                }
+
+                List<Long> materialIds = materialsTextbookMappingService.list(mappingWrapper)
+                        .stream()
+                        .map(MaterialsTextbookMapping::getMaterialId)
+                        .distinct()
+                        .collect(Collectors.toList());
+
+                if (!materialIds.isEmpty()) {
+                    queryWrapper.in(TeachingMaterials::getId, materialIds);
+                } else {
+                    queryWrapper.isNull(TeachingMaterials::getId);
+                }
+            }
+        }
+
+        // 4. 排序
+        queryWrapper.orderByDesc(TeachingMaterials::getAddDatetime);
+
+        // 5. 执行一次数据库分页查询
+        Page<TeachingMaterials> pageResult = this.page(
+                new Page<>(param.getCurrent(), param.getSize()),
+                queryWrapper
+        );
+        List<TeachingMaterials> materialsList = pageResult.getRecords();
+        if (CollectionUtils.isEmpty(materialsList)) {
+            return new Page<>(param.getCurrent(), param.getSize());
+        }
+
+        // 6. 后处理：查 mapping / 教材 / 章节 / 作者，组装 VO
+
+        List<Long> materialIds = materialsList.stream()
+                .map(TeachingMaterials::getId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 6.1 获取素材与教材的绑定关系
+        List<MaterialsTextbookMapping> materialTextbookMappings = materialsTextbookMappingService.list(
+                new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                        .in(MaterialsTextbookMapping::getMaterialId, materialIds)
+        );
+        Map<Long, MaterialsTextbookMapping> materialMappingMap = materialTextbookMappings.stream()
+                .collect(Collectors.toMap(MaterialsTextbookMapping::getMaterialId, Function.identity(), (a, b) -> a));
+
+        // 6.2 教材、章节名称
+        Map<Long, String> textbookIdNameMap = new HashMap<>();
+        Map<Long, String> chapterIdNameMap = new HashMap<>();
+        if (!materialTextbookMappings.isEmpty()) {
+            List<Long> textbookIds = materialTextbookMappings.stream()
+                    .map(MaterialsTextbookMapping::getTextbookId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList());
+            if (!CollectionUtils.isEmpty(textbookIds)) {
+                textbookIdNameMap = textbookService.list(
+                        new LambdaQueryWrapper<Textbook>().in(Textbook::getId, textbookIds)
+                ).stream().collect(Collectors.toMap(Textbook::getId, Textbook::getTextbookName));
+            }
+
+            List<Long> chapterIds = materialTextbookMappings.stream()
+                    .map(MaterialsTextbookMapping::getChapterId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList());
+            if (!CollectionUtils.isEmpty(chapterIds)) {
+                chapterIdNameMap = textbookCatalogMapper.selectList(
+                        new LambdaQueryWrapper<TextbookCatalog>().in(TextbookCatalog::getId, chapterIds)
+                ).stream().collect(Collectors.toMap(TextbookCatalog::getId, TextbookCatalog::getCatalogName));
+            }
+        }
+
+        // 6.3 作者姓名
+        List<Long> authorIdList = materialsList.stream()
+                .map(TeachingMaterials::getCreator)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, String> userIdNameMap;
+        if (ObjectUtils.isNotEmpty(authorIdList)) {
+            userIdNameMap = sysUserService.list(
+                    new LambdaQueryWrapper<SysTbuser>().in(SysTbuser::getId, authorIdList)
+            ).stream().collect(Collectors.toMap(SysTbuser::getId, SysTbuser::getNickname));
+        } else {
+            userIdNameMap = new HashMap<>();
+        }
+
+        // 7. 转 VO
+        final Map<Long, String> finaltextbookIdNameMap = textbookIdNameMap;
+        final Map<Long, String> finalChapterIdNameMap = chapterIdNameMap;
+
+        List<TeachingMaterialsReturnVo> pageRecordsVO = materialsList.stream()
+                .map(materials -> {
+                    TeachingMaterialsReturnVo temp = new TeachingMaterialsReturnVo();
+                    BeanUtils.copyProperties(materials, temp);
+                    temp.setAuthorName(userIdNameMap.get(materials.getCreator()));
+
+                    // 是否为自己创建
+                    if (materials.getCreator() != null) {
+                        temp.setIsCreator(materials.getCreator().equals(currentUserId));
+                    } else {
+                        temp.setIsCreator(false);
+                    }
+
+                    // 设置教材ID/名称、章节ID/名称（这里仍然用 chapterId，如果你需要展示 chapterId2 可以再补字段）
+                    MaterialsTextbookMapping mapping = materialMappingMap.get(materials.getId());
+                    if (mapping != null) {
+                        temp.setTextbookId(mapping.getTextbookId());
+                        temp.setTextbookName(finaltextbookIdNameMap.get(mapping.getTextbookId()));
+                        temp.setChapterId(mapping.getChapterId());
+                        temp.setChapterName(finalChapterIdNameMap.get(mapping.getChapterId()));
+                    }
+
+                    return temp;
+                })
+                .collect(Collectors.toList());
+
+        // 8. 组装分页返回
+        Page<TeachingMaterialsReturnVo> resultPage =
+                new Page<>(pageResult.getCurrent(), pageResult.getSize(), pageResult.getTotal());
+        resultPage.setRecords(pageRecordsVO);
+        return resultPage;
+    }
+
+
+/*    @Override
     public Page<TeachingMaterialsReturnVo> getPage(TeachingMaterialsPageSearchDto param) {
 
         // 从上下文中获取当前登录用户的信息
@@ -570,7 +810,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
 
 
-       /* if (unboundOnly) {
+       *//* if (unboundOnly) {
             if (textbookId != null) {
                 // ✅ 有教材ID：按“当前教材维度”计算要排除的素材
                 // 规则：
@@ -615,7 +855,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                     queryWrapper.notIn(TeachingMaterials::getId, excludedIds);
                 }
             }
-        }*/
+        }*//*
         // 根据教材ID和章节ID筛选（⚠️ 只在非 unboundOnly 情况下使用）
         if (!unboundOnly && (textbookId != null || chapterId != null)) {
             List<Long> materialIds = materialsTextbookMappingService.list(
@@ -726,7 +966,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         Page<TeachingMaterialsReturnVo> resultPage = new Page<>(pageResult.getCurrent(), pageResult.getSize(), pageResult.getTotal());
         resultPage.setRecords(pageRecordsVO);
         return resultPage;
-    }
+    }*/
 
     @Override
     public TeachingMaterialsReturnVo getTeachingMaterials(Long id, Long textbookId) {
