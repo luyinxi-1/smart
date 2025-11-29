@@ -272,6 +272,7 @@ public class ApplicationMaterialsTextbookMappingServiceImpl extends ServiceImpl<
             entity.setApplicationMaterialId(dto.getApplicationMaterialId());
             entity.setTextbookCatalogName(dto.getTextbookCatalogName());
             entity.setTextbookCatalogId(dto.getTextbookCatalogId()); // 此处 textbookCatalogId 已被正确填充
+            entity.setTextbookCatalogId2(dto.getTextbookCatalogId2()); // 设置备用章节ID
             entity.setCreator(currentUserId); // 设置创建人
             entity.setOperator(currentUserId); // 设置操作人
             return entity;
@@ -489,6 +490,7 @@ public class ApplicationMaterialsTextbookMappingServiceImpl extends ServiceImpl<
             entity.setApplicationMaterialId(dto.getApplicationMaterialId());
             entity.setTextbookCatalogName(dto.getTextbookCatalogName());
             entity.setTextbookCatalogId(dto.getTextbookCatalogId());
+            entity.setTextbookCatalogId2(dto.getTextbookCatalogId2()); // 设置备用章节ID
             entity.setCreator(currentUserId);
             entity.setOperator(currentUserId);
             return entity;

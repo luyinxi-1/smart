@@ -1,5 +1,6 @@
 package com.upc.modular.materials.controller.param.vo;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -24,6 +25,11 @@ public class ApplicationMaterialsDetailVO {
 
     @ApiModelProperty("教学素材ID")
     private Long teachingMaterialId;
+
+    @ApiModelProperty("备用章id")
+    @TableField("chapter_id2")
+    private Long textbookCatalogId2;
+
 
     @ApiModelProperty("教学素材名称")
     private String teachingMaterialName;

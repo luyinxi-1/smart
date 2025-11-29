@@ -147,6 +147,7 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             mapping.setApplicationMaterialId(applicationMaterialId);
             mapping.setTextbookId(param.getTextbookId());
             mapping.setTextbookCatalogId(chapterId);  // 可以为null
+            mapping.setTextbookCatalogId2(chapterId);  // 设置备用章节ID，与主章节ID相同
             mapping.setTextbookCatalogName(chapterName);  // 如果章节ID为null，则为空字符串
             mapping.setCreator(currentUserId);
             mapping.setOperator(currentUserId);
@@ -284,6 +285,7 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             // 更新现有绑定关系
             existingMapping.setTextbookId(param.getTextbookId());
             existingMapping.setTextbookCatalogId(chapterId);  // 可以为null
+            existingMapping.setTextbookCatalogId2(chapterId);  // 设置备用章节ID，与主章节ID相同
             existingMapping.setTextbookCatalogName(chapterName);
             existingMapping.setOperator(currentUserId);
             applicationMaterialsTextbookMappingMapper.updateById(existingMapping);
@@ -293,6 +295,7 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             mapping.setApplicationMaterialId(applicationMaterialId);
             mapping.setTextbookId(param.getTextbookId());
             mapping.setTextbookCatalogId(chapterId);  // 可以为null
+            mapping.setTextbookCatalogId2(chapterId);  // 设置备用章节ID，与主章节ID相同
             mapping.setTextbookCatalogName(chapterName);
             mapping.setCreator(currentUserId);
             mapping.setOperator(currentUserId);

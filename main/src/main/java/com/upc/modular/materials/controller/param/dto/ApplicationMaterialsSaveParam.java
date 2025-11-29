@@ -39,6 +39,8 @@ public class ApplicationMaterialsSaveParam {
     @ApiModelProperty("教材章节ID")
     private Long textbookCatalogId;
 
+
+
     @ApiModelProperty("教材章节UUID（临时ID，当textbookCatalogId为空时使用）")
     private String textbookCatalogUuId;
 

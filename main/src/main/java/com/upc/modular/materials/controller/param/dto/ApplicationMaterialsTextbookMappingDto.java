@@ -18,7 +18,9 @@ public class ApplicationMaterialsTextbookMappingDto {
     @ApiModelProperty("章节ID（可选）")
     private Long textbookCatalogId;
 
+    @ApiModelProperty("备用章节ID")
+    private Long textbookCatalogId2;
+
     @ApiModelProperty("章节UUID")
     private String textbookCatalogUuId;
 }
-
