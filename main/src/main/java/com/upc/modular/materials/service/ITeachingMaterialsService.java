@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsPageSearchDto;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsSaveOrUpdateParam;
 import com.upc.modular.materials.controller.param.vo.MaterialsTextbookNameMappingReturnParam;
+import com.upc.modular.materials.controller.param.vo.TeachingMaterialsInsertMaterialsReturnParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.entity.TeachingMaterials;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,7 +23,8 @@ import java.util.List;
  */
 public interface ITeachingMaterialsService extends IService<TeachingMaterials> {
 
-   TeachingMaterials insertMaterials(TeachingMaterialsSaveOrUpdateParam param);
+    TeachingMaterialsInsertMaterialsReturnParam insertMaterials(TeachingMaterialsSaveOrUpdateParam param);
+
     void getFileMaterials(Long id, Integer imageSetId, Long textbookId, String action, HttpServletResponse response);
 
     String getLinkMaterials(Long id, Long textbookId);

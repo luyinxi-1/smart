@@ -14,6 +14,7 @@ import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsPageSearchDto;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsSaveOrUpdateParam;
 import com.upc.modular.materials.controller.param.vo.MaterialsTextbookNameMappingReturnParam;
+import com.upc.modular.materials.controller.param.vo.TeachingMaterialsInsertMaterialsReturnParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.entity.MaterialsTextbookMapping;
 import com.upc.modular.materials.entity.TeachingMaterials;
@@ -92,7 +93,9 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
      * @return
      */
     @Override
-    public TeachingMaterials insertMaterials(TeachingMaterialsSaveOrUpdateParam param) {
+    public TeachingMaterialsInsertMaterialsReturnParam insertMaterials(TeachingMaterialsSaveOrUpdateParam param) {
+        TeachingMaterialsInsertMaterialsReturnParam result = new TeachingMaterialsInsertMaterialsReturnParam();
+
         // 1. 重名检查逻辑 (不变)
         if (ObjectUtils.isNotEmpty(teachingMaterialsMapper.selectList(new LambdaQueryWrapper<TeachingMaterials>()
                 .eq(TeachingMaterials::getName, param.getName())
@@ -185,8 +188,15 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 mapping.setAddDatetime(LocalDateTime.now());
                 materialsTextbookMappingService.save(mapping);
             }
-            
-            return teachingMaterials;
+
+            if (teachingMaterials.getType().equals("link")) {
+                result.setFilePath(teachingMaterials.getFilePath());
+            }
+            result.setFileName(teachingMaterials.getFileName());
+
+            result.setMaterialId(teachingMaterials.getId());
+
+            return result;
         } else {
             return null;
         }
