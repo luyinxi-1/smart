@@ -101,6 +101,7 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
         
         // 解析章节ID
         Long chapterId = param.getTextbookCatalogId();
+        Long chapterId2 = param.getTextbookCatalogId2();
         String chapterName = "";
         
         if (chapterId == null && param.getTextbookCatalogUuId() != null && !param.getTextbookCatalogUuId().trim().isEmpty()) {
@@ -117,6 +118,7 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
                         "提供的章节UUID无效或不属于该教材: " + param.getTextbookCatalogUuId());
             }
             chapterId = textbookCatalog.getId();
+            chapterId2 = chapterId2 != null ? chapterId2 : chapterId; // 如果未提供chapterId2，则与chapterId相同
             chapterName = textbookCatalog.getCatalogName();
         } else if (chapterId != null) {
             // 如果直接提供了章节ID，查询章节并验证是否属于该教材
@@ -131,6 +133,10 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
                         "章节ID不存在或不属于该教材: " + chapterId);
             }
             chapterName = catalog.getCatalogName();
+            chapterId2 = chapterId2 != null ? chapterId2 : chapterId; // 如果未提供chapterId2，则与chapterId相同
+        } else {
+            // 如果没有提供chapterId，则chapterId2保持原值
+            chapterId2 = param.getTextbookCatalogId2();
         }
         
         // 检查是否已存在绑定关系
@@ -147,7 +153,7 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             mapping.setApplicationMaterialId(applicationMaterialId);
             mapping.setTextbookId(param.getTextbookId());
             mapping.setTextbookCatalogId(chapterId);  // 可以为null
-            mapping.setTextbookCatalogId2(chapterId);  // 设置备用章节ID，与主章节ID相同
+            mapping.setTextbookCatalogId2(chapterId2);  // 设置备用章节ID
             mapping.setTextbookCatalogName(chapterName);  // 如果章节ID为null，则为空字符串
             mapping.setCreator(currentUserId);
             mapping.setOperator(currentUserId);
@@ -171,6 +177,7 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
         
         // 【新增逻辑】解析章节ID：如果textbookCatalogId为空但textbookCatalogUuId不为空，则根据UUID查询转换
         Long finalChapterId = param.getTextbookCatalogId();
+        Long finalChapterId2 = param.getTextbookCatalogId2();
         if (finalChapterId == null && param.getTextbookCatalogUuId() != null && !param.getTextbookCatalogUuId().trim().isEmpty()) {
             // 如果有教材ID，必须验证章节属于该教材
             LambdaQueryWrapper<TextbookCatalog> catalogQuery = new LambdaQueryWrapper<TextbookCatalog>()
@@ -196,11 +203,13 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             }
             
             finalChapterId = textbookCatalog.getId();
+            // 如果未提供textbookCatalogId2，则将其设置为与textbookCatalogId相同
+            finalChapterId2 = finalChapterId2 != null ? finalChapterId2 : finalChapterId;
         } else if (finalChapterId != null && param.getTextbookId() != null) {
             // 如果直接提供了章节ID和教材ID，验证章节是否属于该教材
             LambdaQueryWrapper<TextbookCatalog> catalogQuery = new LambdaQueryWrapper<TextbookCatalog>()
                     .eq(TextbookCatalog::getId, finalChapterId)
-                    .eq(TextbookCatalog::getTextbookId, param.getTextbookId())
+                    .eq(TextbookCatalog::getTextbookId, param.getTextbookId())  // 校验章节属于该教材
                     .select(TextbookCatalog::getId);
             
             TextbookCatalog catalog = textbookCatalogMapper.selectOne(catalogQuery);
@@ -208,6 +217,9 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
                 throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, 
                         "章节ID不存在或不属于该教材: " + finalChapterId);
             }
+            
+            // 如果未提供textbookCatalogId2，则将其设置为与textbookCatalogId相同
+            finalChapterId2 = finalChapterId2 != null ? finalChapterId2 : finalChapterId;
         }
         
         // 更新应用素材
@@ -231,75 +243,80 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             
             // 添加新的关联
             if (!param.getTeachingMaterialIds().isEmpty()) {
-                relateTeachingMaterials(param.getId(), param.getTeachingMaterialIds());
+                List<ApplicationMaterialsMapping> mappings = new ArrayList<>();
+                for (Long teachingMaterialId : param.getTeachingMaterialIds()) {
+                    ApplicationMaterialsMapping mapping = new ApplicationMaterialsMapping();
+                    mapping.setApplicationMaterialId(param.getId());
+                    mapping.setTeachingMaterialId(teachingMaterialId);
+                    mappings.add(mapping);
+                }
+                applicationMaterialsMappingMapper.batchInsert(mappings);
             }
         }
         
-        // 同步更新教材绑定关系
-        syncTextbookMappingOnUpdate(param.getId(), param, finalChapterId);
+        // 更新教材绑定关系（如果有教材ID）
+        updateTextbookMappingOnUpdate(param, finalChapterId, finalChapterId2);
         
         return true;
     }
-
+    
     /**
      * 更新应用素材时同步更新教材绑定关系
      * 
-     * @param applicationMaterialId 应用素材ID
      * @param param 保存参数
-     * @param chapterId 章节ID
+     * @param finalChapterId 章节ID
+     * @param finalChapterId2 备用章节ID
      */
-    private void syncTextbookMappingOnUpdate(Long applicationMaterialId, ApplicationMaterialsSaveParam param, Long chapterId) {
-        // 查询现有的绑定关系
-        LambdaQueryWrapper<ApplicationMaterialsTextbookMapping> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ApplicationMaterialsTextbookMapping::getApplicationMaterialId, applicationMaterialId);
-        ApplicationMaterialsTextbookMapping existingMapping = applicationMaterialsTextbookMappingMapper.selectOne(queryWrapper);
-        
-        // 如果没有教材ID，删除绑定关系（如果存在）
-        if (param.getTextbookId() == null) {
-            if (existingMapping != null) {
-                applicationMaterialsTextbookMappingMapper.deleteById(existingMapping.getId());
-            }
-            return;
-        }
-        
-        // 获取当前登录用户
-        Long currentUserId = UserUtils.get() != null ? UserUtils.get().getId() : null;
-        
-        // 查询章节名称并验证章节是否属于该教材（允许章节ID为null）
-        String chapterName = "";
-        if (chapterId != null) {
-            LambdaQueryWrapper<TextbookCatalog> catalogQuery = new LambdaQueryWrapper<TextbookCatalog>()
-                    .eq(TextbookCatalog::getId, chapterId)
-                    .eq(TextbookCatalog::getTextbookId, param.getTextbookId())  // 校验章节属于该教材
-                    .select(TextbookCatalog::getCatalogName);
+    private void updateTextbookMappingOnUpdate(ApplicationMaterialsSaveParam param, Long finalChapterId, Long finalChapterId2) {
+        if (param.getTextbookId() != null) {
+            // 查询现有绑定关系
+            LambdaQueryWrapper<ApplicationMaterialsTextbookMapping> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(ApplicationMaterialsTextbookMapping::getApplicationMaterialId, param.getId());
+            ApplicationMaterialsTextbookMapping existingMapping = applicationMaterialsTextbookMappingMapper.selectOne(queryWrapper);
             
-            TextbookCatalog catalog = textbookCatalogMapper.selectOne(catalogQuery);
-            if (catalog == null) {
-                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, 
-                        "章节ID不存在或不属于该教材: " + chapterId);
+            // 获取当前登录用户作为操作人
+            Long currentUserId = UserUtils.get() != null ? UserUtils.get().getId() : null;
+            
+            if (existingMapping != null) {
+                // 更新现有绑定关系
+                existingMapping.setTextbookId(param.getTextbookId());
+                existingMapping.setTextbookCatalogId(finalChapterId);
+                existingMapping.setTextbookCatalogId2(finalChapterId2 != null ? finalChapterId2 : finalChapterId); // 如果未提供则与主章节ID一致
+                existingMapping.setOperator(currentUserId);
+                // 章节名称只在章节ID有效时更新
+                if (finalChapterId != null) {
+                    LambdaQueryWrapper<TextbookCatalog> catalogQuery = new LambdaQueryWrapper<TextbookCatalog>()
+                            .eq(TextbookCatalog::getId, finalChapterId)
+                            .select(TextbookCatalog::getCatalogName);
+                    TextbookCatalog catalog = textbookCatalogMapper.selectOne(catalogQuery);
+                    if (catalog != null) {
+                        existingMapping.setTextbookCatalogName(catalog.getCatalogName());
+                    }
+                }
+                applicationMaterialsTextbookMappingMapper.updateById(existingMapping);
+            } else {
+                // 创建新的绑定关系
+                String chapterName = "";
+                if (finalChapterId != null) {
+                    LambdaQueryWrapper<TextbookCatalog> catalogQuery = new LambdaQueryWrapper<TextbookCatalog>()
+                            .eq(TextbookCatalog::getId, finalChapterId)
+                            .select(TextbookCatalog::getCatalogName);
+                    TextbookCatalog catalog = textbookCatalogMapper.selectOne(catalogQuery);
+                    if (catalog != null) {
+                        chapterName = catalog.getCatalogName();
+                    }
+                }
+                
+                ApplicationMaterialsTextbookMapping mapping = new ApplicationMaterialsTextbookMapping();
+                mapping.setApplicationMaterialId(param.getId());
+                mapping.setTextbookId(param.getTextbookId());
+                mapping.setTextbookCatalogId(finalChapterId);
+                mapping.setTextbookCatalogId2(finalChapterId2 != null ? finalChapterId2 : finalChapterId); // 如果未提供则与主章节ID一致
+                mapping.setTextbookCatalogName(chapterName);
+                mapping.setCreator(currentUserId);
+                mapping.setOperator(currentUserId);
+                applicationMaterialsTextbookMappingMapper.insert(mapping);
             }
-            chapterName = catalog.getCatalogName();
-        }
-        
-        if (existingMapping != null) {
-            // 更新现有绑定关系
-            existingMapping.setTextbookId(param.getTextbookId());
-            existingMapping.setTextbookCatalogId(chapterId);  // 可以为null
-            existingMapping.setTextbookCatalogId2(chapterId);  // 设置备用章节ID，与主章节ID相同
-            existingMapping.setTextbookCatalogName(chapterName);
-            existingMapping.setOperator(currentUserId);
-            applicationMaterialsTextbookMappingMapper.updateById(existingMapping);
-        } else {
-            // 创建新的绑定关系（允许章节ID为null）
-            ApplicationMaterialsTextbookMapping mapping = new ApplicationMaterialsTextbookMapping();
-            mapping.setApplicationMaterialId(applicationMaterialId);
-            mapping.setTextbookId(param.getTextbookId());
-            mapping.setTextbookCatalogId(chapterId);  // 可以为null
-            mapping.setTextbookCatalogId2(chapterId);  // 设置备用章节ID，与主章节ID相同
-            mapping.setTextbookCatalogName(chapterName);
-            mapping.setCreator(currentUserId);
-            mapping.setOperator(currentUserId);
-            applicationMaterialsTextbookMappingMapper.insert(mapping);
         }
     }
 
