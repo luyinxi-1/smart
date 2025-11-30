@@ -101,8 +101,8 @@ public R<List<TeachingMaterials>> getMaterialsForTextbook(
 
     @ApiOperation(value = "根据教学素材ids查询教学素材")
     @GetMapping("/getTeachingMaterialsByIds")
-    public R<List<TeachingMaterials>> getTeachingMaterialsByIds(@RequestBody List<Long> ids) {
-        List<TeachingMaterials> result = teachingMaterialsService.getTeachingMaterialsByIds(ids);
+    public R<List<TeachingMaterials>> getTeachingMaterialsByIds(@RequestParam Long textbookId) {
+        List<TeachingMaterials> result = teachingMaterialsService.getTeachingMaterialsByIds(textbookId);
         return R.ok(result);
     }
 }

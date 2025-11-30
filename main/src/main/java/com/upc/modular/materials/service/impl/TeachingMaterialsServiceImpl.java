@@ -1256,7 +1256,11 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
     }
 
     @Override
-    public List<TeachingMaterials> getTeachingMaterialsByIds(List<Long> ids) {
+    public List<TeachingMaterials> getTeachingMaterialsByIds(Long textbookId) {
+
+        List<Long> ids = materialsTextbookMappingService.selectMaterialsTextbookMappingByTextbookId(textbookId).stream()
+                .map(MaterialsTextbookMapping::getMaterialId).collect(Collectors.toList());
+
         if (ids.isEmpty()) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
         }

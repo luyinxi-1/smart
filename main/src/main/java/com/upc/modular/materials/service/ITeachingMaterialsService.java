@@ -41,5 +41,5 @@ public interface ITeachingMaterialsService extends IService<TeachingMaterials> {
 
     MaterialsTextbookNameMappingReturnParam getMaterialsTextbookMappingByMaterialsId(List<Long> ids);
 
-    List<TeachingMaterials> getTeachingMaterialsByIds(List<Long> ids);
+    List<TeachingMaterials> getTeachingMaterialsByIds(Long textbookId);
 }
