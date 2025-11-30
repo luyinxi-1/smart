@@ -142,7 +142,6 @@ public final class Word2HtmlUtils {
     private static HtmlSaveOptions buildHtmlSaveOptions(Long textbookId) {
         HtmlSaveOptions opt = new HtmlSaveOptions(SaveFormat.HTML);
         opt.setOfficeMathOutputMode(HtmlOfficeMathOutputMode.IMAGE);
-        opt.setMetafileFormat(HtmlMetafileFormat.SVG);
 //        opt.setExportImagesAsBase64(true);
 //        opt.setExportFontsAsBase64(true);
         opt.setExportImagesAsBase64(false);
