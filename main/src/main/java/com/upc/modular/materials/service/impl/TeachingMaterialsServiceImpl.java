@@ -92,7 +92,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
      * @return
      */
     @Override
-    public String insertMaterials(TeachingMaterialsSaveOrUpdateParam param) {
+    public TeachingMaterials insertMaterials(TeachingMaterialsSaveOrUpdateParam param) {
         // 1. 重名检查逻辑 (不变)
         if (ObjectUtils.isNotEmpty(teachingMaterialsMapper.selectList(new LambdaQueryWrapper<TeachingMaterials>()
                 .eq(TeachingMaterials::getName, param.getName())
@@ -186,10 +186,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 materialsTextbookMappingService.save(mapping);
             }
             
-            if (teachingMaterials.getType().equals("link")) {
-                return teachingMaterials.getFilePath();
-            }
-            return teachingMaterials.getFileName();
+            return teachingMaterials;
         } else {
             return null;
         }

@@ -38,11 +38,23 @@ public class TeachingMaterialsController {
     @ApiOperation(value = "添加教学素材")
     @PostMapping("/insert-materials")
     public R<String> insertMaterials(@RequestBody TeachingMaterialsSaveOrUpdateParam param) {
-        String result = teachingMaterialsService.insertMaterials(param);
-        if (result == null)
+        TeachingMaterials entity = teachingMaterialsService.insertMaterials(param);
+        if (entity == null) {
             return R.fail("修改失败");
-        else
-            return R.ok(result);
+        }
+
+        // 保持原有 data 字段行为：
+        // - 如果 type = "link"，以前返回的是 filePath
+        // - 否则返回 fileName
+        String data;
+        if ("link".equals(entity.getType())) {
+            data = entity.getFilePath();
+        } else {
+            data = entity.getFileName();
+        }
+
+        // 构造响应：data 仍然是原来的字符串，额外设置 materialId
+        return new R<>(200, "请求成功", data, entity.getId());
     }
     @ApiOperation(value = "下载教学素材")
     @GetMapping("/download-file-materials")
