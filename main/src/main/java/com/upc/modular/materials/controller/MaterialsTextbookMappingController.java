@@ -10,6 +10,7 @@ import com.upc.modular.materials.controller.param.dto.MaterialsTextbookMappingDt
 import com.upc.modular.materials.controller.param.dto.MaterialsTextbookMappingPageSearchParam;
 import com.upc.modular.materials.controller.param.vo.MaterialsTextbookMappingReturnParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
+import com.upc.modular.materials.entity.MaterialsTextbookMapping;
 import com.upc.modular.materials.service.IMaterialsTextbookMappingService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -104,6 +105,13 @@ public class MaterialsTextbookMappingController {
         if (materialsTextbookMappingService.removeById(id))
             return R.ok("删除成功");
         return R.fail("删除失败");
+    }
+
+    @ApiOperation(value = "根据textbookid获取教学素材与教材关联")
+    @GetMapping("/selectMaterialsTextbookMappingByTextbookId")
+    public R<List<MaterialsTextbookMapping>> selectMaterialsTextbookMappingByTextbookId(@RequestParam("textbookId") Long textbookId){
+        List<MaterialsTextbookMapping> result = materialsTextbookMappingService.selectMaterialsTextbookMappingByTextbookId(textbookId);
+        return R.ok(result);
     }
 
 }
