@@ -1181,42 +1181,53 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         }
         // 2. 遍历删除文件
         for (TeachingMaterials materials : materialsList) {
-            if (materials.getType().equals("link"))
-                this.removeById(materials.getId());
-            else if (materials.getType().equals("imageSet")) {
-                Path filePath = Paths.get(materials.getFilePath());
-                if (FileUtils.deleteQuietly(filePath.toFile()))
+            try {
+                if (materials.getType().equals("link")) {
+                    // 链接类型没有实际文件，直接删除数据库记录
                     this.removeById(materials.getId());
-                else throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，部分素材删除失败");
-            }
-            // "simulation" 或 "H5" 类型：删除文件或文件夹 (处理方式相同)
-            else if (materials.getType().equals("simulation") || materials.getType().equals("H5")) {
-                try {
+                }
+                else if (materials.getType().equals("imageSet")) {
+                    // 图集类型删除整个目录
                     Path filePath = Paths.get(materials.getFilePath());
-                    // 检查路径是指向文件还是目录
-                    if (Files.isDirectory(filePath)) {
-                        // 如果是目录，递归删除整个目录及其内容
-                        FileUtils.deleteDirectory(filePath.toFile());
-                    } else {
-                        // 如果是文件，直接删除
+                    if (Files.exists(filePath)) {
+                        // 只有文件存在时才尝试删除
+                        FileUtils.deleteQuietly(filePath.toFile());
+                    }
+                    // 总是删除数据库记录
+                    this.removeById(materials.getId());
+                }
+                // "simulation" 或 "H5" 类型：删除文件或文件夹 (处理方式相同)
+                else if (materials.getType().equals("simulation") || materials.getType().equals("H5")) {
+                    Path filePath = Paths.get(materials.getFilePath());
+                    if (Files.exists(filePath)) {
+                        // 检查路径是指向文件还是目录
+                        if (Files.isDirectory(filePath)) {
+                            // 如果是目录，递归删除整个目录及其内容
+                            FileUtils.deleteDirectory(filePath.toFile());
+                        } else {
+                            // 如果是文件，直接删除
+                            Files.deleteIfExists(filePath);
+                        }
+                    }
+                    // 总是删除数据库记录
+                    this.removeById(materials.getId());
+                }
+                else {
+                    // 其他文件类型
+                    Path filePath = Paths.get(materials.getFilePath());
+                    if (Files.exists(filePath)) {
+                        // 只有文件存在时才尝试删除
                         Files.deleteIfExists(filePath);
                     }
-                    this.removeById(materials.getId()); // 删除数据库记录
-                } catch (IOException e) {
-                    e.printStackTrace(); // 打印异常栈
-                    // 如果文件或目录删除失败，抛出业务异常
-                    throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，部分 " + materials.getType() + " 素材删除失败");
-                }
-            }
-                else {
-                try {
-                    Path filePath = Paths.get(materials.getFilePath());
-                    Files.deleteIfExists(filePath);
+                    // 总是删除数据库记录
                     this.removeById(materials.getId());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，部分素材删除失败");
                 }
+            } catch (IOException e) {
+                // 记录异常但继续处理其他素材
+                e.printStackTrace();
+                // 即使文件删除失败也删除数据库记录，避免数据不一致
+                this.removeById(materials.getId());
+                // 可以考虑添加日志记录此处发生的错误
             }
         }
     }
