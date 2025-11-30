@@ -1,6 +1,7 @@
 package com.upc.modular.materials.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.utils.UserUtils;
@@ -210,16 +211,25 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             }
         }
         
-        // 更新应用素材
-        ApplicationMaterials applicationMaterials = new ApplicationMaterials();
-        BeanUtils.copyProperties(param, applicationMaterials);
+        // 更新应用素材（仅更新传递的字段）
+        UpdateWrapper<ApplicationMaterials> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("id", param.getId());
         
-        // 设置默认值
-        if (applicationMaterials.getStatus() == null) {
-            applicationMaterials.setStatus(0);
+        // 只设置请求中明确提供的字段
+        if (param.getName() != null) {
+            updateWrapper.set("name", param.getName());
+        }
+        if (param.getDescription() != null) {
+            updateWrapper.set("description", param.getDescription());
+        }
+        if (param.getQuestionBankId() != null) {
+            updateWrapper.set("question_bank_id", param.getQuestionBankId());
+        }
+        if (param.getStatus() != null) {
+            updateWrapper.set("status", param.getStatus());
         }
         
-        boolean updateResult = this.updateById(applicationMaterials);
+        boolean updateResult = this.update(updateWrapper);
         if (!updateResult) {
             throw new BusinessException(BusinessErrorEnum.BUSINESS_ERROR, "更新应用素材失败");
         }
