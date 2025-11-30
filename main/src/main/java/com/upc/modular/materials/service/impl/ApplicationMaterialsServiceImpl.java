@@ -54,6 +54,9 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
     @Autowired
     private ApplicationMaterialsTextbookMappingMapper applicationMaterialsTextbookMappingMapper;
 
+    @Autowired
+    private ApplicationMaterialsMapper applicationMaterialsMapper;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long saveApplicationMaterials(ApplicationMaterialsSaveParam param) {
@@ -211,25 +214,16 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             }
         }
         
-        // 更新应用素材（仅更新传递的字段）
-        UpdateWrapper<ApplicationMaterials> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.eq("id", param.getId());
+        // 更新应用素材
+        ApplicationMaterials applicationMaterials = new ApplicationMaterials();
+        BeanUtils.copyProperties(param, applicationMaterials);
         
-        // 只设置请求中明确提供的字段
-        if (param.getName() != null) {
-            updateWrapper.set("name", param.getName());
-        }
-        if (param.getDescription() != null) {
-            updateWrapper.set("description", param.getDescription());
-        }
-        if (param.getQuestionBankId() != null) {
-            updateWrapper.set("question_bank_id", param.getQuestionBankId());
-        }
-        if (param.getStatus() != null) {
-            updateWrapper.set("status", param.getStatus());
+        // 设置默认值
+        if (applicationMaterials.getStatus() == null) {
+            applicationMaterials.setStatus(0);
         }
         
-        boolean updateResult = this.update(updateWrapper);
+        boolean updateResult = applicationMaterialsMapper.updateByApplicationMaterialId(applicationMaterials);
         if (!updateResult) {
             throw new BusinessException(BusinessErrorEnum.BUSINESS_ERROR, "更新应用素材失败");
         }

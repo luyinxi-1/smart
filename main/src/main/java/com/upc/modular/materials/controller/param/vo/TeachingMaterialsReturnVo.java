@@ -66,6 +66,12 @@ public class TeachingMaterialsReturnVo {
     private Long chapterId;
     
     /**
+     * 备用章节ID
+     */
+    @ApiModelProperty("备用章节ID")
+    private Long chapterId2;
+    
+    /**
      * 章节名称
      */
     @ApiModelProperty("已绑定的章节名称")

@@ -14,6 +14,26 @@
         <result column="operator" property="operator" />
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
+
+    <update id="updateByApplicationMaterialId">
+        UPDATE application_materials
+        <set>
+            <if test="name != null and name != ''">
+                name = #{name},
+            </if>
+            <if test="description != null and description != ''">
+                description = #{description},
+            </if>
+            <if test="questionBankId != null">
+                question_bank_id = #{questionBankId},
+            </if>
+            <if test="status != null">
+                `status` = #{status},
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
     <!-- 分页查询应用素材列表 -->
     <select id="selectApplicationMaterialsPage"
             resultType="com.upc.modular.materials.controller.param.vo.ApplicationMaterialsVO">
