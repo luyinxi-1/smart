@@ -685,6 +685,7 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
         result.setStatus(questionBank.getStatus());
         result.setTextbookId(questionBank.getTextbookId());
         result.setTextbookCatalogId(questionBank.getTextbookCatalogId());
+        result.setTextbookCatalogId2(questionBank.getTextbookCatalogId2());
         result.setIsLimitAttempts(questionBank.getIsLimitAttempts());
         result.setMaxAttempts(questionBank.getMaxAttempts());
         result.setScorePolicy(questionBank.getScorePolicy());

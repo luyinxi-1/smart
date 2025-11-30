@@ -43,6 +43,9 @@ public class ApplicationMaterialsVO {
     @ApiModelProperty("教材章节ID")
     private Long textbookCatalogId;
     
+    @ApiModelProperty("备用教材章节ID")
+    private Long textbookCatalogId2;
+    
     @ApiModelProperty("教材章节名称")
     private String textbookCatalogName;
 

@@ -1,6 +1,7 @@
 package com.upc.modular.materials.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.utils.UserUtils;
@@ -52,6 +53,9 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
 
     @Autowired
     private ApplicationMaterialsTextbookMappingMapper applicationMaterialsTextbookMappingMapper;
+
+    @Autowired
+    private ApplicationMaterialsMapper applicationMaterialsMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -231,7 +235,7 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             applicationMaterials.setStatus(0);
         }
         
-        boolean updateResult = this.updateById(applicationMaterials);
+        boolean updateResult = applicationMaterialsMapper.updateByApplicationMaterialId(applicationMaterials);
         if (!updateResult) {
             throw new BusinessException(BusinessErrorEnum.BUSINESS_ERROR, "更新应用素材失败");
         }

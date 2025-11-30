@@ -4,11 +4,7 @@ package com.upc.modular.textbook.controller;
 import com.upc.common.responseparam.R;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.TextbookCatalog;
-import com.upc.modular.textbook.param.MaterialTypeCountReturnParam;
-import com.upc.modular.textbook.param.ReadTextbookReturnParam;
-import com.upc.modular.textbook.param.TextbookCatalogDto;
-import com.upc.modular.textbook.param.TextbookCatalogInsertParam;
-import com.upc.modular.textbook.param.TextbookTree;
+import com.upc.modular.textbook.param.*;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -38,7 +34,7 @@ public class TextbookCatalogController {
 
     @ApiOperation(value = "解析docx文档到数据库")
     @PostMapping("/processAndSaveHtml")
-    public R processAndSaveHtml(@RequestParam MultipartFile file, @RequestParam Long textbookId) {
+    public R processAndSaveHtml(@RequestParam MultipartFile file, Long textbookId) {
         textbookCatalogService.processAndSaveHtml(file, textbookId);
         return R.commonReturn(200, "新增成功", "");
     }
@@ -105,6 +101,13 @@ public class TextbookCatalogController {
     @PostMapping("/getTextbookCatalogTree")
     public R<List<TextbookTree>> getTextbookCatalogTree(@RequestParam("textbookId") Long textbookId) {
         List<TextbookTree> result = textbookCatalogService.getTextbookCatalogTree(textbookId);
+        return R.ok(result);
+    }
+
+    @ApiOperation(value = "返回指定级别目录")
+    @PostMapping("/getTextbookSpecifiedCatalog")
+    public R<List<Long>> getTextbookSpecifiedCatalog(@RequestBody TextbookSpecifiedCatalogSearchParam param) {
+        List<Long> result = textbookCatalogService.getTextbookSpecifiedCatalog(param);
         return R.ok(result);
     }
 

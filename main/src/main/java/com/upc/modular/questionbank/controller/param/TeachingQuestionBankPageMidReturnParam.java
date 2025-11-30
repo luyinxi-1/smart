@@ -28,6 +28,9 @@ public class TeachingQuestionBankPageMidReturnParam {
     @ApiModelProperty("关联的教材目录")
     private Long textbookCatalogId;
 
+    @ApiModelProperty("备用教材目录Id")
+    private Long textbookCatalogId2;
+
     @ApiModelProperty("学生可作答的最大次数")
     private Integer maxAttempts;
 

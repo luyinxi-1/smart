@@ -14,6 +14,7 @@ import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsPageSearchDto;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsSaveOrUpdateParam;
 import com.upc.modular.materials.controller.param.vo.MaterialsTextbookNameMappingReturnParam;
+import com.upc.modular.materials.controller.param.vo.TeachingMaterialsInsertMaterialsReturnParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.entity.MaterialsTextbookMapping;
 import com.upc.modular.materials.entity.TeachingMaterials;
@@ -92,7 +93,9 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
      * @return
      */
     @Override
-    public String insertMaterials(TeachingMaterialsSaveOrUpdateParam param) {
+    public TeachingMaterialsInsertMaterialsReturnParam insertMaterials(TeachingMaterialsSaveOrUpdateParam param) {
+        TeachingMaterialsInsertMaterialsReturnParam result = new TeachingMaterialsInsertMaterialsReturnParam();
+
         // 1. 重名检查逻辑 (不变)
         if (ObjectUtils.isNotEmpty(teachingMaterialsMapper.selectList(new LambdaQueryWrapper<TeachingMaterials>()
                 .eq(TeachingMaterials::getName, param.getName())
@@ -185,11 +188,15 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 mapping.setAddDatetime(LocalDateTime.now());
                 materialsTextbookMappingService.save(mapping);
             }
-            
+
             if (teachingMaterials.getType().equals("link")) {
-                return teachingMaterials.getFilePath();
+                result.setFilePath(teachingMaterials.getFilePath());
             }
-            return teachingMaterials.getFileName();
+            result.setFileName(teachingMaterials.getFileName());
+
+            result.setMaterialId(teachingMaterials.getId());
+
+            return result;
         } else {
             return null;
         }
@@ -657,6 +664,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                         temp.setTextbookId(mapping.getTextbookId());
                         temp.setTextbookName(finaltextbookIdNameMap.get(mapping.getTextbookId()));
                         temp.setChapterId(mapping.getChapterId());
+                        temp.setChapterId2(mapping.getChapterId2());
                         temp.setChapterName(finalChapterIdNameMap.get(mapping.getChapterId()));
                     }
 
@@ -1181,42 +1189,53 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         }
         // 2. 遍历删除文件
         for (TeachingMaterials materials : materialsList) {
-            if (materials.getType().equals("link"))
-                this.removeById(materials.getId());
-            else if (materials.getType().equals("imageSet")) {
-                Path filePath = Paths.get(materials.getFilePath());
-                if (FileUtils.deleteQuietly(filePath.toFile()))
+            try {
+                if (materials.getType().equals("link")) {
+                    // 链接类型没有实际文件，直接删除数据库记录
                     this.removeById(materials.getId());
-                else throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，部分素材删除失败");
-            }
-            // "simulation" 或 "H5" 类型：删除文件或文件夹 (处理方式相同)
-            else if (materials.getType().equals("simulation") || materials.getType().equals("H5")) {
-                try {
+                }
+                else if (materials.getType().equals("imageSet")) {
+                    // 图集类型删除整个目录
                     Path filePath = Paths.get(materials.getFilePath());
-                    // 检查路径是指向文件还是目录
-                    if (Files.isDirectory(filePath)) {
-                        // 如果是目录，递归删除整个目录及其内容
-                        FileUtils.deleteDirectory(filePath.toFile());
-                    } else {
-                        // 如果是文件，直接删除
+                    if (Files.exists(filePath)) {
+                        // 只有文件存在时才尝试删除
+                        FileUtils.deleteQuietly(filePath.toFile());
+                    }
+                    // 总是删除数据库记录
+                    this.removeById(materials.getId());
+                }
+                // "simulation" 或 "H5" 类型：删除文件或文件夹 (处理方式相同)
+                else if (materials.getType().equals("simulation") || materials.getType().equals("H5")) {
+                    Path filePath = Paths.get(materials.getFilePath());
+                    if (Files.exists(filePath)) {
+                        // 检查路径是指向文件还是目录
+                        if (Files.isDirectory(filePath)) {
+                            // 如果是目录，递归删除整个目录及其内容
+                            FileUtils.deleteDirectory(filePath.toFile());
+                        } else {
+                            // 如果是文件，直接删除
+                            Files.deleteIfExists(filePath);
+                        }
+                    }
+                    // 总是删除数据库记录
+                    this.removeById(materials.getId());
+                }
+                else {
+                    // 其他文件类型
+                    Path filePath = Paths.get(materials.getFilePath());
+                    if (Files.exists(filePath)) {
+                        // 只有文件存在时才尝试删除
                         Files.deleteIfExists(filePath);
                     }
-                    this.removeById(materials.getId()); // 删除数据库记录
-                } catch (IOException e) {
-                    e.printStackTrace(); // 打印异常栈
-                    // 如果文件或目录删除失败，抛出业务异常
-                    throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，部分 " + materials.getType() + " 素材删除失败");
-                }
-            }
-                else {
-                try {
-                    Path filePath = Paths.get(materials.getFilePath());
-                    Files.deleteIfExists(filePath);
+                    // 总是删除数据库记录
                     this.removeById(materials.getId());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，部分素材删除失败");
                 }
+            } catch (IOException e) {
+                // 记录异常但继续处理其他素材
+                e.printStackTrace();
+                // 即使文件删除失败也删除数据库记录，避免数据不一致
+                this.removeById(materials.getId());
+                // 可以考虑添加日志记录此处发生的错误
             }
         }
     }
@@ -1235,5 +1254,20 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         }
         // MaterialId-TextbookName
         return baseMapper.getMaterialIdToTextbookNameMap(ids);
+    }
+
+    @Override
+    public List<TeachingMaterials> getTeachingMaterialsByIds(Long textbookId) {
+
+        List<Long> ids = materialsTextbookMappingService.selectMaterialsTextbookMappingByTextbookId(textbookId).stream()
+                .map(MaterialsTextbookMapping::getMaterialId).collect(Collectors.toList());
+
+        if (ids.isEmpty()) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+
+        List<TeachingMaterials> teachingMaterialsList = this.listByIds(ids);
+
+        return teachingMaterialsList;
     }
 }

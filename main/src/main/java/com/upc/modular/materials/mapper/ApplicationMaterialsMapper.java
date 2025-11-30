@@ -35,4 +35,7 @@ public interface ApplicationMaterialsMapper extends BaseMapper<ApplicationMateri
      * @return 应用素材详情
      */
     ApplicationMaterialsVO selectApplicationMaterialsById(@Param("id") Long id);
+
+
+    boolean updateByApplicationMaterialId(ApplicationMaterials applicationMaterials);
 }

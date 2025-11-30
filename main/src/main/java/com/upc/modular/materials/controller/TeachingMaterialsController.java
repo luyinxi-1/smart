@@ -7,6 +7,7 @@ import com.upc.common.responseparam.R;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsPageSearchDto;
 import com.upc.modular.materials.controller.param.dto.TeachingMaterialsSaveOrUpdateParam;
 import com.upc.modular.materials.controller.param.vo.MaterialsTextbookNameMappingReturnParam;
+import com.upc.modular.materials.controller.param.vo.TeachingMaterialsInsertMaterialsReturnParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
 import com.upc.modular.materials.entity.TeachingMaterials;
 import com.upc.modular.materials.service.ITeachingMaterialsService;
@@ -37,12 +38,12 @@ public class TeachingMaterialsController {
 
     @ApiOperation(value = "添加教学素材")
     @PostMapping("/insert-materials")
-    public R<String> insertMaterials(@RequestBody TeachingMaterialsSaveOrUpdateParam param) {
-        String result = teachingMaterialsService.insertMaterials(param);
-        if (result == null)
+    public R<TeachingMaterialsInsertMaterialsReturnParam> insertMaterials(@RequestBody TeachingMaterialsSaveOrUpdateParam param) {
+        TeachingMaterialsInsertMaterialsReturnParam result = teachingMaterialsService.insertMaterials(param);
+        if (result == null) {
             return R.fail("修改失败");
-        else
-            return R.ok(result);
+        }
+        return new R<TeachingMaterialsInsertMaterialsReturnParam>(200, "添加教学素材成功", result);
     }
     @ApiOperation(value = "下载教学素材")
     @GetMapping("/download-file-materials")
@@ -95,6 +96,13 @@ public R<List<TeachingMaterials>> getMaterialsForTextbook(
     @PostMapping("/getMaterialsTextbookMappingByMaterialsId")
     public R<MaterialsTextbookNameMappingReturnParam> getMaterialsTextbookMappingByMaterialsId(@RequestBody List<Long> ids) {
         MaterialsTextbookNameMappingReturnParam result = teachingMaterialsService.getMaterialsTextbookMappingByMaterialsId(ids);
+        return R.ok(result);
+    }
+
+    @ApiOperation(value = "根据教学素材ids查询教学素材")
+    @GetMapping("/getTeachingMaterialsByIds")
+    public R<List<TeachingMaterials>> getTeachingMaterialsByIds(@RequestParam Long textbookId) {
+        List<TeachingMaterials> result = teachingMaterialsService.getTeachingMaterialsByIds(textbookId);
         return R.ok(result);
     }
 }
