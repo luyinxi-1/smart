@@ -1,9 +1,6 @@
 package com.upc.utils;
 
-import com.aspose.words.Document;
-import com.aspose.words.HtmlOfficeMathOutputMode;
-import com.aspose.words.HtmlSaveOptions;
-import com.aspose.words.SaveFormat;
+import com.aspose.words.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -145,6 +142,7 @@ public final class Word2HtmlUtils {
     private static HtmlSaveOptions buildHtmlSaveOptions(Long textbookId) {
         HtmlSaveOptions opt = new HtmlSaveOptions(SaveFormat.HTML);
         opt.setOfficeMathOutputMode(HtmlOfficeMathOutputMode.IMAGE);
+        opt.setMetafileFormat(HtmlMetafileFormat.SVG);
 //        opt.setExportImagesAsBase64(true);
 //        opt.setExportFontsAsBase64(true);
         opt.setExportImagesAsBase64(false);
