@@ -664,6 +664,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                         temp.setTextbookId(mapping.getTextbookId());
                         temp.setTextbookName(finaltextbookIdNameMap.get(mapping.getTextbookId()));
                         temp.setChapterId(mapping.getChapterId());
+                        temp.setChapterId2(mapping.getChapterId2());
                         temp.setChapterName(finalChapterIdNameMap.get(mapping.getChapterId()));
                     }
 
