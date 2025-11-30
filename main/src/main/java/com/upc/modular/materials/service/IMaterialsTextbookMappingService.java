@@ -45,4 +45,6 @@ public interface IMaterialsTextbookMappingService extends IService<MaterialsText
      * @return 教材ID
      */
     Long getTextbookIdByChapterId(Long chapterId);
+
+    List<MaterialsTextbookMapping> selectMaterialsTextbookMappingByTextbookId(Long textbookId);
 }

@@ -1,6 +1,7 @@
 package com.upc.modular.materials.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.utils.UserUtils;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
@@ -443,5 +444,12 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
         
         MaterialsTextbookMapping mapping = this.getOne(queryWrapper);
         return mapping != null ? mapping.getTextbookId() : null;
+    }
+
+    @Override
+    public List<MaterialsTextbookMapping> selectMaterialsTextbookMappingByTextbookId(Long textbookId) {
+        LambdaQueryWrapper<MaterialsTextbookMapping> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(MaterialsTextbookMapping::getTextbookId, textbookId);
+        return this.list(queryWrapper);
     }
 }
