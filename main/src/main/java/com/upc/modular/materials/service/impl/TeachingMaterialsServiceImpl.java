@@ -1255,4 +1255,15 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         // MaterialId-TextbookName
         return baseMapper.getMaterialIdToTextbookNameMap(ids);
     }
+
+    @Override
+    public List<TeachingMaterials> getTeachingMaterialsByIds(List<Long> ids) {
+        if (ids.isEmpty()) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+
+        List<TeachingMaterials> teachingMaterialsList = this.listByIds(ids);
+
+        return teachingMaterialsList;
+    }
 }

@@ -40,4 +40,6 @@ public interface ITeachingMaterialsService extends IService<TeachingMaterials> {
     void deleteTeachingMaterialsByIds(List<Long> ids);
 
     MaterialsTextbookNameMappingReturnParam getMaterialsTextbookMappingByMaterialsId(List<Long> ids);
+
+    List<TeachingMaterials> getTeachingMaterialsByIds(List<Long> ids);
 }
