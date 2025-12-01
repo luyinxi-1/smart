@@ -24,7 +24,7 @@ public interface IMaterialsTextbookMappingService extends IService<MaterialsText
 
     Page<MaterialsTextbookMappingReturnParam> getPage(MaterialsTextbookMappingPageSearchParam param);
 
-    Long insertMapping(Long textbookId, Long materialId, String chapterName, Long chapterId, String chapterUuid);
+    Long insertMapping(Long textbookId, Long materialId, String chapterName, Long chapterId, String chapterUuid,Long chapterId2);
 
     List<Long> insertMappingBatch(List<MaterialsTextbookMappingDto> mappings);
     

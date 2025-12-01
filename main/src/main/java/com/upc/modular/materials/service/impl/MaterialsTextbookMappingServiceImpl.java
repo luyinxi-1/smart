@@ -66,7 +66,7 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long insertMapping(Long textbookId, Long materialId, String chapterName, Long chapterId, String chapterUuid) {
+    public Long insertMapping(Long textbookId, Long materialId, String chapterName, Long chapterId, String chapterUuid, Long chapterId2) {
         // 1. 基础参数校验
         if (ObjectUtils.isEmpty(textbookId) || ObjectUtils.isEmpty(materialId)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材ID和素材ID不能为空");
@@ -74,6 +74,7 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
 
         // 2. 【新增逻辑】解析章节ID
         Long finalChapterId = chapterId; // 优先使用传入的 chapterId
+        Long finalChapterId2 = chapterId2;
 
         // 如果 chapterId 未提供，但 chapterUuid 提供了，则进行查询转换
         if (finalChapterId == null && chapterUuid != null && !chapterUuid.trim().isEmpty()) {
@@ -88,6 +89,7 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
                 throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "无效的章节UUID: " + chapterUuid);
             }
             finalChapterId = textbookCatalog.getId(); // 将查询到的ID赋值给 finalChapterId
+            finalChapterId2 = textbookCatalog.getId();
         }
 
         // 3. 最终校验：确保章节ID、章节名称已确定
@@ -116,7 +118,7 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
         mapping.setMaterialId(materialId);
         mapping.setChapterName(chapterName);
         mapping.setChapterId(finalChapterId);
-        mapping.setChapterId2(finalChapterId);// 使用最终确定的章节ID
+        mapping.setChapterId2(finalChapterId2);// 使用最终确定的章节ID
 
         if (this.save(mapping)) {
             return mapping.getId();

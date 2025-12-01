@@ -501,13 +501,14 @@ public class ApplicationMaterialsTextbookMappingServiceImpl extends ServiceImpl<
             entity.setApplicationMaterialId(dto.getApplicationMaterialId());
             entity.setTextbookCatalogName(dto.getTextbookCatalogName());
             entity.setTextbookCatalogId(dto.getTextbookCatalogId());
+            entity.setTextbookCatalogId2(dto.getTextbookCatalogId2());
             
             // 如果textbookCatalogId2为空但textbookCatalogId不为空，则将textbookCatalogId2设置为与textbookCatalogId相同的值
-            if (dto.getTextbookCatalogId2() == null && dto.getTextbookCatalogId() != null) {
+/*            if (dto.getTextbookCatalogId2() == null && dto.getTextbookCatalogId() != null) {
                 entity.setTextbookCatalogId2(dto.getTextbookCatalogId());
             } else {
                 entity.setTextbookCatalogId2(dto.getTextbookCatalogId2());
-            }
+            }*/
             
             entity.setCreator(currentUserId);
             entity.setOperator(currentUserId);

@@ -122,7 +122,7 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
                         "提供的章节UUID无效或不属于该教材: " + param.getTextbookCatalogUuId());
             }
             chapterId = textbookCatalog.getId();
-            chapterId2 = chapterId2 != null ? chapterId2 : chapterId; // 如果未提供chapterId2，则与chapterId相同
+            //chapterId2 = chapterId2 != null ? chapterId2 : chapterId; // 如果未提供chapterId2，则与chapterId相同
             chapterName = textbookCatalog.getCatalogName();
         } else if (chapterId != null) {
             // 如果直接提供了章节ID，查询章节并验证是否属于该教材
@@ -137,7 +137,7 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
                         "章节ID不存在或不属于该教材: " + chapterId);
             }
             chapterName = catalog.getCatalogName();
-            chapterId2 = chapterId2 != null ? chapterId2 : chapterId; // 如果未提供chapterId2，则与chapterId相同
+            //chapterId2 = chapterId2 != null ? chapterId2 : chapterId; // 如果未提供chapterId2，则与chapterId相同
         } else {
             // 如果没有提供chapterId，则chapterId2保持原值
             chapterId2 = param.getTextbookCatalogId2();
@@ -208,7 +208,7 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             
             finalChapterId = textbookCatalog.getId();
             // 如果未提供textbookCatalogId2，则将其设置为与textbookCatalogId相同
-            finalChapterId2 = finalChapterId2 != null ? finalChapterId2 : finalChapterId;
+            //finalChapterId2 = finalChapterId2 != null ? finalChapterId2 : finalChapterId;
         } else if (finalChapterId != null && param.getTextbookId() != null) {
             // 如果直接提供了章节ID和教材ID，验证章节是否属于该教材
             LambdaQueryWrapper<TextbookCatalog> catalogQuery = new LambdaQueryWrapper<TextbookCatalog>()
@@ -223,7 +223,7 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             }
             
             // 如果未提供textbookCatalogId2，则将其设置为与textbookCatalogId相同
-            finalChapterId2 = finalChapterId2 != null ? finalChapterId2 : finalChapterId;
+            //finalChapterId2 = finalChapterId2 != null ? finalChapterId2 : finalChapterId;
         }
         
         // 更新应用素材
@@ -280,7 +280,8 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
                 // 更新现有绑定关系
                 existingMapping.setTextbookId(param.getTextbookId());
                 existingMapping.setTextbookCatalogId(finalChapterId);
-                existingMapping.setTextbookCatalogId2(finalChapterId2 != null ? finalChapterId2 : finalChapterId); // 如果未提供则与主章节ID一致
+                existingMapping.setTextbookCatalogId2(finalChapterId2);
+               // existingMapping.setTextbookCatalogId2(finalChapterId2 != null ? finalChapterId2 : finalChapterId); // 如果未提供则与主章节ID一致
                 existingMapping.setOperator(currentUserId);
                 // 章节名称只在章节ID有效时更新
                 if (finalChapterId != null) {
@@ -310,7 +311,8 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
                 mapping.setApplicationMaterialId(param.getId());
                 mapping.setTextbookId(param.getTextbookId());
                 mapping.setTextbookCatalogId(finalChapterId);
-                mapping.setTextbookCatalogId2(finalChapterId2 != null ? finalChapterId2 : finalChapterId); // 如果未提供则与主章节ID一致
+                mapping.setTextbookCatalogId2(finalChapterId2);
+                //mapping.setTextbookCatalogId2(finalChapterId2 != null ? finalChapterId2 : finalChapterId); // 如果未提供则与主章节ID一致
                 mapping.setTextbookCatalogName(chapterName);
                 mapping.setCreator(currentUserId);
                 mapping.setOperator(currentUserId);

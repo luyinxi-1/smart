@@ -46,8 +46,8 @@ public class MaterialsTextbookMappingController {
     }
     @ApiOperation(value = "添加素材到教材")
     @PostMapping("/insert-mapping")
-    public R insertMapping(Long textbookId, Long materialId, String chapterName, Long chapterId, String chapterUuid) {
-        Long newId = materialsTextbookMappingService.insertMapping(textbookId, materialId, chapterName, chapterId, chapterUuid);
+    public R insertMapping(Long textbookId, Long materialId, String chapterName, Long chapterId, String chapterUuid, Long chapterId2) {
+        Long newId = materialsTextbookMappingService.insertMapping(textbookId, materialId, chapterName, chapterId, chapterUuid,chapterId2);
         if (newId != null) {
             return R.ok(newId);
         }

@@ -225,9 +225,9 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
         }
 
         // 如果textbookCatalogId2为空但textbookCatalogId不为空，则将textbookCatalogId2设置为与textbookCatalogId相同的值
-        if (textbookCatalogId2 == null && textbookCatalogId != null) {
+    /*    if (textbookCatalogId2 == null && textbookCatalogId != null) {
             param.setTextbookCatalogId2(textbookCatalogId);
-        }
+        }*/
 
         this.save(param);
         return param.getId();
@@ -301,9 +301,9 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
         }
 
         // 如果textbookCatalogId2为空但textbookCatalogId不为空，则将textbookCatalogId2设置为与textbookCatalogId相同的值
-        if (textbookCatalogId2 == null && textbookCatalogId != null) {
+ /*       if (textbookCatalogId2 == null && textbookCatalogId != null) {
             teachingQuestionbank.setTextbookCatalogId2(textbookCatalogId);
-        }
+        }*/
 
         // 4. 所有校验通过，执行更新操作
         // updateById 会根据 teachingQuestionbank 对象的ID去更新其他非空字段
@@ -358,9 +358,9 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
                 }
                 
                 // 如果textbookCatalogId2为空但textbookCatalogId不为空，则将textbookCatalogId2设置为与textbookCatalogId相同的值
-                if (bank.getTextbookCatalogId2() == null && bank.getTextbookCatalogId() != null) {
+           /*     if (bank.getTextbookCatalogId2() == null && bank.getTextbookCatalogId() != null) {
                     bank.setTextbookCatalogId2(bank.getTextbookCatalogId());
-                }
+                }*/
             }
         }
         // 1. 提取所有待更新记录的ID
