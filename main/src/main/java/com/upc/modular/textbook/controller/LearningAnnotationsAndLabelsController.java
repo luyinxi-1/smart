@@ -4,6 +4,7 @@ package com.upc.modular.textbook.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.upc.common.responseparam.R;
+import com.upc.common.utils.UserUtils;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
 import com.upc.modular.textbook.param.BatchSyncConfirmationDto;
@@ -87,4 +88,17 @@ public class LearningAnnotationsAndLabelsController {
         );
         return success ? R.ok() : R.fail("批量确认同步失败");
     }
-}
+        @ApiOperation("按教材下载当前用户的学习标注和批注")
+        @GetMapping("/downloadByTextbookId")
+        public R<List<LearningAnnotationsAndLabels>> downloadByTextbookId(@RequestParam Long textbookId) {
+            Long userId = UserUtils.get().getId();
+
+            List<LearningAnnotationsAndLabels> list = learningAnnotationsAndLabelsService.lambdaQuery()
+                    .eq(LearningAnnotationsAndLabels::getTextbookId, textbookId)
+                    .eq(LearningAnnotationsAndLabels::getCreator, userId)
+                    .eq(LearningAnnotationsAndLabels::getIsDelete, 0)
+                    .list();
+
+            return R.ok(list);
+        }
+    }

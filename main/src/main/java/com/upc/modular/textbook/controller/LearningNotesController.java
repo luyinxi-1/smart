@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
+import com.upc.common.utils.UserUtils;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.LearningLog;
 import com.upc.modular.textbook.entity.LearningNotes;
@@ -128,5 +129,18 @@ public class LearningNotesController {
                 confirmationDto.getSyncedIds()
         );
         return success ? R.ok() : R.fail("批量确认同步失败");
+    }
+    @ApiOperation("按教材下载当前用户的学习笔记")
+    @GetMapping("/downloadByTextbookId")
+    public R<List<LearningNotes>> downloadByTextbookId(@RequestParam Long textbookId) {
+        // 根据你服务端的登录工具选择：UserUtils 或其他
+        Long userId = UserUtils.get().getId();
+        List<LearningNotes> list = learningNotesService.lambdaQuery()
+                .eq(LearningNotes::getTextbookId, textbookId)
+                .eq(LearningNotes::getCreator, userId)
+                .eq(LearningNotes::getIsDelete, 0)
+                .list();
+
+        return R.ok(list);
     }
 }
