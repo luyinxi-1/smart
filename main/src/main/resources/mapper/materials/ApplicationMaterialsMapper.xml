@@ -222,6 +222,7 @@
             am.question_bank_id AS questionBankId,
             amtm.textbook_id AS textbookId,
             amtm.chapter_id AS textbookCatalogId,
+            amtm.chapter_id2 AS textbookCatalogId2,
             am.status,
             am.creator,
             am.add_datetime AS addDatetime,
