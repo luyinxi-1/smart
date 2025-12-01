@@ -602,6 +602,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
         // 6.2 教材、章节名称
         Map<Long, String> textbookIdNameMap = new HashMap<>();
+        Map<Long, Integer> textbookIdReleaseStatusMap = new HashMap<>(); // 添加教材状态映射
         Map<Long, String> chapterIdNameMap = new HashMap<>();
         if (!materialTextbookMappings.isEmpty()) {
             List<Long> textbookIds = materialTextbookMappings.stream()
@@ -610,9 +611,13 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                     .distinct()
                     .collect(Collectors.toList());
             if (!CollectionUtils.isEmpty(textbookIds)) {
-                textbookIdNameMap = textbookService.list(
+                List<Textbook> textbooks = textbookService.list(
                         new LambdaQueryWrapper<Textbook>().in(Textbook::getId, textbookIds)
-                ).stream().collect(Collectors.toMap(Textbook::getId, Textbook::getTextbookName));
+                );
+                textbookIdNameMap = textbooks.stream()
+                        .collect(Collectors.toMap(Textbook::getId, Textbook::getTextbookName));
+                textbookIdReleaseStatusMap = textbooks.stream()
+                        .collect(Collectors.toMap(Textbook::getId, Textbook::getReleaseStatus)); // 获取教材状态
             }
 
             List<Long> chapterIds = materialTextbookMappings.stream()
@@ -643,6 +648,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
         // 7. 转 VO
         final Map<Long, String> finaltextbookIdNameMap = textbookIdNameMap;
+        final Map<Long, Integer> finaltextbookIdReleaseStatusMap = textbookIdReleaseStatusMap; // 教材状态映射
         final Map<Long, String> finalChapterIdNameMap = chapterIdNameMap;
 
         List<TeachingMaterialsReturnVo> pageRecordsVO = materialsList.stream()
@@ -666,6 +672,8 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                         temp.setChapterId(mapping.getChapterId());
                         temp.setChapterId2(mapping.getChapterId2());
                         temp.setChapterName(finalChapterIdNameMap.get(mapping.getChapterId()));
+                        // 设置教材状态
+                        temp.setReleaseStatus(finaltextbookIdReleaseStatusMap.get(mapping.getTextbookId()));
                     }
 
                     return temp;
