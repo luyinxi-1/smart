@@ -385,8 +385,21 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
 
     @Override
     public Page<MaterialsTextbookMappingReturnParam> getPage(MaterialsTextbookMappingPageSearchParam param) {
-        if (ObjectUtils.isEmpty(param) || ObjectUtils.isEmpty(param.getTextbookId()))
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        if (ObjectUtils.isEmpty(param) || ObjectUtils.isEmpty(param.getTextbookId())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材ID不能为空");
+        }
+
+        // 如果提供了 chapterId，则校验其是否属于该教材
+        if (param.getChapterId() != null) {
+            LambdaQueryWrapper<TextbookCatalog> catalogQuery = new LambdaQueryWrapper<TextbookCatalog>()
+                    .eq(TextbookCatalog::getId, param.getChapterId())
+                    .eq(TextbookCatalog::getTextbookId, param.getTextbookId());
+            TextbookCatalog textbookCatalog = textbookCatalogMapper.selectOne(catalogQuery);
+            if (textbookCatalog == null) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "章节ID不属于该教材或不存在");
+            }
+        }
+
         Page<MaterialsTextbookMappingReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
         return baseMapper.getPage(param, page);
     }
