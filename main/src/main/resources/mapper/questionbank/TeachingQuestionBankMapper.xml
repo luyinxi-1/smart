@@ -151,7 +151,7 @@
         t.id, t.name, t.description, t.status, t.textbook_id, tb.textbook_name,
         t.textbook_catalog_id, t.textbook_catalog_id2,
         t.max_attempts, t.score_policy,
-        t.creator, u.nickname, t.add_datetime
+        t.creator, u.nickname, t.add_datetime, tb.release_status
         ORDER BY
         t.add_datetime
         <choose>
