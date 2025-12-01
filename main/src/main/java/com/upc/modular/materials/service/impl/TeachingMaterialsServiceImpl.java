@@ -106,10 +106,10 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         BeanUtils.copyProperties(param, teachingMaterials); // 拷贝基础属性
         teachingMaterials.setId(null);
         teachingMaterials.setCreator(UserUtils.get().getId());
-
+        teachingMaterials.setFileName(param.getFileName());
         if ("link".equals(param.getType())) {
             // 链接类型，路径由前端直接在JSON中提供
-            teachingMaterials.setFileName(UUID.randomUUID().toString()); // 生成一个虚拟文件名
+//            teachingMaterials.setFileName(UUID.randomUUID().toString()); // 生成一个虚拟文件名
 
         } else if ("imageSet".equals(param.getType())) {
             Path firstImagePath = Paths.get(param.getFileListPaths().get(0));
@@ -118,7 +118,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             String imageSetLength = String.valueOf(param.getFileListPaths().size());
             String imageSetName = Paths.get(directoryPath).getFileName().toString(); // 从目录路径中获取 [uuid]_[length]
 
-            teachingMaterials.setFileName(imageSetName);
+//            teachingMaterials.setFileName(imageSetName);
             teachingMaterials.setFilePath(directoryPath);
 
         }
@@ -163,7 +163,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 finalFileName = folderName + ".zip";
             }
 
-            teachingMaterials.setFileName(finalFileName);
+//            teachingMaterials.setFileName(finalFileName);
             // 数据库存的文件路径依然是指向解压后的文件夹，因为 H5 需要访问里面的 index.html
             teachingMaterials.setFilePath(param.getFilePath());
 
@@ -172,7 +172,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             // 其他文件类型
             // filePath 已经是完整的、最终的路径了
             Path filePathObj = Paths.get(param.getFilePath());
-            teachingMaterials.setFileName(filePathObj.getFileName().toString());
+//            teachingMaterials.setFileName(filePathObj.getFileName().toString());
         }
 
         // 3. 保存到数据库
@@ -192,7 +192,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             if (teachingMaterials.getType().equals("link")) {
                 result.setFilePath(teachingMaterials.getFilePath());
             }
-            result.setFileName(teachingMaterials.getFileName());
+//            result.setFileName(teachingMaterials.getFileName());
 
             result.setMaterialId(teachingMaterials.getId());
 
