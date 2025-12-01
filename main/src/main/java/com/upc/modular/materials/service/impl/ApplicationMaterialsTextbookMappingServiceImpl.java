@@ -496,11 +496,6 @@ public class ApplicationMaterialsTextbookMappingServiceImpl extends ServiceImpl<
             LambdaQueryWrapper<ApplicationMaterialsTextbookMapping> deleteWrapper = new LambdaQueryWrapper<>();
             deleteWrapper.in(ApplicationMaterialsTextbookMapping::getApplicationMaterialId, uniqueApplicationMaterialIdsInRequest);
 
-            // 如果提供了章节ID列表，进一步限制删除范围（限制在指定章节内）
-            if (!CollectionUtils.isEmpty(chapterIds)) {
-                deleteWrapper.in(ApplicationMaterialsTextbookMapping::getTextbookCatalogId, chapterIds);
-            }
-
             this.remove(deleteWrapper);
         }
 
