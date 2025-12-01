@@ -11,7 +11,7 @@ public class InterceptorConst {
      */
     public static final String[] EXCLUDE_PATH_PATTERNS = {
             "/", "/csrf", "/upload/public/**", "/upload/teaching_materials/**", "/doc.html", "/doc.html/**", "/sys-user/login", "/download/**", "/webjars/**",
-            "/swagger-resources/**", "/v2/**", "/swagger-ui.html/**", "/error/**", "/sys-log/**", "/sso/**"
+            "/swagger-resources/**", "/v2/**", "/swagger-ui.html/**", "/error/**", "/sys-log/**", "/sso/**", "/health/check"
     };
 
     /**
@@ -43,6 +43,7 @@ public class InterceptorConst {
             "/textbook-authority/textbookAuthorityEditJudge",
             "/student/resetStudentPassword",
             "/textbook-authority/textbookAuthorityEditJudge",
-            "/ping"
+            "/ping",
+            "/health/check"
     };
 }
