@@ -104,6 +104,9 @@ public class TeachingQuestionPageSearchReturnVO implements Serializable {
     @ApiModelProperty("题目分类名称")
     @TableField(exist = false)
     private String teachingQuestionClassificationName;
+    
+    @ApiModelProperty("教材发布状态")
+    @TableField(exist = false)
+    private String releaseStatus;
 
 }
-

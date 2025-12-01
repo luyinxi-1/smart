@@ -86,6 +86,10 @@ public class TeachingQuestionBank implements Serializable {
     @ApiModelProperty("操作时间")
     @TableField(value = "operation_datetime", fill = FieldFill.UPDATE)
     private LocalDateTime operationDatetime;
+    
+    @ApiModelProperty("教材发布状态")
+    @TableField(exist = false)
+    private String releaseStatus;
 
 
 

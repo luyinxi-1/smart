@@ -56,7 +56,8 @@
         (SELECT catalog_name FROM textbook_catalog WHERE id = amtm.chapter_id LIMIT 1) AS textbookCatalogName,
         (SELECT nickname FROM sys_tbuser WHERE id = am.creator LIMIT 1) AS creatorName,
         (SELECT nickname FROM sys_tbuser WHERE id = am.operator LIMIT 1) AS operatorName,
-        (SELECT COUNT(*) FROM application_materials_mapping WHERE application_material_id = am.id) AS teachingMaterialsCount
+        (SELECT COUNT(*) FROM application_materials_mapping WHERE application_material_id = am.id) AS teachingMaterialsCount,
+        (SELECT release_status FROM textbook WHERE id = amtm.textbook_id LIMIT 1) AS releaseStatus
         FROM application_materials am
         LEFT JOIN application_materials_textbook_mapping amtm
         ON am.id = amtm.application_material_id
@@ -234,7 +235,8 @@
             (SELECT catalog_name FROM textbook_catalog WHERE id = amtm.chapter_id LIMIT 1) AS textbookCatalogName,
             (SELECT nickname FROM sys_tbuser WHERE id = am.creator LIMIT 1) AS creatorName,
             (SELECT nickname FROM sys_tbuser WHERE id = am.operator LIMIT 1) AS operatorName,
-            (SELECT COUNT(*) FROM application_materials_mapping WHERE application_material_id = am.id) AS teachingMaterialsCount
+            (SELECT COUNT(*) FROM application_materials_mapping WHERE application_material_id = am.id) AS teachingMaterialsCount,
+            (SELECT release_status FROM textbook WHERE id = amtm.textbook_id LIMIT 1) AS releaseStatus
         FROM application_materials am
         LEFT JOIN application_materials_textbook_mapping amtm ON am.id = amtm.application_material_id
         WHERE am.id = #{id}

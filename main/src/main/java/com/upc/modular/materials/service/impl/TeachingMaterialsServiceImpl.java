@@ -1,6 +1,9 @@
 package com.upc.modular.materials.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.upc.modular.materials.entity.MaterialsTextbookMapping;
+import com.upc.modular.textbook.entity.Textbook;
+
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -16,7 +19,6 @@ import com.upc.modular.materials.controller.param.dto.TeachingMaterialsSaveOrUpd
 import com.upc.modular.materials.controller.param.vo.MaterialsTextbookNameMappingReturnParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsInsertMaterialsReturnParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
-import com.upc.modular.materials.entity.MaterialsTextbookMapping;
 import com.upc.modular.materials.entity.TeachingMaterials;
 import com.upc.modular.materials.mapper.TeachingMaterialsMapper;
 import com.upc.modular.materials.service.ITeachingMaterialsService;
@@ -980,8 +982,43 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                     throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，无权限查看");
             });
         }
+        
         // MaterialId-TextbookName
-        return baseMapper.getMaterialIdToTextbookNameMap(ids);
+        // 修改逻辑：从materials_textbook_mapping表中查询数据
+        // 查询条件：material_id在ids中且chapter_id不为空
+        List<MaterialsTextbookMapping> mappingList = materialsTextbookMappingService.list(
+                new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                        .in(MaterialsTextbookMapping::getMaterialId, ids)
+                        .isNotNull(MaterialsTextbookMapping::getChapterId)
+        );
+        
+        // 构建返回结果
+        MaterialsTextbookNameMappingReturnParam result = new MaterialsTextbookNameMappingReturnParam();
+        if (!mappingList.isEmpty()) {
+            // 取第一条记录作为返回结果
+            MaterialsTextbookMapping mapping = mappingList.get(0);
+            result.setMaterialId(mapping.getMaterialId());
+            
+            // 获取素材名称
+            TeachingMaterials material = materialsList.stream()
+                    .filter(m -> m.getId().equals(mapping.getMaterialId()))
+                    .findFirst()
+                    .orElse(null);
+            if (material != null) {
+                result.setMaterialName(material.getName());
+            }
+            
+            // 获取教材ID和名称
+            result.setTextbookId(mapping.getTextbookId());
+            if (mapping.getTextbookId() != null) {
+                Textbook textbook = textbookService.getById(mapping.getTextbookId());
+                if (textbook != null) {
+                    result.setTextbookName(textbook.getTextbookName());
+                }
+            }
+        }
+        
+        return result;
     }
 
     @Override

@@ -35,7 +35,8 @@
         t.creator,
         u.nickname AS creatorName,
         t.add_datetime AS addDatetime,
-        COUNT(qbl.id) AS questionCount
+        COUNT(qbl.id) AS questionCount,
+        tb.release_status AS releaseStatus
         FROM
         teaching_question_bank t
         LEFT JOIN questions_banks_list qbl ON t.id = qbl.bank_id
