@@ -78,4 +78,7 @@ public class ApplicationMaterialsVO {
     
     @ApiModelProperty("关联的教学素材列表")
     private List<ApplicationMaterialsDetailVO> teachingMaterials;
+
+    @ApiModelProperty("教材发布状态")
+    private String releaseStatus;
 }
