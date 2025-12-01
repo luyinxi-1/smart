@@ -230,11 +230,6 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
         ApplicationMaterials applicationMaterials = new ApplicationMaterials();
         BeanUtils.copyProperties(param, applicationMaterials);
         
-        // 设置默认值
-        if (applicationMaterials.getStatus() == null) {
-            applicationMaterials.setStatus(0);
-        }
-        
         boolean updateResult = applicationMaterialsMapper.updateByApplicationMaterialId(applicationMaterials);
         if (!updateResult) {
             throw new BusinessException(BusinessErrorEnum.BUSINESS_ERROR, "更新应用素材失败");
