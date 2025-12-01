@@ -97,10 +97,10 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         TeachingMaterialsInsertMaterialsReturnParam result = new TeachingMaterialsInsertMaterialsReturnParam();
 
         // 1. 重名检查逻辑 (不变)
-        if (ObjectUtils.isNotEmpty(teachingMaterialsMapper.selectList(new LambdaQueryWrapper<TeachingMaterials>()
-                .eq(TeachingMaterials::getName, param.getName())
-                .eq(TeachingMaterials::getCreator, UserUtils.get().getId()))))
-            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，该命名素材已存在");
+//        if (ObjectUtils.isNotEmpty(teachingMaterialsMapper.selectList(new LambdaQueryWrapper<TeachingMaterials>()
+//                .eq(TeachingMaterials::getName, param.getName())
+//                .eq(TeachingMaterials::getCreator, UserUtils.get().getId()))))
+//            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，该命名素材已存在");
 
         TeachingMaterials teachingMaterials = new TeachingMaterials();
         BeanUtils.copyProperties(param, teachingMaterials); // 拷贝基础属性
