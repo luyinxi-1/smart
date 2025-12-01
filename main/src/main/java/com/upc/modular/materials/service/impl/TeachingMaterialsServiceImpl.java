@@ -965,8 +965,12 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         List<Long> ids = materialsTextbookMappingService.selectMaterialsTextbookMappingByTextbookId(textbookId).stream()
                 .map(MaterialsTextbookMapping::getMaterialId).collect(Collectors.toList());
 
-        if (ids.isEmpty()) {
+    /*    if (ids.isEmpty()) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }*/
+        if (ids.isEmpty()) {
+            // 表示这个教材目前没有绑定任何教学素材，业务上属于“正常但为空”的情况
+            return Collections.emptyList();
         }
 
         List<TeachingMaterials> teachingMaterialsList = this.listByIds(ids);
