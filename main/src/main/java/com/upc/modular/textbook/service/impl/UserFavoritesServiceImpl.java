@@ -53,6 +53,12 @@ public class UserFavoritesServiceImpl extends ServiceImpl<UserFavoritesMapper, U
         if (ObjectUtils.isEmpty(textbook)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "未找到ID为 " + textbookId + " 的教材");
         }
+        
+        // 检查教材是否已发布
+        if (textbook.getReleaseStatus() == null || textbook.getReleaseStatus() != 1) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "只能收藏已发布的教材");
+        }
+        
         UserFavorites userFavorites =new UserFavorites();
 
         userFavorites.setUserId(userInfoToRedis.getId())
