@@ -18,4 +18,7 @@ public class MaterialsTextbookMappingPageSearchParam extends PageBaseSearchParam
     @ApiModelProperty("模糊查询参数 素材所在章节")
     private String chapter;
 
+    @ApiModelProperty("章节id")
+    private Long chapterId;
+
 }

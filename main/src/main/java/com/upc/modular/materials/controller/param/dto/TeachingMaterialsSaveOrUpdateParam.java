@@ -54,4 +54,7 @@ public class TeachingMaterialsSaveOrUpdateParam {
     @ApiModelProperty("文件大小")
     private Double fileSize;      // 文件大小(MB)
 
+    @ApiModelProperty("文件名称")
+    private String fileName;
+
 }

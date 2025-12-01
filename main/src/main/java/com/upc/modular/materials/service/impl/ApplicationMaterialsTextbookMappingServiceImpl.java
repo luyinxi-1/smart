@@ -476,20 +476,29 @@ public class ApplicationMaterialsTextbookMappingServiceImpl extends ServiceImpl<
 
         // 4. 【最终唯一性校验】
         // 检查 application_material_id 是否已被其他教材或章节绑定
-        LambdaQueryWrapper<ApplicationMaterialsTextbookMapping> conflictCheckWrapper = new LambdaQueryWrapper<>();
-        conflictCheckWrapper.in(ApplicationMaterialsTextbookMapping::getApplicationMaterialId, uniqueApplicationMaterialIdsInRequest);
-
-        List<ApplicationMaterialsTextbookMapping> conflictingBindings = this.list(conflictCheckWrapper);
-        if (!conflictingBindings.isEmpty()) {
-            String existingDetails = conflictingBindings.stream()
-                    .map(e -> String.format("应用素材ID:%d，已被教材ID:%d，章节'%s'，章节ID：%d绑定", 
-                            e.getApplicationMaterialId(), e.getTextbookId(), e.getTextbookCatalogName(), e.getTextbookCatalogId()))
-                    .collect(Collectors.joining("; "));
-
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "操作失败，部分应用素材已绑定到其他教材或章节: " + existingDetails);
-        }
+//        LambdaQueryWrapper<ApplicationMaterialsTextbookMapping> conflictCheckWrapper = new LambdaQueryWrapper<>();
+//        conflictCheckWrapper.in(ApplicationMaterialsTextbookMapping::getApplicationMaterialId, uniqueApplicationMaterialIdsInRequest);
+//
+//        List<ApplicationMaterialsTextbookMapping> conflictingBindings = this.list(conflictCheckWrapper);
+//        if (!conflictingBindings.isEmpty()) {
+//            String existingDetails = conflictingBindings.stream()
+//                    .map(e -> String.format("应用素材ID:%d，已被教材ID:%d，章节'%s'，章节ID：%d绑定",
+//                            e.getApplicationMaterialId(), e.getTextbookId(), e.getTextbookCatalogName(), e.getTextbookCatalogId()))
+//                    .collect(Collectors.joining("; "));
+//
+//            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "操作失败，部分应用素材已绑定到其他教材或章节: " + existingDetails);
+//        }
 
         // 5. 【执行新增】
+
+        if (!uniqueApplicationMaterialIdsInRequest.isEmpty()) {
+            // 构建删除条件：删除指定教材下，指定applicationMaterialId的记录
+            LambdaQueryWrapper<ApplicationMaterialsTextbookMapping> deleteWrapper = new LambdaQueryWrapper<>();
+            deleteWrapper.in(ApplicationMaterialsTextbookMapping::getApplicationMaterialId, uniqueApplicationMaterialIdsInRequest);
+
+            this.remove(deleteWrapper);
+        }
+
         // 获取当前登录用户
         Long currentUserId = com.upc.common.utils.UserUtils.get() != null ? 
             com.upc.common.utils.UserUtils.get().getId() : null;

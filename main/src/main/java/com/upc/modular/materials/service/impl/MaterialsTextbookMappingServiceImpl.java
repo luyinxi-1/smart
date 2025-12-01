@@ -11,6 +11,7 @@ import com.upc.modular.materials.controller.param.dto.MaterialsTextbookMappingDt
 import com.upc.modular.materials.controller.param.dto.MaterialsTextbookMappingPageSearchParam;
 import com.upc.modular.materials.controller.param.vo.MaterialsTextbookMappingReturnParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
+import com.upc.modular.materials.entity.ApplicationMaterialsTextbookMapping;
 import com.upc.modular.materials.entity.MaterialsTextbookMapping;
 import com.upc.modular.materials.entity.TeachingMaterials;
 import com.upc.modular.materials.mapper.MaterialsTextbookMappingMapper;
@@ -340,19 +341,28 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
 
         // 4. 【最终唯一性校验】
         // 检查 material_id
-        LambdaQueryWrapper<MaterialsTextbookMapping> conflictCheckWrapper = new LambdaQueryWrapper<>();
-        conflictCheckWrapper.in(MaterialsTextbookMapping::getMaterialId, uniqueMaterialIdsInRequest);
-
-        List<MaterialsTextbookMapping> conflictingBindings = this.list(conflictCheckWrapper);
-        if (!conflictingBindings.isEmpty()) {
-            String existingDetails = conflictingBindings.stream()
-                    .map(e -> String.format("素材ID:%d，已被教材ID:%d，章节'%s'，章节ID：%d绑定", e.getMaterialId(), e.getTextbookId(), e.getChapterName(), e.getChapterId()))
-                    .collect(Collectors.joining("; "));
-
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "操作失败，部分素材已绑定到本书的其他章节: " + existingDetails);
-        }
+//        LambdaQueryWrapper<MaterialsTextbookMapping> conflictCheckWrapper = new LambdaQueryWrapper<>();
+//        conflictCheckWrapper.in(MaterialsTextbookMapping::getMaterialId, uniqueMaterialIdsInRequest);
+//
+//        List<MaterialsTextbookMapping> conflictingBindings = this.list(conflictCheckWrapper);
+//        if (!conflictingBindings.isEmpty()) {
+//            String existingDetails = conflictingBindings.stream()
+//                    .map(e -> String.format("素材ID:%d，已被教材ID:%d，章节'%s'，章节ID：%d绑定", e.getMaterialId(), e.getTextbookId(), e.getChapterName(), e.getChapterId()))
+//                    .collect(Collectors.joining("; "));
+//
+//            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "操作失败，部分素材已绑定到本书的其他章节: " + existingDetails);
+//        }
         // 5. 【执行新增】
         // 数据转换与批量插入
+
+        if (!uniqueMaterialIdsInRequest.isEmpty()) {
+            // 构建删除条件：删除指定教材下，指定applicationMaterialId的记录
+            LambdaQueryWrapper<MaterialsTextbookMapping> deleteWrapper = new LambdaQueryWrapper<>();
+            deleteWrapper.in(MaterialsTextbookMapping::getMaterialId, uniqueMaterialIdsInRequest);
+
+            this.remove(deleteWrapper);
+        }
+
         List<MaterialsTextbookMapping> entitiesToInsert = mappings.stream().map(dto -> {
             MaterialsTextbookMapping entity = new MaterialsTextbookMapping();
             entity.setTextbookId(dto.getTextbookId());
@@ -375,8 +385,21 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
 
     @Override
     public Page<MaterialsTextbookMappingReturnParam> getPage(MaterialsTextbookMappingPageSearchParam param) {
-        if (ObjectUtils.isEmpty(param) || ObjectUtils.isEmpty(param.getTextbookId()))
-            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        if (ObjectUtils.isEmpty(param) || ObjectUtils.isEmpty(param.getTextbookId())) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材ID不能为空");
+        }
+
+        // 如果提供了 chapterId，则校验其是否属于该教材
+        if (param.getChapterId() != null) {
+            LambdaQueryWrapper<TextbookCatalog> catalogQuery = new LambdaQueryWrapper<TextbookCatalog>()
+                    .eq(TextbookCatalog::getId, param.getChapterId())
+                    .eq(TextbookCatalog::getTextbookId, param.getTextbookId());
+            TextbookCatalog textbookCatalog = textbookCatalogMapper.selectOne(catalogQuery);
+            if (textbookCatalog == null) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "章节ID不属于该教材或不存在");
+            }
+        }
+
         Page<MaterialsTextbookMappingReturnParam> page = new Page<>(param.getCurrent(), param.getSize());
         return baseMapper.getPage(param, page);
     }

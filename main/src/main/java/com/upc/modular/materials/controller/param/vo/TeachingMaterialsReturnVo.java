@@ -76,4 +76,7 @@ public class TeachingMaterialsReturnVo {
      */
     @ApiModelProperty("已绑定的章节名称")
     private String chapterName;
+
+    @ApiModelProperty("教材发布状态")
+    private Integer releaseStatus;
 }

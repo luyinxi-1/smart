@@ -131,6 +131,8 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "用户ID不能为空");
         }
         Long loginUserId = UserUtils.get().getId();
+        // 获取用户类型：0-管理员，1-学生，2-教师
+        Integer userType = UserUtils.get().getUserType();
         long current = Math.max(1, param.getCurrent());
         long size    = Math.max(1, param.getSize());
         long offset  = (current - 1) * size;
@@ -144,7 +146,7 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
 
         List<DiscussionTopicReplyPageReturnParam> records =
                 discussionTopicReplyMapper.selectReplyPageWithDescCount(
-                        param.getTopicId(), loginUserId, param.getOrder(), size, offset
+                        param.getTopicId(), loginUserId, param.getOrder(), size, offset, userType
                 );
         page.setRecords(records);
         return page;
@@ -166,6 +168,8 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "当前用户未登录");
         }
         Long loginUserId = UserUtils.get().getId();
+        // 获取用户类型：0-管理员，1-学生，2-教师
+        Integer userType = UserUtils.get().getUserType();
         long current = Math.max(1, param.getCurrent());
         long size    = Math.max(1, param.getSize());
 
@@ -178,12 +182,14 @@ public class DiscussionTopicReplyServiceImpl extends ServiceImpl<DiscussionTopic
             List<DiscussionTopicReply> layer = discussionTopicReplyMapper.selectList(
                     new LambdaQueryWrapper<DiscussionTopicReply>()
                             .eq(DiscussionTopicReply::getType, 2)
-                            .eq(DiscussionTopicReply::getIsShield, 0)
+                            // 根据用户类型决定是否过滤被屏蔽的回复
+                            .apply(userType != null && userType == 1, "is_shield = 0")
                             .in(DiscussionTopicReply::getTopicId, frontierIds)
             );
             frontierIds = new HashSet<>();
             for (DiscussionTopicReply r : layer) {
-                if (chainReplyMap.putIfAbsent(r.getId(), r) == null && r.getIsShield() != 1) {   // 新节点才继续往下
+                if (chainReplyMap.putIfAbsent(r.getId(), r) == null 
+                    && (userType == null || userType != 1 || r.getIsShield() != 1)) {   // 新节点才继续往下
                     frontierIds.add(r.getId());
                 }
             }

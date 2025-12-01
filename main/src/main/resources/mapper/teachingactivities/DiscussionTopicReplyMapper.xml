@@ -60,7 +60,10 @@
         ) ul ON ul.correlation_id = r.id
         WHERE r.topic_id = #{topicId}
         AND r.type = 1
+        <!-- 如果是学生，则过滤掉被屏蔽的回复；如果是教师或管理员，则显示所有回复 -->
+        <if test="userType != null and userType == 1">
         AND r.is_shield = 0
+        </if>
         ORDER BY
         <choose>
             <when test="order != null and order == 1">
@@ -78,7 +81,11 @@
         SELECT c.id AS node_id, t.root_id
         FROM discussion_topic_reply c
         JOIN tree t ON c.topic_id = t.node_id
-        WHERE c.type = 2 AND c.is_shield = 0
+        WHERE c.type = 2 
+        <!-- 如果是学生，则过滤掉被屏蔽的回复；如果是教师或管理员，则显示所有回复 -->
+        <if test="userType != null and userType == 1">
+        AND c.is_shield = 0
+        </if>
         ),
         desc_count AS (
         SELECT root_id, COUNT(*) - 1 AS replyNumber

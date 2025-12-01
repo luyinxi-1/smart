@@ -1,6 +1,9 @@
 package com.upc.modular.materials.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.upc.modular.materials.entity.MaterialsTextbookMapping;
+import com.upc.modular.textbook.entity.Textbook;
+
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -16,7 +19,6 @@ import com.upc.modular.materials.controller.param.dto.TeachingMaterialsSaveOrUpd
 import com.upc.modular.materials.controller.param.vo.MaterialsTextbookNameMappingReturnParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsInsertMaterialsReturnParam;
 import com.upc.modular.materials.controller.param.vo.TeachingMaterialsReturnVo;
-import com.upc.modular.materials.entity.MaterialsTextbookMapping;
 import com.upc.modular.materials.entity.TeachingMaterials;
 import com.upc.modular.materials.mapper.TeachingMaterialsMapper;
 import com.upc.modular.materials.service.ITeachingMaterialsService;
@@ -97,19 +99,19 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         TeachingMaterialsInsertMaterialsReturnParam result = new TeachingMaterialsInsertMaterialsReturnParam();
 
         // 1. 重名检查逻辑 (不变)
-        if (ObjectUtils.isNotEmpty(teachingMaterialsMapper.selectList(new LambdaQueryWrapper<TeachingMaterials>()
-                .eq(TeachingMaterials::getName, param.getName())
-                .eq(TeachingMaterials::getCreator, UserUtils.get().getId()))))
-            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，该命名素材已存在");
+//        if (ObjectUtils.isNotEmpty(teachingMaterialsMapper.selectList(new LambdaQueryWrapper<TeachingMaterials>()
+//                .eq(TeachingMaterials::getName, param.getName())
+//                .eq(TeachingMaterials::getCreator, UserUtils.get().getId()))))
+//            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "，该命名素材已存在");
 
         TeachingMaterials teachingMaterials = new TeachingMaterials();
         BeanUtils.copyProperties(param, teachingMaterials); // 拷贝基础属性
         teachingMaterials.setId(null);
         teachingMaterials.setCreator(UserUtils.get().getId());
-
+        teachingMaterials.setFileName(param.getFileName());
         if ("link".equals(param.getType())) {
             // 链接类型，路径由前端直接在JSON中提供
-            teachingMaterials.setFileName(UUID.randomUUID().toString()); // 生成一个虚拟文件名
+//            teachingMaterials.setFileName(UUID.randomUUID().toString()); // 生成一个虚拟文件名
 
         } else if ("imageSet".equals(param.getType())) {
             Path firstImagePath = Paths.get(param.getFileListPaths().get(0));
@@ -118,7 +120,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             String imageSetLength = String.valueOf(param.getFileListPaths().size());
             String imageSetName = Paths.get(directoryPath).getFileName().toString(); // 从目录路径中获取 [uuid]_[length]
 
-            teachingMaterials.setFileName(imageSetName);
+//            teachingMaterials.setFileName(imageSetName);
             teachingMaterials.setFilePath(directoryPath);
 
         }
@@ -163,7 +165,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 finalFileName = folderName + ".zip";
             }
 
-            teachingMaterials.setFileName(finalFileName);
+//            teachingMaterials.setFileName(finalFileName);
             // 数据库存的文件路径依然是指向解压后的文件夹，因为 H5 需要访问里面的 index.html
             teachingMaterials.setFilePath(param.getFilePath());
 
@@ -172,7 +174,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             // 其他文件类型
             // filePath 已经是完整的、最终的路径了
             Path filePathObj = Paths.get(param.getFilePath());
-            teachingMaterials.setFileName(filePathObj.getFileName().toString());
+//            teachingMaterials.setFileName(filePathObj.getFileName().toString());
         }
 
         // 3. 保存到数据库
@@ -192,7 +194,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             if (teachingMaterials.getType().equals("link")) {
                 result.setFilePath(teachingMaterials.getFilePath());
             }
-            result.setFileName(teachingMaterials.getFileName());
+//            result.setFileName(teachingMaterials.getFileName());
 
             result.setMaterialId(teachingMaterials.getId());
 
@@ -368,7 +370,9 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                                     }
                                 }
                             }
-                            if (candidate != null) break;
+                            if (candidate != null) {
+                                break;
+                            }
                         }
                     } catch (IOException e) {
                         log.warn("Failed to search directory for original archive: {}", parent, e);
@@ -602,6 +606,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
         // 6.2 教材、章节名称
         Map<Long, String> textbookIdNameMap = new HashMap<>();
+        Map<Long, Integer> textbookIdReleaseStatusMap = new HashMap<>(); // 添加教材状态映射
         Map<Long, String> chapterIdNameMap = new HashMap<>();
         if (!materialTextbookMappings.isEmpty()) {
             List<Long> textbookIds = materialTextbookMappings.stream()
@@ -610,9 +615,13 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                     .distinct()
                     .collect(Collectors.toList());
             if (!CollectionUtils.isEmpty(textbookIds)) {
-                textbookIdNameMap = textbookService.list(
+                List<Textbook> textbooks = textbookService.list(
                         new LambdaQueryWrapper<Textbook>().in(Textbook::getId, textbookIds)
-                ).stream().collect(Collectors.toMap(Textbook::getId, Textbook::getTextbookName));
+                );
+                textbookIdNameMap = textbooks.stream()
+                        .collect(Collectors.toMap(Textbook::getId, Textbook::getTextbookName));
+                textbookIdReleaseStatusMap = textbooks.stream()
+                        .collect(Collectors.toMap(Textbook::getId, Textbook::getReleaseStatus)); // 获取教材状态
             }
 
             List<Long> chapterIds = materialTextbookMappings.stream()
@@ -643,6 +652,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
         // 7. 转 VO
         final Map<Long, String> finaltextbookIdNameMap = textbookIdNameMap;
+        final Map<Long, Integer> finaltextbookIdReleaseStatusMap = textbookIdReleaseStatusMap; // 教材状态映射
         final Map<Long, String> finalChapterIdNameMap = chapterIdNameMap;
 
         List<TeachingMaterialsReturnVo> pageRecordsVO = materialsList.stream()
@@ -666,6 +676,8 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                         temp.setChapterId(mapping.getChapterId());
                         temp.setChapterId2(mapping.getChapterId2());
                         temp.setChapterName(finalChapterIdNameMap.get(mapping.getChapterId()));
+                        // 设置教材状态
+                        temp.setReleaseStatus(finaltextbookIdReleaseStatusMap.get(mapping.getTextbookId()));
                     }
 
                     return temp;
@@ -765,7 +777,12 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                         throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "无法从图集路径中确定父目录");
                     }
                     oldData.setFilePath(parentDir.toString());
-                    oldData.setFileName(parentDir.getFileName().toString());
+                    // 优先使用前端传递的fileName，否则从路径中提取
+                    if (ObjectUtils.isNotEmpty(param.getFileName())) {
+                        oldData.setFileName(param.getFileName());
+                    } else {
+                        oldData.setFileName(parentDir.getFileName().toString());
+                    }
                 } catch (InvalidPathException e) {
                     throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "提供的图集文件路径格式无效");
                 }
@@ -777,7 +794,12 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             if (ObjectUtils.isNotEmpty(param.getFilePath())) {
                 oldData.setFilePath(param.getFilePath());
             }
-            oldData.setFileName(UUID.randomUUID().toString());
+            // 优先使用前端传递的fileName，否则生成随机UUID
+            if (ObjectUtils.isNotEmpty(param.getFileName())) {
+                oldData.setFileName(param.getFileName());
+            } else {
+                oldData.setFileName(UUID.randomUUID().toString());
+            }
         }
         // 5.3 如果是其他文件类型
         else {
@@ -785,9 +807,14 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 String newFilePath = param.getFilePath();
                 oldData.setFilePath(newFilePath);
                 try {
-                    Path path = Paths.get(newFilePath);
-                    String newFileName = path.getFileName().toString();
-                    oldData.setFileName(newFileName);
+                    // 优先使用前端传递的fileName，否则从路径中提取
+                    if (ObjectUtils.isNotEmpty(param.getFileName())) {
+                        oldData.setFileName(param.getFileName());
+                    } else {
+                        Path path = Paths.get(newFilePath);
+                        String newFileName = path.getFileName().toString();
+                        oldData.setFileName(newFileName);
+                    }
                 } catch (InvalidPathException e) {
                     throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "提供的文件路径格式无效");
                 }
@@ -955,8 +982,43 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                     throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "，无权限查看");
             });
         }
+        
         // MaterialId-TextbookName
-        return baseMapper.getMaterialIdToTextbookNameMap(ids);
+        // 修改逻辑：从materials_textbook_mapping表中查询数据
+        // 查询条件：material_id在ids中且chapter_id不为空
+        List<MaterialsTextbookMapping> mappingList = materialsTextbookMappingService.list(
+                new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                        .in(MaterialsTextbookMapping::getMaterialId, ids)
+                        .isNotNull(MaterialsTextbookMapping::getChapterId)
+        );
+        
+        // 构建返回结果
+        MaterialsTextbookNameMappingReturnParam result = new MaterialsTextbookNameMappingReturnParam();
+        if (!mappingList.isEmpty()) {
+            // 取第一条记录作为返回结果
+            MaterialsTextbookMapping mapping = mappingList.get(0);
+            result.setMaterialId(mapping.getMaterialId());
+            
+            // 获取素材名称
+            TeachingMaterials material = materialsList.stream()
+                    .filter(m -> m.getId().equals(mapping.getMaterialId()))
+                    .findFirst()
+                    .orElse(null);
+            if (material != null) {
+                result.setMaterialName(material.getName());
+            }
+            
+            // 获取教材ID和名称
+            result.setTextbookId(mapping.getTextbookId());
+            if (mapping.getTextbookId() != null) {
+                Textbook textbook = textbookService.getById(mapping.getTextbookId());
+                if (textbook != null) {
+                    result.setTextbookName(textbook.getTextbookName());
+                }
+            }
+        }
+        
+        return result;
     }
 
     @Override

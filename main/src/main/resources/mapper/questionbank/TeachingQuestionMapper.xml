@@ -56,7 +56,9 @@
         -- 【新增】关联查询出题目分类的名称
         tqc.teaching_question_classification_name,
         -- 关联查询出创建人姓名
-        u.nickname AS creatorName
+        u.nickname AS creatorName,
+        -- 查询教材发布状态
+        (SELECT release_status FROM textbook WHERE id = t.textbook_id) AS releaseStatus
         -- 【修改】FROM 语句，使用 LEFT JOIN 关联题目分类表和用户表
         FROM teaching_question t
         LEFT JOIN teaching_question_classification tqc ON t.teaching_question_classification_id = tqc.id

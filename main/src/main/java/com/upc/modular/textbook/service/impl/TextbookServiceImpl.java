@@ -621,13 +621,29 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             LambdaQueryWrapper<DiscussionTopic> userTopicWrapper = new LambdaQueryWrapper<>();
             userTopicWrapper.eq(DiscussionTopic::getCreator, userId)
                     .or()
-                    .eq(DiscussionTopic::getOperator, userId);
+                    .eq(DiscussionTopic::getOperator, userId)
+                    .eq(DiscussionTopic::getIdentityType, 0); // 只查找identity_type为0的数据
             List<DiscussionTopic> userTopics = discussionTopicMapper.selectList(userTopicWrapper);
             userTopics.stream()
                     .map(DiscussionTopic::getTextbookId)
                     .filter(Objects::nonNull)
                     .forEach(textbookIds::add);
         }
+        //教学活动
+        if(activityType == 1){
+            LambdaQueryWrapper<DiscussionTopic> userTopicWrapper = new LambdaQueryWrapper<>();
+            userTopicWrapper.eq(DiscussionTopic::getCreator, userId)
+                    .or()
+                    .eq(DiscussionTopic::getOperator, userId)
+                    .eq(DiscussionTopic::getIdentityType, 1); // 只查找identity_type为1的数据
+            List<DiscussionTopic> userTopics = discussionTopicMapper.selectList(userTopicWrapper);
+            userTopics.stream()
+                    .map(DiscussionTopic::getTextbookId)
+                    .filter(Objects::nonNull)
+                    .forEach(textbookIds::add);
+        }
+
+
         List<Textbook> resultTextbooks = textbookIds.isEmpty() ?
                 Collections.emptyList() : textbookMapper.selectBatchIds(textbookIds);
         
@@ -728,8 +744,9 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             LambdaQueryWrapper<DiscussionTopic> userTopicWrapper = new LambdaQueryWrapper<>();
             userTopicWrapper.and(wrapper -> wrapper.eq(DiscussionTopic::getCreator, userId)
                                                   .or()
-                                                  .eq(DiscussionTopic::getOperator, userId));
-            
+                                                  .eq(DiscussionTopic::getOperator, userId))
+                   .eq(DiscussionTopic::getIdentityType, 0); // 只查找identity_type为0的数据
+    
             List<DiscussionTopic> userTopics = discussionTopicMapper.selectList(userTopicWrapper);
             Map<Long, Long> userTopicCount = userTopics.stream()
                     .map(DiscussionTopic::getTextbookId)
@@ -738,7 +755,29 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                             textbookId -> textbookId,
                             Collectors.counting()
                     ));
-            
+    
+            // 合并统计结果
+            userTopicCount.forEach((textbookId, count) -> 
+                activityCountMap.merge(textbookId, count.intValue(), Integer::sum));
+        }
+        
+        // 如果activityType为1，还需要统计用户创建的教学活动
+        if (activityType == 1) {
+            LambdaQueryWrapper<DiscussionTopic> userTopicWrapper = new LambdaQueryWrapper<>();
+            userTopicWrapper.and(wrapper -> wrapper.eq(DiscussionTopic::getCreator, userId)
+                                                  .or()
+                                                  .eq(DiscussionTopic::getOperator, userId))
+                   .eq(DiscussionTopic::getIdentityType, 1); // 只查找identity_type为1的数据
+    
+            List<DiscussionTopic> userTopics = discussionTopicMapper.selectList(userTopicWrapper);
+            Map<Long, Long> userTopicCount = userTopics.stream()
+                    .map(DiscussionTopic::getTextbookId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.groupingBy(
+                            textbookId -> textbookId,
+                            Collectors.counting()
+                    ));
+    
             // 合并统计结果
             userTopicCount.forEach((textbookId, count) -> 
                 activityCountMap.merge(textbookId, count.intValue(), Integer::sum));

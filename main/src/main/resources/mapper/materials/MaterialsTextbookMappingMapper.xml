@@ -31,6 +31,9 @@
         <if test="param.materialName != null and param.materialName != ''">
             and t.name like concat('%',#{param.materialName},'%')
         </if>
+        <if test="param.chapterId != null">
+            and m.chapter_id = #{param.chapterId}
+        </if>
         ORDER BY m.chapter_name ASC
     </select>
 </mapper>
