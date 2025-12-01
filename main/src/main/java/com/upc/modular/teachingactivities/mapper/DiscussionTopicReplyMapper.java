@@ -31,7 +31,8 @@ public interface DiscussionTopicReplyMapper extends BaseMapper<DiscussionTopicRe
             @Param("loginUserId") Long loginUserId,
             @Param("order") Integer order,   // 1=按点赞数倒序，否则按时间倒序
             @Param("limit") Long limit,
-            @Param("offset") Long offset
+            @Param("offset") Long offset,
+            @Param("userType") Integer userType // 用户类型：0-管理员，1-学生，2-教师
     );
 
     List<DiscussionTopicMyPageReturnParam> selectMyReplyPage(
