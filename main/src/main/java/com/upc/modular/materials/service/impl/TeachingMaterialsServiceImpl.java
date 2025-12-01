@@ -368,7 +368,9 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                                     }
                                 }
                             }
-                            if (candidate != null) break;
+                            if (candidate != null) {
+                                break;
+                            }
                         }
                     } catch (IOException e) {
                         log.warn("Failed to search directory for original archive: {}", parent, e);
@@ -773,7 +775,12 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                         throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "无法从图集路径中确定父目录");
                     }
                     oldData.setFilePath(parentDir.toString());
-                    oldData.setFileName(parentDir.getFileName().toString());
+                    // 优先使用前端传递的fileName，否则从路径中提取
+                    if (ObjectUtils.isNotEmpty(param.getFileName())) {
+                        oldData.setFileName(param.getFileName());
+                    } else {
+                        oldData.setFileName(parentDir.getFileName().toString());
+                    }
                 } catch (InvalidPathException e) {
                     throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "提供的图集文件路径格式无效");
                 }
@@ -785,7 +792,12 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             if (ObjectUtils.isNotEmpty(param.getFilePath())) {
                 oldData.setFilePath(param.getFilePath());
             }
-            oldData.setFileName(UUID.randomUUID().toString());
+            // 优先使用前端传递的fileName，否则生成随机UUID
+            if (ObjectUtils.isNotEmpty(param.getFileName())) {
+                oldData.setFileName(param.getFileName());
+            } else {
+                oldData.setFileName(UUID.randomUUID().toString());
+            }
         }
         // 5.3 如果是其他文件类型
         else {
@@ -793,9 +805,14 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                 String newFilePath = param.getFilePath();
                 oldData.setFilePath(newFilePath);
                 try {
-                    Path path = Paths.get(newFilePath);
-                    String newFileName = path.getFileName().toString();
-                    oldData.setFileName(newFileName);
+                    // 优先使用前端传递的fileName，否则从路径中提取
+                    if (ObjectUtils.isNotEmpty(param.getFileName())) {
+                        oldData.setFileName(param.getFileName());
+                    } else {
+                        Path path = Paths.get(newFilePath);
+                        String newFileName = path.getFileName().toString();
+                        oldData.setFileName(newFileName);
+                    }
                 } catch (InvalidPathException e) {
                     throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "提供的文件路径格式无效");
                 }
