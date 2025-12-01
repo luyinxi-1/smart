@@ -370,7 +370,7 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                                     }
                                 }
                             }
-                            if (candidate != null break;
+                            if (candidate != null) break;
                         }
                     } catch (IOException e) {
                         log.warn("Failed to search directory for original archive: {}", parent, e);
