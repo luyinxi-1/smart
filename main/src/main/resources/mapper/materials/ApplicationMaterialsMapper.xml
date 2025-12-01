@@ -18,6 +18,7 @@
     <update id="updateByApplicationMaterialId">
         UPDATE application_materials
         <set>
+            id = #{id},
             <if test="name != null and name != ''">
                 name = #{name},
             </if>
