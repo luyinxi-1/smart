@@ -17,17 +17,27 @@
         SELECT
         teaching_materials.id AS materialId,
         teaching_materials.name AS materialName,
-        textbook.id AS textbookId,
-        textbook.textbook_name AS textbookName
+        CASE
+        WHEN materials_textbook_mapping.chapter_id IS NOT NULL
+        THEN materials_textbook_mapping.textbook_id
+        ELSE NULL
+        END AS textbookId,
+        CASE
+        WHEN materials_textbook_mapping.chapter_id IS NOT NULL
+        THEN textbook.textbook_name
+        ELSE NULL
+        END AS textbookName
         FROM
         teaching_materials
-        LEFT JOIN materials_textbook_mapping ON teaching_materials.id = materials_textbook_mapping.material_id
-        LEFT JOIN textbook ON materials_textbook_mapping.textbook_id = textbook.id
-        WHERE teaching_materials.id IN
+        LEFT JOIN materials_textbook_mapping
+        ON teaching_materials.id = materials_textbook_mapping.material_id
+        LEFT JOIN textbook
+        ON materials_textbook_mapping.textbook_id = textbook.id
+        WHERE
+        teaching_materials.id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
         </foreach>
-
     </select>
 
 </mapper>
