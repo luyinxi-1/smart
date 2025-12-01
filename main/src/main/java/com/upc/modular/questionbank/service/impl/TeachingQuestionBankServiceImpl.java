@@ -178,6 +178,8 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
             finalParam.setCreatorName(creatorName);
             // 添加是否为当前用户创建的标识
             finalParam.setIsCreatedByCurrentUser(midParam.getCreator() != null && midParam.getCreator().equals(userId));
+            // 设置教材发布状态
+            finalParam.setReleaseStatus(midParam.getReleaseStatus());
             return finalParam;
         }).collect(Collectors.toList());
         // 6. 构建并返回最终的分页对象
