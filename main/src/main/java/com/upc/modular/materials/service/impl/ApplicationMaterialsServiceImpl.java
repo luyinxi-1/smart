@@ -425,7 +425,7 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
                 Long parentId = currentCatalog.getFatherCatalogId();
                 TextbookCatalog parentCatalog = parentId != null ? textbookCatalogMapper.selectById(parentId) : null;
                 
-                while (parentCatalog != null && parentCatalog.getCatalogLevel() != null && parentCatalog.getCatalogLevel() >= 2) {
+                while (parentCatalog != null && parentCatalog.getCatalogLevel() != null && parentCatalog.getCatalogLevel() >= 1) {
                     targetCatalogIds.add(parentCatalog.getId());
                     parentId = parentCatalog.getFatherCatalogId();
                     parentCatalog = parentId != null ? textbookCatalogMapper.selectById(parentId) : null;
