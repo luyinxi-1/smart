@@ -18,7 +18,7 @@ public class TokenResponse {
     private String tokenType;
     
     @JsonProperty("expires_in")
-    private Long expiresIn;
+    private String expiresIn;
     
     private String scope;
 }

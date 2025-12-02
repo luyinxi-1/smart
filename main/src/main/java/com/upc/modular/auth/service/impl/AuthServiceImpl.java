@@ -1,11 +1,13 @@
 package com.upc.modular.auth.service.impl;
-
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.upc.config.IamProperties;
 import com.upc.modular.auth.client.AuthClient;
 import com.upc.modular.auth.dto.AccountResponse;
 import com.upc.modular.auth.dto.TokenResponse;
 import com.upc.modular.auth.dto.UserDTO;
+import com.upc.modular.auth.dto.UserInfoResponse;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.auth.service.AuthService;
@@ -15,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpSession;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @Slf4j
@@ -55,7 +58,19 @@ public class AuthServiceImpl implements AuthService {
 
             // 获取token
             TokenResponse tokenResponse = authClient.getTokenByCode(code);
-            
+/*
+            // ⭐ 2.5 新增：调用 /api/userinfo，获取登录信息（精简 OIDC 信息）
+            try {
+                UserInfoResponse userInfo = authClient.getUserInfo(
+                        tokenResponse.getTokenType(),
+                        tokenResponse.getAccessToken());
+                // 先简单打个日志，你以后要用 email、sub 等可以从这里拿
+                log.info("[SSO] userinfo from IAM: sub={}, email={}",
+                        userInfo.getSub(), userInfo.getEmail());
+            } catch (Exception ex) {
+                // 这里建议只打警告，不要让整个登录失败（除非你业务强依赖 userinfo）
+                log.warn("[SSO] 调用 /api/userinfo 失败，将继续使用 /api/get-account 的数据", ex);
+            }*/
             // 获取账户信息
             AccountResponse accountResponse = authClient.getAccount(
                     tokenResponse.getTokenType(), 
@@ -124,7 +139,7 @@ public class AuthServiceImpl implements AuthService {
         return authClient.buildLogoutUrl(idTokenHint, redirectUri, state);
     }
     
-    @Override
+/*    @Override
     public String buildAccountUrl() {
         // iamProperties.getHost() 约定是不带结尾的斜杠，例如 http://iam.xxx.edu.cn
         String host = iamProperties.getHost();
@@ -133,7 +148,38 @@ public class AuthServiceImpl implements AuthService {
             host = host.substring(0, host.length() - 1);
         }
         return host + "/account";
+    }*/
+@Override
+public String buildAccountUrl() {
+    String host = iamProperties.getHost();
+    if (host.endsWith("/")) {
+        host = host.substring(0, host.length() - 1);
     }
+
+    StringBuilder urlBuilder = new StringBuilder(host)
+            .append("/account?")
+            .append("client_id=").append(iamProperties.getClientId())
+            .append("&client_secret=").append(iamProperties.getClientSecret())
+            .append("&redirect_uri=");
+
+    String redirectUri = iamProperties.getFrontHost();
+    if (redirectUri == null || redirectUri.isEmpty()) {
+        redirectUri = iamProperties.getRedirectUri();
+    }
+
+    try {
+        urlBuilder.append(URLEncoder.encode(
+                redirectUri,
+                StandardCharsets.UTF_8.name()
+        ));
+    } catch (UnsupportedEncodingException e) {
+        log.error("URL编码失败", e);
+        urlBuilder.append(redirectUri);
+    }
+
+    return urlBuilder.toString();
+}
+
 
     /**
      * 根据统一认证账户信息获取或创建本地用户

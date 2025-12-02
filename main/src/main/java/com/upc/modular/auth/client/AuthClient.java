@@ -3,6 +3,7 @@ package com.upc.modular.auth.client;
 import com.upc.config.IamProperties;
 import com.upc.modular.auth.dto.AccountResponse;
 import com.upc.modular.auth.dto.TokenResponse;
+import com.upc.modular.auth.dto.UserInfoResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
@@ -113,6 +114,36 @@ public class AuthClient {
         
         return body;
     }
+
+    /**
+     * 使用 access_token 获取 OIDC 标准的精简用户信息
+     * 对应统一认证文档中的 <IAM_HOST>/api/userinfo 接口
+     *
+     * @param tokenType   token_type，例如 "Bearer"
+     * @param accessToken access_token
+     * @return UserInfoResponse
+     */
+    public UserInfoResponse getUserInfo(String tokenType, String accessToken) {
+        String url = iamProperties.getHost() + "/api/userinfo";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", tokenType + " " + accessToken);
+
+        HttpEntity<?> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<UserInfoResponse> response =
+                restTemplate.exchange(url, HttpMethod.GET, entity, UserInfoResponse.class);
+
+        UserInfoResponse body = response.getBody();
+
+        if (body == null) {
+            log.error("获取用户登录信息失败，/api/userinfo 响应体为空");
+            throw new RuntimeException("获取用户登录信息失败，响应体为空");
+        }
+
+        return body;
+    }
+
 
     /**
      * 构建登出URL
