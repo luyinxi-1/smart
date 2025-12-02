@@ -137,6 +137,36 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
             return new Page<>(param.getCurrent(), param.getSize(), 0);
         }
 
+        // 预处理逻辑：处理未绑定模式下的目录递归筛选
+        if (param.getIsUnbound() != null && param.getIsUnbound() == 1 &&
+            param.getTextbookCatalogId2() != null && param.getTextbookCatalogId2() > 0) {
+
+            // 创建一个Set来存储目标目录ID
+            Set<Long> targetCatalogIds = new HashSet<>();
+
+            // 先加入当前目录ID
+            targetCatalogIds.add(param.getTextbookCatalogId2());
+
+            // 查询当前目录详情
+            TextbookCatalog currentCatalog = textbookCatalogMapper.selectById(param.getTextbookCatalogId2());
+
+            // 判断当前目录的级别，如果是3级及以上则向上递归查找父目录
+            if (currentCatalog != null && currentCatalog.getCatalogLevel() != null && currentCatalog.getCatalogLevel() > 2) {
+                // 循环向上查找父节点，直到父节点的catalogLevel < 2为止
+                Long parentId = currentCatalog.getFatherCatalogId();
+                TextbookCatalog parentCatalog = parentId != null ? textbookCatalogMapper.selectById(parentId) : null;
+
+                while (parentCatalog != null && parentCatalog.getCatalogLevel() != null && parentCatalog.getCatalogLevel() >= 2) {
+                    targetCatalogIds.add(parentCatalog.getId());
+                    parentId = parentCatalog.getFatherCatalogId();
+                    parentCatalog = parentId != null ? textbookCatalogMapper.selectById(parentId) : null;
+                }
+            }
+
+            // 将Set转换为List并设置到参数中
+            param.setTargetCatalogIds(new ArrayList<>(targetCatalogIds));
+        }
+
         // --- 第一阶段：数据库查询 ---
         // 1. 创建分页对象，注意泛型是中间结果类型
         Page<TeachingQuestionBankPageMidReturnParam> page = new Page<>(param.getCurrent(), param.getSize());

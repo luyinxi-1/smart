@@ -6,6 +6,8 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.util.List;
+
 @Data
 @Accessors(chain = true)
 public class TeachingQuestionBankPageSearchParam extends PageBaseSearchParam {
@@ -36,4 +38,7 @@ public class TeachingQuestionBankPageSearchParam extends PageBaseSearchParam {
 
     @ApiModelProperty("是否只查询未绑定题库(0 否 1是)")
     private Integer isUnbound = 0;
+    
+    @ApiModelProperty("目标目录ID列表（用于递归查询父级目录题库）")
+    private List<Long> targetCatalogIds;
 }
