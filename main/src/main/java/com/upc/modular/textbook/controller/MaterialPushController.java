@@ -4,6 +4,7 @@ import com.upc.common.responseparam.R;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.textbook.entity.IdeologicalMaterial;
+import com.upc.modular.textbook.entity.MaterialList;
 import com.upc.modular.textbook.entity.MaterialPush;
 import com.upc.modular.textbook.param.*;
 import com.upc.modular.textbook.service.IMaterialPushService;
@@ -74,6 +75,27 @@ public class MaterialPushController {
         iMaterialPushService.batchUpdateCatalog(params);
         return R.commonReturn(200, "更新成功", "");
     }
+
+    @ApiOperation(value = "【客户端】根据教材id下载资料推送")
+    @GetMapping("/downloadByTextbookId")
+    public R<List<MaterialPush>> downloadByTextbookId(@RequestParam Long textbookId) {
+        if (textbookId == null || textbookId == 0L) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+        List<MaterialPush> list = iMaterialPushService.listByTextbookId(textbookId);
+        return R.ok(list);
+    }
+
+    @ApiOperation(value = "【客户端】根据教材id下载资料推送附件列表")
+    @GetMapping("/downloadMaterialListByTextbookId")
+    public R<List<MaterialList>> downloadMaterialListByTextbookId(@RequestParam Long textbookId) {
+        if (textbookId == null || textbookId == 0L) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+        List<MaterialList> list = iMaterialPushService.listMaterialListByTextbookId(textbookId);
+        return R.ok(list);
+    }
+
 
 
 
