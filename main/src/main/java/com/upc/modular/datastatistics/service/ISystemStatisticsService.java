@@ -55,7 +55,7 @@ public interface ISystemStatisticsService {
     List<StudyTrendDTO> getStudyTrendByDateRange(LocalDate startDate, LocalDate endDate, String type);
 
 
-    SystemAllCountsDto getAllCounts(String dateStr);
+    SystemAllCountsDto getAllCounts(String dateStr, UserInfoToRedis currentUser);
 
 
     /**

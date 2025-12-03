@@ -40,4 +40,11 @@ public interface TextbookMapper extends BaseMapper<Textbook> {
      */
     Page<TextbookHotnessDto> selectTextbookHotnessPage(Page<TextbookHotnessDto> page);
 
+    /**
+     * 根据教师ID查询其创建或参与编辑的所有教材ID
+     * @param teacherId 教师ID
+     * @return 教材ID列表
+     */
+    List<Long> findTextbookIdsByTeacher(@Param("teacherId") Long teacherId);
+
 }

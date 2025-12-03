@@ -136,7 +136,11 @@ public R<List<StatisticsDto>> getTodayStudyDurationByPeriod() {
 @ApiOperation("获取系统所有核心数据统计")
 @GetMapping("/all-counts")
 public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required = false) String dateStr) {
-    return R.ok(systemStatisticsService.getAllCounts(dateStr));
+    UserInfoToRedis currentUser = LoginContextHolder.getUserInfoToRedis();
+    if (currentUser == null || currentUser.getId() == null) {
+        return R.fail("用户未登录");
+    }
+    return R.ok(systemStatisticsService.getAllCounts(dateStr, currentUser));
 }
 
     @ApiOperation("教师数量统计")
