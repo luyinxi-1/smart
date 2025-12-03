@@ -392,10 +392,15 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             param = new ApplicationMaterialsPageParam();
         }
         
-        // 强制只查询当前登录用户创建的素材（数据权限控制）
+        // 获取当前登录用户信息
         Long currentUserId = UserUtils.get() != null ? UserUtils.get().getId() : null;
-        if (currentUserId != null) {
-            param.setCreator(currentUserId);
+        Integer currentUserType = UserUtils.get() != null ? UserUtils.get().getUserType() : null;
+        
+        // 数据权限控制：非管理员用户只能查询自己创建的素材
+        if (currentUserType == null || currentUserType != 0) {
+            if (currentUserId != null) {
+                param.setCreator(currentUserId);
+            }
         }
         
         // 处理分页参数
