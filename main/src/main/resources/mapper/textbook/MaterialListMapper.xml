@@ -14,5 +14,11 @@
         <result column="operation_datetime" property="operationDatetime" />
         <result column="material_push_id" property="materialPushId" />
     </resultMap>
-
+    <select id="selectByTextbookId"
+            resultType="com.upc.modular.textbook.entity.MaterialList">
+        SELECT ml.*
+        FROM material_list ml
+                 JOIN material_push mp ON ml.material_push_id = mp.id
+        WHERE mp.textbook_id = #{textbookId}
+    </select>
 </mapper>

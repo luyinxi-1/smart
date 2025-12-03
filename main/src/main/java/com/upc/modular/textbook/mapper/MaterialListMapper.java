@@ -3,6 +3,9 @@ package com.upc.modular.textbook.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.upc.modular.textbook.entity.MaterialList;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * <p>
@@ -14,4 +17,8 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface MaterialListMapper extends BaseMapper<MaterialList> {
+
+
+        List<MaterialList> selectByTextbookId(@Param("textbookId") Long textbookId);
+
 }
