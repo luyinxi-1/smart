@@ -30,6 +30,7 @@ import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -534,5 +535,35 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
                 .collect(java.util.stream.Collectors.toList());
                 
         return applicationMaterialsMappingMapper.deleteBatchIds(mappingIds) > 0;
+    }
+
+    @Override
+    public List<ApplicationMaterials> listByTextbookId(Long textbookId) {
+        if (textbookId == null) {
+            return Collections.emptyList();
+        }
+
+        // 1. 先查关联表，拿到所有应用素材ID
+        List<ApplicationMaterialsTextbookMapping> mappings =
+                applicationMaterialsTextbookMappingMapper.selectList(
+                        new LambdaQueryWrapper<ApplicationMaterialsTextbookMapping>()
+                                .eq(ApplicationMaterialsTextbookMapping::getTextbookId, textbookId)
+                );
+        if (CollectionUtils.isEmpty(mappings)) {
+            return Collections.emptyList();
+        }
+
+        List<Long> appIds = mappings.stream()
+                .map(ApplicationMaterialsTextbookMapping::getApplicationMaterialId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (appIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 2. 再查应用素材主表
+        return this.listByIds(appIds);
     }
 }

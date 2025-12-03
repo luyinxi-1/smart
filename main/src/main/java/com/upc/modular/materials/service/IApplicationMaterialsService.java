@@ -85,4 +85,9 @@ public interface IApplicationMaterialsService extends IService<ApplicationMateri
      * @return 是否成功
      */
     boolean removeTeachingMaterials(Long applicationMaterialId, List<Long> teachingMaterialIds);
+
+    /**
+     * 【客户端】根据教材ID查询该教材下所有应用素材
+     */
+    List<ApplicationMaterials> listByTextbookId(Long textbookId);
 }

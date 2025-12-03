@@ -74,5 +74,10 @@ public interface IApplicationMaterialsTextbookMappingService extends IService<Ap
      * @return 新增映射记录的ID列表
      */
     List<Long> updateApplicationMaterialsBatchByChapters(Long textbookId, List<Long> chapterIds, List<ApplicationMaterialsTextbookMappingDto> mappings);
+
+    /**
+     * 【客户端】根据教材ID查询应用素材-教材关联列表
+     */
+    List<ApplicationMaterialsTextbookMapping> listByTextbookId(Long textbookId);
 }
 

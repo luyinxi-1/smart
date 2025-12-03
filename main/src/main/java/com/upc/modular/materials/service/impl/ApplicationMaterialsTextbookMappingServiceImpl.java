@@ -533,5 +533,14 @@ public class ApplicationMaterialsTextbookMappingServiceImpl extends ServiceImpl<
                 .map(ApplicationMaterialsTextbookMapping::getId)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<ApplicationMaterialsTextbookMapping> listByTextbookId(Long textbookId) {
+        if (textbookId == null) {
+            return Collections.emptyList();
+        }
+        return this.list(new LambdaQueryWrapper<ApplicationMaterialsTextbookMapping>()
+                .eq(ApplicationMaterialsTextbookMapping::getTextbookId, textbookId));
+    }
 }
 
