@@ -209,11 +209,39 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
             }
         }
 
-        // 3. 【执行删除】
-        // 删除该教材下所有旧的绑定关系
-        this.remove(new LambdaQueryWrapper<MaterialsTextbookMapping>()
-                .eq(MaterialsTextbookMapping::getTextbookId, textbookId));
+        // 3. 【执行更新】
+        // 不再删除旧的绑定关系，而是直接更新现有的绑定关系或者创建新的绑定关系
+        List<Long> updatedIds = new ArrayList<>();
+        
+        for (MaterialsTextbookMappingDto dto : mappings) {
+            // 查询是否已存在该素材的绑定关系
+            LambdaQueryWrapper<MaterialsTextbookMapping> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(MaterialsTextbookMapping::getMaterialId, dto.getMaterialId());
+            MaterialsTextbookMapping existingMapping = this.getOne(queryWrapper);
+            
+            if (existingMapping != null) {
+                // 如果已存在，则更新相关字段
+                existingMapping.setTextbookId(dto.getTextbookId());
+                existingMapping.setChapterName(dto.getChapterName());
+                existingMapping.setChapterId(dto.getChapterId());
+                // 注意：chapterId2 保持原值不变
                 
+                this.updateById(existingMapping);
+                updatedIds.add(existingMapping.getId());
+            } else {
+                // 如果不存在，则创建新的绑定关系
+                MaterialsTextbookMapping newMapping = new MaterialsTextbookMapping();
+                newMapping.setTextbookId(dto.getTextbookId());
+                newMapping.setMaterialId(dto.getMaterialId());
+                newMapping.setChapterName(dto.getChapterName());
+                newMapping.setChapterId(dto.getChapterId());
+                newMapping.setChapterId2(dto.getChapterId()); // chapterId2 默认与 chapterId 相同
+                
+                this.save(newMapping);
+                updatedIds.add(newMapping.getId());
+            }
+        }
+
         // 4. 【最终唯一性校验】
         // 检查 material_id
         LambdaQueryWrapper<MaterialsTextbookMapping> conflictCheckWrapper = new LambdaQueryWrapper<>();
@@ -227,25 +255,9 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
 
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "操作失败，部分素材已绑定到本书的其他章节: " + existingDetails);
         }
-        // 5. 【执行新增】
-        // 数据转换与批量插入
-        List<MaterialsTextbookMapping> entitiesToInsert = mappings.stream().map(dto -> {
-            MaterialsTextbookMapping entity = new MaterialsTextbookMapping();
-            entity.setTextbookId(dto.getTextbookId());
-            entity.setMaterialId(dto.getMaterialId());
-            entity.setChapterName(dto.getChapterName());
-            entity.setChapterId(dto.getChapterId()); // 此处 chapterId 已被正确填充
-            return entity;
-        }).collect(Collectors.toList());
 
-        if (!entitiesToInsert.isEmpty()) {
-            this.saveBatch(entitiesToInsert);
-        }
-
-        // 6. 返回新生成的ID列表
-        return entitiesToInsert.stream()
-                .map(MaterialsTextbookMapping::getId)
-                .collect(Collectors.toList());
+        // 5. 返回更新或创建的ID列表
+        return updatedIds;
     }
     
     @Override

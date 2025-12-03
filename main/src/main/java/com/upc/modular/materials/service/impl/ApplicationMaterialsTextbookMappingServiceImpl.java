@@ -464,17 +464,54 @@ public class ApplicationMaterialsTextbookMappingServiceImpl extends ServiceImpl<
             }
         }
 
-        // 3. 【执行删除】删除该教材下指定章节的旧绑定关系（如果提供了章节ID列表）
-        if (!CollectionUtils.isEmpty(chapterIds)) {
-            LambdaQueryWrapper<ApplicationMaterialsTextbookMapping> deleteWrapper = new LambdaQueryWrapper<>();
-            deleteWrapper
-                    .eq(ApplicationMaterialsTextbookMapping::getTextbookId, textbookId)
-                    .in(ApplicationMaterialsTextbookMapping::getTextbookCatalogId, chapterIds);
-            this.remove(deleteWrapper);
+        // 3. 【执行更新】不再删除旧的绑定关系，而是直接更新现有绑定关系或创建新的绑定关系
+        List<Long> updatedIds = new ArrayList<>();
+        
+        // 获取当前登录用户
+        Long currentUserId = com.upc.common.utils.UserUtils.get() != null ? 
+            com.upc.common.utils.UserUtils.get().getId() : null;
+
+        for (ApplicationMaterialsTextbookMappingDto dto : mappings) {
+            // 查询是否已存在该应用素材的绑定关系
+            LambdaQueryWrapper<ApplicationMaterialsTextbookMapping> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(ApplicationMaterialsTextbookMapping::getApplicationMaterialId, dto.getApplicationMaterialId());
+            ApplicationMaterialsTextbookMapping existingMapping = this.getOne(queryWrapper);
+            
+            if (existingMapping != null) {
+                // 如果已存在，则更新相关字段，但保留textbookCatalogId2不变
+                existingMapping.setTextbookId(textbookId);
+                existingMapping.setTextbookCatalogName(dto.getTextbookCatalogName());
+                existingMapping.setTextbookCatalogId(dto.getTextbookCatalogId());
+                // 注意：textbookCatalogId2 保持原值不变
+                
+                existingMapping.setOperator(currentUserId);
+                this.updateById(existingMapping);
+                updatedIds.add(existingMapping.getId());
+            } else {
+                // 如果不存在，则创建新的绑定关系
+                ApplicationMaterialsTextbookMapping newMapping = new ApplicationMaterialsTextbookMapping();
+                newMapping.setTextbookId(textbookId);
+                newMapping.setApplicationMaterialId(dto.getApplicationMaterialId());
+                newMapping.setTextbookCatalogName(dto.getTextbookCatalogName());
+                newMapping.setTextbookCatalogId(dto.getTextbookCatalogId());
+                
+                // 如果textbookCatalogId2为空但textbookCatalogId不为空，则将textbookCatalogId2设置为与textbookCatalogId相同的值
+                if (dto.getTextbookCatalogId2() == null && dto.getTextbookCatalogId() != null) {
+                    newMapping.setTextbookCatalogId2(dto.getTextbookCatalogId());
+                } else {
+                    newMapping.setTextbookCatalogId2(dto.getTextbookCatalogId2());
+                }
+                
+                newMapping.setCreator(currentUserId);
+                newMapping.setOperator(currentUserId);
+                
+                this.save(newMapping);
+                updatedIds.add(newMapping.getId());
+            }
         }
 
-        // 4. 【最终唯一性校验】
-        // 检查 application_material_id 是否已被其他教材或章节绑定
+//        // 4. 【最终唯一性校验】
+//        // 检查 application_material_id 是否已被其他教材或章节绑定
 //        LambdaQueryWrapper<ApplicationMaterialsTextbookMapping> conflictCheckWrapper = new LambdaQueryWrapper<>();
 //        conflictCheckWrapper.in(ApplicationMaterialsTextbookMapping::getApplicationMaterialId, uniqueApplicationMaterialIdsInRequest);
 //
@@ -488,49 +525,8 @@ public class ApplicationMaterialsTextbookMappingServiceImpl extends ServiceImpl<
 //            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "操作失败，部分应用素材已绑定到其他教材或章节: " + existingDetails);
 //        }
 
-        // 5. 【执行新增】
-
-        if (!uniqueApplicationMaterialIdsInRequest.isEmpty()) {
-            // 构建删除条件：删除指定教材下，指定applicationMaterialId的记录
-            LambdaQueryWrapper<ApplicationMaterialsTextbookMapping> deleteWrapper = new LambdaQueryWrapper<>();
-            deleteWrapper.in(ApplicationMaterialsTextbookMapping::getApplicationMaterialId, uniqueApplicationMaterialIdsInRequest);
-
-            this.remove(deleteWrapper);
-        }
-
-        // 获取当前登录用户
-        Long currentUserId = com.upc.common.utils.UserUtils.get() != null ? 
-            com.upc.common.utils.UserUtils.get().getId() : null;
-        
-        // 数据转换与批量插入
-        List<ApplicationMaterialsTextbookMapping> entitiesToInsert = mappings.stream().map(dto -> {
-            ApplicationMaterialsTextbookMapping entity = new ApplicationMaterialsTextbookMapping();
-            entity.setTextbookId(textbookId);
-            entity.setApplicationMaterialId(dto.getApplicationMaterialId());
-            entity.setTextbookCatalogName(dto.getTextbookCatalogName());
-            entity.setTextbookCatalogId(dto.getTextbookCatalogId());
-            entity.setTextbookCatalogId2(dto.getTextbookCatalogId2());
-            
-            // 如果textbookCatalogId2为空但textbookCatalogId不为空，则将textbookCatalogId2设置为与textbookCatalogId相同的值
-            if (dto.getTextbookCatalogId2() == null && dto.getTextbookCatalogId() != null) {
-                entity.setTextbookCatalogId2(dto.getTextbookCatalogId());
-            } else {
-                entity.setTextbookCatalogId2(dto.getTextbookCatalogId2());
-            }
-            
-            entity.setCreator(currentUserId);
-            entity.setOperator(currentUserId);
-            return entity;
-        }).collect(Collectors.toList());
-
-        if (!entitiesToInsert.isEmpty()) {
-            this.saveBatch(entitiesToInsert);
-        }
-
-        // 6. 返回新生成的ID列表
-        return entitiesToInsert.stream()
-                .map(ApplicationMaterialsTextbookMapping::getId)
-                .collect(Collectors.toList());
+        // 5. 返回更新或创建的ID列表
+        return updatedIds;
     }
 }
 
