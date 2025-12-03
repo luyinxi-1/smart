@@ -20,10 +20,7 @@ public interface SystemDataStatisticsMapper {
 
     // <<< 修改点 2 >>>: 将参数类型从 LocalDate 改为 Map<String, Object>
     Long getStudyDurationByDate(Map<String, Object> params);
-    //获取某天的访问人数
-    Long getVisitorCountByDate(LocalDate targetDate);
-    // 获取某天的总学习时长
-    Long getStudyDurationByDate(LocalDate targetDate);
+    
     // 今日访问人数
     Long getTodayVisitorCount();
     //按时间段统计今日访问人数
@@ -86,7 +83,7 @@ public interface SystemDataStatisticsMapper {
      * 获取教材更新申请记录 (分页)
      */
 // 修改点①: Mapper 方法的第一个参数必须是 Page 对象, 返回 IPage
-    IPage<TextbookUpdateApplicationParam> getTextbookUpdateApplications(Page<TextbookUpdateApplicationParam> page);
+    IPage<TextbookUpdateApplicationParam> getTextbookUpdateApplications(Page<TextbookUpdateApplicationParam> page, @Param("userId") Long userId);
 
     /**
      * 获取全系统教材热度排名原始数据 (分页)

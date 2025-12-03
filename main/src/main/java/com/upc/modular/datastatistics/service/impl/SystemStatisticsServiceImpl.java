@@ -891,9 +891,17 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
      * 获取教材更新申请记录
      */
     @Override
-    public IPage<TextbookUpdateApplicationParam> getTextbookUpdateApplications(Page<TextbookUpdateApplicationParam> page) {
-        // 直接将分页参数传递给 Mapper 层
-        return systemDataStatisticsMapper.getTextbookUpdateApplications(page);
+    public IPage<TextbookUpdateApplicationParam> getTextbookUpdateApplications(Page<TextbookUpdateApplicationParam> page, UserInfoToRedis currentUser) {
+        // 判断用户类型
+        if (currentUser.getUserType() == 0) { // 管理员
+            // 管理员查询所有记录，传递 null
+            return systemDataStatisticsMapper.getTextbookUpdateApplications(page, null);
+        } else if (currentUser.getUserType() == 2) { // 教师
+            // 教师只查询自己的记录
+            return systemDataStatisticsMapper.getTextbookUpdateApplications(page, currentUser.getId());
+        } else { // 其他用户类型，返回空结果
+            return new Page<>(page.getCurrent(), page.getSize(), 0);
+        }
     }
 
     @Override
