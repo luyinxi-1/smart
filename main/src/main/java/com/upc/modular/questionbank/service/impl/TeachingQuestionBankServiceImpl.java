@@ -151,7 +151,7 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
             TextbookCatalog currentCatalog = textbookCatalogMapper.selectById(param.getTextbookCatalogId2());
 
             // 判断当前目录的级别，如果是3级及以上则向上递归查找父目录
-            if (currentCatalog != null && currentCatalog.getCatalogLevel() != null && currentCatalog.getCatalogLevel() > 2) {
+            if (currentCatalog != null && currentCatalog.getCatalogLevel() != null && currentCatalog.getCatalogLevel() >= 2) {
                 // 循环向上查找父节点，直到父节点的catalogLevel < 2为止
                 Long parentId = currentCatalog.getFatherCatalogId();
                 TextbookCatalog parentCatalog = parentId != null ? textbookCatalogMapper.selectById(parentId) : null;

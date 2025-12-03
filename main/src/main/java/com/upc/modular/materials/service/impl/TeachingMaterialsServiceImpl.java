@@ -525,18 +525,16 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                     targetChapterIds.add(chapterId2);
                     
                     // 向上递归查找
-                    if (currentCatalog != null && currentCatalog.getCatalogLevel() != null && currentCatalog.getCatalogLevel() > 2) {
+                    if (currentCatalog != null && currentCatalog.getCatalogLevel() != null && currentCatalog.getCatalogLevel() >= 2) {
                         // 如果当前是 3级及以上 目录：循环向上查找父节点，直到父节点的 catalog_level < 2 为止
                         Long parentId = currentCatalog.getFatherCatalogId();
                         TextbookCatalog parentCatalog = parentId != null ? textbookCatalogMapper.selectById(parentId) : null;
                         
-                        while (parentCatalog != null && parentCatalog.getCatalogLevel() != null && parentCatalog.getCatalogLevel() >= 2) {
+                        while (parentCatalog != null && parentCatalog.getCatalogLevel() != null && parentCatalog.getCatalogLevel() >= 1) {
                             targetChapterIds.add(parentCatalog.getId());
                             parentId = parentCatalog.getFatherCatalogId();
                             parentCatalog = parentId != null ? textbookCatalogMapper.selectById(parentId) : null;
                         }
-                    } else if (currentCatalog != null && currentCatalog.getCatalogLevel() != null && currentCatalog.getCatalogLevel() == 2) {
-                        // 如果当前是 2级 目录：集合中已经有它自己，不需要额外处理
                     }
                     
                     allowWrapper.and(w -> w
