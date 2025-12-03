@@ -6,7 +6,12 @@ import com.upc.common.responseparam.R;
 import com.upc.modular.materials.controller.param.dto.ApplicationMaterialsPageParam;
 import com.upc.modular.materials.controller.param.dto.ApplicationMaterialsSaveParam;
 import com.upc.modular.materials.controller.param.vo.ApplicationMaterialsVO;
+import com.upc.modular.materials.entity.ApplicationMaterials;
+import com.upc.modular.materials.entity.ApplicationMaterialsMapping;
+import com.upc.modular.materials.entity.ApplicationMaterialsTextbookMapping;
+import com.upc.modular.materials.service.IApplicationMaterialsMappingService;
 import com.upc.modular.materials.service.IApplicationMaterialsService;
+import com.upc.modular.materials.service.IApplicationMaterialsTextbookMappingService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -30,6 +35,12 @@ public class ApplicationMaterialsManageController {
 
     @Autowired
     private IApplicationMaterialsService applicationMaterialsService;
+    @Autowired
+    private IApplicationMaterialsTextbookMappingService applicationMaterialsTextbookMappingService;
+
+    @Autowired
+    private IApplicationMaterialsMappingService applicationMaterialsMappingService;
+
 
     @ApiOperation("新增应用素材")
     @PostMapping("/add")
@@ -72,4 +83,27 @@ public class ApplicationMaterialsManageController {
         PageBaseReturnParam<ApplicationMaterialsVO> result = PageBaseReturnParam.ok(page);
         return R.page(result);
     }
+    @ApiOperation("【客户端】根据教材id下载应用素材主表")
+    @GetMapping("/downloadByTextbookId")
+    public R<List<ApplicationMaterials>> downloadByTextbookId(@RequestParam Long textbookId) {
+        // 通过 application_materials_textbook 关联查出该教材下所有应用素材
+        List<ApplicationMaterials> list = applicationMaterialsService.listByTextbookId(textbookId);
+        return R.ok(list);
+    }
+
+    @ApiOperation("【客户端】根据教材id下载应用素材-教材关联表")
+    @GetMapping("/downloadTextbookMappingByTextbookId")
+    public R<List<ApplicationMaterialsTextbookMapping>> downloadTextbookMappingByTextbookId(@RequestParam Long textbookId) {
+        List<ApplicationMaterialsTextbookMapping> list = applicationMaterialsTextbookMappingService.listByTextbookId(textbookId);
+        return R.ok(list);
+    }
+
+    @ApiOperation("【客户端】根据教材id下载应用素材-教学素材关联表")
+    @GetMapping("/downloadMappingByTextbookId")
+    public R<List<ApplicationMaterialsMapping>> downloadMappingByTextbookId(@RequestParam Long textbookId) {
+        List<ApplicationMaterialsMapping> list = applicationMaterialsMappingService.listByTextbookId(textbookId);
+        return R.ok(list);
+    }
+
+
 }

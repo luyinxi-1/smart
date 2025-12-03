@@ -330,14 +330,13 @@ public class ApplicationMaterialsTextbookMappingServiceImpl extends ServiceImpl<
             return;
         }
         
-        // 删除该教材下指定章节的绑定关系
-        LambdaQueryWrapper<ApplicationMaterialsTextbookMapping> deleteWrapper = new LambdaQueryWrapper<>();
-        deleteWrapper
-                .eq(ApplicationMaterialsTextbookMapping::getTextbookId, textbookId)
-                .in(ApplicationMaterialsTextbookMapping::getTextbookCatalogId, chapterIds);
+        // 修改：不是删除记录，而是将textbookCatalogId设置为null
+        ApplicationMaterialsTextbookMapping updateEntity = new ApplicationMaterialsTextbookMapping();
+        updateEntity.setTextbookCatalogId(null);
         
-        // 执行批量删除操作
-        this.remove(deleteWrapper);
+        this.update(updateEntity, new LambdaQueryWrapper<ApplicationMaterialsTextbookMapping>()
+                .eq(ApplicationMaterialsTextbookMapping::getTextbookId, textbookId)
+                .in(ApplicationMaterialsTextbookMapping::getTextbookCatalogId, chapterIds));
     }
 
     @Override
@@ -532,6 +531,15 @@ public class ApplicationMaterialsTextbookMappingServiceImpl extends ServiceImpl<
         return entitiesToInsert.stream()
                 .map(ApplicationMaterialsTextbookMapping::getId)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ApplicationMaterialsTextbookMapping> listByTextbookId(Long textbookId) {
+        if (textbookId == null) {
+            return Collections.emptyList();
+        }
+        return this.list(new LambdaQueryWrapper<ApplicationMaterialsTextbookMapping>()
+                .eq(ApplicationMaterialsTextbookMapping::getTextbookId, textbookId));
     }
 }
 

@@ -30,6 +30,7 @@ import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -424,8 +425,8 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             // 查询当前目录详情
             TextbookCatalog currentCatalog = textbookCatalogMapper.selectById(param.getTextbookCatalogId2());
             
-            // 判断当前目录的级别，如果是3级及以上则向上递归查找父目录
-            if (currentCatalog != null && currentCatalog.getCatalogLevel() != null && currentCatalog.getCatalogLevel() > 2) {
+            // 判断当前目录的级别，如果是2级及以上则向上递归查找父目录
+            if (currentCatalog != null && currentCatalog.getCatalogLevel() != null && currentCatalog.getCatalogLevel() >= 2) {
                 // 循环向上查找父节点，直到父节点的catalogLevel < 2为止
                 Long parentId = currentCatalog.getFatherCatalogId();
                 TextbookCatalog parentCatalog = parentId != null ? textbookCatalogMapper.selectById(parentId) : null;
@@ -539,5 +540,35 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
                 .collect(java.util.stream.Collectors.toList());
                 
         return applicationMaterialsMappingMapper.deleteBatchIds(mappingIds) > 0;
+    }
+
+    @Override
+    public List<ApplicationMaterials> listByTextbookId(Long textbookId) {
+        if (textbookId == null) {
+            return Collections.emptyList();
+        }
+
+        // 1. 先查关联表，拿到所有应用素材ID
+        List<ApplicationMaterialsTextbookMapping> mappings =
+                applicationMaterialsTextbookMappingMapper.selectList(
+                        new LambdaQueryWrapper<ApplicationMaterialsTextbookMapping>()
+                                .eq(ApplicationMaterialsTextbookMapping::getTextbookId, textbookId)
+                );
+        if (CollectionUtils.isEmpty(mappings)) {
+            return Collections.emptyList();
+        }
+
+        List<Long> appIds = mappings.stream()
+                .map(ApplicationMaterialsTextbookMapping::getApplicationMaterialId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (appIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 2. 再查应用素材主表
+        return this.listByIds(appIds);
     }
 }

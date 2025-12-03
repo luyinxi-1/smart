@@ -452,7 +452,11 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
             return;
         }
         
-        this.remove(new LambdaQueryWrapper<MaterialsTextbookMapping>()
+        // 修改：不是删除记录，而是将chapter_id设置为null
+        MaterialsTextbookMapping updateEntity = new MaterialsTextbookMapping();
+        updateEntity.setChapterId(null);
+        
+        this.update(updateEntity, new LambdaQueryWrapper<MaterialsTextbookMapping>()
                 .eq(MaterialsTextbookMapping::getTextbookId, textbookId)
                 .in(MaterialsTextbookMapping::getChapterId, chapterIds));
     }

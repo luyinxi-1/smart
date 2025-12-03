@@ -174,4 +174,15 @@ public class MaterialPushServiceImpl extends ServiceImpl<MaterialPushMapper, Mat
             this.updateById(updateEntity);
         }
     }
+        @Override
+        public List<MaterialPush> listByTextbookId(Long textbookId) {
+            return this.list(new LambdaQueryWrapper<MaterialPush>()
+                    .eq(MaterialPush::getTextbookId, textbookId));
+        }
+        @Override
+        public List<MaterialList> listMaterialListByTextbookId(Long textbookId) {
+            // material_list 表本身没有 textbook_id，用 material_push 做一次 join
+            return materialListMapper.selectByTextbookId(textbookId);
+        }
+
 }
