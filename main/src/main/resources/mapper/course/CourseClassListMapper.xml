@@ -60,12 +60,12 @@
         LEFT JOIN
         course_class_list ccl ON c.id = ccl.course_id
         LEFT JOIN
-        user_class_list ucl ON ccl.class_id = ucl.class_id
+        student s ON ccl.class_id = s.class_id
         LEFT JOIN
         teacher t ON c.teacher_id = t.id
         <where>
             <if test="id != null">
-                AND ucl.user_id = #{id}
+                AND s.user_id = #{id}
             </if>
             <if test="param.courseName != null and param.courseName != ''">
                 AND c.course_name LIKE CONCAT('%', #{param.courseName}, '%')
