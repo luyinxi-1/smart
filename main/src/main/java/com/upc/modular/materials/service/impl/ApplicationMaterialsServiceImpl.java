@@ -30,6 +30,7 @@ import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -392,10 +393,15 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
             param = new ApplicationMaterialsPageParam();
         }
         
-        // 强制只查询当前登录用户创建的素材（数据权限控制）
+        // 获取当前登录用户信息
         Long currentUserId = UserUtils.get() != null ? UserUtils.get().getId() : null;
-        if (currentUserId != null) {
-            param.setCreator(currentUserId);
+        Integer currentUserType = UserUtils.get() != null ? UserUtils.get().getUserType() : null;
+        
+        // 数据权限控制：非管理员用户只能查询自己创建的素材
+        if (currentUserType == null || currentUserType != 0) {
+            if (currentUserId != null) {
+                param.setCreator(currentUserId);
+            }
         }
         
         // 处理分页参数
@@ -534,5 +540,35 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
                 .collect(java.util.stream.Collectors.toList());
                 
         return applicationMaterialsMappingMapper.deleteBatchIds(mappingIds) > 0;
+    }
+
+    @Override
+    public List<ApplicationMaterials> listByTextbookId(Long textbookId) {
+        if (textbookId == null) {
+            return Collections.emptyList();
+        }
+
+        // 1. 先查关联表，拿到所有应用素材ID
+        List<ApplicationMaterialsTextbookMapping> mappings =
+                applicationMaterialsTextbookMappingMapper.selectList(
+                        new LambdaQueryWrapper<ApplicationMaterialsTextbookMapping>()
+                                .eq(ApplicationMaterialsTextbookMapping::getTextbookId, textbookId)
+                );
+        if (CollectionUtils.isEmpty(mappings)) {
+            return Collections.emptyList();
+        }
+
+        List<Long> appIds = mappings.stream()
+                .map(ApplicationMaterialsTextbookMapping::getApplicationMaterialId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (appIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 2. 再查应用素材主表
+        return this.listByIds(appIds);
     }
 }

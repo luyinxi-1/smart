@@ -136,7 +136,11 @@ public R<List<StatisticsDto>> getTodayStudyDurationByPeriod() {
 @ApiOperation("获取系统所有核心数据统计")
 @GetMapping("/all-counts")
 public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required = false) String dateStr) {
-    return R.ok(systemStatisticsService.getAllCounts(dateStr));
+    UserInfoToRedis currentUser = LoginContextHolder.getUserInfoToRedis();
+    if (currentUser == null || currentUser.getId() == null) {
+        return R.fail("用户未登录");
+    }
+    return R.ok(systemStatisticsService.getAllCounts(dateStr, currentUser));
 }
 
     @ApiOperation("教师数量统计")
@@ -186,7 +190,12 @@ public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required
             @RequestParam(value = "current", defaultValue = "1") long current,
             @RequestParam(value = "size", defaultValue = "10") long size) {
         Page<TextbookUpdateApplicationParam> page = new Page<>(current, size);
-        IPage<TextbookUpdateApplicationParam> applications = systemStatisticsService.getTextbookUpdateApplications(page);
+        // 获取当前登录用户信息
+        UserInfoToRedis currentUser = LoginContextHolder.getUserInfoToRedis();
+        if (currentUser == null || currentUser.getId() == null) {
+            return R.fail("用户未登录");
+        }
+        IPage<TextbookUpdateApplicationParam> applications = systemStatisticsService.getTextbookUpdateApplications(page, currentUser);
         return R.ok(applications);
     }
 

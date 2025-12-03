@@ -232,4 +232,13 @@
         ORDER BY
             favoritesCount DESC
     </select>
+    <select id="findTextbookIdsByTeacher" resultType="java.lang.Long">
+        SELECT id
+        FROM textbook
+        WHERE creator = #{teacherId}
+        UNION
+        SELECT textbook_id
+        FROM textbook_authority
+        WHERE user_id = #{teacherId} AND authority_type = 1
+    </select>
 </mapper>

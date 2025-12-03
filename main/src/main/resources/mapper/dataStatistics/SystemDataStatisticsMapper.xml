@@ -512,8 +512,14 @@
         LEFT JOIN teacher tch ON tr.creator = tch.user_id
         LEFT JOIN student s ON tr.creator = s.user_id
         LEFT JOIN sys_tbuser su ON tr.creator = su.id
-        <!-- 修改点②: 添加 WHERE 条件, 筛选 reason_for_review 为 2 的记录 -->
         WHERE tr.reason_for_review = 2
+        <if test="userId != null">
+            AND EXISTS (
+                SELECT 1 FROM textbook t2 WHERE t2.id = tr.textbook_id AND t2.creator = #{userId}
+                UNION
+                SELECT 1 FROM textbook_authority ta WHERE ta.textbook_id = tr.textbook_id AND ta.user_id = #{userId}
+            )
+        </if>
         ORDER BY
         tr.add_datetime DESC
     </select>

@@ -528,5 +528,14 @@ public class ApplicationMaterialsTextbookMappingServiceImpl extends ServiceImpl<
         // 5. 返回更新或创建的ID列表
         return updatedIds;
     }
+
+    @Override
+    public List<ApplicationMaterialsTextbookMapping> listByTextbookId(Long textbookId) {
+        if (textbookId == null) {
+            return Collections.emptyList();
+        }
+        return this.list(new LambdaQueryWrapper<ApplicationMaterialsTextbookMapping>()
+                .eq(ApplicationMaterialsTextbookMapping::getTextbookId, textbookId));
+    }
 }
 

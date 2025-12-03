@@ -55,7 +55,7 @@ public interface ISystemStatisticsService {
     List<StudyTrendDTO> getStudyTrendByDateRange(LocalDate startDate, LocalDate endDate, String type);
 
 
-    SystemAllCountsDto getAllCounts(String dateStr);
+    SystemAllCountsDto getAllCounts(String dateStr, UserInfoToRedis currentUser);
 
 
     /**
@@ -123,7 +123,7 @@ public interface ISystemStatisticsService {
      */
     Map<String, Object> getResourceUsageStatistics();
 
-    IPage<TextbookUpdateApplicationParam> getTextbookUpdateApplications(Page<TextbookUpdateApplicationParam> page);
+    IPage<TextbookUpdateApplicationParam> getTextbookUpdateApplications(Page<TextbookUpdateApplicationParam> page, UserInfoToRedis currentUser);
 
     /**
      * 获取全系统教材热度排名
