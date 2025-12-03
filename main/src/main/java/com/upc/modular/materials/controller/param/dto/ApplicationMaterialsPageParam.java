@@ -6,6 +6,8 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.util.List;
+
 /**
  * <p>
  * 应用素材分页查询参数
@@ -45,4 +47,7 @@ public class ApplicationMaterialsPageParam extends PageBaseSearchParam {
 
     @ApiModelProperty("是否只查询未绑定教材的素材（true:只查未绑定的, false/null:查询全部）")
     private Boolean onlyUnbound;
+    
+    @ApiModelProperty("目标目录ID列表（用于递归查询父级目录素材）")
+    private List<Long> targetCatalogIds;
 }

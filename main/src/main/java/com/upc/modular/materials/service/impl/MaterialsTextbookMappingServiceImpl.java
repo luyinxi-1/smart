@@ -18,6 +18,7 @@ import com.upc.modular.materials.mapper.MaterialsTextbookMappingMapper;
 import com.upc.modular.materials.mapper.TeachingMaterialsMapper;
 import com.upc.modular.materials.service.IMaterialsTextbookMappingService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.upc.modular.questionbank.entity.TeachingQuestionBank;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.service.impl.TeacherServiceImpl;
 import com.upc.modular.teacher.vo.TeacherReturnVo;

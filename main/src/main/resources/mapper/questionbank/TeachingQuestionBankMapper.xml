@@ -19,6 +19,7 @@
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
 
+    <!-- 分页查询题库列表 -->
     <select id="selectQuestionBank"
             resultType="com.upc.modular.questionbank.controller.param.TeachingQuestionBankPageMidReturnParam">
         SELECT
@@ -85,10 +86,18 @@
                                     规则 2：
                                     - 属于当前教材；
                                     - textbook_catalog_id 仍为空（未正式绑定章节）；
-                                    - textbook_catalog_id2 = 当前章节ID 或 textbook_catalog_id2 为空
+                                    - textbook_catalog_id2 在目标目录ID列表中 或 textbook_catalog_id2 为空
                                   -->
                                 AND (
-                                t.textbook_catalog_id2 = #{param.textbookCatalogId2}
+                                <if test="param.targetCatalogIds != null and !param.targetCatalogIds.isEmpty()">
+                                    t.textbook_catalog_id2 IN
+                                    <foreach collection="param.targetCatalogIds" item="catalogId" open="(" separator="," close=")">
+                                        #{catalogId}
+                                    </foreach>
+                                </if>
+                                <if test="param.targetCatalogIds == null or param.targetCatalogIds.isEmpty()">
+                                    t.textbook_catalog_id2 = #{param.textbookCatalogId2}
+                                </if>
                                 OR t.textbook_catalog_id2 IS NULL
                                 )
                             </when>
@@ -106,7 +115,7 @@
                         </choose>
                     </when>
 
-                    <!-- 没有 textbookId 的情况：全局“未绑定章节”模式 -->
+                    <!-- 没有 textbookId 的情况：全局"未绑定章节"模式 -->
                     <otherwise>
                         <!--
                             这里仅依赖上面的

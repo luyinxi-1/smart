@@ -482,9 +482,9 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
             // 3️⃣ 规则：凡是在 mapping 表中存在 chapter_id 有值的素材，都认为已经绑定章节，
             // 在「只看未绑定」模式下一律排除。
             List<Long> boundIds = materialsTextbookMappingService.list(
-                            new LambdaQueryWrapper<MaterialsTextbookMapping>()
-                                    .select(MaterialsTextbookMapping::getMaterialId)
-                                    .isNotNull(MaterialsTextbookMapping::getChapterId)
+                        new LambdaQueryWrapper<MaterialsTextbookMapping>()
+                                .select(MaterialsTextbookMapping::getMaterialId)
+                                .isNotNull(MaterialsTextbookMapping::getChapterId)
                     ).stream()
                     .map(MaterialsTextbookMapping::getMaterialId)
                     .distinct()
@@ -515,8 +515,32 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                     // 2️⃣ 规则：chapterId2 有值（已入库）
                     // textbookId 对应，chapterId 为空，
                     // 且 (chapterId2 = 传入参数 或 chapterId2 仍然为空)
+                    
+                    // 获取目录层级信息
+                    TextbookCatalog currentCatalog = textbookCatalogMapper.selectById(chapterId2);
+                    Set<Long> targetChapterIds = new HashSet<>();
+                    
+                    // 构建 ID 集合 (targetChapterIds)
+                    // 首先将当前的 chapterId2 加入集合
+                    targetChapterIds.add(chapterId2);
+                    
+                    // 向上递归查找
+                    if (currentCatalog != null && currentCatalog.getCatalogLevel() != null && currentCatalog.getCatalogLevel() > 2) {
+                        // 如果当前是 3级及以上 目录：循环向上查找父节点，直到父节点的 catalog_level < 2 为止
+                        Long parentId = currentCatalog.getFatherCatalogId();
+                        TextbookCatalog parentCatalog = parentId != null ? textbookCatalogMapper.selectById(parentId) : null;
+                        
+                        while (parentCatalog != null && parentCatalog.getCatalogLevel() != null && parentCatalog.getCatalogLevel() >= 2) {
+                            targetChapterIds.add(parentCatalog.getId());
+                            parentId = parentCatalog.getFatherCatalogId();
+                            parentCatalog = parentId != null ? textbookCatalogMapper.selectById(parentId) : null;
+                        }
+                    } else if (currentCatalog != null && currentCatalog.getCatalogLevel() != null && currentCatalog.getCatalogLevel() == 2) {
+                        // 如果当前是 2级 目录：集合中已经有它自己，不需要额外处理
+                    }
+                    
                     allowWrapper.and(w -> w
-                            .eq(MaterialsTextbookMapping::getChapterId2, chapterId2)
+                            .in(MaterialsTextbookMapping::getChapterId2, targetChapterIds)
                             .or()
                             .isNull(MaterialsTextbookMapping::getChapterId2)
                     );
