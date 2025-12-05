@@ -155,11 +155,10 @@ public class StudentDataStatisticsController {
             @RequestParam(required = false) String groupName,
             @RequestParam(required = false) String studentName,
             @RequestParam(defaultValue = "1") Long current,
-            @RequestParam(defaultValue = "10") Long size,
-            @RequestParam String startTime,
-            @RequestParam String endTime) {
+            @RequestParam(defaultValue = "10") Long size
+           ) {
 
-        Page<StudentReadingRankParam> page = iStudentDataStatistics.getStudentReadingRankByPage(groupName, studentName, current, size, startTime, endTime);
+        Page<StudentReadingRankParam> page = iStudentDataStatistics.getStudentReadingRankByPage(groupName, studentName, current, size);
         return R.ok(page);
     }
     @ApiOperation("根据学生ID查询阅读过的教材，按阅读量排名返回")
