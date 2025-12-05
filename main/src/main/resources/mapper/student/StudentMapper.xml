@@ -126,5 +126,25 @@
         </where>
         ORDER BY s.add_datetime DESC
     </select>
+    
+    <!-- 查询学生班级课程信息 -->
+    <select id="selectStudentClassCourseInfo" resultType="com.upc.modular.student.controller.param.vo.StudentClassCourseExportVO">
+        SELECT 
+            g.name AS className,
+            s.name AS studentName,
+            c.course_name AS courseName,
+            t.textbook_name AS textbookName
+        FROM student s 
+        LEFT JOIN user_class_list ucl ON s.user_id = ucl.user_id AND ucl.type = 1
+        LEFT JOIN `group` g ON ucl.class_id = g.id
+        LEFT JOIN course_class_list ccl ON g.id = ccl.class_id
+        LEFT JOIN course c ON ccl.course_id = c.id
+        LEFT JOIN course_textbook_list ctl ON c.id = ctl.course_id
+        LEFT JOIN textbook t ON ctl.textbook_id = t.id
+        WHERE s.user_id = #{userId}
+          AND c.course_name IS NOT NULL 
+          AND t.textbook_name IS NOT NULL
+        ORDER BY g.name, c.course_name, t.textbook_name
+    </select>
 
 </mapper>

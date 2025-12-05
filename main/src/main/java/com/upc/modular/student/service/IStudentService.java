@@ -11,6 +11,7 @@ import com.upc.modular.student.controller.param.vo.GenerateUserResultVoStudent;
 import com.upc.modular.student.controller.param.vo.ImportStudentReturnVo;
 import com.upc.modular.student.controller.param.dto.StudentGenerateDto;
 import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
+import com.upc.modular.student.controller.param.vo.StudentClassCourseExportVO;
 import com.upc.modular.student.controller.param.vo.StudentExcelVo;
 import com.upc.modular.student.controller.param.vo.StudentReturnVo;
 import com.upc.modular.student.entity.Student;
@@ -59,6 +60,12 @@ public interface IStudentService extends IService<Student> {
 
     void exportStudentData(HttpServletResponse response, StudentExportDto param);
 
+    /**
+     * 查询学生班级课程信息列表
+     * @return 班级课程信息列表
+     */
+    List<StudentClassCourseExportVO> getStudentClassCourseInfoList();
+
     List<StudentUserResultParam> getStudent(IdParam idParam);
 
     R resetStudentPassword(String identityId);
@@ -66,4 +73,10 @@ public interface IStudentService extends IService<Student> {
    StudentUserResultParam getStudentUserById(IdParam idParam);
 
     void exportStudentTemplate(HttpServletResponse response);
+
+    /**
+     * 导出学生班级课程信息
+     * @param response HTTP响应对象
+     */
+    void exportStudentClassCourseInfo(HttpServletResponse response);
 }

@@ -3,6 +3,7 @@ package com.upc.modular.student.mapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.modular.student.controller.param.dto.StudentExportDto;
 import com.upc.modular.student.controller.param.dto.StudentPageSearchDto;
+import com.upc.modular.student.controller.param.vo.StudentClassCourseExportVO;
 import com.upc.modular.student.controller.param.vo.StudentReturnVo;
 import com.upc.modular.student.entity.Student;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
@@ -33,4 +34,11 @@ public interface StudentMapper extends BaseMapper<Student> {
      * @return 学生导出数据
      */
     List<StudentReturnVo> selectStudentExportList(StudentExportDto param);
+    
+    /**
+     * 查询学生班级课程信息
+     * @param userId 学生用户ID
+     * @return 班级课程信息列表
+     */
+    List<StudentClassCourseExportVO> selectStudentClassCourseInfo(@Param("userId") Long userId);
 }

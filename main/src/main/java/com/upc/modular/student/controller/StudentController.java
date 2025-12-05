@@ -16,6 +16,7 @@ import com.upc.modular.student.controller.param.vo.GenerateUserResultVoStudent;
 import com.upc.modular.student.controller.param.vo.ImportStudentReturnVo;
 import com.upc.modular.student.controller.param.vo.StudentExcelVo;
 import com.upc.modular.student.controller.param.vo.StudentReturnVo;
+import com.upc.modular.student.controller.param.vo.StudentClassCourseExportVO;
 import com.upc.modular.student.entity.Student;
 import com.upc.modular.student.service.IStudentService;
 import com.upc.modular.teacher.dto.BatchUpdateStatusDto;
@@ -168,6 +169,11 @@ public class StudentController {
         return studentService.resetStudentPassword(identityId);
     }
 
+    @ApiOperation("导出学生班级课程信息")
+    @GetMapping("/exportStudentClassCourseInfo")
+    public void exportStudentClassCourseInfo(HttpServletResponse response) {
+        studentService.exportStudentClassCourseInfo(response);
+    }
 
 
 }
