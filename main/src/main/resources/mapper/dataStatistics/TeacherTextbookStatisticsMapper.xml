@@ -92,7 +92,19 @@
             COALESCE(ideological_stats.ideological_material_count, 0) as ideologicalMaterialCount,
             COALESCE(question_stats.question_correct_rate, 0) as questionCorrectRate,
             COALESCE(participation_stats.communication_participation_count, 0) as communicationParticipationCount,
-            COALESCE(annotation_stats.annotation_count, 0) as annotationCount
+            COALESCE(annotation_stats.annotation_count, 0) as annotationCount,
+            COALESCE(image_stats.image_count, 0) as imageMaterialCount,
+            COALESCE(video_stats.video_count, 0) as videoMaterialCount,
+            COALESCE(audio_stats.audio_count, 0) as audioMaterialCount,
+            COALESCE(model3d_stats.model3d_count, 0) as model3dMaterialCount,
+            COALESCE(link_stats.link_count, 0) as linkMaterialCount,
+            COALESCE(ppt_stats.ppt_count, 0) as pptMaterialCount,
+            COALESCE(pdf_stats.pdf_count, 0) as pdfMaterialCount,
+            COALESCE(word_stats.word_count, 0) as wordMaterialCount,
+            COALESCE(excel_stats.excel_count, 0) as excelMaterialCount,
+            COALESCE(h5_stats.h5_count, 0) as h5MaterialCount,
+            COALESCE(simulation_stats.simulation_count, 0) as simulationMaterialCount,
+            COALESCE(other_stats.other_count, 0) as otherMaterialCount
         FROM textbook t
         INNER JOIN course_textbook_list ctl ON t.id = ctl.textbook_id
         INNER JOIN course c ON ctl.course_id = c.id
@@ -180,6 +192,102 @@
             FROM teacher_annotation ta
             GROUP BY ta.textbook_id
         ) annotation_stats ON t.id = annotation_stats.textbook_id
+        LEFT JOIN (
+            -- 统计图片素材数量
+            SELECT mtm.textbook_id, COUNT(*) as image_count
+            FROM materials_textbook_mapping mtm
+            JOIN teaching_materials tm ON mtm.material_id = tm.id
+            WHERE tm.type = 'image'
+            GROUP BY mtm.textbook_id
+        ) image_stats ON t.id = image_stats.textbook_id
+        LEFT JOIN (
+            -- 统计视频素材数量
+            SELECT mtm.textbook_id, COUNT(*) as video_count
+            FROM materials_textbook_mapping mtm
+            JOIN teaching_materials tm ON mtm.material_id = tm.id
+            WHERE tm.type = 'video'
+            GROUP BY mtm.textbook_id
+        ) video_stats ON t.id = video_stats.textbook_id
+        LEFT JOIN (
+            -- 统计音频素材数量
+            SELECT mtm.textbook_id, COUNT(*) as audio_count
+            FROM materials_textbook_mapping mtm
+            JOIN teaching_materials tm ON mtm.material_id = tm.id
+            WHERE tm.type = 'audio'
+            GROUP BY mtm.textbook_id
+        ) audio_stats ON t.id = audio_stats.textbook_id
+        LEFT JOIN (
+            -- 统计3D模型素材数量
+            SELECT mtm.textbook_id, COUNT(*) as model3d_count
+            FROM materials_textbook_mapping mtm
+            JOIN teaching_materials tm ON mtm.material_id = tm.id
+            WHERE tm.type = '3DModel'
+            GROUP BY mtm.textbook_id
+        ) model3d_stats ON t.id = model3d_stats.textbook_id
+        LEFT JOIN (
+            -- 统计链接素材数量
+            SELECT mtm.textbook_id, COUNT(*) as link_count
+            FROM materials_textbook_mapping mtm
+            JOIN teaching_materials tm ON mtm.material_id = tm.id
+            WHERE tm.type = 'link'
+            GROUP BY mtm.textbook_id
+        ) link_stats ON t.id = link_stats.textbook_id
+        LEFT JOIN (
+            -- 统计PPT素材数量
+            SELECT mtm.textbook_id, COUNT(*) as ppt_count
+            FROM materials_textbook_mapping mtm
+            JOIN teaching_materials tm ON mtm.material_id = tm.id
+            WHERE tm.type = 'ppt'
+            GROUP BY mtm.textbook_id
+        ) ppt_stats ON t.id = ppt_stats.textbook_id
+        LEFT JOIN (
+            -- 统计PDF素材数量
+            SELECT mtm.textbook_id, COUNT(*) as pdf_count
+            FROM materials_textbook_mapping mtm
+            JOIN teaching_materials tm ON mtm.material_id = tm.id
+            WHERE tm.type = 'pdf'
+            GROUP BY mtm.textbook_id
+        ) pdf_stats ON t.id = pdf_stats.textbook_id
+        LEFT JOIN (
+            -- 统计Word素材数量
+            SELECT mtm.textbook_id, COUNT(*) as word_count
+            FROM materials_textbook_mapping mtm
+            JOIN teaching_materials tm ON mtm.material_id = tm.id
+            WHERE tm.type = 'word'
+            GROUP BY mtm.textbook_id
+        ) word_stats ON t.id = word_stats.textbook_id
+        LEFT JOIN (
+            -- 统计Excel素材数量
+            SELECT mtm.textbook_id, COUNT(*) as excel_count
+            FROM materials_textbook_mapping mtm
+            JOIN teaching_materials tm ON mtm.material_id = tm.id
+            WHERE tm.type = 'excel'
+            GROUP BY mtm.textbook_id
+        ) excel_stats ON t.id = excel_stats.textbook_id
+        LEFT JOIN (
+            -- 统计H5页面素材数量
+            SELECT mtm.textbook_id, COUNT(*) as h5_count
+            FROM materials_textbook_mapping mtm
+            JOIN teaching_materials tm ON mtm.material_id = tm.id
+            WHERE tm.type = 'H5'
+            GROUP BY mtm.textbook_id
+        ) h5_stats ON t.id = h5_stats.textbook_id
+        LEFT JOIN (
+            -- 统计3D仿真素材数量
+            SELECT mtm.textbook_id, COUNT(*) as simulation_count
+            FROM materials_textbook_mapping mtm
+            JOIN teaching_materials tm ON mtm.material_id = tm.id
+            WHERE tm.type = 'simulation'
+            GROUP BY mtm.textbook_id
+        ) simulation_stats ON t.id = simulation_stats.textbook_id
+        LEFT JOIN (
+            -- 统计其他类型素材数量
+            SELECT mtm.textbook_id, COUNT(*) as other_count
+            FROM materials_textbook_mapping mtm
+            JOIN teaching_materials tm ON mtm.material_id = tm.id
+            WHERE tm.type = 'other'
+            GROUP BY mtm.textbook_id
+        ) other_stats ON t.id = other_stats.textbook_id
         WHERE ucl.user_id = #{teacherId} AND ucl.type = 2
         ORDER BY t.textbook_name
     </select>

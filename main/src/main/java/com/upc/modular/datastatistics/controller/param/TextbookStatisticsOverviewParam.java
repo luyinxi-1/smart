@@ -44,15 +44,64 @@ public class TextbookStatisticsOverviewParam {
     @ApiModelProperty("教学思政数量")
     private Long ideologicalMaterialCount;
 
-    @ExcelProperty("答题正确率")
-    @ApiModelProperty("答题正确率")
+    @ExcelProperty("习题正确率")
+    @ApiModelProperty("习题正确率")
     private Double questionCorrectRate;
 
-    @ExcelProperty("交流反馈参与量")
-    @ApiModelProperty("交流反馈参与量")
+    @ExcelProperty("交流参与人数")
+    @ApiModelProperty("交流参与人数")
     private Long communicationParticipationCount;
 
-    @ExcelProperty("知识点批注量")
-    @ApiModelProperty("知识点批注量")
+    @ExcelProperty("批注数量")
+    @ApiModelProperty("批注数量")
     private Long annotationCount;
+    
+    // 各种素材类型数量统计
+    @ExcelProperty("图片数量")
+    @ApiModelProperty("图片数量")
+    private Long imageMaterialCount;
+    
+    @ExcelProperty("视频数量")
+    @ApiModelProperty("视频数量")
+    private Long videoMaterialCount;
+    
+    @ExcelProperty("音频数量")
+    @ApiModelProperty("音频数量")
+    private Long audioMaterialCount;
+    
+    @ExcelProperty("3D模型数量")
+    @ApiModelProperty("3D模型数量")
+    private Long model3dMaterialCount;
+    
+    @ExcelProperty("链接数量")
+    @ApiModelProperty("链接数量")
+    private Long linkMaterialCount;
+    
+    @ExcelProperty("PPT数量")
+    @ApiModelProperty("PPT数量")
+    private Long pptMaterialCount;
+    
+    @ExcelProperty("PDF数量")
+    @ApiModelProperty("PDF数量")
+    private Long pdfMaterialCount;
+    
+    @ExcelProperty("Word数量")
+    @ApiModelProperty("Word数量")
+    private Long wordMaterialCount;
+    
+    @ExcelProperty("Excel数量")
+    @ApiModelProperty("Excel数量")
+    private Long excelMaterialCount;
+    
+    @ExcelProperty("H5页面数量")
+    @ApiModelProperty("H5页面数量")
+    private Long h5MaterialCount;
+    
+    @ExcelProperty("3D仿真数量")
+    @ApiModelProperty("3D仿真数量")
+    private Long simulationMaterialCount;
+    
+    @ExcelProperty("其他类型数量")
+    @ApiModelProperty("其他类型数量")
+    private Long otherMaterialCount;
 }

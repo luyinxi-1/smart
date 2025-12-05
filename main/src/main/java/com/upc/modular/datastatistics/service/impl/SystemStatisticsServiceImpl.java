@@ -1348,6 +1348,19 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
             param.setQuestionCorrectRate(getDoubleValue(data.get("questionCorrectRate")));
             param.setCommunicationParticipationCount(getLongValue(data.get("communicationParticipationCount")));
             param.setAnnotationCount(getLongValue(data.get("annotationCount")));
+            // 设置各种素材类型的数量
+            param.setImageMaterialCount(getLongValue(data.get("imageMaterialCount")));
+            param.setVideoMaterialCount(getLongValue(data.get("videoMaterialCount")));
+            param.setAudioMaterialCount(getLongValue(data.get("audioMaterialCount")));
+            param.setModel3dMaterialCount(getLongValue(data.get("model3dMaterialCount")));
+            param.setLinkMaterialCount(getLongValue(data.get("linkMaterialCount")));
+            param.setPptMaterialCount(getLongValue(data.get("pptMaterialCount")));
+            param.setPdfMaterialCount(getLongValue(data.get("pdfMaterialCount")));
+            param.setWordMaterialCount(getLongValue(data.get("wordMaterialCount")));
+            param.setExcelMaterialCount(getLongValue(data.get("excelMaterialCount")));
+            param.setH5MaterialCount(getLongValue(data.get("h5MaterialCount")));
+            param.setSimulationMaterialCount(getLongValue(data.get("simulationMaterialCount")));
+            param.setOtherMaterialCount(getLongValue(data.get("otherMaterialCount")));
             return param;
         });
     }
@@ -1378,6 +1391,19 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
             param.setQuestionCorrectRate(getDoubleValue(data.get("questionCorrectRate")));
             param.setCommunicationParticipationCount(getLongValue(data.get("communicationParticipationCount")));
             param.setAnnotationCount(getLongValue(data.get("annotationCount")));
+            // 设置各种素材类型的数量
+            param.setImageMaterialCount(getLongValue(data.get("imageMaterialCount")));
+            param.setVideoMaterialCount(getLongValue(data.get("videoMaterialCount")));
+            param.setAudioMaterialCount(getLongValue(data.get("audioMaterialCount")));
+            param.setModel3dMaterialCount(getLongValue(data.get("model3dMaterialCount")));
+            param.setLinkMaterialCount(getLongValue(data.get("linkMaterialCount")));
+            param.setPptMaterialCount(getLongValue(data.get("pptMaterialCount")));
+            param.setPdfMaterialCount(getLongValue(data.get("pdfMaterialCount")));
+            param.setWordMaterialCount(getLongValue(data.get("wordMaterialCount")));
+            param.setExcelMaterialCount(getLongValue(data.get("excelMaterialCount")));
+            param.setH5MaterialCount(getLongValue(data.get("h5MaterialCount")));
+            param.setSimulationMaterialCount(getLongValue(data.get("simulationMaterialCount")));
+            param.setOtherMaterialCount(getLongValue(data.get("otherMaterialCount")));
             result.add(param);
         }
         return result;
