@@ -40,7 +40,17 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URLEncoder;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.DataFormat;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -784,6 +794,100 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
      */
     @Override
     public List<StudentTextbookRankParam> countStudentTextbookReadingRankByStudentId(Long studentId) {
+        // 1. 先根据 studentId 获取 userId
+        Student student = studentMapper.selectById(studentId);
+        if (student == null || student.getUserId() == null) {
+            return new ArrayList<>(); // 学生不存在或没有关联用户
+        }
+        Long userId = student.getUserId();
+
+        // 2. 从数据库获取该用户的所有学习日志记录
+        // ✅ 建议在 mapper 的 SQL 里保证按 add_datetime 升序 ORDER BY
+        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(userId);
+
+        if (records == null || records.size() < 2) {
+            return new ArrayList<>();
+        }
+
+        // 3. 定义时间差容忍范围，用于判断是否为“连续阅读”
+        final long MIN_DIFF_SECONDS = 55;
+        final long MAX_DIFF_SECONDS = 65;
+
+        // 4. 先按“教材”分组，相当于 SQL 里的 PARTITION BY textbook_id
+        Map<Long, List<LearningLog>> logsByTextbook = records.stream()
+                .filter(log -> log.getTextbookId() != null && log.getAddDatetime() != null)
+                .collect(Collectors.groupingBy(LearningLog::getTextbookId));
+
+        // 5. 每本教材单独排序、单独计算“有效阅读次数”
+        //    Key: textbookId, Value: readingTime（计数逻辑仍然是 +1）
+        Map<Long, Long> textbookReadingTimeMap = new HashMap<>();
+
+        for (Map.Entry<Long, List<LearningLog>> entry : logsByTextbook.entrySet()) {
+            Long textbookId = entry.getKey();
+            List<LearningLog> list = entry.getValue();
+
+            if (list.size() < 2) {
+                continue;
+            }
+
+            // 确保每本教材内部按时间排序
+            list.sort(Comparator.comparing(LearningLog::getAddDatetime));
+
+            for (int i = 0; i < list.size() - 1; i++) {
+                LearningLog currentLog = list.get(i);
+                LearningLog nextLog = list.get(i + 1);
+
+                // 理论上前面已经过滤了 null，这里再保险一下
+                if (currentLog.getAddDatetime() == null || nextLog.getAddDatetime() == null) {
+                    continue;
+                }
+
+                long seconds = Duration.between(currentLog.getAddDatetime(), nextLog.getAddDatetime()).getSeconds();
+
+                // 时间差在预设范围内，视为有效阅读，时长 +1（一次“1 分钟段”）
+                if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
+                    textbookReadingTimeMap.merge(textbookId, 1L, Long::sum);
+                }
+            }
+        }
+
+        // 如果一本教材都没统计到有效阅读，就直接返回空
+        if (textbookReadingTimeMap.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 6. 将统计结果从 Map 转为 List<StudentTextbookRankParam>
+        List<StudentTextbookRankParam> result = new ArrayList<>();
+
+        for (Map.Entry<Long, Long> entry : textbookReadingTimeMap.entrySet()) {
+            Long textbookId = entry.getKey();
+            Long readingTime = entry.getValue();
+
+            // 根据教材 ID 获取教材信息
+            Textbook textbook = studentDataStatisticsMapper.getTextbookById(textbookId);
+            String textbookName = (textbook != null) ? textbook.getTextbookName() : "未知教材";
+
+            // 创建并填充排行参数对象
+            StudentTextbookRankParam param = new StudentTextbookRankParam()
+                    .setTextbook_id(textbookId)
+                    .setTextbook_name(textbookName)
+                    .setRead_time(readingTime);
+
+            // 计算教材掌握度（你原来的逻辑）
+            Double mastery = calculateTextbookMastery(studentId, textbookId);
+            param.setMastery(mastery);
+
+            result.add(param);
+        }
+
+        // 7. 按阅读时长（read_time）降序排序
+        result.sort(Comparator.comparingLong(StudentTextbookRankParam::getRead_time).reversed());
+
+        return result;
+    }
+
+    /* @Override
+    public List<StudentTextbookRankParam> countStudentTextbookReadingRankByStudentId(Long studentId) {
         // 先根据studentId获取userId
         Student student = studentMapper.selectById(studentId);
         if (student == null || student.getUserId() == null) {
@@ -859,7 +963,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
 
         return result;
     }
-
+*/
     @Override
     public void exportStudentTextbookReadingRankByStudentId(Long studentId, HttpServletResponse response) {
         // 1. 复用已有统计方法
@@ -870,15 +974,19 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             Sheet sheet = workbook.createSheet("阅读排行");
             int rowIdx = 0;
 
-            // 表头行
+            // ===== 创建“保留两位小数”的样式 =====
+            DataFormat dataFormat = workbook.createDataFormat();
+            CellStyle twoDecimalStyle = workbook.createCellStyle();
+            twoDecimalStyle.setDataFormat(dataFormat.getFormat("0.00"));
+
+            // ===== 表头行（不再导出教材ID）=====
             Row header = sheet.createRow(rowIdx++);
             header.createCell(0).setCellValue("序号");
-            header.createCell(1).setCellValue("教材ID");
-            header.createCell(2).setCellValue("教材名称");
-            header.createCell(3).setCellValue("有效阅读次数");
-            header.createCell(4).setCellValue("掌握度");
+            header.createCell(1).setCellValue("教材名称");
+            header.createCell(2).setCellValue("有效阅读次数");
+            header.createCell(3).setCellValue("掌握度");
 
-            // 数据行
+            // ===== 数据行 =====
             if (data != null) {
                 for (int i = 0; i < data.size(); i++) {
                     StudentTextbookRankParam p = data.get(i);
@@ -887,32 +995,27 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                     // 序号
                     row.createCell(0).setCellValue(i + 1);
 
-                    // 教材ID（转成字符串，避免三元表达式类型冲突）
-                    if (p.getTextbook_id() != null) {
-                        row.createCell(1).setCellValue(String.valueOf(p.getTextbook_id()));
-                    } else {
-                        row.createCell(1).setCellValue("");
-                    }
-
                     // 教材名称
-                    row.createCell(2).setCellValue(
+                    row.createCell(1).setCellValue(
                             p.getTextbook_name() == null ? "" : p.getTextbook_name()
                     );
 
-                    // 有效阅读次数（数字）
-                    row.createCell(3).setCellValue(p.getRead_time());
+                    // 有效阅读次数（read_time 是 long，直接写）
+                    row.createCell(2).setCellValue(p.getRead_time());
 
-                    // 掌握度（Double，可以直接写；空则写空字符串）
+                    // 掌握度：数值 + 两位小数样式
+                    Cell masteryCell = row.createCell(3);
                     if (p.getMastery() != null) {
-                        row.createCell(4).setCellValue(p.getMastery());
+                        masteryCell.setCellValue(p.getMastery());
+                        masteryCell.setCellStyle(twoDecimalStyle);
                     } else {
-                        row.createCell(4).setCellValue("");
+                        masteryCell.setCellValue("");
                     }
                 }
             }
 
-            // 自动列宽（可选）
-            for (int i = 0; i <= 4; i++) {
+            // 自动列宽（现在只有 0~3 四列）
+            for (int i = 0; i <= 3; i++) {
                 sheet.autoSizeColumn(i);
             }
 
@@ -930,7 +1033,6 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             workbook.write(out);
             out.flush();
         } catch (IOException e) {
-            // 按你项目的错误码自己调整
             throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "导出Excel失败");
         } finally {
             try {
@@ -1096,7 +1198,79 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         
         return finalPage;
     }
-    
+
+    @Override
+    public void exportStudentReadingRank(String groupName, String studentName, HttpServletResponse response) {
+        // 1. 复用已有分页统计逻辑（这里给一个足够大的 size，一次性导出所有）
+        Page<StudentReadingRankParam> page = getStudentReadingRankByPage(groupName, studentName, 1L, 100000L);
+        List<StudentReadingRankParam> data = page.getRecords();
+
+        // 2. 创建 Excel
+        Workbook workbook = new XSSFWorkbook();
+        try {
+            Sheet sheet = workbook.createSheet("学生阅读排名");
+            int rowIdx = 0;
+
+            // 表头行
+            Row header = sheet.createRow(rowIdx++);
+            header.createCell(0).setCellValue("序号");
+            header.createCell(1).setCellValue("学生ID");
+            header.createCell(2).setCellValue("学生姓名");
+            header.createCell(3).setCellValue("班级ID");
+            header.createCell(4).setCellValue("班级名称");
+            header.createCell(5).setCellValue("阅读教材数量");
+            header.createCell(6).setCellValue("排名");
+            header.createCell(7).setCellValue("学习行为类型");
+
+            // 数据行
+            int index = 1;
+            for (StudentReadingRankParam param : data) {
+                Row row = sheet.createRow(rowIdx++);
+                int col = 0;
+                row.createCell(col++).setCellValue(index++);
+                row.createCell(col++).setCellValue(
+                        param.getStudentId() == null ? "" : String.valueOf(param.getStudentId()));
+                row.createCell(col++).setCellValue(
+                        param.getStudentName() == null ? "" : param.getStudentName());
+                row.createCell(col++).setCellValue(
+                        param.getGroupId() == null ? "" : String.valueOf(param.getGroupId()));
+                row.createCell(col++).setCellValue(
+                        param.getGroupName() == null ? "" : param.getGroupName());
+                row.createCell(col++).setCellValue(
+                        param.getReadingCount() == null ? 0L : param.getReadingCount());
+                row.createCell(col++).setCellValue(
+                        param.getRank() == null ? 0L : param.getRank());
+                row.createCell(col++).setCellValue(
+                        param.getBehavior() == null ? "" : param.getBehavior());
+            }
+
+            // 3. 设置响应头，输出到浏览器
+            String fileName = "学生阅读排名.xlsx";
+            response.setContentType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setCharacterEncoding("UTF-8");
+            // 处理中文文件名
+            String encodedFileName = URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
+            response.setHeader("Content-Disposition",
+                    "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
+
+            // 写出 Excel
+            try (ServletOutputStream out = response.getOutputStream()) {
+                workbook.write(out);
+                out.flush();
+            }
+        } catch (IOException e) {
+            // 根据你们的异常体系自定义
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "导出学生阅读排名失败");
+        } finally {
+            try {
+                workbook.close();
+            } catch (IOException e) {
+                // 忽略或打印日志
+            }
+        }
+    }
+
     /**
      * 根据教师用户ID获取有权限的班级列表
      * 管理员可查看所有班级，教师只能查看自己负责的班级
@@ -1169,4 +1343,14 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         Long studentId = student.getId();
         return studentDataStatisticsMapper.getStudentScoreRate(studentId);
     }
+
+    private Double scaleTo2Decimal(Double value) {
+        if (value == null) {
+            return null;
+        }
+        return BigDecimal.valueOf(value)
+                .setScale(2, RoundingMode.HALF_UP)
+                .doubleValue();
+    }
+
 }
