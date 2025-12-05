@@ -59,4 +59,11 @@ public interface IStudentDataStatistics extends IService<StudentStatisticsData> 
     Page<StudentReadingRankParam> getStudentReadingRankByPage(String groupName, String studentName, Long current, Long size);
 
     List<StudentTextbookRankParam> countStudentTextbookReadingRankByStudentId(Long studentId);
+    
+    /**
+     * 获取学生的平均得分率
+     * @param studentId 学生ID
+     * @return 平均得分率（百分比形式，保留两位小数）
+     */
+    Double getStudentScoreRate(Long studentId);
 }

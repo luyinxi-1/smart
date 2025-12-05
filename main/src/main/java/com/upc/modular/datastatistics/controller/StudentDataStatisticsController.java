@@ -6,6 +6,7 @@ import com.upc.common.responseparam.R;
 import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 import com.upc.modular.datastatistics.service.IStudentDataStatistics;
+import com.upc.common.utils.UserUtils;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -156,4 +157,10 @@ public class StudentDataStatisticsController {
         return R.ok(iStudentDataStatistics.countStudentTextbookReadingRankByStudentId(studentId));
     }
 
+    @ApiOperation("学生答题正确率")
+    @GetMapping("/score-rate")
+    public R<Double> getStudentScoreRate() {
+        Long userId = UserUtils.get().getSchoolId();
+        return R.ok(iStudentDataStatistics.getStudentScoreRate(userId));
+    }
 }
