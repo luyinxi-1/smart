@@ -97,4 +97,25 @@ public interface StudentDataStatisticsMapper  extends BaseMapper<StudentStatisti
     Long countStudySessionsByTextbook(@Param("userId") Long userId, @Param("textbookId") Long textbookId);
 
     List<Long> listStudentCourseTextbookIds(Long userId);
+    
+    /**
+     * 获取学生的平均得分率
+     * @param studentId 学生ID
+     * @return 平均得分率
+     */
+    @Select("SELECT " +
+            "CASE " +
+            "    WHEN COALESCE(SUM(qbl_total.total_score), 0) = 0 THEN 0.0 " +
+            "    ELSE COALESCE(ROUND((SUM(sfg.final_score) / SUM(qbl_total.total_score)) * 100, 2), 0.0) " +
+            "END " +
+            "FROM student_final_grade sfg " +
+            "LEFT JOIN ( " +
+            "    SELECT " +
+            "        bank_id, " +
+            "        SUM(score) AS total_score " +
+            "    FROM questions_banks_list " +
+            "    GROUP BY bank_id " +
+            ") qbl_total ON sfg.bank_id = qbl_total.bank_id " +
+            "WHERE sfg.student_id = #{studentId}")
+    Double getStudentScoreRate(@Param("studentId") Long studentId);
 }
