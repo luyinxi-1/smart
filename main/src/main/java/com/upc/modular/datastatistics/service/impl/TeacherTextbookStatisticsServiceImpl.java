@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.DayOfWeek;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -140,28 +141,28 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
             records = teacherTextbookStatisticsMapper.findCommunicationFeedbackByTextbookId(param.getTextbookId());
         }
 
-        if (records == null || records.isEmpty()) {
-            return new ArrayList<>();
-        }
-
         // 按时间维度统计
         Map<String, Long> timeFeedbackMap = new HashMap<>();
 
-        for (DiscussionTopicReply reply : records) {
-            if (reply.getAddDatetime() != null) {
-                // 根据时间范围类型格式化时间
-                String timeKey = formatTimeByRangeType(reply.getAddDatetime(), param.getTimeRange());
-                timeFeedbackMap.put(timeKey, timeFeedbackMap.getOrDefault(timeKey, 0L) + 1);
+        if (records != null && !records.isEmpty()) {
+            for (DiscussionTopicReply reply : records) {
+                if (reply.getAddDatetime() != null) {
+                    // 根据时间范围类型格式化时间
+                    String timeKey = formatTimeByRangeType(reply.getAddDatetime(), param.getTimeRange());
+                    timeFeedbackMap.put(timeKey, timeFeedbackMap.getOrDefault(timeKey, 0L) + 1);
+                }
             }
         }
 
-        // 转换为返回结果
+        // 生成完整的日期序列并填充缺失日期的值为0
+        List<String> dateSequence = generateDateSequence(param.getTimeRange());
         List<TextbookTimeStatisticsReturnParam> result = new ArrayList<>();
-        for (Map.Entry<String, Long> entry : timeFeedbackMap.entrySet()) {
+        
+        for (String date : dateSequence) {
             TextbookTimeStatisticsReturnParam returnParam = new TextbookTimeStatisticsReturnParam();
-            returnParam.setTime(entry.getKey());
-            returnParam.setCount(entry.getValue()); // 交流反馈数量
-            returnParam.setDuration(entry.getValue()); // 同时设置duration字段，保持兼容性
+            returnParam.setTime(date);
+            returnParam.setCount(timeFeedbackMap.getOrDefault(date, 0L)); // 交流反馈数量
+            returnParam.setDuration(timeFeedbackMap.getOrDefault(date, 0L)); // 同时设置duration字段，保持兼容性
             result.add(returnParam);
         }
 
@@ -250,50 +251,50 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
                     .collect(Collectors.toList());
         }
         
-        if (records == null || records.size() < 2) {
-            return new ArrayList<>();
-        }
-        
-        // 按用户分组，过滤掉creator为null的记录
-        Map<Long, List<LearningLog>> userRecordsMap = records.stream()
-                .filter(log -> log.getCreator() != null)  // 过滤掉creator为null的记录
-                .collect(Collectors.groupingBy(LearningLog::getCreator));
-        
         // 按时间维度统计
         Map<String, Long> timeReadingMap = new HashMap<>();
         
-        for (Map.Entry<Long, List<LearningLog>> entry : userRecordsMap.entrySet()) {
-            List<LearningLog> userRecords = entry.getValue();
+        if (records != null && !records.isEmpty()) {
+            // 按用户分组，过滤掉creator为null的记录
+            Map<Long, List<LearningLog>> userRecordsMap = records.stream()
+                    .filter(log -> log.getCreator() != null)  // 过滤掉creator为null的记录
+                    .collect(Collectors.groupingBy(LearningLog::getCreator));
             
-            // 按时间排序
-            userRecords.sort(Comparator.comparing(LearningLog::getAddDatetime));
-            
-            for (int i = 0; i < userRecords.size() - 1; i++) {
-                LocalDateTime currentAddDatetime = userRecords.get(i).getAddDatetime();
-                LocalDateTime nextAddDatetime = userRecords.get(i + 1).getAddDatetime();
+            for (Map.Entry<Long, List<LearningLog>> entry : userRecordsMap.entrySet()) {
+                List<LearningLog> userRecords = entry.getValue();
                 
-                if (currentAddDatetime == null || nextAddDatetime == null) {
-                    continue;
-                }
+                // 按时间排序
+                userRecords.sort(Comparator.comparing(LearningLog::getAddDatetime));
                 
-                Duration duration = Duration.between(currentAddDatetime, nextAddDatetime);
-                long seconds = duration.getSeconds();
-                
-                if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
-                    // 根据时间范围类型格式化时间
-                    String timeKey = formatTimeByRangeType(currentAddDatetime, param.getTimeRange());
-                    timeReadingMap.put(timeKey, timeReadingMap.getOrDefault(timeKey, 0L) + 1);
+                for (int i = 0; i < userRecords.size() - 1; i++) {
+                    LocalDateTime currentAddDatetime = userRecords.get(i).getAddDatetime();
+                    LocalDateTime nextAddDatetime = userRecords.get(i + 1).getAddDatetime();
+                    
+                    if (currentAddDatetime == null || nextAddDatetime == null) {
+                        continue;
+                    }
+                    
+                    Duration duration = Duration.between(currentAddDatetime, nextAddDatetime);
+                    long seconds = duration.getSeconds();
+                    
+                    if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
+                        // 根据时间范围类型格式化时间
+                        String timeKey = formatTimeByRangeType(currentAddDatetime, param.getTimeRange());
+                        timeReadingMap.put(timeKey, timeReadingMap.getOrDefault(timeKey, 0L) + 1);
+                    }
                 }
             }
         }
         
-        // 转换为返回结果
+        // 生成完整的日期序列并填充缺失日期的值为0
+        List<String> dateSequence = generateDateSequence(param.getTimeRange());
         List<TextbookTimeStatisticsReturnParam> result = new ArrayList<>();
-        for (Map.Entry<String, Long> entry : timeReadingMap.entrySet()) {
+        
+        for (String date : dateSequence) {
             TextbookTimeStatisticsReturnParam returnParam = new TextbookTimeStatisticsReturnParam();
-            returnParam.setTime(entry.getKey());
-            returnParam.setDuration(entry.getValue()); // 阅读时长（分钟）
-            returnParam.setCount(entry.getValue()); // 同时设置count字段，保持兼容性
+            returnParam.setTime(date);
+            returnParam.setDuration(timeReadingMap.getOrDefault(date, 0L)); // 阅读时长（分钟）
+            returnParam.setCount(timeReadingMap.getOrDefault(date, 0L)); // 同时设置count字段，保持兼容性
             result.add(returnParam);
         }
         
@@ -602,4 +603,56 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
         }
         return obj.toString();
     }
+
+    /**
+     * 根据时间范围类型生成完整的时间序列
+     * @param timeRange 时间范围类型（week/month/year）
+     * @return 时间序列列表
+     */
+    private List<String> generateDateSequence(String timeRange) {
+        List<String> dateSequence = new ArrayList<>();
+        LocalDate now = LocalDate.now();
+        
+        switch (timeRange == null ? "" : timeRange.toLowerCase()) {
+            case "week":
+                // 本周：从本周一开始到今天
+                LocalDate startOfWeek = now.with(DayOfWeek.MONDAY);
+                for (int i = 0; i < 7; i++) {
+                    LocalDate date = startOfWeek.plusDays(i);
+                    if (!date.isAfter(now)) {
+                        dateSequence.add(date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+                    }
+                }
+                break;
+                
+            case "month":
+                // 本月：从本月1号到今天
+                LocalDate startOfMonth = now.withDayOfMonth(1);
+                LocalDate endOfMonth = now;
+                for (LocalDate date = startOfMonth; !date.isAfter(endOfMonth); date = date.plusDays(1)) {
+                    dateSequence.add(date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+                }
+                break;
+                
+            case "year":
+                // 本年：从今年1月到当前月
+                LocalDate startOfYear = now.withDayOfYear(1);
+                for (int i = 0; i < now.getMonthValue(); i++) {
+                    YearMonth yearMonth = YearMonth.from(startOfYear.plusMonths(i));
+                    dateSequence.add(yearMonth.format(DateTimeFormatter.ofPattern("yyyy-MM")));
+                }
+                break;
+                
+            default:
+                // 默认按天生成最近7天的数据
+                for (int i = 6; i >= 0; i--) {
+                    LocalDate date = now.minusDays(i);
+                    dateSequence.add(date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+                }
+                break;
+        }
+        
+        return dateSequence;
+    }
+
 } 
