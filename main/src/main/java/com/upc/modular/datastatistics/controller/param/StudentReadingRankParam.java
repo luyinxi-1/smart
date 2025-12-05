@@ -26,4 +26,7 @@ public class StudentReadingRankParam {
     
     @ApiModelProperty("排名（按阅读量排名）")
     private Long rank;
+
+    @ApiModelProperty("学生行为")
+    private String behavior;
 }
