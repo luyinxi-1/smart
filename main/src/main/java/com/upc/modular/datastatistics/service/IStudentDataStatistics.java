@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
 public interface IStudentDataStatistics extends IService<StudentStatisticsData> {
@@ -59,6 +60,11 @@ public interface IStudentDataStatistics extends IService<StudentStatisticsData> 
     Page<StudentReadingRankParam> getStudentReadingRankByPage(String groupName, String studentName, Long current, Long size);
 
     List<StudentTextbookRankParam> countStudentTextbookReadingRankByStudentId(Long studentId);
+
+    /**
+     * 根据学生ID导出阅读过的教材排名（Excel）
+     */
+    void exportStudentTextbookReadingRankByStudentId(Long studentId, HttpServletResponse response);
     
     /**
      * 获取学生的平均得分率

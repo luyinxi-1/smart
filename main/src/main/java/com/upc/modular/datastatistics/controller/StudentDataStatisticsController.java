@@ -12,6 +12,17 @@ import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URLEncoder;
+
+
 import java.util.List;
 
 @Api(tags = "学生数据统计")
@@ -156,6 +167,18 @@ public class StudentDataStatisticsController {
     ){
         return R.ok(iStudentDataStatistics.countStudentTextbookReadingRankByStudentId(studentId));
     }
+
+    @ApiOperation("根据学生ID导出阅读过的教材排名（Excel）")
+    @GetMapping("/textbook-rank-by-student/export")
+    public void exportStudentTextbookReadingRankByStudentId(
+            @RequestParam Long studentId,
+            HttpServletResponse response
+    ) {
+        // 所有业务逻辑都交给 Service
+        iStudentDataStatistics.exportStudentTextbookReadingRankByStudentId(studentId, response);
+    }
+
+
 
     @ApiOperation("学生答题正确率")
     @GetMapping("/score-rate")

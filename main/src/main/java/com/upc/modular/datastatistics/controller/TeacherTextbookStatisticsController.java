@@ -44,6 +44,7 @@ public class TeacherTextbookStatisticsController {
         return R.ok(teacherTextbookStatisticsService.getTeacherTextbookStatisticsOverview(teacherId));
     }
 
+
     @ApiOperation("获取教材阅读人员统计")
     @PostMapping("/reader-statistics")
     public R<List<ReaderStatisticsParam>> getTextbookReaderStatistics(@RequestBody TextbookDataStatisticsRequestParam param) {
