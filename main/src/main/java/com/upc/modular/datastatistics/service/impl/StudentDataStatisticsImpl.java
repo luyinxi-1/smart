@@ -815,7 +815,8 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
 
         // 4. 先按“教材”分组，相当于 SQL 里的 PARTITION BY textbook_id
         Map<Long, List<LearningLog>> logsByTextbook = records.stream()
-                .filter(log -> log.getTextbookId() != null && log.getAddDatetime() != null)
+                //.filter(log -> log.getTextbookId() != null && log.getAddDatetime() != null)
+                .filter(log -> log.getTextbookId() != null)
                 .collect(Collectors.groupingBy(LearningLog::getTextbookId));
 
         // 5. 每本教材单独排序、单独计算“有效阅读次数”
