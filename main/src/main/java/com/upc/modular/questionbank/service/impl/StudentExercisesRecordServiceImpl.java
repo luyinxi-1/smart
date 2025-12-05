@@ -6,6 +6,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.entity.SysTbrole;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.questionbank.controller.param.AnswerDetailDTO;
 import com.upc.modular.questionbank.controller.param.StudentExercisesRecordPageSearchParam;
 import com.upc.modular.questionbank.controller.param.SubmitAnswerRequest;
@@ -16,6 +19,8 @@ import com.upc.modular.questionbank.service.IStudentExercisesRecordService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.student.entity.Student;
 import com.upc.modular.student.mapper.StudentMapper;
+import com.upc.modular.teacher.entity.Teacher;
+import com.upc.modular.teacher.mapper.TeacherMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,9 +42,13 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
 
     @Autowired
     private StudentExercisesRecordMapper studentExercisesRecordMapper;
+    @Autowired
+    private TeacherExercisesRecordMapper teacherExercisesRecordMapper;
 
     @Autowired
     private StudentExercisesContentMapper studentExercisesContentMapper;
+    @Autowired
+    private TeacherExercisesContentMapper teacherExercisesContentMapper;
 
     @Autowired
     private TeachingQuestionBankMapper teachingQuestionBankMapper;
@@ -52,9 +61,13 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
 
     @Autowired
     private StudentMapper studentMapper;
+    @Autowired
+    private TeacherMapper teacherMapper;
 
     @Autowired
     private StudentFinalGradeMapper studentFinalGradeMapper;
+    @Autowired
+    private SysUserMapper sysUserMapper;
 
     @Override
     @Transactional // 保证整个提交和判卷过程是原子性的
@@ -66,50 +79,96 @@ public class StudentExercisesRecordServiceImpl extends ServiceImpl<StudentExerci
             throw new RuntimeException("题库不存在！");
         }
 
-        //获取学生ID
-        LambdaQueryWrapper<Student> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Student::getUserId,userId);
-        long studentId = studentMapper.selectOne(queryWrapper).getId();
+        // 判断用户角色
+        SysTbuser user = sysUserMapper.selectById(userId);
+        boolean isTeacher = user != null && user.getUserType() != null && user.getUserType() == 2;
 
-        // --- 【核心修改】2. 校验作答次数 ---
-        LambdaQueryWrapper<StudentExercisesRecord> qw = new LambdaQueryWrapper<>();
-        qw.eq(StudentExercisesRecord::getStudentId, studentId)
-                .eq(StudentExercisesRecord::getTeachingQuestionBankId, request.getBankId());
-        long attemptCount = studentExercisesRecordMapper.selectCount(qw);
-
-        if (bank.getIsLimitAttempts() != null && bank.getIsLimitAttempts() == 1) {
-            // 只有在开启限制的情况下，才执行次数校验
-            // 只有当 max_attempts 字段不为null时，限制才真正生效
-            if (bank.getMaxAttempts() != null && attemptCount >= bank.getMaxAttempts()) {
-                throw new RuntimeException("作答次数已达上限！");
+        if (isTeacher) {
+            // 教师答题逻辑
+            LambdaQueryWrapper<Teacher> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(Teacher::getUserId, userId);
+            Teacher teacher = teacherMapper.selectOne(queryWrapper);
+            if (teacher == null) {
+                throw new RuntimeException("教师信息不存在！");
             }
-        }
-        // 如果 bank.getIsAttemptsLimit() 为 false 或为 null，则直接跳过整个次数校验逻辑。
-        // --- 流程 1.2: 创建答卷记录 ---
-        StudentExercisesRecord record = new StudentExercisesRecord();
-        record.setStudentId(studentId);
-        record.setTeachingQuestionBankId(request.getBankId());
-        record.setExerciseNum((int) attemptCount + 1);
-        record.setScore(null); // 初始总分为NULL
-        // 初始状态先设为待批改，判完后再更新
-        record.setStatus(1); // 1-待批改
-        studentExercisesRecordMapper.insert(record);
-        Long recordId = record.getId(); // 获取新生成的答卷ID
-        // --- 流程 1.3: 保存答题明细 ---
-        for (AnswerDetailDTO answerDTO : request.getAnswers()) {
-            StudentExercisesContent content = new StudentExercisesContent();
-            content.setRecordId(recordId);
-            content.setStudentId(studentId);
-            content.setTeachingQuestion(answerDTO.getTeachingQuestionId());
-            content.setContent(answerDTO.getStudentAnswer());
-            content.setScore(null); // 初始单题得分为NULL
-            content.setTeachingQuestionBankId(request.getBankId());
-            studentExercisesContentMapper.insert(content);
-        }
-        // --- 流程 2: 同步执行自动判卷 (未来可替换为MQ(消息队列)) ---
-        autoJudgement(recordId);
+            long teacherId = teacher.getId();
 
-        return recordId;
+            // 教师答题不校验作答次数
+
+            // 创建教师答卷记录
+            TeacherExercisesRecord record = new TeacherExercisesRecord();
+            record.setTeacherId(teacherId);
+            record.setTeachingQuestionBankId(request.getBankId());
+            // record.setExerciseNum((int) attemptCount + 1); // 教师可忽略此字段
+            record.setScore(null);
+            record.setStatus(1); // 1-待批改
+            teacherExercisesRecordMapper.insert(record);
+            Long recordId = record.getId();
+
+            // 保存教师答题明细
+            for (AnswerDetailDTO answerDTO : request.getAnswers()) {
+                TeacherExercisesContent content = new TeacherExercisesContent();
+                content.setRecordId(recordId);
+                content.setTeacherId(teacherId);
+                content.setTeachingQuestion(answerDTO.getTeachingQuestionId());
+                content.setContent(answerDTO.getStudentAnswer());
+                content.setScore(null);
+                content.setTeachingQuestionBankId(request.getBankId());
+                teacherExercisesContentMapper.insert(content);
+            }
+            // 教师答题后暂不自动判卷
+            return recordId;
+
+        } else {
+            // 学生答题逻辑
+            //获取学生ID
+            LambdaQueryWrapper<Student> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(Student::getUserId,userId);
+            Student student = studentMapper.selectOne(queryWrapper);
+            if (student == null) {
+                throw new RuntimeException("学生信息不存在！");
+            }
+            long studentId = student.getId();
+            // --- 【核心修改】2. 校验作答次数 ---
+            LambdaQueryWrapper<StudentExercisesRecord> qw = new LambdaQueryWrapper<>();
+            qw.eq(StudentExercisesRecord::getStudentId, studentId)
+                    .eq(StudentExercisesRecord::getTeachingQuestionBankId, request.getBankId());
+            long attemptCount = studentExercisesRecordMapper.selectCount(qw);
+
+            if (bank.getIsLimitAttempts() != null && bank.getIsLimitAttempts() == 1) {
+                // 只有在开启限制的情况下，才执行次数校验
+                // 只有当 max_attempts 字段不为null时，限制才真正生效
+                if (bank.getMaxAttempts() != null && attemptCount >= bank.getMaxAttempts()) {
+                    throw new RuntimeException("作答次数已达上限！");
+                }
+            }
+            // 如果 bank.getIsAttemptsLimit() 为 false 或为 null，则直接跳过整个次数校验逻辑。
+            // --- 流程 1.2: 创建答卷记录 ---
+            StudentExercisesRecord record = new StudentExercisesRecord();
+            record.setStudentId(studentId);
+            record.setTeachingQuestionBankId(request.getBankId());
+            record.setExerciseNum((int) attemptCount + 1);
+            record.setScore(null); // 初始总分为NULL
+            // 初始状态先设为待批改，判完后再更新
+            record.setStatus(1); // 1-待批改
+            studentExercisesRecordMapper.insert(record);
+            Long recordId = record.getId(); // 获取新生成的答卷ID
+            // --- 流程 1.3: 保存答题明细 ---
+            for (AnswerDetailDTO answerDTO : request.getAnswers()) {
+                StudentExercisesContent content = new StudentExercisesContent();
+                content.setRecordId(recordId);
+                content.setStudentId(studentId);
+                content.setTeachingQuestion(answerDTO.getTeachingQuestionId());
+                content.setContent(answerDTO.getStudentAnswer());
+                content.setScore(null); // 初始单题得分为NULL
+                content.setTeachingQuestionBankId(request.getBankId());
+                studentExercisesContentMapper.insert(content);
+            }
+            // --- 流程 2: 同步执行自动判卷 (未来可替换为MQ(消息队列)) ---
+            autoJudgement(recordId);
+
+            return recordId;
+        }
     }
 
     // 自动判卷的私有方法

@@ -1018,8 +1018,6 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
      */
     public Page<StudentReadingRankParam> getStudentReadingRankByPage(String groupName, String studentName, Long current, Long size) {
         Long currentUserId = UserUtils.get().getId();
-        // 获取当前用户信息
-        SysTbuser currentUser = sysUserMapper.selectById(currentUserId);
         
         // 获取有权限的班级列表
         List<Group> authorizedGroups = getGroupsByTeacherUserId(currentUserId);
