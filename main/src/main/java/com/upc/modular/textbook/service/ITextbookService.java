@@ -37,9 +37,11 @@ public interface ITextbookService extends IService<Textbook> {
 
     VersionCheckResultDto checkStatusAndVersion(Long textbookId, String clientVersion);
 
-    TextbookIntelligentQueryReturnParam smartSearch(String query);
-
     Page<TextbookHotnessDto> getTextbookHotnessPage(Page<TextbookHotnessDto> page);
 
     Page<TextbookCenterPageReturnParam> getTextbookCenter(TextbookCenterPageSearchParam param);
+    
+    List<TextbookIntelligentQueryReturnParam> smartSearch(String query);
+    
+    List<TextbookContentSearchResult> smartSearchInTextbook(Long textbookId, String query);
 }

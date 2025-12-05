@@ -85,7 +85,7 @@ public class TextbookController {
     }
     @ApiOperation(value = "智能搜索教材(关键词版)")
     @GetMapping("/smartSearch")
-    public R<TextbookIntelligentQueryReturnParam> smartSearch(
+    public R<List<TextbookIntelligentQueryReturnParam>> smartSearch(
             @ApiParam(value = "关键词字符串，用逗号分隔", required = true, example = "计算机,网络,协议")
             @RequestParam("query") String query) {
         return R.ok(textbookService.smartSearch(query));
@@ -148,5 +148,13 @@ public class TextbookController {
         Page<TextbookHotnessDto> hotnessPage = textbookService.getTextbookHotnessPage(page);
         PageBaseReturnParam<TextbookHotnessDto> result = PageBaseReturnParam.ok(hotnessPage);
         return R.page(result);
+    }
+
+    @ApiOperation(value = "教材内智慧搜索")
+    @PostMapping("/smartSearchInTextbook")
+    public R<List<TextbookContentSearchResult>> smartSearchInTextbook(
+            @RequestParam("textbookId") Long textbookId,
+            @RequestParam("query") String query) {
+        return R.ok(textbookService.smartSearchInTextbook(textbookId, query));
     }
 }
