@@ -21,4 +21,7 @@ public class StudentTextbookRankParam implements Serializable {
 
     @ApiModelProperty("阅读时长")
     private long read_time;
+    
+    @ApiModelProperty("教材掌握度(百分比)")
+    private Double mastery;
 }

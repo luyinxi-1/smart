@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.utils.UserUtils;
+import com.upc.exception.BusinessErrorEnum;
+import com.upc.exception.BusinessException;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.auth.service.ISysUserService;
@@ -14,6 +16,7 @@ import com.upc.modular.course.service.ICourseClassListService;
 import com.upc.modular.course.service.ICourseService;
 import com.upc.modular.course.service.ICourseTextbookListService;
 import com.upc.modular.datastatistics.controller.param.*;
+import com.upc.modular.datastatistics.service.ISystemStatisticsService;
 import com.upc.modular.group.entity.Group;
 import com.upc.modular.group.mapper.GroupMapper;
 import com.upc.modular.teacher.mapper.TeacherMapper;
@@ -29,6 +32,15 @@ import com.upc.modular.textbook.param.TextbookTree;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URLEncoder;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -68,6 +80,8 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
 
     @Autowired
     private ICourseClassListService courseClassListService;
+    @Autowired
+    private ISystemStatisticsService systemStatisticsService;
 
     /**
      * 统计学生阅读的教材数量
@@ -828,16 +842,152 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             String textbookName = (textbook != null) ? textbook.getTextbookName() : "未知教材";
 
             // 创建并填充排行参数对象
-            result.add(new StudentTextbookRankParam()
+            StudentTextbookRankParam param = new StudentTextbookRankParam()
                     .setTextbook_id(textbookId)
                     .setTextbook_name(textbookName)
-                    .setRead_time(readingTime));
+                    .setRead_time(readingTime);
+            
+            // 计算教材掌握度
+            Double mastery = calculateTextbookMastery(studentId, textbookId);
+            param.setMastery(mastery);
+            
+            result.add(param);
         }
 
         // 按阅读时长（read_time）进行降序排序
         result.sort(Comparator.comparingLong(StudentTextbookRankParam::getRead_time).reversed());
 
         return result;
+    }
+
+    @Override
+    public void exportStudentTextbookReadingRankByStudentId(Long studentId, HttpServletResponse response) {
+        // 1. 复用已有统计方法
+        List<StudentTextbookRankParam> data = countStudentTextbookReadingRankByStudentId(studentId);
+
+        Workbook workbook = new XSSFWorkbook();
+        try {
+            Sheet sheet = workbook.createSheet("阅读排行");
+            int rowIdx = 0;
+
+            // 表头行
+            Row header = sheet.createRow(rowIdx++);
+            header.createCell(0).setCellValue("序号");
+            header.createCell(1).setCellValue("教材ID");
+            header.createCell(2).setCellValue("教材名称");
+            header.createCell(3).setCellValue("有效阅读次数");
+            header.createCell(4).setCellValue("掌握度");
+
+            // 数据行
+            if (data != null) {
+                for (int i = 0; i < data.size(); i++) {
+                    StudentTextbookRankParam p = data.get(i);
+                    Row row = sheet.createRow(rowIdx++);
+
+                    // 序号
+                    row.createCell(0).setCellValue(i + 1);
+
+                    // 教材ID（转成字符串，避免三元表达式类型冲突）
+                    if (p.getTextbook_id() != null) {
+                        row.createCell(1).setCellValue(String.valueOf(p.getTextbook_id()));
+                    } else {
+                        row.createCell(1).setCellValue("");
+                    }
+
+                    // 教材名称
+                    row.createCell(2).setCellValue(
+                            p.getTextbook_name() == null ? "" : p.getTextbook_name()
+                    );
+
+                    // 有效阅读次数（数字）
+                    row.createCell(3).setCellValue(p.getRead_time());
+
+                    // 掌握度（Double，可以直接写；空则写空字符串）
+                    if (p.getMastery() != null) {
+                        row.createCell(4).setCellValue(p.getMastery());
+                    } else {
+                        row.createCell(4).setCellValue("");
+                    }
+                }
+            }
+
+            // 自动列宽（可选）
+            for (int i = 0; i <= 4; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            // 2. 设置响应头并输出
+            String fileName = "学生阅读教材排行_" + studentId + ".xlsx";
+            String encodedFileName = URLEncoder.encode(fileName, "UTF-8")
+                    .replaceAll("\\+", "%20");
+
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setCharacterEncoding("UTF-8");
+            response.setHeader("Content-Disposition",
+                    "attachment; filename*=UTF-8''" + encodedFileName);
+
+            ServletOutputStream out = response.getOutputStream();
+            workbook.write(out);
+            out.flush();
+        } catch (IOException e) {
+            // 按你项目的错误码自己调整
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "导出Excel失败");
+        } finally {
+            try {
+                workbook.close();
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
+
+    /**
+     * 计算学生对某个教材的掌握度
+     * @param studentId 学生ID
+     * @param textbookId 教材ID
+     * @return 掌握度百分比
+     */
+    private Double calculateTextbookMastery(Long studentId, Long textbookId) {
+        try {
+            // 使用反射调用systemStatisticsService.getStudentChapterMastery方法
+            List<ChapterMasteryVO> chapterMasteryList = systemStatisticsService.getStudentChapterMastery(studentId, textbookId);
+            
+            if (chapterMasteryList == null || chapterMasteryList.isEmpty()) {
+                return 0.0;
+            }
+            
+            // 过滤掉没有题目的章节(-1标记)
+            List<ChapterMasteryVO> validChapters = chapterMasteryList.stream()
+                    .filter(chapter -> !"-1".equals(chapter.getMasteryPercentage()))
+                    .collect(Collectors.toList());
+            
+            if (validChapters.isEmpty()) {
+                return 0.0;
+            }
+            
+            // 计算平均掌握度
+            double totalMastery = 0.0;
+            int validChapterCount = 0;
+            
+            for (ChapterMasteryVO chapter : validChapters) {
+                try {
+                    double mastery = Double.parseDouble(chapter.getMasteryPercentage());
+                    totalMastery += mastery;
+                    validChapterCount++;
+                } catch (NumberFormatException e) {
+                    // 忽略无法解析的掌握度数据
+                }
+            }
+            
+            if (validChapterCount == 0) {
+                return 0.0;
+            }
+            
+            return totalMastery / validChapterCount;
+        } catch (Exception e) {
+            // 发生异常时返回0掌握度
+            return 0.0;
+        }
     }
 
     /**
@@ -866,7 +1016,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
      * @param size 每页大小
      * @return 分页结果
      */
-    public Page<StudentReadingRankParam> getStudentReadingRankByPage(String groupName, String studentName, Long current, Long size, String startTime,String endTime) {
+    public Page<StudentReadingRankParam> getStudentReadingRankByPage(String groupName, String studentName, Long current, Long size) {
         Long currentUserId = UserUtils.get().getId();
         // 获取当前用户信息
         SysTbuser currentUser = sysUserMapper.selectById(currentUserId);
@@ -927,7 +1077,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             param.setReadingCount(readingCount == null ? 0L : readingCount);
             
             // 调用countStudentBehavior接口，获取学生行为分析结果
-            StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(startTime,endTime);
+            StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(null,null);
             param.setBehavior(behaviorParam.getHabitType());
             
             result.add(param);
