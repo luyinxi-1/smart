@@ -31,6 +31,8 @@ import com.upc.modular.textbook.entity.*;
 import com.upc.modular.textbook.mapper.TextbookAuthorityMapper;
 import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import com.upc.modular.textbook.mapper.TextbookMapper;
+import com.upc.modular.textbook.param.TextbookContentSearchResult;
+import com.upc.modular.textbook.param.TextbookIntelligentQueryReturnParam;
 import com.upc.modular.textbook.param.*;
 import com.upc.modular.textbook.service.ITextbookAuthorityService;
 import com.upc.modular.textbook.service.ITextbookClassificationService;
@@ -912,4 +914,152 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         
         return activityCountMap;
     }
+    
+    @Override
+    public List<TextbookContentSearchResult> smartSearchInTextbook(Long textbookId, String query) {
+        List<TextbookContentSearchResult> results = new ArrayList<>();
+        
+        // 解析关键词
+        List<String> keywords = Arrays.stream(query.split("[,，]"))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+        
+        if (keywords.isEmpty()) {
+            return results;
+        }
+        
+        // 获取教材下的所有章节内容
+        MyLambdaQueryWrapper<TextbookCatalog> wrapper = new MyLambdaQueryWrapper<>();
+        wrapper.eq(TextbookCatalog::getTextbookId, textbookId)
+               .isNotNull(TextbookCatalog::getContent);
+        List<TextbookCatalog> catalogs = textbookCatalogMapper.selectList(wrapper);
+        
+        // 遍历每个章节，查找匹配的内容
+        for (TextbookCatalog catalog : catalogs) {
+            String content = catalog.getContent();
+            if (StringUtils.isBlank(content)) {
+                continue;
+            }
+            
+            // 移除HTML标签后再进行匹配
+            String cleanContent = stripHtml(content);
+            
+            // 检查内容是否包含所有关键词
+            boolean allKeywordsMatch = keywords.stream()
+                    .allMatch(keyword -> cleanContent.contains(keyword));
+            
+            if (allKeywordsMatch) {
+                // 查找匹配位置附近的文本片段
+                String matchedContent = extractMatchedContent(content, keywords);
+                
+                // 构建完整路径
+                String fullPath = buildCatalogFullPath(catalog);
+                
+                // 获取二级目录ID
+                Long levelTwoCatalogId = getLevelTwoCatalogId(catalog);
+                
+                // 创建结果对象
+                TextbookContentSearchResult result = new TextbookContentSearchResult();
+                result.setFullPath(fullPath);
+                result.setLevelTwoCatalogId(levelTwoCatalogId);
+                result.setMatchedContent(matchedContent);
+                
+                results.add(result);
+            }
+        }
+        
+        return results;
+    }
+    
+    /**
+     * 提取包含关键词的文本片段
+     * @param content 完整内容
+     * @param keywords 关键词列表
+     * @return 包含关键词的文本片段
+     */
+    private String extractMatchedContent(String content, List<String> keywords) {
+        // 移除HTML标签
+        String cleanContent = stripHtml(content);
+        
+        // 查找第一个关键词的位置
+        int firstKeywordIndex = cleanContent.length();
+        for (String keyword : keywords) {
+            int index = cleanContent.indexOf(keyword);
+            if (index != -1 && index < firstKeywordIndex) {
+                firstKeywordIndex = index;
+            }
+        }
+        
+        // 提取关键词周围的文本片段（前后各50个字符）
+        int start = Math.max(0, firstKeywordIndex - 50);
+        int end = Math.min(cleanContent.length(), firstKeywordIndex + 100);
+        
+        return cleanContent.substring(start, end);
+    }
+    
+    /**
+     * 构建章节的完整路径（包含所有父级目录名称）
+     * @param catalog 章节
+     * @return 完整路径
+     */
+    private String buildCatalogFullPath(TextbookCatalog catalog) {
+        List<String> pathNames = new ArrayList<>();
+        
+        // 添加当前章节名称
+        if (StringUtils.isNotBlank(catalog.getCatalogName())) {
+            pathNames.add(stripHtml(catalog.getCatalogName()));
+        }
+        
+        // 向上查找所有父级目录
+        Long parentId = catalog.getFatherCatalogId();
+        while (parentId != null) {
+            TextbookCatalog parentCatalog = textbookCatalogMapper.selectById(parentId);
+            if (parentCatalog == null) {
+                break;
+            }
+            
+            if (StringUtils.isNotBlank(parentCatalog.getCatalogName())) {
+                pathNames.add(0, stripHtml(parentCatalog.getCatalogName())); // 添加到开头
+            }
+            
+            parentId = parentCatalog.getFatherCatalogId();
+        }
+        
+        return String.join(" > ", pathNames);
+    }
+    
+    /**
+     * 获取二级目录ID（catalog_level为2的目录）
+     * @param catalog 章节
+     * @return 二级目录ID
+     */
+    private Long getLevelTwoCatalogId(TextbookCatalog catalog) {
+        // 如果当前章节就是二级目录
+        if (catalog.getCatalogLevel() != null && catalog.getCatalogLevel() == 2) {
+            return catalog.getId();
+        }
+        
+        // 向上查找直到找到二级目录
+        Long parentId = catalog.getFatherCatalogId();
+        TextbookCatalog current = catalog;
+        
+        while (parentId != null) {
+            TextbookCatalog parentCatalog = textbookCatalogMapper.selectById(parentId);
+            if (parentCatalog == null) {
+                break;
+            }
+            
+            // 如果找到二级目录
+            if (parentCatalog.getCatalogLevel() != null && parentCatalog.getCatalogLevel() == 2) {
+                return parentCatalog.getId();
+            }
+            
+            current = parentCatalog;
+            parentId = parentCatalog.getFatherCatalogId();
+        }
+        
+        return null;
+    }
+
 }
