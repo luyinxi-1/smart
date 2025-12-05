@@ -27,4 +27,10 @@ public class TextbookIntelligentQueryReturnParam {
 
     @ApiModelProperty("匹配到的章节内容片段 (已去除HTML标签)")
     private String content;
+    
+    @ApiModelProperty("教材ID")
+    private Long textbookId;
+    
+    @ApiModelProperty("章节ID")
+    private Long chapterId;
 }

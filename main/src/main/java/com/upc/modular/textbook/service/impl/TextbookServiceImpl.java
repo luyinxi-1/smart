@@ -158,7 +158,15 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             content = (matchedContentCatalog != null) ? stripHtml(matchedContentCatalog.getContent()) : null;
             
             // 添加到结果列表
-            results.add(new TextbookIntelligentQueryReturnParam(textbookName, authorName, updateDate, chapterName, content));
+            TextbookIntelligentQueryReturnParam result = new TextbookIntelligentQueryReturnParam();
+            result.setTextbookName(textbookName);
+            result.setAuthorName(authorName);
+            result.setUpdateDate(updateDate);
+            result.setChapterName(chapterName);
+            result.setContent(content);
+            result.setTextbookId(targetTextbookId);
+            result.setChapterId(matchedContentCatalog != null ? matchedContentCatalog.getId() : null);
+            results.add(result);
         }
 
         return results;
