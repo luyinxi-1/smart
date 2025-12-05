@@ -14,8 +14,12 @@ import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.auth.service.impl.SysUserServiceImpl;
+import com.upc.modular.group.entity.Group;
+import com.upc.modular.group.mapper.GroupMapper;
 import com.upc.modular.institution.service.IInstitutionService;
 import com.upc.modular.institution.service.impl.InstitutionServiceImpl;
+import com.upc.modular.student.entity.Student;
+import com.upc.modular.student.mapper.StudentMapper;
 import com.upc.modular.teacher.entity.Teacher;
 import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.teachingactivities.entity.DiscussionTopic;
@@ -36,6 +40,7 @@ import com.upc.modular.textbook.service.ITextbookTemplateService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -65,6 +70,10 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     private InstitutionServiceImpl institutionService;
     @Autowired
     private TextbookCatalogMapper textbookCatalogMapper;
+    @Autowired
+    private GroupMapper groupMapper;
+    @Autowired
+    private StudentMapper studentMapper;
 
     @Autowired
     private DiscussionTopicReplyMapper discussionTopicReplyMapper;
@@ -75,9 +84,9 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     private ITextbookTemplateService textbookTemplateService;
 
     @Override
-    public TextbookIntelligentQueryReturnParam smartSearch(String query) {
+    public List<TextbookIntelligentQueryReturnParam> smartSearch(String query) {
         if (StringUtils.isBlank(query)) {
-            return new TextbookIntelligentQueryReturnParam(); // 返回空结果
+            return new ArrayList<>(); // 返回空列表
         }
 
         // 1. 解析关键词
@@ -87,57 +96,175 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                 .collect(Collectors.toList());
 
         if (keywords.isEmpty()) {
-            return new TextbookIntelligentQueryReturnParam();
+            return new ArrayList<>();
         }
 
-        // 2.【教材查询】优先通过关键词匹配教材
-        Textbook matchedTextbook = findTextbookByKeywords(keywords);
-        Long targetTextbookId = (matchedTextbook != null) ? matchedTextbook.getId() : null;
-        String textbookName = (matchedTextbook != null) ? matchedTextbook.getTextbookName() : null;
-
-        // 3.【章节查询】根据是否匹配到教材，确定章节的搜索范围
-        // 优先在已匹配的教材下搜索章节名，否则在所有章节名中搜索
-        TextbookCatalog matchedChapter = findChapterByKeywords(keywords, targetTextbookId);
-        String chapterName = (matchedChapter != null && StringUtils.isNotBlank(matchedChapter.getCatalogName()))
-                ? stripHtml(matchedChapter.getCatalogName())
-                : null;
-
-        // 4.【内容查询】根据是否匹配到教材，确定内容的搜索范围
-        // 优先在已匹配的教材下搜索内容，优先在已匹配的章节下搜索内容否则在所有内容中搜索
-        String content = null;
-        TextbookCatalog matchedContentCatalog = null;
-
-        // 优先级1: 如果找到了章节，首先检查该章节的内容是否也匹配关键词
-        if (matchedChapter != null && StringUtils.isNotBlank(matchedChapter.getContent())) {
-            // 在内存中检查已找到章节的内容是否包含所有关键词
-            boolean allKeywordsInContent = keywords.stream()
-                    .allMatch(key -> matchedChapter.getContent().contains(key));
-            if (allKeywordsInContent) {
-                matchedContentCatalog = matchedChapter; // 内容就在已找到的章节里，这是最佳匹配
+        // 2.【教材查询】通过关键词匹配所有相关教材
+        List<Textbook> matchedTextbooks = findAllTextbooksByKeywords(keywords);
+        
+        // 3. 获取当前用户信息
+        UserInfoToRedis currentUser = UserUtils.get();
+        Long currentUserId = currentUser != null ? currentUser.getId() : null;
+        Integer userType = currentUser != null ? currentUser.getUserType() : null;
+        
+        // 4. 遍历每个教材，查找匹配的章节和内容，并进行权限检查
+        List<TextbookIntelligentQueryReturnParam> results = new ArrayList<>();
+        
+        for (Textbook textbook : matchedTextbooks) {
+            Long targetTextbookId = textbook.getId();
+            String textbookName = textbook.getTextbookName();
+            
+            // 权限检查 - 如果不是管理员，需要检查教材权限
+            if (userType == null || userType != 0) { // 非管理员需要检查权限
+                if (!hasTextbookAccess(targetTextbookId, currentUserId, userType)) {
+                    continue; // 没有权限，跳过该教材
+                }
             }
+            
+            // 获取教材作者信息
+            String authorName = textbook.getAuthorName();
+            
+            // 获取教材更新日期
+            LocalDateTime updateDate = textbook.getOperationDatetime();
+            
+            // 【章节查询】在当前教材下搜索章节名
+            TextbookCatalog matchedChapter = findChapterByKeywords(keywords, targetTextbookId);
+            String chapterName = (matchedChapter != null && StringUtils.isNotBlank(matchedChapter.getCatalogName()))
+                    ? stripHtml(matchedChapter.getCatalogName())
+                    : null;
+
+            // 【内容查询】在当前教材下搜索内容
+            String content = null;
+            TextbookCatalog matchedContentCatalog = null;
+
+            // 优先级1: 如果找到了章节，首先检查该章节的内容是否也匹配关键词
+            if (matchedChapter != null && StringUtils.isNotBlank(matchedChapter.getContent())) {
+                // 在内存中检查已找到章节的内容是否包含所有关键词
+                boolean allKeywordsInContent = keywords.stream()
+                        .allMatch(key -> matchedChapter.getContent().contains(key));
+                if (allKeywordsInContent) {
+                    matchedContentCatalog = matchedChapter; // 内容就在已找到的章节里，这是最佳匹配
+                }
+            }
+
+            // 优先级2/3: 如果在已找到的章节中没找到内容，或根本没找到章节，则在整个教材中搜索内容
+            if (matchedContentCatalog == null) {
+                // 在整个教材范围内搜索内容
+                matchedContentCatalog = findContentByKeywords(keywords, targetTextbookId);
+            }
+
+            content = (matchedContentCatalog != null) ? stripHtml(matchedContentCatalog.getContent()) : null;
+            
+            // 添加到结果列表
+            results.add(new TextbookIntelligentQueryReturnParam(textbookName, authorName, updateDate, chapterName, content));
         }
 
-        // 优先级2/3: 如果在已找到的章节中没找到内容，或根本没找到章节，则进行更广泛的数据库搜索
-        if (matchedContentCatalog == null) {
-            // 根据是否找到教材，在教材范围内或全局范围内搜索内容
-            matchedContentCatalog = findContentByKeywords(keywords, targetTextbookId);
-        }
-
-        content = (matchedContentCatalog != null) ? stripHtml(matchedContentCatalog.getContent()) : null;
-
-        // 5. 组装最终结果
-        return new TextbookIntelligentQueryReturnParam(textbookName, chapterName, content);
+        return results;
     }
 
     /**
-     * 根据关键词列表模糊查询教材，返回找到的第一个。
-     * 所有关键词都必须在教材名称中出现 (AND逻辑)。
+     * 检查用户对教材的访问权限
+     * @param textbookId 教材ID
+     * @param userId 用户ID
+     * @param userType 用户类型
+     * @return 是否有访问权限
      */
-    private Textbook findTextbookByKeywords(List<String> keywords) {
+    private boolean hasTextbookAccess(Long textbookId, Long userId, Integer userType) {
+        // 检查教材是否设置了权限控制
+        MyLambdaQueryWrapper<TextbookAuthority> authorityWrapper = new MyLambdaQueryWrapper<>();
+        authorityWrapper.eq(TextbookAuthority::getTextbookId, textbookId);
+        long authorityCount = textbookAuthorityMapper.selectCount(authorityWrapper);
+        
+        // 如果没有设置权限控制，则默认所有人都可以访问
+        if (authorityCount == 0) {
+            return true;
+        }
+        
+        // 如果是管理员，可以直接访问
+        if (userType != null && userType == 0) {
+            return true;
+        }
+        
+        // 如果是教师，可以直接访问
+        if (userType != null && userType == 2) {
+            // 获取教师所在机构
+            SysTbuser user = sysUserService.getById(userId);
+            if (user == null) {
+                return false;
+            }
+
+            Long institutionId = user.getInstitutionId();
+            if (institutionId == null) {
+                return false;
+            }
+
+            // 检查权限：
+            // 1. authority_type = 1 且 user_id = 教师的 user_id
+            // 2. authority_type = 2 且 visible_institute_id = 教师的 institution_id
+            MyLambdaQueryWrapper<TextbookAuthority> accessWrapper = new MyLambdaQueryWrapper<>();
+            accessWrapper.eq(TextbookAuthority::getTextbookId, textbookId);
+            accessWrapper.and(wrapper ->
+                    wrapper.eq(TextbookAuthority::getAuthorityType, 1).eq(TextbookAuthority::getUserId, userId)
+                            .or()
+                            .eq(TextbookAuthority::getAuthorityType, 2).eq(TextbookAuthority::getVisibleInstituteId, institutionId)
+            );
+
+            return textbookAuthorityMapper.selectCount(accessWrapper) > 0;
+        }
+        
+        // 如果是学生，需要检查班级权限
+        if (userType != null && userType == 1 && userId != null) {
+            // 获取学生信息
+            Student student = studentMapper.selectOne(new MyLambdaQueryWrapper<Student>().eq(Student::getUserId, userId));
+            if (student == null) {
+                return false;
+            }
+            
+            Long classId = student.getClassId();
+            if (classId == null) {
+                return false;
+            }
+            
+            // 获取班级信息
+            Group group = groupMapper.selectById(classId);
+            if (group == null) {
+                return false;
+            }
+            
+            Long institutionId = group.getInstitutionId();
+            if (institutionId == null) {
+                return false;
+            }
+            
+            // 检查该机构是否有权限访问该教材
+            MyLambdaQueryWrapper<TextbookAuthority> accessWrapper = new MyLambdaQueryWrapper<>();
+            accessWrapper.eq(TextbookAuthority::getTextbookId, textbookId)
+                         .eq(TextbookAuthority::getAuthorityType, 2) // 机构权限类型
+                         .eq(TextbookAuthority::getVisibleInstituteId, institutionId);
+            
+            return textbookAuthorityMapper.selectCount(accessWrapper) > 0;
+        }
+        
+        return false;
+    }
+
+    /**
+     * 根据关键词列表模糊查询所有匹配的教材
+     * 至少有一个关键词匹配即可 (OR逻辑)
+     * 只返回已发布的教材 (release_status = 1)
+     */
+    private List<Textbook> findAllTextbooksByKeywords(List<String> keywords) {
         MyLambdaQueryWrapper<Textbook> wrapper = new MyLambdaQueryWrapper<>();
-        keywords.forEach(keyword -> wrapper.like(Textbook::getTextbookName, keyword));
-        wrapper.last("LIMIT 1"); // 优化查询，只取第一个
-        return textbookMapper.selectOne(wrapper);
+        // 只查询已发布的教材
+        wrapper.eq(Textbook::getReleaseStatus, 1);
+        // OR 逻辑 - 至少一个关键词匹配
+        wrapper.and(w -> {
+            for (int i = 0; i < keywords.size(); i++) {
+                if (i > 0) w.or();
+                w.like(Textbook::getTextbookName, keywords.get(i));
+            }
+        });
+        return textbookMapper.selectList(wrapper);
     }
 
     /**

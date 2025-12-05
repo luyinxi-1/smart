@@ -40,6 +40,7 @@ import com.upc.modular.student.controller.param.listener.StudentListener;
 import com.upc.modular.student.controller.param.vo.GenerateUserResultVoStudent;
 import com.upc.modular.student.controller.param.vo.ImportStudentReturnVo;
 import com.upc.modular.student.controller.param.vo.StudentExcelVo;
+import com.upc.modular.student.controller.param.vo.StudentClassCourseExportVO;
 import com.upc.modular.student.controller.param.vo.StudentReturnVo;
 import com.upc.modular.student.converter.LocalDateTimeConverter;
 import com.upc.modular.student.entity.Student;
@@ -63,6 +64,8 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.upc.context.LoginContextHolder.getUserInfoToRedis;
 
 /**
  * <p>
@@ -628,6 +631,43 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
 
         } catch (IOException e) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "模板导出失败: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public List<StudentClassCourseExportVO> getStudentClassCourseInfoList() {
+        // 获取当前登录学生用户ID
+        Long currentUserId = getUserInfoToRedis().getId();
+        
+        // 查询学生所在班级、课程、教材信息
+        List<StudentClassCourseExportVO> resultList = studentMapper.selectStudentClassCourseInfo(currentUserId);
+        
+        // 过滤掉课程名称或教材名称为空的数据
+        return resultList.stream()
+                .filter(item -> item.getCourseName() != null && !item.getCourseName().isEmpty()
+                             && item.getTextbookName() != null && !item.getTextbookName().isEmpty())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void exportStudentClassCourseInfo(HttpServletResponse response) {
+        try {
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setCharacterEncoding("utf-8");
+            String fileName = URLEncoder.encode("学生班级课程信息", "UTF-8").replaceAll("\\+", "%20");
+            response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+
+            // 查询数据
+            List<StudentClassCourseExportVO> dataList = this.getStudentClassCourseInfoList();
+
+            // 使用 EasyExcel 写出
+            EasyExcel.write(response.getOutputStream(), StudentClassCourseExportVO.class)
+                    .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
+                    .sheet("学生班级课程信息")
+                    .doWrite(dataList);
+
+        } catch (Exception e) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "导出失败: " + e.getMessage());
         }
     }
 

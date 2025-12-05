@@ -85,7 +85,7 @@ public class TextbookController {
     }
     @ApiOperation(value = "智能搜索教材(关键词版)")
     @GetMapping("/smartSearch")
-    public R<TextbookIntelligentQueryReturnParam> smartSearch(
+    public R<List<TextbookIntelligentQueryReturnParam>> smartSearch(
             @ApiParam(value = "关键词字符串，用逗号分隔", required = true, example = "计算机,网络,协议")
             @RequestParam("query") String query) {
         return R.ok(textbookService.smartSearch(query));

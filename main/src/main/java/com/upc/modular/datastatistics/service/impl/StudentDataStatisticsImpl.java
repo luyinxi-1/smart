@@ -1004,4 +1004,15 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         
         return groupsByTeacher;
     }
+    
+    @Override
+    public Double getStudentScoreRate(Long userId) {
+        // 通过userId查询对应的studentId
+        Student student = studentMapper.selectOne(new LambdaQueryWrapper<Student>().eq(Student::getUserId, userId));
+        if (student == null) {
+            return 0.0;
+        }
+        Long studentId = student.getId();
+        return studentDataStatisticsMapper.getStudentScoreRate(studentId);
+    }
 }
