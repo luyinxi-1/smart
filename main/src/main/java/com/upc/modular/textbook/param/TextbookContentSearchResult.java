@@ -11,7 +11,7 @@ public class TextbookContentSearchResult {
     private String fullPath;
 
     @ApiModelProperty("二级目录ID（catalog_level为2的目录）")
-    private Long levelTwoCatalogId;
+    private Long CatalogId;
 
     @ApiModelProperty("匹配关键字的部分内容")
     private String matchedContent;
