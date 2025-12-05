@@ -42,4 +42,6 @@ public interface ITextbookService extends IService<Textbook> {
     Page<TextbookCenterPageReturnParam> getTextbookCenter(TextbookCenterPageSearchParam param);
     
     List<TextbookIntelligentQueryReturnParam> smartSearch(String query);
+    
+    List<TextbookContentSearchResult> smartSearchInTextbook(Long textbookId, String query);
 }

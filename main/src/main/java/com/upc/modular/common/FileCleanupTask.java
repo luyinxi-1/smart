@@ -21,7 +21,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@Component
+//@Component // 注释掉@Component以禁用该定时任务
 public class FileCleanupTask {
 
     private static final Logger log = LoggerFactory.getLogger(FileCleanupTask.class);

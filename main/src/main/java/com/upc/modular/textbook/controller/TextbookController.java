@@ -149,4 +149,12 @@ public class TextbookController {
         PageBaseReturnParam<TextbookHotnessDto> result = PageBaseReturnParam.ok(hotnessPage);
         return R.page(result);
     }
+
+    @ApiOperation(value = "教材内智慧搜索")
+    @PostMapping("/smartSearchInTextbook")
+    public R<List<TextbookContentSearchResult>> smartSearchInTextbook(
+            @RequestParam("textbookId") Long textbookId,
+            @RequestParam("query") String query) {
+        return R.ok(textbookService.smartSearchInTextbook(textbookId, query));
+    }
 }

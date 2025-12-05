@@ -1016,7 +1016,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
      * @param size 每页大小
      * @return 分页结果
      */
-    public Page<StudentReadingRankParam> getStudentReadingRankByPage(String groupName, String studentName, Long current, Long size) {
+    public Page<StudentReadingRankParam> getStudentReadingRankByPage(String groupName, String studentName, Long current, Long size, String startTime,String endTime) {
         Long currentUserId = UserUtils.get().getId();
         // 获取当前用户信息
         SysTbuser currentUser = sysUserMapper.selectById(currentUserId);
@@ -1075,6 +1075,10 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             // 计算该学生的教材阅读数量
             Long readingCount = studentDataStatisticsMapper.countTextbookByUserId(student.getUserId());
             param.setReadingCount(readingCount == null ? 0L : readingCount);
+            
+            // 调用countStudentBehavior接口，获取学生行为分析结果
+            StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(startTime,endTime);
+            param.setBehavior(behaviorParam.getHabitType());
             
             result.add(param);
         }
