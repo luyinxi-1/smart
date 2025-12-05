@@ -794,6 +794,68 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
      */
     @Override
     public List<StudentTextbookRankParam> countStudentTextbookReadingRankByStudentId(Long studentId) {
+        // 1. 先根据 studentId 获取 userId（保留原有防御）
+        Student student = studentMapper.selectById(studentId);
+        if (student == null || student.getUserId() == null) {
+            return Collections.emptyList();
+        }
+
+        // 2. 直接用 SQL 统计各教材阅读时长（分钟段）
+        List<Map<String, Object>> rawList =
+                studentDataStatisticsMapper.getTextbookReadingDurationByStudentId(studentId);
+
+        if (rawList == null || rawList.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<StudentTextbookRankParam> result = new ArrayList<>();
+
+        for (Map<String, Object> row : rawList) {
+            // 这里的工具方法 getLongValue / getDoubleValue
+            // 你在 getStudentQuestionAnsweringStatistics 里已经写过了，直接复用
+            Long textbookId = getLongValue(row.get("textbookId"));
+            Long readingDuration = getLongValue(row.get("readingDuration"));
+
+            if (textbookId == null) {
+                continue;
+            }
+
+            // 3. 查教材信息
+            Textbook textbook = studentDataStatisticsMapper.getTextbookById(textbookId);
+            String textbookName = (textbook != null)
+                    ? textbook.getTextbookName()
+                    : "未知教材";
+
+            // 4. 组装返回对象
+            StudentTextbookRankParam param = new StudentTextbookRankParam()
+                    .setTextbook_id(textbookId)
+                    .setTextbook_name(textbookName)
+                    .setRead_time(readingDuration == null ? 0L : readingDuration);
+
+            // 5. 计算教材掌握度（沿用你原来的逻辑）
+            Double mastery = calculateTextbookMastery(studentId, textbookId);
+            param.setMastery(mastery);
+
+            result.add(param);
+        }
+
+        // 6. 按阅读时长（read_time）降序排序
+        result.sort(Comparator.comparingLong(StudentTextbookRankParam::getRead_time).reversed());
+
+        return result;
+    }
+    private Long getLongValue(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof Number) {
+            return ((Number) obj).longValue();
+        }
+        return null;
+    }
+
+/*    @Override
+    public List<StudentTextbookRankParam> countStudentTextbookReadingRankByStudentId(Long studentId) {
         // 1. 先根据 studentId 获取 userId
         Student student = studentMapper.selectById(studentId);
         if (student == null || student.getUserId() == null) {
@@ -884,7 +946,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         result.sort(Comparator.comparingLong(StudentTextbookRankParam::getRead_time).reversed());
 
         return result;
-    }
+    }*/
 
     /* @Override
     public List<StudentTextbookRankParam> countStudentTextbookReadingRankByStudentId(Long studentId) {

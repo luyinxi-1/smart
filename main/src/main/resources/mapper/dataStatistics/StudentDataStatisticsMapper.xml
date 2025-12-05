@@ -2,6 +2,37 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.upc.modular.datastatistics.mapper.StudentDataStatisticsMapper">
 
+
+    <!-- 根据 studentId 统计该学生在各个教材上的阅读时长（单位：分钟段） -->
+    <select id="getTextbookReadingDurationByStudentId" resultType="java.util.Map">
+        WITH logs AS (
+            SELECT
+                ll.textbook_id,
+                ll.add_datetime,
+                ROW_NUMBER() OVER (
+                PARTITION BY ll.textbook_id
+                ORDER BY ll.add_datetime
+            ) AS rn
+            FROM learning_log ll
+            WHERE ll.creator = (
+                SELECT user_id FROM student WHERE id = #{studentId}
+            )
+              AND ll.textbook_id IS NOT NULL
+        )
+        SELECT
+            l1.textbook_id AS textbookId,
+            COUNT(*)      AS readingDuration
+        FROM logs l1
+                 JOIN logs l2
+                      ON l1.textbook_id = l2.textbook_id
+                          AND l1.rn = l2.rn - 1
+        WHERE EXTRACT(EPOCH FROM l2.add_datetime)
+                  - EXTRACT(EPOCH FROM l1.add_datetime)
+                  BETWEEN 55 AND 65
+        GROUP BY l1.textbook_id
+    </select>
+
+
     <select id="groupReadingTimeByDay" resultType="java.util.Map">
         SELECT
             TO_CHAR(add_datetime, 'YYYY-MM-DD') AS activity_date,
