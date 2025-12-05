@@ -25,21 +25,8 @@ public interface IStudentLearningLogService extends IService<StudentLearningLog>
      */
     R<Void> submitLog(Long logId);
 
-    /**
-     * 学生查看自己的日志列表
-     *
-     * @param param 分页参数
-     * @return Page<StudentLearningLog>
-     */
-    Page<StudentLearningLog> getOwnLogs(StudentLearningLogPageSearchParam param);
+
     Page<StudentLearningLog> getLogPage(StudentLearningLogPageSearchParam param);
-    /**
-     * 教师查看学生日志列表
-     *
-     * @param param 分页参数
-     * @return Page<StudentLearningLog>
-     */
-    Page<StudentLearningLog> getStudentLogs(StudentLearningLogPageSearchParam param);
 
     /**
      * 查询日志详情

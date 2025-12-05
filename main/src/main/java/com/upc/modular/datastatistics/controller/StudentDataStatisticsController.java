@@ -161,6 +161,18 @@ public class StudentDataStatisticsController {
         Page<StudentReadingRankParam> page = iStudentDataStatistics.getStudentReadingRankByPage(groupName, studentName, current, size);
         return R.ok(page);
     }
+
+    @ApiOperation("导出学生阅读排名（Excel）")
+    @GetMapping("/reading-rank-export")
+    public void exportStudentReadingRank(
+            @RequestParam(required = false) String groupName,
+            @RequestParam(required = false) String studentName,
+            HttpServletResponse response
+    ) {
+        // 所有业务逻辑交给 Service
+        iStudentDataStatistics.exportStudentReadingRank(groupName, studentName, response);
+    }
+
     @ApiOperation("根据学生ID查询阅读过的教材，按阅读量排名返回")
     @GetMapping("/textbook-rank-by-student")
     public R<List<StudentTextbookRankParam>> countStudentTextbookReadingRankByStudentId(
