@@ -101,18 +101,44 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             return new ArrayList<>();
         }
 
-        // 2.【教材查询】通过关键词匹配所有相关教材
-        List<Textbook> matchedTextbooks = findAllTextbooksByKeywords(keywords);
+        // 2.【教材查询】通过关键词分别在教材名、章节名、章节内容中搜索
+        List<Textbook> textbooksByName = findAllTextbooksByKeywords(keywords);
+        List<Textbook> textbooksByCatalogName = findAllTextbooksByCatalogName(keywords);
+        List<Textbook> textbooksByContent = findAllTextbooksByContent(keywords);
+        // 3. 合并所有教材，去除重复项
+        Set<Long> textbookIds = new HashSet<>();
+        List<Textbook> allMatchedTextbooks = new ArrayList<>();
         
-        // 3. 获取当前用户信息
+        // 添加通过教材名匹配的教材
+        for (Textbook textbook : textbooksByName) {
+            if (textbookIds.add(textbook.getId())) {
+                allMatchedTextbooks.add(textbook);
+            }
+        }
+        
+        // 添加通过章节名匹配的教材
+        for (Textbook textbook : textbooksByCatalogName) {
+            if (textbookIds.add(textbook.getId())) {
+                allMatchedTextbooks.add(textbook);
+            }
+        }
+        
+        // 添加通过内容匹配的教材
+        for (Textbook textbook : textbooksByContent) {
+            if (textbookIds.add(textbook.getId())) {
+                allMatchedTextbooks.add(textbook);
+            }
+        }
+        
+        // 4. 获取当前用户信息
         UserInfoToRedis currentUser = UserUtils.get();
         Long currentUserId = currentUser != null ? currentUser.getId() : null;
         Integer userType = currentUser != null ? currentUser.getUserType() : null;
         
-        // 4. 遍历每个教材，查找匹配的章节和内容，并进行权限检查
+        // 5. 遍历每个教材，查找匹配的章节和内容，并进行权限检查
         List<TextbookIntelligentQueryReturnParam> results = new ArrayList<>();
         
-        for (Textbook textbook : matchedTextbooks) {
+        for (Textbook textbook : allMatchedTextbooks) {
             Long targetTextbookId = textbook.getId();
             String textbookName = textbook.getTextbookName();
             
@@ -275,6 +301,50 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             }
         });
         return textbookMapper.selectList(wrapper);
+    }
+
+    /**
+     * 根据关键词列表模糊查询所有匹配的教材（基于章节名）
+     * 至少有一个关键词匹配即可 (OR逻辑)
+     * 只返回已发布的教材 (release_status = 1)
+     * 对于每本教材只取一条匹配记录
+     */
+    private List<Textbook> findAllTextbooksByCatalogName(List<String> keywords) {
+        // 使用自定义SQL直接获取每本教材的一个匹配记录
+        List<Long> textbookIds = textbookCatalogMapper.selectDistinctTextbookIdsByCatalogName(keywords);
+        
+        if (textbookIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // 查询对应的教材信息
+        MyLambdaQueryWrapper<Textbook> textbookWrapper = new MyLambdaQueryWrapper<>();
+        textbookWrapper.in(Textbook::getId, textbookIds)
+                      .eq(Textbook::getReleaseStatus, 1); // 只查询已发布的教材
+        
+        return textbookMapper.selectList(textbookWrapper);
+    }
+
+    /**
+     * 根据关键词列表模糊查询所有匹配的教材（基于章节内容）
+     * 至少有一个关键词匹配即可 (OR逻辑)
+     * 只返回已发布的教材 (release_status = 1)
+     * 对于每本教材只取一条匹配记录
+     */
+    private List<Textbook> findAllTextbooksByContent(List<String> keywords) {
+        // 使用自定义SQL直接获取每本教材的一个匹配记录
+        List<Long> textbookIds = textbookCatalogMapper.selectDistinctTextbookIdsByContent(keywords);
+        
+        if (textbookIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // 查询对应的教材信息
+        MyLambdaQueryWrapper<Textbook> textbookWrapper = new MyLambdaQueryWrapper<>();
+        textbookWrapper.in(Textbook::getId, textbookIds)
+                      .eq(Textbook::getReleaseStatus, 1); // 只查询已发布的教材
+        
+        return textbookMapper.selectList(textbookWrapper);
     }
 
     /**
