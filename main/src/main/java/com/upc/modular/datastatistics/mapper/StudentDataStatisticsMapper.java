@@ -55,6 +55,8 @@ public interface StudentDataStatisticsMapper extends BaseMapper<StudentStatistic
     List<LearningLog> findAddDatetime(
             @Param("userId") Long currentUserId);
 
+    // 新增的：根据 studentId 统计各教材阅读时长
+    List<Map<String, Object>> getTextbookReadingDurationByStudentId(@Param("studentId") Long studentId);
     @Select("SELECT * FROM learning_log WHERE creator = #{userId} AND EXTRACT(YEAR FROM add_datetime) = #{year} ORDER BY add_datetime ASC")
     List<LearningLog> findAddDatetimeByYear(
             @Param("userId") Long currentUserId,
