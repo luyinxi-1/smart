@@ -831,30 +831,30 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             Long textbookId = entry.getKey();
             List<LearningLog> list = entry.getValue();
 
-            Long readingTime = 0L;  // 默认阅读时长为0
-
-            // 只有当教材有≥2条记录时，才计算有效阅读
-            if (list.size() >= 2) {
-                // 确保每本教材内部按时间排序
-                list.sort(Comparator.comparing(LearningLog::getAddDatetime));
-
-                // 计算有效阅读次数
-                for (int i = 0; i < list.size() - 1; i++) {
-                    LearningLog currentLog = list.get(i);
-                    LearningLog nextLog = list.get(i + 1);
-
-                    if (currentLog.getAddDatetime() == null || nextLog.getAddDatetime() == null) {
-                        continue;
-                    }
-
-                    long seconds = Duration.between(currentLog.getAddDatetime(), nextLog.getAddDatetime()).getSeconds();
-
-                    // 时间差在预设范围内，视为有效阅读
-                    if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
-                        readingTime += 1;  // 一次有效阅读增加1
-                    }
-                }
-            }
+//            Long readingTime = 0L;  // 默认阅读时长为0
+//
+//            // 只有当教材有≥2条记录时，才计算有效阅读
+//            if (list.size() >= 2) {
+//                // 确保每本教材内部按时间排序
+//                list.sort(Comparator.comparing(LearningLog::getAddDatetime));
+//
+//                // 计算有效阅读次数
+//                for (int i = 0; i < list.size() - 1; i++) {
+//                    LearningLog currentLog = list.get(i);
+//                    LearningLog nextLog = list.get(i + 1);
+//
+//                    if (currentLog.getAddDatetime() == null || nextLog.getAddDatetime() == null) {
+//                        continue;
+//                    }
+//
+//                    long seconds = Duration.between(currentLog.getAddDatetime(), nextLog.getAddDatetime()).getSeconds();
+//
+//                    // 时间差在预设范围内，视为有效阅读
+//                    if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
+//                        readingTime += 1;  // 一次有效阅读增加1
+//                    }
+//                }
+//            }
             // 注意：这里不再有 continue，即使list.size() < 2也会继续处理
 
             // 修改部分：使用getStudentQuestionAnsweringStatistics方法获取各章节阅读时间并求和
@@ -870,7 +870,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             }
 
             // 总阅读时间 = 连续阅读次数 + 章节阅读时间
-            Long totalReadingTime = readingTime + chapterReadingTime;
+            Long totalReadingTime = chapterReadingTime;
 
             // 根据教材 ID 获取教材信息
             Textbook textbook = studentDataStatisticsMapper.getTextbookById(textbookId);
@@ -883,7 +883,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                     .setRead_time(totalReadingTime);  // 使用总阅读时间
 
             // 计算教材掌握度
-            Double mastery = calculateTextbookMastery(studentId, textbookId);
+            Double mastery = Double.parseDouble(String.format("%.2f", calculateTextbookMastery(studentId, textbookId)));
             param.setMastery(mastery);
 
             result.add(param);

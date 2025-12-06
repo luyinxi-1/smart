@@ -179,6 +179,9 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             if (matchedContentCatalog == null) {
                 // 在整个教材范围内搜索内容
                 matchedContentCatalog = findContentByKeywords(keywords, targetTextbookId);
+                chapterName = (matchedContentCatalog != null && StringUtils.isNotBlank(matchedContentCatalog.getCatalogName()))
+                        ? stripHtml(matchedContentCatalog.getCatalogName())
+                        : null;
             }
 
             content = (matchedContentCatalog != null) ? stripHtml(matchedContentCatalog.getContent()) : null;
