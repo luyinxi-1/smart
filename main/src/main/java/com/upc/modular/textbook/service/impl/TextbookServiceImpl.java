@@ -718,7 +718,31 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
 
     @Override
     public Page<TextbookHotnessDto> getTextbookHotnessPage(Page<TextbookHotnessDto> page) {
-        return textbookMapper.selectTextbookHotnessPage(page);
+        // 获取当前用户信息
+        UserInfoToRedis currentUser = UserUtils.get();
+        Long currentUserId = currentUser != null ? currentUser.getId() : null;
+        Integer userType = currentUser != null ? currentUser.getUserType() : null;
+
+        // 先获取所有教材热度数据
+        Page<TextbookHotnessDto> resultPage = textbookMapper.selectTextbookHotnessPage(page);
+        
+        // 对结果进行权限过滤
+        List<TextbookHotnessDto> filteredRecords = resultPage.getRecords().stream()
+                .filter(dto -> {
+                    // 管理员可以直接查看所有教材
+                    if (userType != null && userType == 0) {
+                        return true;
+                    }
+                    // 其他用户需要检查权限
+                    return hasTextbookAccess(dto.getId(), currentUserId, userType);
+                })
+                .collect(Collectors.toList());
+                
+        // 更新分页结果
+        resultPage.setRecords(filteredRecords);
+        resultPage.setTotal(filteredRecords.size());
+        
+        return resultPage;
     }
 
     @Override
