@@ -24,6 +24,7 @@ import java.net.URLEncoder;
 
 
 import java.util.List;
+import java.util.Map;
 
 @Api(tags = "学生数据统计")
 @RestController("/count")
@@ -189,6 +190,15 @@ public class StudentDataStatisticsController {
     ) {
         // 所有业务逻辑都交给 Service
         iStudentDataStatistics.exportStudentTextbookReadingRankByStudentId(studentId, response);
+    }
+
+    @ApiOperation("统计学生按教材和章节的阅读时长")
+    @GetMapping("/reading-time-by-chapter")
+    public R<Map<String, Long>> countStudentTextbookReadingTimeByChapter(
+            @RequestParam String startTime,
+            @RequestParam String endTime
+    ) {
+        return R.ok(iStudentDataStatistics.countStudentTextbookReadingTimeByChapter(startTime, endTime));
     }
 
 

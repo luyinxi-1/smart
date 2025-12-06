@@ -20,6 +20,7 @@ import com.upc.modular.datastatistics.service.ISystemStatisticsService;
 import com.upc.modular.group.entity.Group;
 import com.upc.modular.group.mapper.GroupMapper;
 import com.upc.modular.teacher.mapper.TeacherMapper;
+import com.upc.modular.textbook.entity.TextbookCatalog;
 import org.apache.commons.math3.stat.descriptive.moment.Variance;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 import com.upc.modular.datastatistics.mapper.StudentDataStatisticsMapper;
@@ -62,6 +63,10 @@ import java.util.stream.Collectors;
 public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatisticsMapper,StudentStatisticsData> implements IStudentDataStatistics {
     // 完成度阈值（完成阅读）
     private static final long COMPLETION_THRESHOLD = 70L;
+    // 阅读时间计算阈值
+    private static final long MIN_DIFF_SECONDS = 55;
+    private static final long MAX_DIFF_SECONDS = 65;
+    
     @Autowired
     private StudentDataStatisticsMapper studentDataStatisticsMapper;
 
@@ -795,45 +800,89 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
      */
     @Override
     public List<StudentTextbookRankParam> countStudentTextbookReadingRankByStudentId(Long studentId) {
-        // 1. 先根据 studentId 获取 userId（保留原有防御）
+        // 1. 先根据 studentId 获取 userId
         Student student = studentMapper.selectById(studentId);
         if (student == null || student.getUserId() == null) {
-            return Collections.emptyList();
+            return new ArrayList<>(); // 学生不存在或没有关联用户
+        }
+        Long userId = student.getUserId();
+
+        // 2. 从数据库获取该用户的所有学习日志记录
+        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(userId);
+
+        if (records == null || records.size() < 2) {
+            return new ArrayList<>();
         }
 
-        // 2. 直接用 SQL 统计各教材阅读时长（分钟段）
-        List<Map<String, Object>> rawList =
-                studentDataStatisticsMapper.getTextbookReadingDurationByStudentId(studentId);
+        // 3. 定义时间差容忍范围，用于判断是否为"连续阅读"
+        final long MIN_DIFF_SECONDS = 55;
+        final long MAX_DIFF_SECONDS = 65;
 
-        if (rawList == null || rawList.isEmpty()) {
-            return Collections.emptyList();
-        }
+        // 4. 先按"教材"分组
+        Map<Long, List<LearningLog>> logsByTextbook = records.stream()
+                .filter(log -> log.getTextbookId() != null)
+                .collect(Collectors.groupingBy(LearningLog::getTextbookId));
 
+        // 5. 每本教材单独计算"有效阅读次数"
+        //    关键修改：不再跳过记录数少的教材，为所有教材创建记录
         List<StudentTextbookRankParam> result = new ArrayList<>();
 
-        for (Map<String, Object> row : rawList) {
-            // 这里的工具方法 getLongValue / getDoubleValue
-            // 你在 getStudentQuestionAnsweringStatistics 里已经写过了，直接复用
-            Long textbookId = getLongValue(row.get("textbookId"));
-            Long readingDuration = getLongValue(row.get("readingDuration"));
+        for (Map.Entry<Long, List<LearningLog>> entry : logsByTextbook.entrySet()) {
+            Long textbookId = entry.getKey();
+            List<LearningLog> list = entry.getValue();
 
-            if (textbookId == null) {
-                continue;
+            Long readingTime = 0L;  // 默认阅读时长为0
+
+            // 只有当教材有≥2条记录时，才计算有效阅读
+            if (list.size() >= 2) {
+                // 确保每本教材内部按时间排序
+                list.sort(Comparator.comparing(LearningLog::getAddDatetime));
+
+                // 计算有效阅读次数
+                for (int i = 0; i < list.size() - 1; i++) {
+                    LearningLog currentLog = list.get(i);
+                    LearningLog nextLog = list.get(i + 1);
+
+                    if (currentLog.getAddDatetime() == null || nextLog.getAddDatetime() == null) {
+                        continue;
+                    }
+
+                    long seconds = Duration.between(currentLog.getAddDatetime(), nextLog.getAddDatetime()).getSeconds();
+
+                    // 时间差在预设范围内，视为有效阅读
+                    if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
+                        readingTime += 1;  // 一次有效阅读增加1
+                    }
+                }
+            }
+            // 注意：这里不再有 continue，即使list.size() < 2也会继续处理
+
+            // 修改部分：使用getStudentQuestionAnsweringStatistics方法获取各章节阅读时间并求和
+            Long chapterReadingTime = 0L;
+            List<Map<String, Object>> rawData = studentDataStatisticsMapper.getStudentQuestionAnsweringStatistics(textbookId, studentId);
+            if (rawData != null && !rawData.isEmpty()) {
+                for (Map<String, Object> data : rawData) {
+                    Object readingDurationObj = data.get("readingDuration");
+                    if (readingDurationObj instanceof Number) {
+                        chapterReadingTime += ((Number) readingDurationObj).longValue();
+                    }
+                }
             }
 
-            // 3. 查教材信息
-            Textbook textbook = studentDataStatisticsMapper.getTextbookById(textbookId);
-            String textbookName = (textbook != null)
-                    ? textbook.getTextbookName()
-                    : "未知教材";
+            // 总阅读时间 = 连续阅读次数 + 章节阅读时间
+            Long totalReadingTime = readingTime + chapterReadingTime;
 
-            // 4. 组装返回对象
+            // 根据教材 ID 获取教材信息
+            Textbook textbook = studentDataStatisticsMapper.getTextbookById(textbookId);
+            String textbookName = (textbook != null) ? textbook.getTextbookName() : "未知教材";
+
+            // 创建并填充排行参数对象
             StudentTextbookRankParam param = new StudentTextbookRankParam()
                     .setTextbook_id(textbookId)
                     .setTextbook_name(textbookName)
-                    .setRead_time(readingDuration == null ? 0L : readingDuration);
+                    .setRead_time(totalReadingTime);  // 使用总阅读时间
 
-            // 5. 计算教材掌握度（沿用你原来的逻辑）
+            // 计算教材掌握度
             Double mastery = calculateTextbookMastery(studentId, textbookId);
             param.setMastery(mastery);
 
@@ -845,189 +894,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
 
         return result;
     }
-    private Long getLongValue(Object obj) {
-        if (obj == null) {
-            return null;
-        }
-        if (obj instanceof Number) {
-            return ((Number) obj).longValue();
-        }
-        return null;
-    }
 
-/*    @Override
-    public List<StudentTextbookRankParam> countStudentTextbookReadingRankByStudentId(Long studentId) {
-        // 1. 先根据 studentId 获取 userId
-        Student student = studentMapper.selectById(studentId);
-        if (student == null || student.getUserId() == null) {
-            return new ArrayList<>(); // 学生不存在或没有关联用户
-        }
-        Long userId = student.getUserId();
-
-        // 2. 从数据库获取该用户的所有学习日志记录
-        // ✅ 建议在 mapper 的 SQL 里保证按 add_datetime 升序 ORDER BY
-        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(userId);
-
-        if (records == null || records.size() < 2) {
-            return new ArrayList<>();
-        }
-
-        // 3. 定义时间差容忍范围，用于判断是否为“连续阅读”
-        final long MIN_DIFF_SECONDS = 55;
-        final long MAX_DIFF_SECONDS = 65;
-
-        // 4. 先按“教材”分组，相当于 SQL 里的 PARTITION BY textbook_id
-        Map<Long, List<LearningLog>> logsByTextbook = records.stream()
-                //.filter(log -> log.getTextbookId() != null && log.getAddDatetime() != null)
-                .filter(log -> log.getTextbookId() != null)
-                .collect(Collectors.groupingBy(LearningLog::getTextbookId));
-
-        // 5. 每本教材单独排序、单独计算“有效阅读次数”
-        //    Key: textbookId, Value: readingTime（计数逻辑仍然是 +1）
-        Map<Long, Long> textbookReadingTimeMap = new HashMap<>();
-
-        for (Map.Entry<Long, List<LearningLog>> entry : logsByTextbook.entrySet()) {
-            Long textbookId = entry.getKey();
-            List<LearningLog> list = entry.getValue();
-
-            if (list.size() < 2) {
-                continue;
-            }
-
-            // 确保每本教材内部按时间排序
-            list.sort(Comparator.comparing(LearningLog::getAddDatetime));
-
-            for (int i = 0; i < list.size() - 1; i++) {
-                LearningLog currentLog = list.get(i);
-                LearningLog nextLog = list.get(i + 1);
-
-                // 理论上前面已经过滤了 null，这里再保险一下
-                if (currentLog.getAddDatetime() == null || nextLog.getAddDatetime() == null) {
-                    continue;
-                }
-
-                long seconds = Duration.between(currentLog.getAddDatetime(), nextLog.getAddDatetime()).getSeconds();
-
-                // 时间差在预设范围内，视为有效阅读，时长 +1（一次“1 分钟段”）
-                if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
-                    textbookReadingTimeMap.merge(textbookId, 1L, Long::sum);
-                }
-            }
-        }
-
-        // 如果一本教材都没统计到有效阅读，就直接返回空
-        if (textbookReadingTimeMap.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        // 6. 将统计结果从 Map 转为 List<StudentTextbookRankParam>
-        List<StudentTextbookRankParam> result = new ArrayList<>();
-
-        for (Map.Entry<Long, Long> entry : textbookReadingTimeMap.entrySet()) {
-            Long textbookId = entry.getKey();
-            Long readingTime = entry.getValue();
-
-            // 根据教材 ID 获取教材信息
-            Textbook textbook = studentDataStatisticsMapper.getTextbookById(textbookId);
-            String textbookName = (textbook != null) ? textbook.getTextbookName() : "未知教材";
-
-            // 创建并填充排行参数对象
-            StudentTextbookRankParam param = new StudentTextbookRankParam()
-                    .setTextbook_id(textbookId)
-                    .setTextbook_name(textbookName)
-                    .setRead_time(readingTime);
-
-            // 计算教材掌握度（你原来的逻辑）
-            Double mastery = calculateTextbookMastery(studentId, textbookId);
-            param.setMastery(mastery);
-
-            result.add(param);
-        }
-
-        // 7. 按阅读时长（read_time）降序排序
-        result.sort(Comparator.comparingLong(StudentTextbookRankParam::getRead_time).reversed());
-
-        return result;
-    }*/
-
-    /* @Override
-    public List<StudentTextbookRankParam> countStudentTextbookReadingRankByStudentId(Long studentId) {
-        // 先根据studentId获取userId
-        Student student = studentMapper.selectById(studentId);
-        if (student == null || student.getUserId() == null) {
-            return new ArrayList<>(); // 学生不存在或没有关联用户
-        }
-        
-        Long userId = student.getUserId();
-        
-        //从数据库获取该用户的所有学习日志记录
-        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(userId);
-
-        if (records == null || records.size() < 2) {
-            return new ArrayList<>();
-        }
-
-        // 定义时间差的容忍范围，用于判断是否为连续阅读
-        final long MIN_DIFF_SECONDS = 55;
-        final long MAX_DIFF_SECONDS = 65;
-
-        // 使用Map按教材ID分组统计有效阅读时长
-        // Key: textbookId, Value: readingTime
-        Map<Long, Long> textbookReadingTimeMap = new HashMap<>();
-
-        for (int i = 0; i < records.size() - 1; i++) {
-            LearningLog currentLog = records.get(i);
-            LearningLog nextLog = records.get(i + 1);
-
-            if (currentLog.getAddDatetime() == null || nextLog.getAddDatetime() == null) {
-                continue;
-            }
-
-            // 必须是同一本教材的连续记录才能计算时长
-            if (!Objects.equals(currentLog.getTextbookId(), nextLog.getTextbookId())) {
-                continue;
-            }
-
-            // 计算两条记录之间的时间差
-            Duration duration = Duration.between(currentLog.getAddDatetime(), nextLog.getAddDatetime());
-            long seconds = duration.getSeconds();
-
-            // 如果时间差在预设范围内，则视为有效阅读，时长+1
-            if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
-                Long textbookId = currentLog.getTextbookId();
-                textbookReadingTimeMap.put(textbookId, textbookReadingTimeMap.getOrDefault(textbookId, 0L) + 1);
-            }
-        }
-
-        //将统计结果从Map转换为List<StudentTextbookRankParam>
-        List<StudentTextbookRankParam> result = new ArrayList<>();
-        for (Map.Entry<Long, Long> entry : textbookReadingTimeMap.entrySet()) {
-            Long textbookId = entry.getKey();
-            Long readingTime = entry.getValue();
-
-            // 根据教材ID获取教材信息
-            Textbook textbook = studentDataStatisticsMapper.getTextbookById(textbookId);
-            String textbookName = (textbook != null) ? textbook.getTextbookName() : "未知教材";
-
-            // 创建并填充排行参数对象
-            StudentTextbookRankParam param = new StudentTextbookRankParam()
-                    .setTextbook_id(textbookId)
-                    .setTextbook_name(textbookName)
-                    .setRead_time(readingTime);
-            
-            // 计算教材掌握度
-            Double mastery = calculateTextbookMastery(studentId, textbookId);
-            param.setMastery(mastery);
-            
-            result.add(param);
-        }
-
-        // 按阅读时长（read_time）进行降序排序
-        result.sort(Comparator.comparingLong(StudentTextbookRankParam::getRead_time).reversed());
-
-        return result;
-    }
-*/
     @Override
     public void exportStudentTextbookReadingRankByStudentId(Long studentId, HttpServletResponse response) {
         // 1. 复用已有统计方法
@@ -1422,4 +1289,110 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                 .doubleValue();
     }
 
+    /**
+     * 统计学生按教材和章节的阅读时长
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 每个章节的阅读时长映射
+     */
+    @Override
+    public Map<String, Long> countStudentTextbookReadingTimeByChapter(String startTime, String endTime) {
+        Long userId = UserUtils.get().getId();
+        
+        // 获取学习记录，按教材和章节分组
+        List<LearningLog> records = studentDataStatisticsMapper.findChapterRecordsByTime(
+            userId, startTime, endTime, 0
+        );
+        
+        if (records == null || records.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        
+        // 使用 Map 存储每个章节的阅读时长
+        Map<String, Long> chapterReadingTimeMap = new HashMap<>();
+        
+        // 按教材和章节分组处理记录
+        Map<Long, Map<Long, List<LearningLog>>> groupedRecords = groupRecordsByTextbookAndChapter(records);
+        
+        // 计算每个章节的阅读时长
+        for (Map.Entry<Long, Map<Long, List<LearningLog>>> textbookEntry : groupedRecords.entrySet()) {
+            Long textbookId = textbookEntry.getKey();
+            
+            for (Map.Entry<Long, List<LearningLog>> chapterEntry : textbookEntry.getValue().entrySet()) {
+                Long chapterId = chapterEntry.getKey();
+                List<LearningLog> chapterRecords = chapterEntry.getValue();
+                
+                // 计算该章节的阅读时长
+                long chapterReadingTime = calculateChapterReadingTime(
+                    chapterRecords, MIN_DIFF_SECONDS, MAX_DIFF_SECONDS
+                );
+                
+                // 构建章节唯一标识（教材ID-章节ID）
+                String chapterKey = String.format("%s-%s", textbookId, chapterId);
+                
+                chapterReadingTimeMap.put(chapterKey, chapterReadingTime);
+            }
+        }
+        
+        return chapterReadingTimeMap;
+    }
+
+    /**
+     * 按教材和章节分组学习记录
+     */
+    private Map<Long, Map<Long, List<LearningLog>>> groupRecordsByTextbookAndChapter(List<LearningLog> records) {
+        Map<Long, Map<Long, List<LearningLog>>> groupedMap = new HashMap<>();
+        
+        for (LearningLog record : records) {
+            Long textbookId = record.getTextbookId();
+            Long chapterId = record.getCatalogueId();
+            
+            if (textbookId == null || chapterId == null) {
+                continue; // 跳过没有教材或章节信息的记录
+            }
+            
+            // 按教材分组
+            Map<Long, List<LearningLog>> chapterMap = groupedMap.computeIfAbsent(textbookId, k -> new HashMap<>());
+            
+            // 按章节分组
+            List<LearningLog> chapterRecords = chapterMap.computeIfAbsent(chapterId, k -> new ArrayList<>());
+            
+            chapterRecords.add(record);
+        }
+        
+        return groupedMap;
+    }
+
+    /**
+     * 计算单个章节的阅读时长
+     */
+    private long calculateChapterReadingTime(List<LearningLog> chapterRecords, 
+                                            long minDiffSeconds, long maxDiffSeconds) {
+        if (chapterRecords == null || chapterRecords.size() < 2) {
+            return 0L;
+        }
+        
+        long chapterReadingTime = 0L;
+        
+        // 按时间排序
+        chapterRecords.sort(Comparator.comparing(LearningLog::getAddDatetime));
+        
+        for (int i = 0; i < chapterRecords.size() - 1; i++) {
+            LocalDateTime currentTime = chapterRecords.get(i).getAddDatetime();
+            LocalDateTime nextTime = chapterRecords.get(i + 1).getAddDatetime();
+            
+            if (currentTime == null || nextTime == null) {
+                continue;
+            }
+            
+            Duration duration = Duration.between(currentTime, nextTime);
+            long seconds = duration.getSeconds();
+            
+            if (seconds >= minDiffSeconds && seconds <= maxDiffSeconds) {
+                chapterReadingTime += 1;
+            }
+        }
+        
+        return chapterReadingTime;
+    }
 }

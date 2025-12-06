@@ -2,80 +2,105 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.upc.modular.datastatistics.mapper.StudentDataStatisticsMapper">
 
-
-    <select id="getTextbookReadingDurationByStudentId" resultType="java.util.Map">
-        WITH logs AS (
-            SELECT
-                ll.textbook_id,
-                ll.catalogue_id,
-                ll.add_datetime,
-                ROW_NUMBER() OVER (
-                PARTITION BY ll.textbook_id, ll.catalogue_id
-                ORDER BY ll.add_datetime
-            ) AS rn
-            FROM learning_log ll
-            WHERE ll.creator = (
-                SELECT user_id FROM student WHERE id = #{studentId}
-            )
-              AND ll.textbook_id IS NOT NULL
-        )
-        SELECT
-            l1.textbook_id AS textbookId,
-            COUNT(*)       AS readingDuration
-        FROM logs l1
-                 JOIN logs l2
-                      ON l1.textbook_id  = l2.textbook_id
-                          AND l1.catalogue_id = l2.catalogue_id
-                          AND l1.rn = l2.rn - 1
-        WHERE EXTRACT(EPOCH FROM l2.add_datetime)
-                  - EXTRACT(EPOCH FROM l1.add_datetime)
-                  BETWEEN 55 AND 65
-        GROUP BY l1.textbook_id
+    <!-- 获取学生做题情况统计 -->
+    <select id="getStudentQuestionAnsweringStatistics" resultType="java.util.Map">
+        SELECT 
+            tc.id as chapterId,
+            tc.catalog_name as chapterName,
+            tc.catalog_level as chapterLevel,
+            tc.father_catalog_id as parentChapterId,
+            COALESCE(student_stats.question_answering_duration, 0) as questionAnsweringDuration,
+            COALESCE(student_stats.chapter_score, 0) as chapterScore,
+            COALESCE(student_stats.correct_rate, 0) as correctRate,
+            COALESCE(student_stats.total_questions, 0) as totalQuestions,
+            COALESCE(student_stats.correct_answers, 0) as correctAnswers,
+            COALESCE(student_stats.average_score, 0) as averageScore,
+            COALESCE(reading_stats.reading_duration, 0) as readingDuration,
+            COALESCE(student_stats.mastery_percentage, 0) as masteryPercentage
+        FROM textbook_catalog tc
+        LEFT JOIN (
+            -- 统计学生章节做题情况（参考chapter-question-correct-rate接口）
+            SELECT 
+                tqb.textbook_catalog_id,
+                COUNT(DISTINCT tqb.id) as questionBankCount,
+                COUNT(sfg.id) as total_questions,
+                -- 计算正确率：总得分 / 总满分 * 100
+                CASE
+                    WHEN SUM(qbl.total_score) > 0 THEN
+                        ROUND((SUM(sfg.final_score) / SUM(qbl.total_score)) * 100, 2)
+                    ELSE 0
+                END as correct_rate,
+                -- 统计正确作答次数（正确率 >= 60% 视为正确）
+                SUM(CASE
+                    WHEN qbl.total_score > 0 AND (sfg.final_score / qbl.total_score) >= 0.6 THEN 1
+                    ELSE 0
+                END) as correct_answers,
+                -- 计算平均得分
+                CASE 
+                    WHEN COUNT(sfg.id) > 0 THEN 
+                        ROUND(AVG(sfg.final_score), 2)
+                    ELSE 0 
+                END as average_score,
+                -- 计算章节得分（基于正确率）
+                CASE
+                    WHEN SUM(qbl.total_score) > 0 THEN
+                        ROUND((SUM(sfg.final_score) / SUM(qbl.total_score)) * 100, 2)
+                    ELSE 0
+                END as chapter_score,
+                -- 计算掌握程度百分比（基于正确率和答题数量）
+                CASE
+                    WHEN SUM(qbl.total_score) > 0 AND COUNT(sfg.id) > 0 THEN
+                        ROUND((SUM(sfg.final_score) / SUM(qbl.total_score)) * 100, 2)
+                    ELSE 0
+                END as mastery_percentage,
+                -- 估算做题时长（每题平均5分钟）
+                CASE 
+                    WHEN COUNT(sfg.id) > 0 THEN 
+                        COUNT(sfg.id) * 5
+                    ELSE 0 
+                END as question_answering_duration
+            FROM teaching_question_bank tqb
+            LEFT JOIN (
+                SELECT bank_id, SUM(score) as total_score
+                FROM questions_banks_list
+                GROUP BY bank_id
+            ) qbl ON tqb.id = qbl.bank_id
+            LEFT JOIN student_final_grade sfg ON tqb.id = sfg.bank_id AND sfg.student_id = #{studentId}
+            WHERE tqb.textbook_id = #{textbookId} AND tqb.status = 1
+            GROUP BY tqb.textbook_catalog_id
+        ) student_stats ON tc.id = student_stats.textbook_catalog_id
+        LEFT JOIN (
+            -- 统计学生章节阅读时长
+            SELECT 
+                t1.catalogue_id,
+                COUNT(*) as reading_duration
+            FROM (
+                SELECT 
+                    ll.catalogue_id,
+                    ll.add_datetime,
+                    ROW_NUMBER() OVER (PARTITION BY ll.catalogue_id ORDER BY ll.add_datetime) as rn
+                FROM learning_log ll
+                WHERE ll.textbook_id = #{textbookId} AND ll.creator = (
+                    SELECT user_id FROM student WHERE id = #{studentId}
+                )
+            ) t1
+            LEFT JOIN (
+                SELECT 
+                    ll.catalogue_id,
+                    ll.add_datetime,
+                    ROW_NUMBER() OVER (PARTITION BY ll.catalogue_id ORDER BY ll.add_datetime) as rn
+                FROM learning_log ll
+                WHERE ll.textbook_id = #{textbookId} AND ll.creator = (
+                    SELECT user_id FROM student WHERE id = #{studentId}
+                )
+            ) t2 ON t1.catalogue_id = t2.catalogue_id AND t1.rn = t2.rn - 1
+            WHERE t2.add_datetime IS NOT NULL 
+                AND EXTRACT(EPOCH FROM t2.add_datetime) - EXTRACT(EPOCH FROM t1.add_datetime) BETWEEN 55 AND 65
+            GROUP BY t1.catalogue_id
+        ) reading_stats ON tc.id = reading_stats.catalogue_id
+        WHERE tc.textbook_id = #{textbookId}
+        ORDER BY tc.catalog_level, tc.sort
     </select>
-
-
-
-    <select id="groupReadingTimeByDay" resultType="java.util.Map">
-        SELECT
-            TO_CHAR(add_datetime, 'YYYY-MM-DD') AS activity_date,
-            COUNT(*) AS count
-        FROM
-            learning_log
-        WHERE
-            creator = #{userId}
-          AND add_datetime BETWEEN #{startTime} AND #{endTime}
-        GROUP BY
-            TO_CHAR(add_datetime, 'YYYY-MM-DD')
-    </select>
-
-    <!-- 按天统计笔记数量 -->
-    <select id="groupNotesByDay" resultType="java.util.Map">
-        SELECT
-            TO_CHAR(add_datetime, 'YYYY-MM-DD') AS activity_date,
-            COUNT(*) AS count
-        FROM
-            learning_notes
-        WHERE
-            creator = #{userId}
-          AND add_datetime BETWEEN #{startTime} AND #{endTime}
-        GROUP BY
-            TO_CHAR(add_datetime, 'YYYY-MM-DD')
-    </select>
-
-    <!-- 按天统计答题次数 -->
-    <select id="groupQuestionsByDay" resultType="java.util.Map">
-        SELECT
-            TO_CHAR(add_datetime, 'YYYY-MM-DD') AS activity_date,
-            COUNT(*) AS count
-        FROM
-            teaching_question_bank-- 假设您的答题记录表是这个名字
-        WHERE
-            creator = #{userId}
-          AND add_datetime BETWEEN #{startTime} AND #{endTime}
-        GROUP BY
-            TO_CHAR(add_datetime, 'YYYY-MM-DD')
-    </select>
-
     <select id="countStudySessionsByTextbook" resultType="long">
         WITH UserLogsWithPrevious AS (
             -- 步骤1: 使用LAG窗口函数获取当前用户日志的上一条记录信息
@@ -98,10 +123,10 @@
         WHERE
             textbook_id = #{textbookId}
           AND (
-                prev_add_datetime IS NULL OR -- 该用户的第一条记录
-                prev_textbook_id != textbook_id OR -- 上一条是别的教材
-                -- 分别提取Epoch秒数再相减，以避免Kingbase中(timestamp-timestamp)返回bigint的问题
-                (EXTRACT(EPOCH FROM add_datetime) - EXTRACT(EPOCH FROM prev_add_datetime)) > 60
+            prev_add_datetime IS NULL OR -- 该用户的第一条记录
+            prev_textbook_id != textbook_id OR -- 上一条是别的教材
+            -- 分别提取Epoch秒数再相减，以避免Kingbase中(timestamp-timestamp)返回bigint的问题
+            (EXTRACT(EPOCH FROM add_datetime) - EXTRACT(EPOCH FROM prev_add_datetime)) > 60
             )
     </select>
 
@@ -112,4 +137,6 @@
                  JOIN course_textbook_list ctl on ccl.course_id = ctl.course_id
         where s.user_id = #{userId}
     </select>
+
+
 </mapper>

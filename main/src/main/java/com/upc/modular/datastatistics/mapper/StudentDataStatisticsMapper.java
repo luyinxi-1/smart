@@ -1,21 +1,20 @@
 package com.upc.modular.datastatistics.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.upc.modular.auth.entity.SysDictData;
+import com.upc.modular.course.entity.CourseClassList;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 import com.upc.modular.student.entity.Student;
-import com.upc.modular.group.entity.Group;
 import com.upc.modular.textbook.entity.LearningLog;
 import com.upc.modular.textbook.entity.Textbook;
 import org.apache.ibatis.annotations.MapKey;
-import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 import java.util.Map;
 
-@Mapper
-public interface StudentDataStatisticsMapper  extends BaseMapper<StudentStatisticsData>{
+public interface StudentDataStatisticsMapper extends BaseMapper<StudentStatisticsData> {
     @Select("select count(DISTINCT textbook_id) from learning_log where creator = #{currentUserId}")
     Long countTextbookByUserId(Long currentUserId);
     
@@ -76,6 +75,9 @@ public interface StudentDataStatisticsMapper  extends BaseMapper<StudentStatisti
 
     @Select("SELECT * FROM learning_log WHERE creator = #{userId} AND add_datetime BETWEEN #{startTime} AND #{endTime}")
     List<LearningLog> findAddDatetimeByTime(Long userId, String startTime, String endTime, int type);
+    
+    @Select("SELECT * FROM learning_log WHERE creator = #{userId} AND textbook_id IS NOT NULL AND catalogue_id IS NOT NULL AND add_datetime BETWEEN #{startTime} AND #{endTime} ORDER BY textbook_id, catalogue_id, add_datetime")
+    List<LearningLog> findChapterRecordsByTime(@Param("userId") Long userId, @Param("startTime") String startTime, @Param("endTime") String endTime, int type);
     @MapKey("date")
     List<Map<String, Object>> groupReadingTimeByDay(Long userId, String startTime, String endTime);
     @MapKey("date")
@@ -120,4 +122,7 @@ public interface StudentDataStatisticsMapper  extends BaseMapper<StudentStatisti
             ") qbl_total ON sfg.bank_id = qbl_total.bank_id " +
             "WHERE sfg.student_id = #{studentId}")
     Double getStudentScoreRate(@Param("studentId") Long studentId);
+
+    // 添加getStudentQuestionAnsweringStatistics方法的声明
+    List<Map<String, Object>> getStudentQuestionAnsweringStatistics(@Param("textbookId") Long textbookId, @Param("studentId") Long studentId);
 }
