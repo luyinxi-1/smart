@@ -228,7 +228,7 @@ public class StudentLearningLogServiceImpl extends ServiceImpl<StudentLearningLo
         }
 
         // 权限校验：只能操作自己的日志
-        if (!currentUserId.equals(log.getStudentId())) {
+        if (!currentUserId.equals(log.getUserId())) {
             throw new BusinessException(BusinessErrorEnum.NOT_PERMISSIONS, "只能删除自己的学习日志");
         }
 
