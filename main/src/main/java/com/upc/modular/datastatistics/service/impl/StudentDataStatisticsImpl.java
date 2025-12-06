@@ -52,6 +52,7 @@ import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -1083,18 +1084,23 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             }
 
             // 2. 设置响应头并输出
+            // ===== 2. 设置响应头并输出（关键：和系统统计那段完全同一套）=====
             String fileName = "学生阅读教材排行_" + studentId + ".xlsx";
-            String encodedFileName = URLEncoder.encode(fileName, "UTF-8")
-                    .replaceAll("\\+", "%20");
 
             response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-            response.setCharacterEncoding("UTF-8");
-            response.setHeader("Content-Disposition",
-                    "attachment; filename*=UTF-8''" + encodedFileName);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
 
-            ServletOutputStream out = response.getOutputStream();
-            workbook.write(out);
-            out.flush();
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name())
+                    .replaceAll("\\+", "%20");
+
+            // 和“导出系统数据”接口保持一致
+            response.setHeader("Content-Disposition",
+                    "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
+
+            try (ServletOutputStream out = response.getOutputStream()) {
+                workbook.write(out);
+                out.flush();
+            }
         } catch (IOException e) {
             throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "导出Excel失败");
         } finally {
@@ -1266,71 +1272,73 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         Page<StudentReadingRankParam> page = getStudentReadingRankByPage(groupName, studentName, 1L, 100000L);
         List<StudentReadingRankParam> data = page.getRecords();
 
-        // 2. 创建 Excel
         Workbook workbook = new XSSFWorkbook();
         try {
             Sheet sheet = workbook.createSheet("学生阅读排名");
             int rowIdx = 0;
 
-            // 表头行
+            // ===== 表头行 =====
             Row header = sheet.createRow(rowIdx++);
-            header.createCell(0).setCellValue("序号");
-            header.createCell(1).setCellValue("学生ID");
-            header.createCell(2).setCellValue("学生姓名");
-            header.createCell(3).setCellValue("班级ID");
-            header.createCell(4).setCellValue("班级名称");
-            header.createCell(5).setCellValue("阅读教材数量");
-            header.createCell(6).setCellValue("排名");
-            header.createCell(7).setCellValue("学习行为类型");
+            int col = 0;
+            header.createCell(col++).setCellValue("序号");
+            header.createCell(col++).setCellValue("学生姓名");
+            header.createCell(col++).setCellValue("班级名称");
+            header.createCell(col++).setCellValue("阅读教材数量");
+            header.createCell(col++).setCellValue("排名");
+            header.createCell(col++).setCellValue("学习行为类型");
 
-            // 数据行
+            // ===== 数据行（不再写学生ID、班级ID）=====
             int index = 1;
             for (StudentReadingRankParam param : data) {
                 Row row = sheet.createRow(rowIdx++);
-                int col = 0;
-                row.createCell(col++).setCellValue(index++);
+                col = 0;
+
+                row.createCell(col++).setCellValue(index++);  // 序号
+
                 row.createCell(col++).setCellValue(
-                        param.getStudentId() == null ? "" : String.valueOf(param.getStudentId()));
+                        param.getStudentName() == null ? "" : param.getStudentName()); // 学生姓名
+
                 row.createCell(col++).setCellValue(
-                        param.getStudentName() == null ? "" : param.getStudentName());
+                        param.getGroupName() == null ? "" : param.getGroupName()); // 班级名称
+
                 row.createCell(col++).setCellValue(
-                        param.getGroupId() == null ? "" : String.valueOf(param.getGroupId()));
+                        param.getReadingCount() == null ? 0L : param.getReadingCount()); // 阅读教材数量
+
                 row.createCell(col++).setCellValue(
-                        param.getGroupName() == null ? "" : param.getGroupName());
+                        param.getRank() == null ? 0L : param.getRank()); // 排名
+
                 row.createCell(col++).setCellValue(
-                        param.getReadingCount() == null ? 0L : param.getReadingCount());
-                row.createCell(col++).setCellValue(
-                        param.getRank() == null ? 0L : param.getRank());
-                row.createCell(col++).setCellValue(
-                        param.getBehavior() == null ? "" : param.getBehavior());
+                        param.getBehavior() == null ? "" : param.getBehavior()); // 学习行为类型
             }
 
             // 3. 设置响应头，输出到浏览器
             String fileName = "学生阅读排名.xlsx";
-            response.setContentType(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-            response.setCharacterEncoding("UTF-8");
-            // 处理中文文件名
-            String encodedFileName = URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
-            response.setHeader("Content-Disposition",
-                    "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
 
-            // 写出 Excel
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+// 和系统统计接口完全同一套
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name())
+                    .replaceAll("\\+", "%20");
+            response.setHeader("Content-Disposition",
+                    "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
+
             try (ServletOutputStream out = response.getOutputStream()) {
                 workbook.write(out);
                 out.flush();
             }
+
         } catch (IOException e) {
-            // 根据你们的异常体系自定义
             throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "导出学生阅读排名失败");
         } finally {
             try {
                 workbook.close();
             } catch (IOException e) {
-                // 忽略或打印日志
+                // ignore
             }
         }
     }
+
 
     /**
      * 根据教师用户ID获取有权限的班级列表
