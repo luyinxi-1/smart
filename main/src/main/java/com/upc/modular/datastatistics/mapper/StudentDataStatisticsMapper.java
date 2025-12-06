@@ -78,11 +78,14 @@ public interface StudentDataStatisticsMapper extends BaseMapper<StudentStatistic
     
     @Select("SELECT * FROM learning_log WHERE creator = #{userId} AND textbook_id IS NOT NULL AND catalogue_id IS NOT NULL AND add_datetime BETWEEN #{startTime} AND #{endTime} ORDER BY textbook_id, catalogue_id, add_datetime")
     List<LearningLog> findChapterRecordsByTime(@Param("userId") Long userId, @Param("startTime") String startTime, @Param("endTime") String endTime, int type);
-    @MapKey("date")
+
+    @MapKey("activity_date")
     List<Map<String, Object>> groupReadingTimeByDay(Long userId, String startTime, String endTime);
-    @MapKey("date")
+
+    @MapKey("activity_date")
     List<Map<String, Object>> groupNotesByDay(Long userId, String startTime, String endTime);
-    @MapKey("date")
+
+    @MapKey("activity_date")
     List<Map<String, Object>> groupQuestionsByDay(Long userId, String startTime, String endTime);
 
     @Select("SELECT COUNT(DISTINCT textbook_id) FROM learning_log WHERE creator = #{userId} AND add_datetime BETWEEN #{startTime} AND #{endTime}")
