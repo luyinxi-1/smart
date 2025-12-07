@@ -1061,4 +1061,47 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
 
         return teachingMaterialsList;
     }
+    @Override
+    public List<String> getFilelist(String path) {
+
+        if (path == null || path.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 1. 规范化传入的相对路径：去掉前后的空格、反斜杠转正斜杠、去掉开头的 /
+        String rel = path.trim().replace("\\", "/");
+        if (rel.startsWith("/")) {
+            rel = rel.substring(1);
+        }
+
+        try {
+            // 1. 获取上传根目录
+            String uploadRoot = System.getProperty("user.dir");
+            // 2. 计算本地实际目录：upload-root + 传入路径
+            Path baseDir = Paths.get(uploadRoot).toAbsolutePath().normalize();   // /opt/textbook-app
+            Path folder  = baseDir.resolve(rel).normalize();                     // /opt/textbook-app/upload/teaching_materials/...
+
+            // 安全检查：必须在 upload-root 下面，且存在并且是目录
+            if (!folder.startsWith(baseDir) || !Files.exists(folder) || !Files.isDirectory(folder)) {
+                return Collections.emptyList();
+            }
+
+            // 3. 递归遍历该目录下所有“文件”（不含文件夹）
+            try (Stream<Path> stream = Files.walk(folder)) {
+                return stream
+                        .filter(Files::isRegularFile)  // 只要文件，不要目录
+                        .map(p -> {
+                            // 转成以 upload 开头的相对路径，如：
+                            // upload/teaching_materials/H5/20251206/uuid/1.word
+                            Path relativePath = baseDir.relativize(p);
+                            return relativePath.toString().replace("\\", "/");
+                        })
+                        .collect(Collectors.toList());
+            }
+        } catch (IOException e) {
+            // 出错就记个日志，返回空列表
+            log.error("getFilelist 读取目录失败, path={}, error={}", path, e.getMessage(), e);
+            return Collections.emptyList();
+        }
+    }
 }
