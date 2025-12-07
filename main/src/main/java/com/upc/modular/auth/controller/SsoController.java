@@ -1,6 +1,7 @@
 package com.upc.modular.auth.controller;
 
 import com.upc.common.responseparam.R;
+import com.upc.config.IamProperties;
 import com.upc.modular.auth.dto.UserDTO;
 import com.upc.modular.auth.service.AuthService;
 import com.upc.modular.auth.service.impl.AuthServiceImpl;
@@ -8,6 +9,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -25,6 +27,8 @@ public class SsoController {
 
     @Autowired
     private AuthService authService;
+    @Autowired
+    private IamProperties iamProperties;
 
     /**
      * 统一认证登录入口
@@ -57,7 +61,14 @@ public class SsoController {
             authService.handleCallback(code, state, session);
             // 重定向到首页
             //response.sendRedirect("/");
-            response.sendRedirect("http://60.217.79.210:6190/#/publicHome");
+            //response.sendRedirect("http://60.217.79.210:6190/#/publicHome");
+            // 登录成功后跳转到配置的 front-host
+            String target = iamProperties.getFrontHost();
+            if (!StringUtils.hasText(target)) {
+                // 兜底：没有配置就回到根路径
+                target = "/";
+            }
+            response.sendRedirect(target);
         } catch (Exception e) {
             log.error("处理统一认证回调失败", e);
             response.sendRedirect("/login?error=auth_failed");
