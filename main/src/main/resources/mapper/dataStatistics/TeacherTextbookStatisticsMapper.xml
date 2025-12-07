@@ -5,53 +5,73 @@
     <!-- 各章节习题正确率统计 - 按照您的思路实现（总得分/总满分） -->
     <select id="getChapterQuestionCorrectRateStatistics"
             resultType="com.upc.modular.datastatistics.controller.param.ChapterQuestionCorrectRateParam">
-        SELECT
-            tc.id as chapterId,
-            tc.catalog_name as chapterName,
-            tc.catalog_level as chapterLevel,
-            tc.father_catalog_id as parentChapterId,
-            COALESCE(stat.questionBankCount, 0) as questionBankCount,
-            COALESCE(stat.totalAnswerCount, 0) as totalAnswerCount,
-            COALESCE(stat.correctAnswerCount, 0) as correctAnswerCount,
-            CASE
-                WHEN COALESCE(stat.totalAnswerCount, 0) = 0 THEN 0.0
-                ELSE ROUND(COALESCE(stat.correctAnswerCount, 0) * 100.0 / stat.totalAnswerCount, 2)
-            END as correctRate
-        FROM textbook_catalog tc
-        LEFT JOIN (
-            -- 按照您的思路：先查题库，再查总分，再计算正确率
+        WITH chapter_stats AS (
             SELECT
                 tqb.textbook_catalog_id,
-                COUNT(DISTINCT tqb.id) as questionBankCount,
-                COUNT(sfg.id) as totalAnswerCount,
-                -- 计算正确率：总得分 / 总满分 * 100
+                tqb.id as bank_id,
+                qbl.total_score as bank_total_score,
+                sfg.student_id,
+                sfg.final_score as student_final_score,
+                -- 计算每个学生的得分率
                 CASE
-                    WHEN SUM(qbl.total_score) > 0 THEN
-                        ROUND((SUM(sfg.final_score) / SUM(qbl.total_score)) * 100, 2)
+                    WHEN qbl.total_score > 0
+                        THEN sfg.final_score * 1.0 / qbl.total_score
                     ELSE 0
-                END as correctRate,
-                -- 统计正确作答次数（正确率 >= 60% 视为正确）
-                SUM(CASE
-                    WHEN qbl.total_score > 0 AND (sfg.final_score / qbl.total_score) >= 0.6 THEN 1
+                    END as student_score_rate,
+                -- 判断是否正确（得分率 >= 60%）
+                CASE
+                    WHEN qbl.total_score > 0
+                        AND (sfg.final_score * 1.0 / qbl.total_score) >= 0.6
+                        THEN 1
                     ELSE 0
-                END) as correctAnswerCount
+                    END as is_correct
             FROM teaching_question_bank tqb
-            -- 步骤1：查出教材对应的所有题库
-            LEFT JOIN (
-                -- 步骤2：统计每个题库的总分
+                     -- 题库总分
+                     INNER JOIN (
                 SELECT
                     bank_id,
                     SUM(score) as total_score
                 FROM questions_banks_list
                 GROUP BY bank_id
             ) qbl ON tqb.id = qbl.bank_id
-            -- 步骤3：联查学生最终成绩表
-            LEFT JOIN student_final_grade sfg ON tqb.id = sfg.bank_id
+                -- 学生答题（每个学生取最高分）
+                     LEFT JOIN (
+                SELECT
+                    bank_id,
+                    student_id,
+                    MAX(final_score) as final_score
+                FROM student_final_grade
+                GROUP BY bank_id, student_id
+            ) sfg ON tqb.id = sfg.bank_id
             WHERE tqb.textbook_id = #{textbookId}
-                AND tqb.status = 1
-            GROUP BY tqb.textbook_catalog_id
-        ) stat ON tc.id = stat.textbook_catalog_id
+              AND tqb.status = 1
+        )
+        SELECT
+            tc.id as chapterId,
+            tc.catalog_name as chapterName,
+            tc.catalog_level as chapterLevel,
+            tc.father_catalog_id as parentChapterId,
+            -- 题库数量
+            COUNT(DISTINCT cs.bank_id) as questionBankCount,
+            -- 总答题次数（去重后的学生数）
+            COUNT(DISTINCT cs.student_id || '-' || cs.bank_id) as totalAnswerCount,
+            -- 正确答题次数
+            SUM(cs.is_correct) as correctAnswerCount,
+            -- 正确率（正确次数 / 总次数）
+            CASE
+                WHEN COUNT(DISTINCT cs.student_id || '-' || cs.bank_id) = 0 THEN 0.0
+                ELSE ROUND(
+                        SUM(cs.is_correct) * 100.0 /
+                        COUNT(DISTINCT cs.student_id || '-' || cs.bank_id),
+                        2
+                     )
+                END as correctRate,
+            -- 平均得分率（额外统计）
+            ROUND(AVG(cs.student_score_rate) * 100, 2) as avgScoreRate
+        FROM textbook_catalog tc
+                 LEFT JOIN chapter_stats cs ON tc.id = cs.textbook_catalog_id
         WHERE tc.textbook_id = #{textbookId}
+        GROUP BY tc.id, tc.catalog_name, tc.catalog_level, tc.father_catalog_id
         ORDER BY tc.catalog_level, tc.sort
     </select>
 
