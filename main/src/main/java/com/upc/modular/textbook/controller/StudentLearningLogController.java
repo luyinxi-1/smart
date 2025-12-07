@@ -32,7 +32,7 @@ public class StudentLearningLogController {
         return studentLearningLogService.submitLog(logId);
     }
 
-    @ApiOperation("获取学习日志列表（通用：学生查自己，教师/管理查所有）")
+    @ApiOperation("获取学习日志列表（通用：学生查自己，教师查自己教材的。管理查所有）")
     @PostMapping("/page")
     public R<Page<StudentLearningLog>> getLogPage(@RequestBody StudentLearningLogPageSearchParam param) {
         Page<StudentLearningLog> page = studentLearningLogService.getLogPage(param);

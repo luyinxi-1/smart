@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
+import java.util.Map;
 
 public interface IStudentDataStatistics extends IService<StudentStatisticsData> {
     Long countStudentTextbookReading();
@@ -39,6 +41,14 @@ public interface IStudentDataStatistics extends IService<StudentStatisticsData> 
     Long countStudentTextbookReadingTimeByTime(String startTime, String endTime);
 
     StudentStudyPathReturnParam countStudentStudyPath();
+    
+    /**
+     * 统计学生按教材和章节的阅读时长
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 每个章节的阅读时长映射
+     */
+    Map<String, Long> countStudentTextbookReadingTimeByChapter(String startTime, String endTime);
 
     StudentBehaviorReturnParam analyzeStudentBehavior(String startTime, String endTime);
 
@@ -56,9 +66,15 @@ public interface IStudentDataStatistics extends IService<StudentStatisticsData> 
      * @param size 每页大小
      * @return 分页结果
      */
-    Page<StudentReadingRankParam> getStudentReadingRankByPage(String groupName, String studentName, Long current, Long size, String startTime, String endTime);
+    Page<StudentReadingRankParam> getStudentReadingRankByPage(String groupName, String studentName, Long current, Long size);
+    void exportStudentReadingRank(String groupName, String studentName, HttpServletResponse response);
 
     List<StudentTextbookRankParam> countStudentTextbookReadingRankByStudentId(Long studentId);
+
+    /**
+     * 根据学生ID导出阅读过的教材排名（Excel）
+     */
+    void exportStudentTextbookReadingRankByStudentId(Long studentId, HttpServletResponse response);
     
     /**
      * 获取学生的平均得分率

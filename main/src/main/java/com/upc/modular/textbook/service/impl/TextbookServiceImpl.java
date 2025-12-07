@@ -101,18 +101,44 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             return new ArrayList<>();
         }
 
-        // 2.【教材查询】通过关键词匹配所有相关教材
-        List<Textbook> matchedTextbooks = findAllTextbooksByKeywords(keywords);
+        // 2.【教材查询】通过关键词分别在教材名、章节名、章节内容中搜索
+        List<Textbook> textbooksByName = findAllTextbooksByKeywords(keywords);
+        List<Textbook> textbooksByCatalogName = findAllTextbooksByCatalogName(keywords);
+        List<Textbook> textbooksByContent = findAllTextbooksByContent(keywords);
+        // 3. 合并所有教材，去除重复项
+        Set<Long> textbookIds = new HashSet<>();
+        List<Textbook> allMatchedTextbooks = new ArrayList<>();
         
-        // 3. 获取当前用户信息
+        // 添加通过教材名匹配的教材
+        for (Textbook textbook : textbooksByName) {
+            if (textbookIds.add(textbook.getId())) {
+                allMatchedTextbooks.add(textbook);
+            }
+        }
+        
+        // 添加通过章节名匹配的教材
+        for (Textbook textbook : textbooksByCatalogName) {
+            if (textbookIds.add(textbook.getId())) {
+                allMatchedTextbooks.add(textbook);
+            }
+        }
+        
+        // 添加通过内容匹配的教材
+        for (Textbook textbook : textbooksByContent) {
+            if (textbookIds.add(textbook.getId())) {
+                allMatchedTextbooks.add(textbook);
+            }
+        }
+        
+        // 4. 获取当前用户信息
         UserInfoToRedis currentUser = UserUtils.get();
         Long currentUserId = currentUser != null ? currentUser.getId() : null;
         Integer userType = currentUser != null ? currentUser.getUserType() : null;
         
-        // 4. 遍历每个教材，查找匹配的章节和内容，并进行权限检查
+        // 5. 遍历每个教材，查找匹配的章节和内容，并进行权限检查
         List<TextbookIntelligentQueryReturnParam> results = new ArrayList<>();
         
-        for (Textbook textbook : matchedTextbooks) {
+        for (Textbook textbook : allMatchedTextbooks) {
             Long targetTextbookId = textbook.getId();
             String textbookName = textbook.getTextbookName();
             
@@ -153,6 +179,9 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             if (matchedContentCatalog == null) {
                 // 在整个教材范围内搜索内容
                 matchedContentCatalog = findContentByKeywords(keywords, targetTextbookId);
+                chapterName = (matchedContentCatalog != null && StringUtils.isNotBlank(matchedContentCatalog.getCatalogName()))
+                        ? stripHtml(matchedContentCatalog.getCatalogName())
+                        : null;
             }
 
             content = (matchedContentCatalog != null) ? stripHtml(matchedContentCatalog.getContent()) : null;
@@ -275,6 +304,50 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             }
         });
         return textbookMapper.selectList(wrapper);
+    }
+
+    /**
+     * 根据关键词列表模糊查询所有匹配的教材（基于章节名）
+     * 至少有一个关键词匹配即可 (OR逻辑)
+     * 只返回已发布的教材 (release_status = 1)
+     * 对于每本教材只取一条匹配记录
+     */
+    private List<Textbook> findAllTextbooksByCatalogName(List<String> keywords) {
+        // 使用自定义SQL直接获取每本教材的一个匹配记录
+        List<Long> textbookIds = textbookCatalogMapper.selectDistinctTextbookIdsByCatalogName(keywords);
+        
+        if (textbookIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // 查询对应的教材信息
+        MyLambdaQueryWrapper<Textbook> textbookWrapper = new MyLambdaQueryWrapper<>();
+        textbookWrapper.in(Textbook::getId, textbookIds)
+                      .eq(Textbook::getReleaseStatus, 1); // 只查询已发布的教材
+        
+        return textbookMapper.selectList(textbookWrapper);
+    }
+
+    /**
+     * 根据关键词列表模糊查询所有匹配的教材（基于章节内容）
+     * 至少有一个关键词匹配即可 (OR逻辑)
+     * 只返回已发布的教材 (release_status = 1)
+     * 对于每本教材只取一条匹配记录
+     */
+    private List<Textbook> findAllTextbooksByContent(List<String> keywords) {
+        // 使用自定义SQL直接获取每本教材的一个匹配记录
+        List<Long> textbookIds = textbookCatalogMapper.selectDistinctTextbookIdsByContent(keywords);
+        
+        if (textbookIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // 查询对应的教材信息
+        MyLambdaQueryWrapper<Textbook> textbookWrapper = new MyLambdaQueryWrapper<>();
+        textbookWrapper.in(Textbook::getId, textbookIds)
+                      .eq(Textbook::getReleaseStatus, 1); // 只查询已发布的教材
+        
+        return textbookMapper.selectList(textbookWrapper);
     }
 
     /**
@@ -588,6 +661,106 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     public VersionCheckResultDto checkStatusAndVersion(Long textbookId, String clientVersion) {
         System.out.println("Service层收到版本校验请求 - 教材ID: " + textbookId);
 
+        // 1. 从数据库获取教材的完整信息
+        Textbook serverTextbook = this.getById(textbookId);
+
+        // 2. 检查教材是否存在
+        if (serverTextbook == null) {
+            throw new BusinessException(BusinessErrorEnum.NO_EXIT, "服务器未找到ID为 " + textbookId + " 的教材");
+        }
+
+        Integer releaseStatus = serverTextbook.getReleaseStatus();
+        Integer reviewStatus = serverTextbook.getReviewStatus();
+
+        System.out.println("资格审查 - 发布状态: " + releaseStatus + ", 审查状态: " + reviewStatus);
+
+        // 3. 判断是否满足前置条件 (我们假设状态为 1 代表 "已发布" 和 "已审查")
+        boolean isAvailable = (releaseStatus != null && releaseStatus.equals(1)) &&
+                (reviewStatus != null && reviewStatus.equals(1));
+
+        if (!isAvailable) {
+            // **情况A：资格审查不通过**
+            System.out.println("资格审查不通过，教材当前不可用。");
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "UNAVAILABLE",
+                    "该教材当前未发布或未通过审查，无法进行版本比较。",
+                    null
+            );
+        }
+
+        // 4. 资格审查通过后，进行版本比较
+        System.out.println("资格审查通过，开始进行版本比较...");
+
+        // ====== 关键改动：先规范化两个版本号 ======
+        String serverVersionRaw = serverTextbook.getTextbookVersion();
+        String serverVersion = (serverVersionRaw == null || serverVersionRaw.trim().isEmpty())
+                ? null
+                : serverVersionRaw.trim();
+
+        String clientVersionNorm = (clientVersion == null || clientVersion.trim().isEmpty())
+                ? null
+                : clientVersion.trim();
+
+        // 4.1 如果服务端和客户端都是 null -> 视为无需更新
+        if (serverVersion == null && clientVersionNorm == null) {
+            System.out.println("服务器版本和客户端版本均为 NULL，视为无需更新。");
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "MATCH",
+                    "服务器与客户端均未设置版本号，视为无需更新。",
+                    null  // 不返回 serverVersion
+            );
+        }
+
+        // 4.2 只有服务端有版本号，客户端为 null -> 建议更新
+        if (serverVersion != null && clientVersionNorm == null) {
+            System.out.println("客户端版本为 NULL，服务器有版本号，建议更新。 serverVersion = " + serverVersion);
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "MISMATCH",
+                    "服务器已设置版本号，客户端未设置，建议更新。",
+                    serverVersion
+            );
+        }
+
+        // 4.3 只有客户端有版本号，服务器为 null -> 给个明确状态（按你业务自行决定语义）
+        if (serverVersion == null && clientVersionNorm != null) {
+            System.out.println("服务器版本为 NULL，客户端有版本号，无法比较。 clientVersion = " + clientVersionNorm);
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "NO_SERVER_VERSION",
+                    "服务器未设置版本号，无法判断是否需要更新。",
+                    null
+            );
+        }
+
+        // 4.4 双方都有版本号，正常比较
+        if (serverVersion.equals(clientVersionNorm)) {
+            // **情况B：资格审查通过，且版本一致**
+            System.out.println("版本号一致。");
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "MATCH",
+                    "版本一致，无需更新。",
+                    null
+            );
+        } else {
+            // **情况C：资格审查通过，但版本不一致**
+            System.out.println("版本号不一致！服务器版本: " + serverVersion + ", 客户端版本: " + clientVersionNorm);
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "MISMATCH",
+                    "版本不一致，建议更新。",
+                    serverVersion
+            );
+        }
+    }
+
+    /*    @Override
+    public VersionCheckResultDto checkStatusAndVersion(Long textbookId, String clientVersion) {
+        System.out.println("Service层收到版本校验请求 - 教材ID: " + textbookId);
+
         // 1. 从数据库获取教材的完整信息 (可以直接调用 IService 提供的方法)
         Textbook serverTextbook = this.getById(textbookId);
 
@@ -639,7 +812,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                     serverVersion // 附带服务器的最新版本号
             );
         }
-    }
+    }*/
     @Override
     public Textbook downloadTextbookInfo(Long textbookId) {
 
@@ -718,7 +891,31 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
 
     @Override
     public Page<TextbookHotnessDto> getTextbookHotnessPage(Page<TextbookHotnessDto> page) {
-        return textbookMapper.selectTextbookHotnessPage(page);
+        // 获取当前用户信息
+        UserInfoToRedis currentUser = UserUtils.get();
+        Long currentUserId = currentUser != null ? currentUser.getId() : null;
+        Integer userType = currentUser != null ? currentUser.getUserType() : null;
+
+        // 先获取所有教材热度数据
+        Page<TextbookHotnessDto> resultPage = textbookMapper.selectTextbookHotnessPage(page);
+        
+        // 对结果进行权限过滤
+        List<TextbookHotnessDto> filteredRecords = resultPage.getRecords().stream()
+                .filter(dto -> {
+                    // 管理员可以直接查看所有教材
+                    if (userType != null && userType == 0) {
+                        return true;
+                    }
+                    // 其他用户需要检查权限
+                    return hasTextbookAccess(dto.getId(), currentUserId, userType);
+                })
+                .collect(Collectors.toList());
+                
+        // 更新分页结果
+        resultPage.setRecords(filteredRecords);
+        resultPage.setTotal(filteredRecords.size());
+        
+        return resultPage;
     }
 
     @Override
@@ -926,57 +1123,91 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     @Override
     public List<TextbookContentSearchResult> smartSearchInTextbook(Long textbookId, String query) {
         List<TextbookContentSearchResult> results = new ArrayList<>();
-        
+
+        // 【新增】用于去重的 Set，记录已经存在的 fullPath
+        Set<String> existingFullPaths = new HashSet<>();
+
         // 解析关键词
         List<String> keywords = Arrays.stream(query.split("[,，]"))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toList());
-        
+
         if (keywords.isEmpty()) {
             return results;
         }
-        
+
         // 获取教材下的所有章节内容
         MyLambdaQueryWrapper<TextbookCatalog> wrapper = new MyLambdaQueryWrapper<>();
         wrapper.eq(TextbookCatalog::getTextbookId, textbookId)
-               .isNotNull(TextbookCatalog::getContent);
+                .and(w -> w.isNotNull(TextbookCatalog::getContent)
+                        .or()
+                        .isNotNull(TextbookCatalog::getCatalogName));
         List<TextbookCatalog> catalogs = textbookCatalogMapper.selectList(wrapper);
-        
-        // 遍历每个章节，查找匹配的内容
+
+        // 遍历每个章节
         for (TextbookCatalog catalog : catalogs) {
             String content = catalog.getContent();
-            if (StringUtils.isBlank(content)) {
-                continue;
+            String catalogName = catalog.getCatalogName();
+
+            // 1. 检查章节名称匹配
+            boolean catalogNameMatches = false;
+            if (StringUtils.isNotBlank(catalogName)) {
+                String cleanCatalogName = stripHtml(catalogName);
+                catalogNameMatches = keywords.stream()
+                        .allMatch(keyword -> cleanCatalogName.contains(keyword));
             }
-            
-            // 移除HTML标签后再进行匹配
-            String cleanContent = stripHtml(content);
-            
-            // 检查内容是否包含所有关键词
-            boolean allKeywordsMatch = keywords.stream()
-                    .allMatch(keyword -> cleanContent.contains(keyword));
-            
-            if (allKeywordsMatch) {
-                // 查找匹配位置附近的文本片段
-                String matchedContent = extractMatchedContent(content, keywords);
-                
-                // 构建完整路径
+
+            // 如果章节名称匹配
+            if (catalogNameMatches) {
                 String fullPath = buildCatalogFullPath(catalog);
-                
-                // 获取二级目录ID
-                Long levelTwoCatalogId = getLevelTwoCatalogId(catalog);
-                
-                // 创建结果对象
+
+                // 【关键修改】如果路径已存在，直接跳过，不再添加
+                if (existingFullPaths.contains(fullPath)) {
+                    continue;
+                }
+
+                Long levelOneCatalogId = getLevelOneCatalogId(catalog);
+
                 TextbookContentSearchResult result = new TextbookContentSearchResult();
                 result.setFullPath(fullPath);
-                result.setLevelTwoCatalogId(levelTwoCatalogId);
-                result.setMatchedContent(matchedContent);
-                
+                result.setCatalogId(levelOneCatalogId);
+                result.setMatchedContent(null);
+
                 results.add(result);
+                existingFullPaths.add(fullPath); // 【关键修改】标记该路径已处理
+
+                continue; // 命中名称后，跳过后续内容检查
+            }
+
+            // 2. 检查内容匹配
+            if (StringUtils.isNotBlank(content)) {
+                String cleanContent = stripHtml(content);
+                boolean allKeywordsMatch = keywords.stream()
+                        .allMatch(keyword -> cleanContent.contains(keyword));
+
+                if (allKeywordsMatch) {
+                    String fullPath = buildCatalogFullPath(catalog);
+
+                    // 【关键修改】再次检查去重（防止虽然名字没匹配，但内容匹配时生成了同样的路径）
+                    if (existingFullPaths.contains(fullPath)) {
+                        continue;
+                    }
+
+                    String matchedContent = extractMatchedContent(content, keywords);
+                    Long levelOneCatalogId = getLevelOneCatalogId(catalog);
+
+                    TextbookContentSearchResult result = new TextbookContentSearchResult();
+                    result.setFullPath(fullPath);
+                    result.setCatalogId(levelOneCatalogId);
+                    result.setMatchedContent(matchedContent);
+
+                    results.add(result);
+                    existingFullPaths.add(fullPath); // 【关键修改】标记该路径已处理
+                }
             }
         }
-        
+
         return results;
     }
     
@@ -1038,17 +1269,17 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     }
     
     /**
-     * 获取二级目录ID（catalog_level为2的目录）
+     * 获取一级目录ID（catalog_level为1的目录）
      * @param catalog 章节
-     * @return 二级目录ID
+     * @return 一级目录ID
      */
-    private Long getLevelTwoCatalogId(TextbookCatalog catalog) {
-        // 如果当前章节就是二级目录
-        if (catalog.getCatalogLevel() != null && catalog.getCatalogLevel() == 2) {
+    private Long getLevelOneCatalogId(TextbookCatalog catalog) {
+        // 如果当前章节就是一级目录
+        if (catalog.getCatalogLevel() != null && catalog.getCatalogLevel() == 1) {
             return catalog.getId();
         }
         
-        // 向上查找直到找到二级目录
+        // 向上查找直到找到一级目录
         Long parentId = catalog.getFatherCatalogId();
         TextbookCatalog current = catalog;
         
@@ -1058,8 +1289,8 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                 break;
             }
             
-            // 如果找到二级目录
-            if (parentCatalog.getCatalogLevel() != null && parentCatalog.getCatalogLevel() == 2) {
+            // 如果找到一级目录
+            if (parentCatalog.getCatalogLevel() != null && parentCatalog.getCatalogLevel() == 1) {
                 return parentCatalog.getId();
             }
             

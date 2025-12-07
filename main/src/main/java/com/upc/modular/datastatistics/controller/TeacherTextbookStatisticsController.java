@@ -11,6 +11,7 @@ import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
 /**
@@ -44,6 +45,7 @@ public class TeacherTextbookStatisticsController {
         return R.ok(teacherTextbookStatisticsService.getTeacherTextbookStatisticsOverview(teacherId));
     }
 
+
     @ApiOperation("获取教材阅读人员统计")
     @PostMapping("/reader-statistics")
     public R<List<ReaderStatisticsParam>> getTextbookReaderStatistics(@RequestBody TextbookDataStatisticsRequestParam param) {
@@ -55,6 +57,18 @@ public class TeacherTextbookStatisticsController {
     public R<List<StudentQuestionAnsweringStatisticsParam>> getStudentQuestionAnsweringStatistics(@RequestBody StudentQuestionAnsweringRequestParam param) {
         return R.ok(teacherTextbookStatisticsService.getStudentQuestionAnsweringStatistics(param.getTextbookId(), param.getStudentId()));
     }
+
+/*    @ApiOperation("导出学生做题情况统计（Excel）")
+    @PostMapping("/student-question-answering-statistics/export")
+    public void exportStudentQuestionAnsweringStatistics(@RequestBody StudentQuestionAnsweringRequestParam param,
+                                                         HttpServletResponse response) {
+        teacherTextbookStatisticsService.exportStudentQuestionAnsweringStatistics(
+                param.getTextbookId(),
+                param.getStudentId(),
+                response
+        );
+    }*/
+
 
     @ApiOperation("按时间统计交流反馈新增数量")
     @PostMapping("/communication-feedback-by-time")

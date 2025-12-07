@@ -12,7 +12,19 @@ import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URLEncoder;
+
+
 import java.util.List;
+import java.util.Map;
 
 @Api(tags = "学生数据统计")
 @RestController("/count")
@@ -144,13 +156,24 @@ public class StudentDataStatisticsController {
             @RequestParam(required = false) String groupName,
             @RequestParam(required = false) String studentName,
             @RequestParam(defaultValue = "1") Long current,
-            @RequestParam(defaultValue = "10") Long size,
-            @RequestParam String startTime,
-            @RequestParam String endTime) {
+            @RequestParam(defaultValue = "10") Long size
+           ) {
 
-        Page<StudentReadingRankParam> page = iStudentDataStatistics.getStudentReadingRankByPage(groupName, studentName, current, size, startTime, endTime);
+        Page<StudentReadingRankParam> page = iStudentDataStatistics.getStudentReadingRankByPage(groupName, studentName, current, size);
         return R.ok(page);
     }
+
+    @ApiOperation("导出学生阅读排名（Excel）")
+    @GetMapping("/reading-rank-export")
+    public void exportStudentReadingRank(
+            @RequestParam(required = false) String groupName,
+            @RequestParam(required = false) String studentName,
+            HttpServletResponse response
+    ) {
+        // 所有业务逻辑交给 Service
+        iStudentDataStatistics.exportStudentReadingRank(groupName, studentName, response);
+    }
+
     @ApiOperation("根据学生ID查询阅读过的教材，按阅读量排名返回")
     @GetMapping("/textbook-rank-by-student")
     public R<List<StudentTextbookRankParam>> countStudentTextbookReadingRankByStudentId(
@@ -158,6 +181,27 @@ public class StudentDataStatisticsController {
     ){
         return R.ok(iStudentDataStatistics.countStudentTextbookReadingRankByStudentId(studentId));
     }
+
+    @ApiOperation("根据学生ID导出阅读过的教材排名（Excel）")
+    @GetMapping("/textbook-rank-by-student/export")
+    public void exportStudentTextbookReadingRankByStudentId(
+            @RequestParam Long studentId,
+            HttpServletResponse response
+    ) {
+        // 所有业务逻辑都交给 Service
+        iStudentDataStatistics.exportStudentTextbookReadingRankByStudentId(studentId, response);
+    }
+
+    @ApiOperation("统计学生按教材和章节的阅读时长")
+    @GetMapping("/reading-time-by-chapter")
+    public R<Map<String, Long>> countStudentTextbookReadingTimeByChapter(
+            @RequestParam String startTime,
+            @RequestParam String endTime
+    ) {
+        return R.ok(iStudentDataStatistics.countStudentTextbookReadingTimeByChapter(startTime, endTime));
+    }
+
+
 
     @ApiOperation("学生答题正确率")
     @GetMapping("/score-rate")

@@ -34,4 +34,4 @@ public class ChapterQuestionCorrectRateParam {
 
     @ApiModelProperty("正确率")
     private Double correctRate;
-} 
+}

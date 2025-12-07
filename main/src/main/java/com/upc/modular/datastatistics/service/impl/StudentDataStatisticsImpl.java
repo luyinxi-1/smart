@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.common.utils.UserUtils;
+import com.upc.exception.BusinessErrorEnum;
+import com.upc.exception.BusinessException;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.mapper.SysUserMapper;
 import com.upc.modular.auth.service.ISysUserService;
@@ -14,9 +16,11 @@ import com.upc.modular.course.service.ICourseClassListService;
 import com.upc.modular.course.service.ICourseService;
 import com.upc.modular.course.service.ICourseTextbookListService;
 import com.upc.modular.datastatistics.controller.param.*;
+import com.upc.modular.datastatistics.service.ISystemStatisticsService;
 import com.upc.modular.group.entity.Group;
 import com.upc.modular.group.mapper.GroupMapper;
 import com.upc.modular.teacher.mapper.TeacherMapper;
+import com.upc.modular.textbook.entity.TextbookCatalog;
 import org.apache.commons.math3.stat.descriptive.moment.Variance;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 import com.upc.modular.datastatistics.mapper.StudentDataStatisticsMapper;
@@ -29,7 +33,27 @@ import com.upc.modular.textbook.param.TextbookTree;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.net.URLEncoder;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.DataFormat;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -39,6 +63,10 @@ import java.util.stream.Collectors;
 public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatisticsMapper,StudentStatisticsData> implements IStudentDataStatistics {
     // 完成度阈值（完成阅读）
     private static final long COMPLETION_THRESHOLD = 70L;
+    // 阅读时间计算阈值
+    private static final long MIN_DIFF_SECONDS = 55;
+    private static final long MAX_DIFF_SECONDS = 65;
+    
     @Autowired
     private StudentDataStatisticsMapper studentDataStatisticsMapper;
 
@@ -68,6 +96,8 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
 
     @Autowired
     private ICourseClassListService courseClassListService;
+    @Autowired
+    private ISystemStatisticsService systemStatisticsService;
 
     /**
      * 统计学生阅读的教材数量
@@ -770,74 +800,232 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
      */
     @Override
     public List<StudentTextbookRankParam> countStudentTextbookReadingRankByStudentId(Long studentId) {
-        // 先根据studentId获取userId
+        // 1. 先根据 studentId 获取 userId
         Student student = studentMapper.selectById(studentId);
         if (student == null || student.getUserId() == null) {
             return new ArrayList<>(); // 学生不存在或没有关联用户
         }
-        
         Long userId = student.getUserId();
-        
-        //从数据库获取该用户的所有学习日志记录
+
+        // 2. 从数据库获取该用户的所有学习日志记录
         List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(userId);
 
         if (records == null || records.size() < 2) {
             return new ArrayList<>();
         }
 
-        // 定义时间差的容忍范围，用于判断是否为连续阅读
+        // 3. 定义时间差容忍范围，用于判断是否为"连续阅读"
         final long MIN_DIFF_SECONDS = 55;
         final long MAX_DIFF_SECONDS = 65;
 
-        // 使用Map按教材ID分组统计有效阅读时长
-        // Key: textbookId, Value: readingTime
-        Map<Long, Long> textbookReadingTimeMap = new HashMap<>();
+        // 4. 先按"教材"分组
+        Map<Long, List<LearningLog>> logsByTextbook = records.stream()
+                .filter(log -> log.getTextbookId() != null)
+                .collect(Collectors.groupingBy(LearningLog::getTextbookId));
 
-        for (int i = 0; i < records.size() - 1; i++) {
-            LearningLog currentLog = records.get(i);
-            LearningLog nextLog = records.get(i + 1);
-
-            if (currentLog.getAddDatetime() == null || nextLog.getAddDatetime() == null) {
-                continue;
-            }
-
-            // 必须是同一本教材的连续记录才能计算时长
-            if (!Objects.equals(currentLog.getTextbookId(), nextLog.getTextbookId())) {
-                continue;
-            }
-
-            // 计算两条记录之间的时间差
-            Duration duration = Duration.between(currentLog.getAddDatetime(), nextLog.getAddDatetime());
-            long seconds = duration.getSeconds();
-
-            // 如果时间差在预设范围内，则视为有效阅读，时长+1
-            if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
-                Long textbookId = currentLog.getTextbookId();
-                textbookReadingTimeMap.put(textbookId, textbookReadingTimeMap.getOrDefault(textbookId, 0L) + 1);
-            }
-        }
-
-        //将统计结果从Map转换为List<StudentTextbookRankParam>
+        // 5. 每本教材单独计算"有效阅读次数"
+        //    关键修改：不再跳过记录数少的教材，为所有教材创建记录
         List<StudentTextbookRankParam> result = new ArrayList<>();
-        for (Map.Entry<Long, Long> entry : textbookReadingTimeMap.entrySet()) {
-            Long textbookId = entry.getKey();
-            Long readingTime = entry.getValue();
 
-            // 根据教材ID获取教材信息
+        for (Map.Entry<Long, List<LearningLog>> entry : logsByTextbook.entrySet()) {
+            Long textbookId = entry.getKey();
+            List<LearningLog> list = entry.getValue();
+
+//            Long readingTime = 0L;  // 默认阅读时长为0
+//
+//            // 只有当教材有≥2条记录时，才计算有效阅读
+//            if (list.size() >= 2) {
+//                // 确保每本教材内部按时间排序
+//                list.sort(Comparator.comparing(LearningLog::getAddDatetime));
+//
+//                // 计算有效阅读次数
+//                for (int i = 0; i < list.size() - 1; i++) {
+//                    LearningLog currentLog = list.get(i);
+//                    LearningLog nextLog = list.get(i + 1);
+//
+//                    if (currentLog.getAddDatetime() == null || nextLog.getAddDatetime() == null) {
+//                        continue;
+//                    }
+//
+//                    long seconds = Duration.between(currentLog.getAddDatetime(), nextLog.getAddDatetime()).getSeconds();
+//
+//                    // 时间差在预设范围内，视为有效阅读
+//                    if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
+//                        readingTime += 1;  // 一次有效阅读增加1
+//                    }
+//                }
+//            }
+            // 注意：这里不再有 continue，即使list.size() < 2也会继续处理
+
+            // 修改部分：使用getStudentQuestionAnsweringStatistics方法获取各章节阅读时间并求和
+            Long chapterReadingTime = 0L;
+            List<Map<String, Object>> rawData = studentDataStatisticsMapper.getStudentQuestionAnsweringStatistics(textbookId, studentId);
+            if (rawData != null && !rawData.isEmpty()) {
+                for (Map<String, Object> data : rawData) {
+                    Object readingDurationObj = data.get("readingDuration");
+                    if (readingDurationObj instanceof Number) {
+                        chapterReadingTime += ((Number) readingDurationObj).longValue();
+                    }
+                }
+            }
+
+            // 总阅读时间 = 连续阅读次数 + 章节阅读时间
+            Long totalReadingTime = chapterReadingTime;
+
+            // 根据教材 ID 获取教材信息
             Textbook textbook = studentDataStatisticsMapper.getTextbookById(textbookId);
             String textbookName = (textbook != null) ? textbook.getTextbookName() : "未知教材";
 
             // 创建并填充排行参数对象
-            result.add(new StudentTextbookRankParam()
+            StudentTextbookRankParam param = new StudentTextbookRankParam()
                     .setTextbook_id(textbookId)
                     .setTextbook_name(textbookName)
-                    .setRead_time(readingTime));
+                    .setRead_time(totalReadingTime);  // 使用总阅读时间
+
+            // 计算教材掌握度
+            Double mastery = Double.parseDouble(String.format("%.2f", calculateTextbookMastery(studentId, textbookId)));
+            param.setMastery(mastery);
+
+            result.add(param);
         }
 
-        // 按阅读时长（read_time）进行降序排序
+        // 6. 按阅读时长（read_time）降序排序
         result.sort(Comparator.comparingLong(StudentTextbookRankParam::getRead_time).reversed());
 
         return result;
+    }
+
+    @Override
+    public void exportStudentTextbookReadingRankByStudentId(Long studentId, HttpServletResponse response) {
+        // 1. 复用已有统计方法
+        List<StudentTextbookRankParam> data = countStudentTextbookReadingRankByStudentId(studentId);
+
+        Workbook workbook = new XSSFWorkbook();
+        try {
+            Sheet sheet = workbook.createSheet("阅读排行");
+            int rowIdx = 0;
+
+            // ===== 创建“保留两位小数”的样式 =====
+            DataFormat dataFormat = workbook.createDataFormat();
+            CellStyle twoDecimalStyle = workbook.createCellStyle();
+            twoDecimalStyle.setDataFormat(dataFormat.getFormat("0.00"));
+
+            // ===== 表头行（不再导出教材ID）=====
+            Row header = sheet.createRow(rowIdx++);
+            header.createCell(0).setCellValue("序号");
+            header.createCell(1).setCellValue("教材名称");
+            header.createCell(2).setCellValue("有效阅读次数");
+            header.createCell(3).setCellValue("掌握度");
+
+            // ===== 数据行 =====
+            if (data != null) {
+                for (int i = 0; i < data.size(); i++) {
+                    StudentTextbookRankParam p = data.get(i);
+                    Row row = sheet.createRow(rowIdx++);
+
+                    // 序号
+                    row.createCell(0).setCellValue(i + 1);
+
+                    // 教材名称
+                    row.createCell(1).setCellValue(
+                            p.getTextbook_name() == null ? "" : p.getTextbook_name()
+                    );
+
+                    // 有效阅读次数（read_time 是 long，直接写）
+                    row.createCell(2).setCellValue(p.getRead_time());
+
+                    // 掌握度：数值 + 两位小数样式
+                    Cell masteryCell = row.createCell(3);
+                    if (p.getMastery() != null) {
+                        masteryCell.setCellValue(p.getMastery());
+                        masteryCell.setCellStyle(twoDecimalStyle);
+                    } else {
+                        masteryCell.setCellValue("");
+                    }
+                }
+            }
+
+            // 自动列宽（现在只有 0~3 四列）
+            for (int i = 0; i <= 3; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            // 2. 设置响应头并输出
+            // ===== 2. 设置响应头并输出（关键：和系统统计那段完全同一套）=====
+            String fileName = "学生阅读教材排行_" + studentId + ".xlsx";
+
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name())
+                    .replaceAll("\\+", "%20");
+
+            // 和“导出系统数据”接口保持一致
+            response.setHeader("Content-Disposition",
+                    "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
+
+            try (ServletOutputStream out = response.getOutputStream()) {
+                workbook.write(out);
+                out.flush();
+            }
+        } catch (IOException e) {
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "导出Excel失败");
+        } finally {
+            try {
+                workbook.close();
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
+
+    /**
+     * 计算学生对某个教材的掌握度
+     * @param studentId 学生ID
+     * @param textbookId 教材ID
+     * @return 掌握度百分比
+     */
+    private Double calculateTextbookMastery(Long studentId, Long textbookId) {
+        try {
+            // 使用反射调用systemStatisticsService.getStudentChapterMastery方法
+            List<ChapterMasteryVO> chapterMasteryList = systemStatisticsService.getStudentChapterMastery(studentId, textbookId);
+            
+            if (chapterMasteryList == null || chapterMasteryList.isEmpty()) {
+                return 0.0;
+            }
+            
+            // 过滤掉没有题目的章节(-1标记)
+            List<ChapterMasteryVO> validChapters = chapterMasteryList.stream()
+                    .filter(chapter -> !"-1".equals(chapter.getMasteryPercentage()))
+                    .collect(Collectors.toList());
+            
+            if (validChapters.isEmpty()) {
+                return 0.0;
+            }
+            
+            // 计算平均掌握度
+            double totalMastery = 0.0;
+            int validChapterCount = 0;
+            
+            for (ChapterMasteryVO chapter : validChapters) {
+                try {
+                    double mastery = Double.parseDouble(chapter.getMasteryPercentage());
+                    totalMastery += mastery;
+                    validChapterCount++;
+                } catch (NumberFormatException e) {
+                    // 忽略无法解析的掌握度数据
+                }
+            }
+            
+            if (validChapterCount == 0) {
+                return 0.0;
+            }
+            
+            return totalMastery / validChapterCount;
+        } catch (Exception e) {
+            // 发生异常时返回0掌握度
+            return 0.0;
+        }
     }
 
     /**
@@ -866,10 +1054,8 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
      * @param size 每页大小
      * @return 分页结果
      */
-    public Page<StudentReadingRankParam> getStudentReadingRankByPage(String groupName, String studentName, Long current, Long size, String startTime,String endTime) {
+    public Page<StudentReadingRankParam> getStudentReadingRankByPage(String groupName, String studentName, Long current, Long size) {
         Long currentUserId = UserUtils.get().getId();
-        // 获取当前用户信息
-        SysTbuser currentUser = sysUserMapper.selectById(currentUserId);
         
         // 获取有权限的班级列表
         List<Group> authorizedGroups = getGroupsByTeacherUserId(currentUserId);
@@ -927,7 +1113,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             param.setReadingCount(readingCount == null ? 0L : readingCount);
             
             // 调用countStudentBehavior接口，获取学生行为分析结果
-            StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(startTime,endTime);
+            StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(null,null);
             param.setBehavior(behaviorParam.getHabitType());
             
             result.add(param);
@@ -946,7 +1132,81 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         
         return finalPage;
     }
-    
+
+    @Override
+    public void exportStudentReadingRank(String groupName, String studentName, HttpServletResponse response) {
+        // 1. 复用已有分页统计逻辑（这里给一个足够大的 size，一次性导出所有）
+        Page<StudentReadingRankParam> page = getStudentReadingRankByPage(groupName, studentName, 1L, 100000L);
+        List<StudentReadingRankParam> data = page.getRecords();
+
+        Workbook workbook = new XSSFWorkbook();
+        try {
+            Sheet sheet = workbook.createSheet("学生阅读排名");
+            int rowIdx = 0;
+
+            // ===== 表头行 =====
+            Row header = sheet.createRow(rowIdx++);
+            int col = 0;
+            header.createCell(col++).setCellValue("序号");
+            header.createCell(col++).setCellValue("学生姓名");
+            header.createCell(col++).setCellValue("班级名称");
+            header.createCell(col++).setCellValue("阅读教材数量");
+            header.createCell(col++).setCellValue("排名");
+            header.createCell(col++).setCellValue("学习行为类型");
+
+            // ===== 数据行（不再写学生ID、班级ID）=====
+            int index = 1;
+            for (StudentReadingRankParam param : data) {
+                Row row = sheet.createRow(rowIdx++);
+                col = 0;
+
+                row.createCell(col++).setCellValue(index++);  // 序号
+
+                row.createCell(col++).setCellValue(
+                        param.getStudentName() == null ? "" : param.getStudentName()); // 学生姓名
+
+                row.createCell(col++).setCellValue(
+                        param.getGroupName() == null ? "" : param.getGroupName()); // 班级名称
+
+                row.createCell(col++).setCellValue(
+                        param.getReadingCount() == null ? 0L : param.getReadingCount()); // 阅读教材数量
+
+                row.createCell(col++).setCellValue(
+                        param.getRank() == null ? 0L : param.getRank()); // 排名
+
+                row.createCell(col++).setCellValue(
+                        param.getBehavior() == null ? "" : param.getBehavior()); // 学习行为类型
+            }
+
+            // 3. 设置响应头，输出到浏览器
+            String fileName = "学生阅读排名.xlsx";
+
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+// 和系统统计接口完全同一套
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name())
+                    .replaceAll("\\+", "%20");
+            response.setHeader("Content-Disposition",
+                    "attachment; filename=\"" + encodedFileName + "\"; filename*=utf-8''" + encodedFileName);
+
+            try (ServletOutputStream out = response.getOutputStream()) {
+                workbook.write(out);
+                out.flush();
+            }
+
+        } catch (IOException e) {
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "导出学生阅读排名失败");
+        } finally {
+            try {
+                workbook.close();
+            } catch (IOException e) {
+                // ignore
+            }
+        }
+    }
+
+
     /**
      * 根据教师用户ID获取有权限的班级列表
      * 管理员可查看所有班级，教师只能查看自己负责的班级
@@ -1018,5 +1278,121 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         }
         Long studentId = student.getId();
         return studentDataStatisticsMapper.getStudentScoreRate(studentId);
+    }
+
+    private Double scaleTo2Decimal(Double value) {
+        if (value == null) {
+            return null;
+        }
+        return BigDecimal.valueOf(value)
+                .setScale(2, RoundingMode.HALF_UP)
+                .doubleValue();
+    }
+
+    /**
+     * 统计学生按教材和章节的阅读时长
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 每个章节的阅读时长映射
+     */
+    @Override
+    public Map<String, Long> countStudentTextbookReadingTimeByChapter(String startTime, String endTime) {
+        Long userId = UserUtils.get().getId();
+        
+        // 获取学习记录，按教材和章节分组
+        List<LearningLog> records = studentDataStatisticsMapper.findChapterRecordsByTime(
+            userId, startTime, endTime, 0
+        );
+        
+        if (records == null || records.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        
+        // 使用 Map 存储每个章节的阅读时长
+        Map<String, Long> chapterReadingTimeMap = new HashMap<>();
+        
+        // 按教材和章节分组处理记录
+        Map<Long, Map<Long, List<LearningLog>>> groupedRecords = groupRecordsByTextbookAndChapter(records);
+        
+        // 计算每个章节的阅读时长
+        for (Map.Entry<Long, Map<Long, List<LearningLog>>> textbookEntry : groupedRecords.entrySet()) {
+            Long textbookId = textbookEntry.getKey();
+            
+            for (Map.Entry<Long, List<LearningLog>> chapterEntry : textbookEntry.getValue().entrySet()) {
+                Long chapterId = chapterEntry.getKey();
+                List<LearningLog> chapterRecords = chapterEntry.getValue();
+                
+                // 计算该章节的阅读时长
+                long chapterReadingTime = calculateChapterReadingTime(
+                    chapterRecords, MIN_DIFF_SECONDS, MAX_DIFF_SECONDS
+                );
+                
+                // 构建章节唯一标识（教材ID-章节ID）
+                String chapterKey = String.format("%s-%s", textbookId, chapterId);
+                
+                chapterReadingTimeMap.put(chapterKey, chapterReadingTime);
+            }
+        }
+        
+        return chapterReadingTimeMap;
+    }
+
+    /**
+     * 按教材和章节分组学习记录
+     */
+    private Map<Long, Map<Long, List<LearningLog>>> groupRecordsByTextbookAndChapter(List<LearningLog> records) {
+        Map<Long, Map<Long, List<LearningLog>>> groupedMap = new HashMap<>();
+        
+        for (LearningLog record : records) {
+            Long textbookId = record.getTextbookId();
+            Long chapterId = record.getCatalogueId();
+            
+            if (textbookId == null || chapterId == null) {
+                continue; // 跳过没有教材或章节信息的记录
+            }
+            
+            // 按教材分组
+            Map<Long, List<LearningLog>> chapterMap = groupedMap.computeIfAbsent(textbookId, k -> new HashMap<>());
+            
+            // 按章节分组
+            List<LearningLog> chapterRecords = chapterMap.computeIfAbsent(chapterId, k -> new ArrayList<>());
+            
+            chapterRecords.add(record);
+        }
+        
+        return groupedMap;
+    }
+
+    /**
+     * 计算单个章节的阅读时长
+     */
+    private long calculateChapterReadingTime(List<LearningLog> chapterRecords, 
+                                            long minDiffSeconds, long maxDiffSeconds) {
+        if (chapterRecords == null || chapterRecords.size() < 2) {
+            return 0L;
+        }
+        
+        long chapterReadingTime = 0L;
+        
+        // 按时间排序
+        chapterRecords.sort(Comparator.comparing(LearningLog::getAddDatetime));
+        
+        for (int i = 0; i < chapterRecords.size() - 1; i++) {
+            LocalDateTime currentTime = chapterRecords.get(i).getAddDatetime();
+            LocalDateTime nextTime = chapterRecords.get(i + 1).getAddDatetime();
+            
+            if (currentTime == null || nextTime == null) {
+                continue;
+            }
+            
+            Duration duration = Duration.between(currentTime, nextTime);
+            long seconds = duration.getSeconds();
+            
+            if (seconds >= minDiffSeconds && seconds <= maxDiffSeconds) {
+                chapterReadingTime += 1;
+            }
+        }
+        
+        return chapterReadingTime;
     }
 }

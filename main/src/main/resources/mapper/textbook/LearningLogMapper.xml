@@ -13,6 +13,18 @@
         <result column="creator" property="creator" />
         <result column="operator" property="operator" />
     </resultMap>
+    
+    <resultMap id="ChapterRecordResultMap" type="com.upc.modular.textbook.entity.LearningLog">
+        <id column="id" property="id" />
+        <result column="textbook_id" property="textbookId" />
+        <result column="catalogue_id" property="catalogueId" />
+        <result column="client_uuid" property="clientUuid" />
+        <result column="add_datetime" property="addDatetime" />
+        <result column="operation_datetime" property="operationDatetime" />
+        <result column="creator" property="creator" />
+        <result column="operator" property="operator" />
+        <result column="chapter_name" property="chapterName" />
+    </resultMap>
     <select id="recentStudy" resultType="com.upc.modular.textbook.param.RecentStudyReturnParam">
         SELECT
             -- 显式排除 description、h5_head_code
@@ -50,6 +62,20 @@
         ORDER BY
             r.last_study_time DESC
             LIMIT COALESCE(#{limit}, 10)
+    </select>
+    
+    <!-- 查询指定时间段内的教材章节学习记录 -->
+    <select id="findChapterRecordsByTime" resultMap="ChapterRecordResultMap">
+        SELECT 
+            ll.*, 
+            tc.catalogue_name as chapter_name
+        FROM learning_log ll
+        LEFT JOIN textbook_catalog tc ON ll.catalogue_id = tc.id
+        WHERE ll.creator = #{userId} 
+            AND ll.textbook_id IS NOT NULL 
+            AND ll.catalogue_id IS NOT NULL 
+            AND ll.add_datetime BETWEEN #{startTime} AND #{endTime}
+        ORDER BY ll.textbook_id, ll.catalogue_id, ll.add_datetime
     </select>
 
     <!-- 获取教材总章节数 -->

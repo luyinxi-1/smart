@@ -105,4 +105,12 @@ public R<List<TeachingMaterials>> getMaterialsForTextbook(
         List<TeachingMaterials> result = teachingMaterialsService.getTeachingMaterialsByIds(textbookId);
         return R.ok(result);
     }
+    @ApiOperation(value = "获得文件夹下文件")
+    @GetMapping("/getFilelist")
+    public R<List<String>> getFilelist(@RequestParam String path) {
+        List<String> result = teachingMaterialsService.getFilelist(path);
+        return R.ok(result);
+    }
+
+
 }

@@ -38,6 +38,10 @@ public class LearningLog implements Serializable {
     @ApiModelProperty("目录章节id")
     @TableField("catalogue_id")
     private Long catalogueId;
+    
+    @ApiModelProperty("章节名称")
+    @TableField(exist = false)
+    private String chapterName;
 
     @ApiModelProperty("数据发送类型")
     @TableField(value = "data_type")

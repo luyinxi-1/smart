@@ -9,12 +9,36 @@
         <result column="catalog_name" property="catalogName" />
         <result column="content" property="content" />
         <result column="catalog_level" property="catalogLevel" />
-        <result column="textbook_catalog_id" property="textbookCatalogId" />
+        <result column="father_catalog_id" property="fatherCatalogId" />
         <result column="sort" property="sort" />
         <result column="creator" property="creator" />
         <result column="add_datetime" property="addDatetime" />
         <result column="operator" property="operator" />
         <result column="operation_datetime" property="operationDatetime" />
     </resultMap>
+
+    <!-- 根据章节名称关键词查询匹配的教材ID列表（每本教材只返回一个ID） -->
+    <select id="selectDistinctTextbookIdsByCatalogName" resultType="java.lang.Long">
+        SELECT DISTINCT tc.textbook_id
+        FROM textbook_catalog tc
+        WHERE tc.textbook_id IS NOT NULL
+        AND (
+            <foreach collection="keywords" item="keyword" separator=" OR ">
+                tc.catalog_name LIKE CONCAT('%', #{keyword}, '%')
+            </foreach>
+        )
+    </select>
+
+    <!-- 根据章节内容关键词查询匹配的教材ID列表（每本教材只返回一个ID） -->
+    <select id="selectDistinctTextbookIdsByContent" resultType="java.lang.Long">
+        SELECT DISTINCT tc.textbook_id
+        FROM textbook_catalog tc
+        WHERE tc.textbook_id IS NOT NULL
+        AND (
+            <foreach collection="keywords" item="keyword" separator=" OR ">
+                tc.content LIKE CONCAT('%', #{keyword}, '%')
+            </foreach>
+        )
+    </select>
 
 </mapper>

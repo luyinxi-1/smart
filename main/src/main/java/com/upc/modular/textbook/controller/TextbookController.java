@@ -86,7 +86,7 @@ public class TextbookController {
     @ApiOperation(value = "智能搜索教材(关键词版)")
     @GetMapping("/smartSearch")
     public R<List<TextbookIntelligentQueryReturnParam>> smartSearch(
-            @ApiParam(value = "关键词字符串，用逗号分隔", required = true, example = "计算机,网络,协议")
+            @ApiParam(value = "关键词字符串，用逗号分隔", required = true)
             @RequestParam("query") String query) {
         return R.ok(textbookService.smartSearch(query));
     }
@@ -124,7 +124,7 @@ public class TextbookController {
         System.out.println("textbook:" + textbook);
         return R.ok("测试成功");
     }*/
-    @ApiOperation(value = "校验教材状态和版本（含资格审查）")
+/*    @ApiOperation(value = "校验教材状态和版本（含资格审查）")
     @PostMapping("/checkVersion")
     public R<VersionCheckResultDto> checkTextbookVersion(
             @ApiParam(value = "教材的唯一ID", required = true, example = "1001")
@@ -140,7 +140,25 @@ public class TextbookController {
         VersionCheckResultDto resultDto = textbookService.checkStatusAndVersion(textbookId, clientVersion);
 
         return R.ok(resultDto);
+    }*/
+@ApiOperation(value = "校验教材状态和版本（含资格审查）")
+@PostMapping("/checkVersion")
+public R<VersionCheckResultDto> checkTextbookVersion(
+        @ApiParam(value = "教材的唯一ID", required = true, example = "1001")
+        @RequestParam("textbookId") Long textbookId,
+
+        @ApiParam(value = "客户端持有的版本号", required = false, example = "v1.2.0")
+        @RequestParam(value = "clientVersion", required = false) String clientVersion) {
+
+    // 只校验 textbookId
+    if (textbookId == null) {
+        return R.fail("参数错误：textbookId 不能为空");
     }
+
+    VersionCheckResultDto resultDto = textbookService.checkStatusAndVersion(textbookId, clientVersion);
+    return R.ok(resultDto);
+}
+
 
     @ApiOperation(value = "分页查询教材热度排行榜")
     @PostMapping("/getHotnessPage")
