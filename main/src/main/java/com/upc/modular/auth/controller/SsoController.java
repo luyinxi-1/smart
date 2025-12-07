@@ -56,7 +56,8 @@ public class SsoController {
         try {
             authService.handleCallback(code, state, session);
             // 重定向到首页
-            response.sendRedirect("/");
+            //response.sendRedirect("/");
+            response.sendRedirect("http://60.217.79.210:6190/#/publicHome");
         } catch (Exception e) {
             log.error("处理统一认证回调失败", e);
             response.sendRedirect("/login?error=auth_failed");
