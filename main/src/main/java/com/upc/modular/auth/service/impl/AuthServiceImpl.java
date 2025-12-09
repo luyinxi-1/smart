@@ -58,7 +58,6 @@ public class AuthServiceImpl implements AuthService {
 
             // 获取token
             TokenResponse tokenResponse = authClient.getTokenByCode(code);
-/*
             // ⭐ 2.5 新增：调用 /api/userinfo，获取登录信息（精简 OIDC 信息）
             try {
                 UserInfoResponse userInfo = authClient.getUserInfo(
@@ -70,7 +69,7 @@ public class AuthServiceImpl implements AuthService {
             } catch (Exception ex) {
                 // 这里建议只打警告，不要让整个登录失败（除非你业务强依赖 userinfo）
                 log.warn("[SSO] 调用 /api/userinfo 失败，将继续使用 /api/get-account 的数据", ex);
-            }*/
+            }
             // 获取账户信息
             AccountResponse accountResponse = authClient.getAccount(
                     tokenResponse.getTokenType(), 
