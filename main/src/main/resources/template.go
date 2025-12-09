@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"github.com/ncruces/zenity"
@@ -15,33 +16,11 @@ const presetDeviceCode = "DEVICE_CODE_PLACEHOLDER"
 const zipPassword = "PASSWORD_PLACEHOLDER"
 // =====================================
 
-// -------- 公共的弹窗封装：GUI 失败时退回到控制台 --------
-
-func showError(msg, title string) {
-	if err := zenity.Error(msg, zenity.Title(title), zenity.ErrorIcon); err != nil {
-		fmt.Println("[ERROR]", title, msg)
-	}
-}
-
-func showWarning(msg, title string) {
-	if err := zenity.Warning(msg, zenity.Title(title)); err != nil {
-		fmt.Println("[WARN]", title, msg)
-	}
-}
-
-func showInfo(msg, title string) {
-	if err := zenity.Info(msg, zenity.Title(title), zenity.InfoIcon); err != nil {
-		fmt.Println("[INFO]", title, msg)
-	}
-}
-
-// -------- 设备 ID 获取：Windows + Linux (麒麟/aarch64 优先) --------
-
-// getDeviceUUID 尝试获取“设备唯一 ID”
+// 获取当前设备的唯一标识
 func getDeviceUUID() (string, error) {
 	switch runtime.GOOS {
 	case "windows":
-		// 1) 优先使用 PowerShell
+		// 1) PowerShell 优先
 		{
 			cmd := exec.Command("powershell", "-Command", "(Get-CimInstance Win32_ComputerSystemProduct).UUID")
 			var out bytes.Buffer
@@ -53,8 +32,7 @@ func getDeviceUUID() (string, error) {
 				}
 			}
 		}
-
-		// 2) 回退到旧版 wmic
+		// 2) 回退到 wmic
 		{
 			cmd := exec.Command("wmic", "csproduct", "get", "uuid")
 			var out bytes.Buffer
@@ -73,7 +51,6 @@ func getDeviceUUID() (string, error) {
 		}
 
 	case "linux":
-		// ---- 国产 Linux / 麒麟桌面 优先路径 ----
 		// 1) /etc/machine-id
 		if b, err := os.ReadFile("/etc/machine-id"); err == nil {
 			id := strings.TrimSpace(string(b))
@@ -81,43 +58,20 @@ func getDeviceUUID() (string, error) {
 				return id, nil
 			}
 		}
-
-		// 2) 有些系统用 /var/lib/dbus/machine-id
+		// 2) /var/lib/dbus/machine-id
 		if b, err := os.ReadFile("/var/lib/dbus/machine-id"); err == nil {
 			id := strings.TrimSpace(string(b))
 			if id != "" {
 				return id, nil
 			}
 		}
-
-		// 3) 尝试 DMI 的 product_uuid（部分国产机也有）
+		// 3) product_uuid
 		if b, err := os.ReadFile("/sys/class/dmi/id/product_uuid"); err == nil {
 			id := strings.TrimSpace(string(b))
 			if id != "" && id != "00000000-0000-0000-0000-000000000000" {
 				return id, nil
 			}
 		}
-
-		// 4) 如果有 hostnamectl，再试 Machine ID
-		if _, err := exec.LookPath("hostnamectl"); err == nil {
-			cmd := exec.Command("hostnamectl")
-			var out bytes.Buffer
-			cmd.Stdout = &out
-			if err := cmd.Run(); err == nil {
-				for _, line := range strings.Split(out.String(), "\n") {
-					if strings.Contains(line, "Machine ID") {
-						parts := strings.SplitN(line, ":", 2)
-						if len(parts) == 2 {
-							id := strings.TrimSpace(parts[1])
-							if id != "" {
-								return id, nil
-							}
-						}
-					}
-				}
-			}
-		}
-
 		return "", fmt.Errorf("无法在 Linux 上获取稳定的设备ID")
 
 	default:
@@ -125,87 +79,95 @@ func getDeviceUUID() (string, error) {
 	}
 }
 
-// -------- 剪贴板：Windows + 简单 Linux 支持，失败则让用户手动复制 --------
-
-// copyToClipboard 尝试复制到剪贴板，失败返回 error，由上层决定如何提示
+// Windows 下自动复制到剪贴板
 func copyToClipboard(text string) error {
-	switch runtime.GOOS {
-	case "windows":
-		cmd := exec.Command("cmd", "/C", "clip")
-		cmd.Stdin = strings.NewReader(text)
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("调用 clip 失败: %v", err)
-		}
-		return nil
-
-	case "linux":
-		// 1) xclip
-		if _, err := exec.LookPath("xclip"); err == nil {
-			cmd := exec.Command("xclip", "-selection", "clipboard")
-			cmd.Stdin = strings.NewReader(text)
-			if err := cmd.Run(); err == nil {
-				return nil
-			}
-		}
-
-		// 2) xsel
-		if _, err := exec.LookPath("xsel"); err == nil {
-			cmd := exec.Command("xsel", "--clipboard", "--input")
-			cmd.Stdin = strings.NewReader(text)
-			if err := cmd.Run(); err == nil {
-				return nil
-			}
-		}
-
-		// 3) Wayland: wl-copy
-		if _, err := exec.LookPath("wl-copy"); err == nil {
-			cmd := exec.Command("wl-copy")
-			cmd.Stdin = strings.NewReader(text)
-			if err := cmd.Run(); err == nil {
-				return nil
-			}
-		}
-
-		return fmt.Errorf("未检测到 xclip/xsel/wl-copy，无法自动复制到剪贴板")
-
-	default:
-		return fmt.Errorf("当前系统不支持自动复制到剪贴板（GOOS=%s）", runtime.GOOS)
+	if runtime.GOOS != "windows" {
+		return fmt.Errorf("当前系统不支持自动复制到剪贴板")
 	}
+	cmd := exec.Command("cmd", "/C", "clip")
+	cmd.Stdin = strings.NewReader(text)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("调用 clip 失败: %v", err)
+	}
+	return nil
 }
 
-// -------- 主逻辑 --------
+// Linux 下终端暂停，避免窗口一闪而过
+func pauseForEnter() {
+	fmt.Println("\n按回车键退出...")
+	reader := bufio.NewReader(os.Stdin)
+	_, _ = reader.ReadString('\n')
+}
 
-func main() {
-	// 1. 获取当前设备的 ID
+// Windows 逻辑：图形弹窗 + 自动复制
+func runWindows() {
 	localDeviceCode, err := getDeviceUUID()
 	if err != nil {
-		showError(fmt.Sprintf("无法获取设备ID: %v", err), "验证失败")
+		zenity.Error(
+			fmt.Sprintf("无法获取设备ID: %v", err),
+			zenity.Title("验证失败"),
+		)
 		return
 	}
 
-	// 2. 对比设备 ID
 	if localDeviceCode != presetDeviceCode {
-		showError(
-			fmt.Sprintf("此程序无法在当前设备上运行。\n\n程序设备码: %s\n本地设备码: %s", presetDeviceCode, localDeviceCode),
-			"验证失败",
+		zenity.Error(
+			fmt.Sprintf("此程序无法在当前设备上运行。\n\n程序设备码: %s\n本地设备码: %s",
+				presetDeviceCode, localDeviceCode),
+			zenity.Title("验证失败"),
 		)
 		return
 	}
 
-	// 3. 设备验证成功，尝试自动复制密码
+	// 设备码匹配，尝试复制密码
 	if err := copyToClipboard(zipPassword); err != nil {
-		// 自动复制失败：给一个可编辑的输入框，方便 Ctrl+C
-		_, _ = zenity.Entry(
-			fmt.Sprintf("设备验证成功，但自动复制密码失败：\n%v\n\n请使用 Ctrl+C 复制下面的密码：", err),
-			zenity.Title("验证成功（请手动复制）"),
-			zenity.EntryText(zipPassword),
+		zenity.Warning(
+			fmt.Sprintf("设备验证成功，但自动复制密码失败：\n%v\n\n请手动记下此密码：\n\n%s",
+				err, zipPassword),
+			zenity.Title("验证成功（复制失败）"),
 		)
 		return
 	}
 
-	// 4. 自动复制成功，正常提示
-	showInfo(
-		fmt.Sprintf("设备验证成功！\n\n解压密码已自动复制到剪贴板：\n\n%s\n\n现在可以直接粘贴使用。", zipPassword),
-		"验证成功",
+	zenity.Info(
+		fmt.Sprintf("设备验证成功！\n\n解压密码已自动复制到剪贴板：\n\n%s\n\n现在可以直接粘贴使用。",
+			zipPassword),
+		zenity.Title("验证成功"),
+		zenity.InfoIcon,
 	)
+}
+
+// Linux 逻辑：纯命令行输出
+func runLinux() {
+	localDeviceCode, err := getDeviceUUID()
+	if err != nil {
+		fmt.Println("[验证失败] 无法获取设备ID：", err)
+		pauseForEnter()
+		return
+	}
+
+	fmt.Println("当前设备码：", localDeviceCode)
+
+	if localDeviceCode != presetDeviceCode {
+		fmt.Println("\n[验证失败] 此程序无法在当前设备上运行。")
+		fmt.Println("期望设备码：", presetDeviceCode)
+		pauseForEnter()
+		return
+	}
+
+	fmt.Println("\n[验证成功]")
+	fmt.Println("解压密码如下，请手动复制保存：")
+	fmt.Println(zipPassword)
+	pauseForEnter()
+}
+
+func main() {
+	switch runtime.GOOS {
+	case "windows":
+		runWindows()
+	case "linux":
+		runLinux()
+	default:
+		fmt.Println("暂不支持当前操作系统：", runtime.GOOS)
+	}
 }
