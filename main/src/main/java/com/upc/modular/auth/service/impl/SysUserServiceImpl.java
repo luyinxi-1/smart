@@ -165,6 +165,79 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
         Page<SysTbuser> page = new Page<>(param.getCurrent(), param.getSize());
         MyLambdaQueryWrapper<SysTbuser> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
 
+        // 1. 综合查询：昵称模糊（顶部搜索框）
+        lambdaQueryWrapper.like(
+                ObjectUtils.isNotEmpty(param.getNickname()),
+                SysTbuser::getNickname,
+                param.getNickname()
+        );
+
+        // 2. 用户名称：同样查 nickname 字段
+        lambdaQueryWrapper.like(
+                ObjectUtils.isNotEmpty(param.getUsername()),
+                SysTbuser::getNickname,
+                param.getUsername()
+        );
+
+        // 3. 登录账号：查 username 字段
+        lambdaQueryWrapper.like(
+                ObjectUtils.isNotEmpty(param.getUserCode()),
+                SysTbuser::getUsername,
+                param.getUserCode()
+        );
+
+        // 4. 使用状态：查 status 字段
+        lambdaQueryWrapper.eq(
+                ObjectUtils.isNotEmpty(param.getStatus()),
+                SysTbuser::getStatus,
+                param.getStatus()
+        );
+
+        // 5. 用户类型逻辑（沿用你原来的）
+        if (ObjectUtils.isNotEmpty(param.getUserType())) {
+            if (param.getUserType() == -1) {
+                lambdaQueryWrapper.and(w -> w.eq(SysTbuser::getUserType, 1)
+                        .or()
+                        .eq(SysTbuser::getUserType, 2));
+            } else {
+                lambdaQueryWrapper.eq(SysTbuser::getUserType, param.getUserType());
+            }
+        }
+
+        // 6. 排序：按创建时间
+        lambdaQueryWrapper.orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
+
+        Page<SysTbuser> resultPage = this.page(page, lambdaQueryWrapper);
+
+        // ===== 下面这块填充创建人昵称的逻辑保持不变 =====
+        List<SysTbuser> userList = resultPage.getRecords();
+        if (ObjectUtils.isNotEmpty(userList)) {
+            Set<Long> creatorIds = userList.stream()
+                    .map(SysTbuser::getCreator)
+                    .filter(ObjectUtils::isNotEmpty)
+                    .collect(Collectors.toSet());
+
+            if (ObjectUtils.isNotEmpty(creatorIds)) {
+                List<SysTbuser> creators = this.listByIds(creatorIds);
+                Map<Long, String> creatorMap = creators.stream()
+                        .collect(Collectors.toMap(SysTbuser::getId, SysTbuser::getNickname));
+
+                userList.forEach(user -> {
+                    if (user.getCreator() != null) {
+                        user.setCreatorName(creatorMap.get(user.getCreator()));
+                    }
+                });
+            }
+        }
+
+        return resultPage;
+    }
+
+/*    @Override
+    public Page<SysTbuser> getPage(SysUserPageSearchParam param) {
+        Page<SysTbuser> page = new Page<>(param.getCurrent(), param.getSize());
+        MyLambdaQueryWrapper<SysTbuser> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+
         // 统一处理通用查询条件：昵称模糊查询
         lambdaQueryWrapper.like(ObjectUtils.isNotEmpty(param.getNickname()), SysTbuser::getNickname, param.getNickname());
 
@@ -213,7 +286,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
         }
 
         return resultPage;
-    }
+    }*/
 
     @Override
     public Boolean getUserIsInInstitution(GetUserIsInInstitutionParam param) {
