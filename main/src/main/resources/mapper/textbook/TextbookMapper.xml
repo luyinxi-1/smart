@@ -222,13 +222,9 @@
     <select id="selectTextbookHotnessPage" resultType="com.upc.modular.textbook.param.TextbookHotnessDto">
         SELECT
             t.*,
-            COUNT(uf.textbook_id) AS favoritesCount
+            (SELECT COUNT(1) FROM user_favorites uf WHERE uf.textbook_id = t.id) AS favoritesCount
         FROM
             textbook t
-                LEFT JOIN
-            user_favorites uf ON t.id = uf.textbook_id
-        GROUP BY
-            t.id
         ORDER BY
             favoritesCount DESC
     </select>
