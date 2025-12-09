@@ -38,7 +38,7 @@ public class TeacherPageSearchDto extends PageBaseSearchParam {
     private Integer isPartyNumber;
 
     @ApiModelProperty("状态")
-    private Integer status;
+    private Integer changeStatus;
 
     @ApiModelProperty("组织")
     private Long detailTypeOption;
