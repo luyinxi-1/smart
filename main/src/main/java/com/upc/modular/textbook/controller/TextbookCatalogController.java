@@ -2,6 +2,8 @@ package com.upc.modular.textbook.controller;
 
 
 import com.upc.common.responseparam.R;
+import com.upc.exception.BusinessErrorEnum;
+import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.param.*;
@@ -83,7 +85,7 @@ public class TextbookCatalogController {
 
     @ApiOperation(value = "查看教材")
     @PostMapping("/readTextbook")
-    public R<List<ReadTextbookReturnParam>> readTextbook(@RequestParam("textbookId") Long textbookId) {
+    public R<List<ReadTextbookReturnParam>> readTextbook(@RequestParam(value = "textbookId",required = false) Long textbookId) {
         List<ReadTextbookReturnParam> result = textbookCatalogService.readTextbook(textbookId);
         return R.ok(result);
     }

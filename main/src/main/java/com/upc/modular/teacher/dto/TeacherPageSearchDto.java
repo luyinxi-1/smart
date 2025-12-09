@@ -40,10 +40,6 @@ public class TeacherPageSearchDto extends PageBaseSearchParam {
     @ApiModelProperty("状态")
     private Integer status;
 
-    /**
-     * 前端下拉选中的机构ID，对应你说的 detailTypeOption
-     */
+    @ApiModelProperty("组织")
     private Long detailTypeOption;
-
-
 }
