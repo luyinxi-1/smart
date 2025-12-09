@@ -145,21 +145,35 @@
         WHERE tc.textbook_id = #{textbookId}
         ORDER BY tc.catalog_level, tc.sort
     </select>
-    <select id="countStudySessionsByTextbook" resultType="long">
-        WITH UserLogsWithPrevious AS (
-            -- 步骤1: 使用LAG窗口函数获取当前用户日志的上一条记录信息
+
+    <select id="countStudySessionsByTextbook"
+            resultType="long">
+    <![CDATA[
+        WITH UserLogsWithPrevious (
+                                   textbook_id,
+                                   add_datetime,
+                                   prev_textbook_id,
+                                   prev_add_datetime
+            ) AS (
+            -- 步骤1: 使用 LAG 窗口函数获取当前用户日志的上一条记录信息
             SELECT
                 textbook_id,
                 add_datetime,
                 -- 按用户分区(creator)，再按时间排序，确保获取的是同一个用户的上一条记录
-                LAG(textbook_id, 1) OVER (PARTITION BY creator ORDER BY add_datetime) AS prev_textbook_id,
-                LAG(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime) AS prev_add_datetime
+                LAG(textbook_id, 1) OVER (
+                PARTITION BY creator
+                ORDER BY add_datetime
+            ) AS prev_textbook_id,
+                    LAG(add_datetime, 1) OVER (
+                PARTITION BY creator
+                ORDER BY add_datetime
+            ) AS prev_add_datetime
             FROM
                 learning_log
             WHERE
                 creator = #{userId}
         )
-        -- 步骤2: 筛选出符合新学习开始条件的记录并计数
+             -- 步骤2: 筛选出符合新学习开始条件的记录并计数
         SELECT
             COUNT(*)
         FROM
@@ -167,12 +181,15 @@
         WHERE
             textbook_id = #{textbookId}
           AND (
-            prev_add_datetime IS NULL OR -- 该用户的第一条记录
-            prev_textbook_id != textbook_id OR -- 上一条是别的教材
-            -- 分别提取Epoch秒数再相减，以避免Kingbase中(timestamp-timestamp)返回bigint的问题
-            (EXTRACT(EPOCH FROM add_datetime) - EXTRACT(EPOCH FROM prev_add_datetime)) > 60
+                prev_add_datetime IS NULL              -- 该用户的第一条记录
+                OR prev_textbook_id <> textbook_id        -- 上一条是别的教材
+                OR TIMESTAMPDIFF(SECOND,                  -- 两次记录间隔 > 60 秒
+                           prev_add_datetime,
+                           add_datetime) > 60
             )
-    </select>
+        ]]>
+</select>
+
 
     <select id="listStudentCourseTextbookIds" resultType="long">
         SELECT DISTINCT ctl.textbook_id

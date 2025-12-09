@@ -213,38 +213,47 @@
         ORDER BY
             time_slot;
     </select>
-    <!-- 最终正确版本: 兼容 KingbaseES 数据库 -->
-    <select id="getStudyDurationsByDateRange" resultType="com.upc.modular.datastatistics.controller.param.DailyStudyDurationDto">
+
+    <select id="getStudyDurationsByDateRange"
+            resultType="com.upc.modular.datastatistics.controller.param.DailyStudyDurationDto">
+    <![CDATA[
         WITH UserLogsWithNext AS (
             SELECT
-                LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime,
-                add_datetime
+                add_datetime,
+                LEAD(add_datetime, 1) OVER (
+                PARTITION BY creator
+                ORDER BY add_datetime ASC
+            ) AS next_add_datetime
             FROM
                 learning_log
             WHERE
-                add_datetime >= #{startDate}::timestamp
-            AND add_datetime &lt; (#{endDate}::date + 1 )::timestamp
-            )
+                add_datetime >= #{startDate}
+              AND add_datetime < #{endDate} + 1
+        )
         SELECT
-            (add_datetime::date)::timestamp AS "date",
-            COALESCE(SUM(
-                             CASE
-                                 -- 【关键修改】使用 EXTRACT(EPOCH FROM ...) 分别作用于两个时间戳，然后相减
-                                 -- 这是计算秒差的最通用、最不容易出错的方法
-                                 WHEN (EXTRACT(EPOCH FROM next_add_datetime) - EXTRACT(EPOCH FROM add_datetime)) BETWEEN 55 AND 65
-                                     THEN 60
-                                 ELSE 0
-                                 END
-                     ), 0) AS "durationInSeconds"
+            TRUNC(add_datetime) AS "date",      -- ★ 别名改成 date
+            COALESCE(
+                    SUM(
+                            CASE
+                                WHEN TIMESTAMPDIFF(SECOND, add_datetime, next_add_datetime)
+                                    BETWEEN 55 AND 65 THEN 60
+                                ELSE 0
+                                END
+                        ),
+                    0
+                ) AS durationInSeconds
         FROM
             UserLogsWithNext
         WHERE
             next_add_datetime IS NOT NULL
         GROUP BY
-            "date"
+            TRUNC(add_datetime)
         ORDER BY
-            "date" ASC;
-    </select>
+            "date" ASC
+        ]]>
+</select>
+
+
     <select id="getStudyTrendByTimeRange" resultType="com.upc.modular.datastatistics.controller.param.StudyTrendDTO">
     <![CDATA[
         WITH DateSeries AS (
