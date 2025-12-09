@@ -62,6 +62,15 @@
             <if test="param.status != null">
                 AND t.status = #{param.status}
             </if>
+            <!-- 新增的detailTypeOption条件 -->
+            <if test="param.detailTypeOption != null">
+                AND EXISTS (
+                    SELECT 1 FROM textbook_authority ta 
+                    WHERE ta.user_id = t.user_id 
+                    AND ta.visible_institute_id = #{param.detailTypeOption} 
+                    AND ta.authority_type = 2
+                )
+            </if>
         </where>
         ORDER BY t.add_datetime
         <choose>
