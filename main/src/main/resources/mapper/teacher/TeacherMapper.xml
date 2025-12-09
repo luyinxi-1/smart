@@ -62,6 +62,9 @@
             <if test="param.status != null">
                 AND t.status = #{param.status}
             </if>
+            <if test="param.detailTypeOption != null">
+                AND u.institution_id = #{param.detailTypeOption}
+            </if>
         </where>
         ORDER BY t.add_datetime
         <choose>
