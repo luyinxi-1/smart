@@ -47,6 +47,12 @@ public class SysUserController {
         return R.ok(sysUserService.login(userLogin, request));
     }
 
+    @PostMapping("/login1")
+    @ApiOperation("登录")
+    public R<UserLoginResultParam> login1(@RequestBody UserLoginParam userLogin, HttpServletRequest request) {
+        return R.ok(sysUserService.login1(userLogin, request));
+    }
+
     @PostMapping("/resetPassword")
     @ApiOperation("重置密码")
     public R resetPassword(@RequestParam Long userId) {

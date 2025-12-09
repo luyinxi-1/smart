@@ -111,6 +111,44 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
         result.setUserId(userInfo.getId());
         return result;
     }
+    @Override
+    public UserLoginResultParam login1(UserLoginParam userLogin, HttpServletRequest request) {
+        if (userLogin == null || StringUtils.isBlank(userLogin.getUsername()) || StringUtils.isBlank(userLogin.getPassword())) {
+            throw new BusinessException(BusinessErrorEnum.IS_EMPTY);
+        }
+
+        LambdaQueryWrapper<SysTbuser> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper
+                .eq(SysTbuser::getUsername, userLogin.getUsername())
+                .eq(SysTbuser::getPassword, userLogin.getPassword());
+        SysTbuser userInfo = this.getOne(queryWrapper);
+        if (userInfo == null) {
+            throw new BusinessException(BusinessErrorEnum.LOGIN_FAIL);
+        }
+        if (userInfo.getStatus() != ENABLE_STATUS) {
+            throw new BusinessException(BusinessErrorEnum.ACCOUNT_BANNED);
+        }
+
+        String token = UUID.randomUUID().toString().replace("-", "_");
+
+        redisTemplate.opsForValue().set(token, userInfo, Duration.ofHours(24));
+
+        // 记录该登录信息到日志
+        if (userInfo.getId() != null && StringUtils.isNotBlank(request.getRequestURI())) {
+            SysLog sysLog = new SysLog();
+            sysLog.setUserId(userInfo.getId());
+            sysLog.setLogContent(request.getRequestURI());
+            if (sysLog != null) {
+                sysLogService.save(sysLog);
+            }
+        }
+
+        UserLoginResultParam result = new UserLoginResultParam();
+        result.setToken(token);
+        result.setUserId(userInfo.getId());
+        return result;
+    }
+
 
     @Override
     public void batchDelete(List<Long> idList) {

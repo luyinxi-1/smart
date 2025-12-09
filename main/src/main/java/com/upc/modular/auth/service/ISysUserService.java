@@ -26,6 +26,8 @@ public interface ISysUserService extends IService<SysTbuser> {
 
     UserLoginResultParam login(UserLoginParam userLogin, HttpServletRequest request);
 
+    UserLoginResultParam login1(UserLoginParam userLogin, HttpServletRequest request);
+
     void batchDelete(List<Long> idList);
 
     Page<SysTbuser> getPage(SysUserPageSearchParam param);

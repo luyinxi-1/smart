@@ -661,6 +661,106 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     public VersionCheckResultDto checkStatusAndVersion(Long textbookId, String clientVersion) {
         System.out.println("Service层收到版本校验请求 - 教材ID: " + textbookId);
 
+        // 1. 从数据库获取教材的完整信息
+        Textbook serverTextbook = this.getById(textbookId);
+
+        // 2. 检查教材是否存在
+        if (serverTextbook == null) {
+            throw new BusinessException(BusinessErrorEnum.NO_EXIT, "服务器未找到ID为 " + textbookId + " 的教材");
+        }
+
+        Integer releaseStatus = serverTextbook.getReleaseStatus();
+        Integer reviewStatus = serverTextbook.getReviewStatus();
+
+        System.out.println("资格审查 - 发布状态: " + releaseStatus + ", 审查状态: " + reviewStatus);
+
+        // 3. 判断是否满足前置条件 (我们假设状态为 1 代表 "已发布" 和 "已审查")
+        boolean isAvailable = (releaseStatus != null && releaseStatus.equals(1)) &&
+                (reviewStatus != null && reviewStatus.equals(1));
+
+        if (!isAvailable) {
+            // **情况A：资格审查不通过**
+            System.out.println("资格审查不通过，教材当前不可用。");
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "UNAVAILABLE",
+                    "该教材当前未发布或未通过审查，无法进行版本比较。",
+                    null
+            );
+        }
+
+        // 4. 资格审查通过后，进行版本比较
+        System.out.println("资格审查通过，开始进行版本比较...");
+
+        // ====== 关键改动：先规范化两个版本号 ======
+        String serverVersionRaw = serverTextbook.getTextbookVersion();
+        String serverVersion = (serverVersionRaw == null || serverVersionRaw.trim().isEmpty())
+                ? null
+                : serverVersionRaw.trim();
+
+        String clientVersionNorm = (clientVersion == null || clientVersion.trim().isEmpty())
+                ? null
+                : clientVersion.trim();
+
+        // 4.1 如果服务端和客户端都是 null -> 视为无需更新
+        if (serverVersion == null && clientVersionNorm == null) {
+            System.out.println("服务器版本和客户端版本均为 NULL，视为无需更新。");
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "MATCH",
+                    "服务器与客户端均未设置版本号，视为无需更新。",
+                    null  // 不返回 serverVersion
+            );
+        }
+
+        // 4.2 只有服务端有版本号，客户端为 null -> 建议更新
+        if (serverVersion != null && clientVersionNorm == null) {
+            System.out.println("客户端版本为 NULL，服务器有版本号，建议更新。 serverVersion = " + serverVersion);
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "MISMATCH",
+                    "服务器已设置版本号，客户端未设置，建议更新。",
+                    serverVersion
+            );
+        }
+
+        // 4.3 只有客户端有版本号，服务器为 null -> 给个明确状态（按你业务自行决定语义）
+        if (serverVersion == null && clientVersionNorm != null) {
+            System.out.println("服务器版本为 NULL，客户端有版本号，无法比较。 clientVersion = " + clientVersionNorm);
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "NO_SERVER_VERSION",
+                    "服务器未设置版本号，无法判断是否需要更新。",
+                    null
+            );
+        }
+
+        // 4.4 双方都有版本号，正常比较
+        if (serverVersion.equals(clientVersionNorm)) {
+            // **情况B：资格审查通过，且版本一致**
+            System.out.println("版本号一致。");
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "MATCH",
+                    "版本一致，无需更新。",
+                    null
+            );
+        } else {
+            // **情况C：资格审查通过，但版本不一致**
+            System.out.println("版本号不一致！服务器版本: " + serverVersion + ", 客户端版本: " + clientVersionNorm);
+            return new VersionCheckResultDto(
+                    textbookId,
+                    "MISMATCH",
+                    "版本不一致，建议更新。",
+                    serverVersion
+            );
+        }
+    }
+
+    /*    @Override
+    public VersionCheckResultDto checkStatusAndVersion(Long textbookId, String clientVersion) {
+        System.out.println("Service层收到版本校验请求 - 教材ID: " + textbookId);
+
         // 1. 从数据库获取教材的完整信息 (可以直接调用 IService 提供的方法)
         Textbook serverTextbook = this.getById(textbookId);
 
@@ -712,7 +812,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                     serverVersion // 附带服务器的最新版本号
             );
         }
-    }
+    }*/
     @Override
     public Textbook downloadTextbookInfo(Long textbookId) {
 
