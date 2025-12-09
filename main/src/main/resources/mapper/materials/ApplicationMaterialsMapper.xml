@@ -29,7 +29,7 @@
                 question_bank_id = #{questionBankId},
             </if>
             <if test="status != null">
-                `status` = #{status},
+                status = #{status},
             </if>
         </set>
         WHERE id = #{id}

@@ -6,12 +6,16 @@ server:
 spring:
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
-    driver-class-name: com.kingbase8.Driver
-    url: jdbc:kingbase8://60.217.79.210:54321/my_new_db?currentSchema=public
+    driver-class-name: dm.jdbc.driver.DmDriver
+    #url: jdbc:kingbase8://60.217.79.210:54321/my_new_db?currentSchema=public
     #url: jdbc:kingbase8://127.0.0.1:54321/kingbase?currentSchema=public
     #url: jdbc:kingbase8://localhost:54321/kingbase?currentSchema=public
-    username: system
-    password: 123456
+    url: jdbc:dm://60.217.79.210:5236/public?currentSchema=public&useUnicode=true&characterEncoding=utf-8
+    #url: jdbc:dm://localhost:5236/DAMENG?currentSchema=public&useUnicode=true&characterEncoding=utf-8
+    username: SYSDBA
+    #password: c505
+    #password: 123456
+    password: Dameng123
     druid:
       stat-view-servlet:
         enabled: false

@@ -7,7 +7,7 @@
         SELECT COUNT(DISTINCT g.id)
         FROM course c
                  INNER JOIN course_class_list ccl ON c.id = ccl.course_id
-                 INNER JOIN `group` g ON ccl.class_id = g.id
+                 INNER JOIN "group" g ON ccl.class_id = g.id
         WHERE c.teacher_id = #{teacherId}
     </select>
 
@@ -16,7 +16,7 @@
         SELECT DISTINCT g.id AS classId, g.name AS className
         FROM course c
                  INNER JOIN course_class_list ccl ON c.id = ccl.course_id
-                 INNER JOIN `group` g ON ccl.class_id = g.id
+                 INNER JOIN "group" g ON ccl.class_id = g.id
         WHERE c.teacher_id = #{teacherId}
         ORDER BY g.id
     </select>
@@ -29,7 +29,7 @@
             SELECT DISTINCT g.id
             FROM course c
                      INNER JOIN course_class_list ccl ON c.id = ccl.course_id
-                     INNER JOIN `group` g ON ccl.class_id = g.id
+                     INNER JOIN "group" g ON ccl.class_id = g.id
             WHERE c.teacher_id = #{teacherId}
         )
     </select>

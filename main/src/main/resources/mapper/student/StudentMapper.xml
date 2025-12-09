@@ -40,7 +40,7 @@
         FROM student s
         LEFT JOIN sys_tbuser u ON s.user_id = u.id
         LEFT JOIN institution i ON u.institution_id = i.id
-        LEFT JOIN `group` g ON s.class_id = g.id
+        LEFT JOIN "group" g ON s.class_id = g.id
         <where>
             <if test="param.name != null and param.name != ''">
                 AND s.name LIKE CONCAT('%', #{param.name}, '%')
@@ -106,7 +106,7 @@
         FROM student s
         LEFT JOIN sys_tbuser u ON s.user_id = u.id
         LEFT JOIN institution i ON u.institution_id = i.id
-        LEFT JOIN `group` g ON s.class_id = g.id
+        LEFT JOIN "group" g ON s.class_id = g.id
         <where>
             <if test="name != null and name != ''">
                 AND s.name LIKE CONCAT('%', #{name}, '%')
@@ -136,7 +136,7 @@
             t.textbook_name AS textbookName
         FROM student s 
         LEFT JOIN user_class_list ucl ON s.user_id = ucl.user_id AND ucl.type = 1
-        LEFT JOIN `group` g ON ucl.class_id = g.id
+        LEFT JOIN "group" g ON ucl.class_id = g.id
         LEFT JOIN course_class_list ccl ON g.id = ccl.class_id
         LEFT JOIN course c ON ccl.course_id = c.id
         LEFT JOIN course_textbook_list ctl ON c.id = ctl.course_id

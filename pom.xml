@@ -61,6 +61,19 @@
             <version>8.6.0</version>
         </dependency>
 
+<!--        &lt;!&ndash; 达梦数据库驱动 &ndash;&gt;-->
+<!--        <dependency>-->
+<!--            <groupId>com.dameng</groupId>-->
+<!--            <artifactId>DmJdbcDriver8</artifactId>-->
+
+<!--        </dependency>-->
+
+        <dependency>
+            <groupId>com.DamengJDBC</groupId>
+            <artifactId>my-utils</artifactId>
+            <version>1.0</version>
+        </dependency>
+
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>druid-spring-boot-starter</artifactId>
