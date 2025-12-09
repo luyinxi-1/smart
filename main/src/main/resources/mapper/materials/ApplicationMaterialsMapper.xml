@@ -29,7 +29,7 @@
                 question_bank_id = #{questionBankId},
             </if>
             <if test="status != null">
-                status = #{status},
+                `status` = #{status},
             </if>
         </set>
         WHERE id = #{id}
@@ -222,7 +222,7 @@
                 <otherwise>DESC</otherwise>
             </choose>
         </select>-->
-    
+
     <!-- 根据ID查询应用素材详情 -->
     <select id="selectApplicationMaterialsById" resultType="com.upc.modular.materials.controller.param.vo.ApplicationMaterialsVO">
         SELECT
@@ -246,8 +246,8 @@
             (SELECT COUNT(*) FROM application_materials_mapping WHERE application_material_id = am.id) AS teachingMaterialsCount,
             (SELECT release_status FROM textbook WHERE id = amtm.textbook_id LIMIT 1) AS releaseStatus
         FROM application_materials am
-        LEFT JOIN application_materials_textbook_mapping amtm ON am.id = amtm.application_material_id
+                 LEFT JOIN application_materials_textbook_mapping amtm ON am.id = amtm.application_material_id
         WHERE am.id = #{id}
     </select>
-    
+
 </mapper>

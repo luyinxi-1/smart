@@ -52,8 +52,8 @@
         SELECT
             COALESCE(SUM(
                              CASE
-                                 -- 使用时间差计算秒数，适配达梦数据库
-                                 WHEN DATEDIFF(SECOND, add_datetime, next_add_datetime) BETWEEN 55 AND 65
+                                 -- 使用 age() 函数计算可靠的时间间隔(interval)，再用 EXTRACT 提取总秒数
+                                 WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
                                      THEN 60 -- 累加60秒
                                  ELSE 0
                                  END
@@ -124,36 +124,36 @@
         date ASC
     </select>
 
-<!--    &lt;!&ndash; 根据指定日期统计总阅读时长（秒） &ndash;&gt;
-    <select id="getStudyDurationByDate" resultType="long">
-        WITH UserLogsWithNext AS (
+    <!--    &lt;!&ndash; 根据指定日期统计总阅读时长（秒） &ndash;&gt;
+        <select id="getStudyDurationByDate" resultType="long">
+            WITH UserLogsWithNext AS (
+                SELECT
+                    LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime,
+                    add_datetime
+                FROM
+                    learning_log
+                WHERE
+                    add_datetime &gt;= #{targetDate}
+                  AND add_datetime &lt; (#{targetDate} + INTERVAL '1 day')
+            )
             SELECT
-                LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime,
-                add_datetime
+                COALESCE(SUM(
+                                 CASE
+                                     &#45;&#45; 使用 age() 函数计算可靠的时间间隔(interval)，再用 EXTRACT 提取总秒数
+                                     WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+                                         THEN 60 &#45;&#45; 累加60秒
+                                     ELSE 0
+                                     END
+                         ), 0) AS total_reading_seconds
             FROM
-                learning_log
-            WHERE
-                add_datetime &gt;= #{targetDate}
-              AND add_datetime &lt; (#{targetDate} + INTERVAL '1 day')
-        )
-        SELECT
-            COALESCE(SUM(
-                             CASE
-                                 &#45;&#45; 使用 age() 函数计算可靠的时间间隔(interval)，再用 EXTRACT 提取总秒数
-                                 WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
-                                     THEN 60 &#45;&#45; 累加60秒
-                                 ELSE 0
-                                 END
-                     ), 0) AS total_reading_seconds
-        FROM
-            UserLogsWithNext;
-    </select>-->
+                UserLogsWithNext;
+        </select>-->
     <!-- 统计今日总阅读时长（秒）- 使用 age() 函数的最终正确版本 -->
     <select id="getTodayStudyDuration" resultType="long">
         WITH UserLogsWithNext AS (
             SELECT
                 LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime,
-                    add_datetime
+                add_datetime
             FROM
                 learning_log
             WHERE
@@ -177,13 +177,13 @@
         WITH UserLogsWithNext AS (
             SELECT
                 LEAD(add_datetime, 1) OVER (PARTITION BY creator ORDER BY add_datetime ASC) AS next_add_datetime,
-                    add_datetime,
+                add_datetime,
                 CASE
-                    WHEN DATEPART(HOUR, add_datetime) BETWEEN 0 AND 3 THEN '0:00-4:00'
-                    WHEN DATEPART(HOUR, add_datetime) BETWEEN 4 AND 7 THEN '4:00-8:00'
-                    WHEN DATEPART(HOUR, add_datetime) BETWEEN 8 AND 11 THEN '8:00-12:00'
-                    WHEN DATEPART(HOUR, add_datetime) BETWEEN 12 AND 15 THEN '12:00-16:00'
-                    WHEN DATEPART(HOUR, add_datetime) BETWEEN 16 AND 19 THEN '16:00-20:00'
+                    WHEN EXTRACT(HOUR FROM add_datetime) BETWEEN 0 AND 3 THEN '0:00-4:00'
+                    WHEN EXTRACT(HOUR FROM add_datetime) BETWEEN 4 AND 7 THEN '4:00-8:00'
+                    WHEN EXTRACT(HOUR FROM add_datetime) BETWEEN 8 AND 11 THEN '8:00-12:00'
+                    WHEN EXTRACT(HOUR FROM add_datetime) BETWEEN 12 AND 15 THEN '12:00-16:00'
+                    WHEN EXTRACT(HOUR FROM add_datetime) BETWEEN 16 AND 19 THEN '16:00-20:00'
                     ELSE '20:00-24:00'
                     END AS time_slot
             FROM
@@ -196,8 +196,8 @@
                  SELECT
                      time_slot,
                      CASE
-                         -- 使用时间差计算秒数，适配达梦数据库
-                         WHEN DATEDIFF(SECOND, add_datetime, next_add_datetime) BETWEEN 55 AND 65
+                         -- 使用 age() 函数计算可靠的时间间隔(interval)，再用 EXTRACT 提取总秒数
+                         WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
                              THEN 60 -- 累加60秒
                          ELSE 0
                          END AS duration_seconds
@@ -314,67 +314,67 @@
     <!-- 教材阅读排名（按时长统计，支持时间范围查询） -->
     <select id="getTextbookReadingRank" resultType="map">
         WITH ReaderCounts AS (
-            -- 1. 阅读人数
-            SELECT textbook_id, COUNT(DISTINCT creator) AS readerCount
-            FROM learning_log
-            <where>
-                <!-- 时间过滤条件 -->
-                <if test="params.startTime != null and params.startTime != ''">
-                    AND add_datetime >= TO_TIMESTAMP(#{params.startTime}, 'YYYY-MM-DD HH24:MI:SS')
-                </if>
-                <if test="params.endTime != null and params.endTime != ''">
-                    AND add_datetime &lt;= TO_TIMESTAMP(#{params.endTime}, 'YYYY-MM-DD HH24:MI:SS')
-                </if>
-            </where>
-            GROUP BY textbook_id
+        -- 1. 阅读人数
+        SELECT textbook_id, COUNT(DISTINCT creator) AS readerCount
+        FROM learning_log
+        <where>
+            <!-- 时间过滤条件 -->
+            <if test="params.startTime != null and params.startTime != ''">
+                AND add_datetime >= TO_TIMESTAMP(#{params.startTime}, 'YYYY-MM-DD HH24:MI:SS')
+            </if>
+            <if test="params.endTime != null and params.endTime != ''">
+                AND add_datetime &lt;= TO_TIMESTAMP(#{params.endTime}, 'YYYY-MM-DD HH24:MI:SS')
+            </if>
+        </where>
+        GROUP BY textbook_id
         ), ReadingDurations AS (
-            -- 2. 阅读时长（分钟）
-            SELECT textbook_id, COUNT(*) AS readingDurationMinutes
-            FROM (
-                SELECT
-                    textbook_id,
-                    EXTRACT(EPOCH FROM age(LEAD(add_datetime, 1) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime), add_datetime)) as diff_seconds
-                FROM learning_log
-                <where>
-                    <!-- 时间过滤条件 -->
-                    <if test="params.startTime != null and params.startTime != ''">
-                        AND add_datetime >= TO_TIMESTAMP(#{params.startTime}, 'YYYY-MM-DD HH24:MI:SS')
-                    </if>
-                    <if test="params.endTime != null and params.endTime != ''">
-                        AND add_datetime &lt;= TO_TIMESTAMP(#{params.endTime}, 'YYYY-MM-DD HH24:MI:SS')
-                    </if>
-                </where>
-            ) AS durations
-            WHERE diff_seconds BETWEEN 55 AND 65
-            GROUP BY textbook_id
+        -- 2. 阅读时长（分钟）
+        SELECT textbook_id, COUNT(*) AS readingDurationMinutes
+        FROM (
+        SELECT
+        textbook_id,
+        EXTRACT(EPOCH FROM age(LEAD(add_datetime, 1) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime), add_datetime)) as diff_seconds
+        FROM learning_log
+        <where>
+            <!-- 时间过滤条件 -->
+            <if test="params.startTime != null and params.startTime != ''">
+                AND add_datetime >= TO_TIMESTAMP(#{params.startTime}, 'YYYY-MM-DD HH24:MI:SS')
+            </if>
+            <if test="params.endTime != null and params.endTime != ''">
+                AND add_datetime &lt;= TO_TIMESTAMP(#{params.endTime}, 'YYYY-MM-DD HH24:MI:SS')
+            </if>
+        </where>
+        ) AS durations
+        WHERE diff_seconds BETWEEN 55 AND 65
+        GROUP BY textbook_id
         ), ActivityCounts AS (
-            -- 3. 教学活动数量
-            SELECT textbook_id, COUNT(*) AS teachingActivityCount
-            FROM discussion_topic
-            WHERE identity_type = 1
-            GROUP BY textbook_id
+        -- 3. 教学活动数量
+        SELECT textbook_id, COUNT(*) AS teachingActivityCount
+        FROM discussion_topic
+        WHERE identity_type = 1
+        GROUP BY textbook_id
         ), FeedbackCounts AS (
-            -- 4. 交流反馈数量
-            SELECT t.id as textbook_id, COUNT(dtr.id) AS communicationFeedbackCount
-            FROM textbook t
-            LEFT JOIN discussion_topic dt ON t.id = dt.textbook_id
-            LEFT JOIN discussion_topic_reply dtr ON dt.id = dtr.topic_id
-            GROUP BY t.id
+        -- 4. 交流反馈数量
+        SELECT t.id as textbook_id, COUNT(dtr.id) AS communicationFeedbackCount
+        FROM textbook t
+        LEFT JOIN discussion_topic dt ON t.id = dt.textbook_id
+        LEFT JOIN discussion_topic_reply dtr ON dt.id = dtr.topic_id
+        GROUP BY t.id
         )
         -- 5. 组合并计算热度值
         SELECT
-            t.id AS "textbookId",
-            t.textbook_name AS "textbookName",
-            COALESCE(rc.readerCount, 0) AS "readerCount",
-            COALESCE(rd.readingDurationMinutes, 0) AS "readingDurationMinutes",
-            COALESCE(ac.teachingActivityCount, 0) AS "teachingActivityCount",
-            COALESCE(fc.communicationFeedbackCount, 0) AS "communicationFeedbackCount",
-            (
-                COALESCE(rc.readerCount, 0) * 10 +
-                COALESCE(rd.readingDurationMinutes, 0) * 2 +
-                COALESCE(ac.teachingActivityCount, 0) * 5 +
-                COALESCE(fc.communicationFeedbackCount, 0) * 3
-            ) AS "readingDuration"
+        t.id AS "textbookId",
+        t.textbook_name AS "textbookName",
+        COALESCE(rc.readerCount, 0) AS "readerCount",
+        COALESCE(rd.readingDurationMinutes, 0) AS "readingDurationMinutes",
+        COALESCE(ac.teachingActivityCount, 0) AS "teachingActivityCount",
+        COALESCE(fc.communicationFeedbackCount, 0) AS "communicationFeedbackCount",
+        (
+        COALESCE(rc.readerCount, 0) * 10 +
+        COALESCE(rd.readingDurationMinutes, 0) * 2 +
+        COALESCE(ac.teachingActivityCount, 0) * 5 +
+        COALESCE(fc.communicationFeedbackCount, 0) * 3
+        ) AS "readingDuration"
         FROM textbook t
         LEFT JOIN ReaderCounts rc ON t.id = rc.textbook_id
         LEFT JOIN ReadingDurations rd ON t.id = rd.textbook_id
@@ -458,12 +458,12 @@
                 END AS "masteryPercentage",
             COUNT(qbl.question_id) AS "questionCount"
         FROM textbook_catalog tc
-        LEFT JOIN teaching_question_bank tqb ON tc.id = tqb.textbook_catalog_id
-        LEFT JOIN questions_banks_list qbl ON tqb.id = qbl.bank_id
-        LEFT JOIN student_final_grade sfg
-            ON tqb.id = sfg.bank_id AND sfg.student_id = #{studentId}
-        -- Using LATERAL JOIN to efficiently get the latest exercise record for the student in the specific question bank
-        LEFT JOIN LATERAL (
+                 LEFT JOIN teaching_question_bank tqb ON tc.id = tqb.textbook_catalog_id
+                 LEFT JOIN questions_banks_list qbl ON tqb.id = qbl.bank_id
+                 LEFT JOIN student_final_grade sfg
+                           ON tqb.id = sfg.bank_id AND sfg.student_id = #{studentId}
+            -- Using LATERAL JOIN to efficiently get the latest exercise record for the student in the specific question bank
+                 LEFT JOIN LATERAL (
             SELECT ser.id
             FROM student_exercises_record ser
             WHERE ser.student_id = #{studentId}
@@ -471,15 +471,15 @@
               AND ser.status = 2
             ORDER BY ser.operation_datetime DESC
             LIMIT 1
-        ) latest_record ON true
-        LEFT JOIN student_exercises_content sec
-            ON qbl.bank_id = sec.teaching_question_bank_id
-            AND qbl.question_id = sec.teaching_question
-            AND sec.record_id = latest_record.id
+            ) latest_record ON true
+                 LEFT JOIN student_exercises_content sec
+                           ON qbl.bank_id = sec.teaching_question_bank_id
+                               AND qbl.question_id = sec.teaching_question
+                               AND sec.record_id = latest_record.id
         WHERE tc.textbook_id = #{textbookId}
         GROUP BY tc.id, tc.catalog_name
         ORDER BY tc.id
-    ]]>
+        ]]>
     </select>
     <select id="countPublishedTextbookByType" resultType="com.upc.modular.datastatistics.controller.param.TextbookTypeCountDto">
         SELECT
@@ -487,7 +487,7 @@
             COUNT(t.id) AS value
         FROM
             textbook t
-            LEFT JOIN
+                LEFT JOIN
             textbook_classification tc ON t.classification = tc.id
         WHERE
             t.release_status = '1'
@@ -515,9 +515,9 @@
         WHERE tr.reason_for_review = 2
         <if test="userId != null">
             AND EXISTS (
-                SELECT 1 FROM textbook t2 WHERE t2.id = tr.textbook_id AND t2.creator = #{userId}
-                UNION
-                SELECT 1 FROM textbook_authority ta WHERE ta.textbook_id = tr.textbook_id AND ta.user_id = #{userId}
+            SELECT 1 FROM textbook t2 WHERE t2.id = tr.textbook_id AND t2.creator = #{userId}
+            UNION
+            SELECT 1 FROM textbook_authority ta WHERE ta.textbook_id = tr.textbook_id AND ta.user_id = #{userId}
             )
         </if>
         ORDER BY
@@ -535,11 +535,11 @@
             -- 2. 阅读时长（分钟）
             SELECT textbook_id, COUNT(*) AS readingDurationMinutes
             FROM (
-                SELECT
-                    textbook_id,
-                    EXTRACT(EPOCH FROM age(LEAD(add_datetime, 1) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime), add_datetime)) as diff_seconds
-                FROM learning_log
-            ) AS durations
+                     SELECT
+                         textbook_id,
+                         EXTRACT(EPOCH FROM age(LEAD(add_datetime, 1) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime), add_datetime)) as diff_seconds
+                     FROM learning_log
+                 ) AS durations
             WHERE diff_seconds BETWEEN 55 AND 65
             GROUP BY textbook_id
         ), ActivityCounts AS (
@@ -552,8 +552,8 @@
             -- 4. 交流反馈数量
             SELECT t.id as textbook_id, COUNT(dtr.id) AS communicationFeedbackCount
             FROM textbook t
-            LEFT JOIN discussion_topic dt ON t.id = dt.textbook_id
-            LEFT JOIN discussion_topic_reply dtr ON dt.id = dtr.topic_id
+                     LEFT JOIN discussion_topic dt ON t.id = dt.textbook_id
+                     LEFT JOIN discussion_topic_reply dtr ON dt.id = dtr.topic_id
             GROUP BY t.id
         )
         -- 5. 组合并计算热度值
@@ -569,12 +569,12 @@
                 COALESCE(rd.readingDurationMinutes, 0) * 2 +
                 COALESCE(ac.teachingActivityCount, 0) * 5 +
                 COALESCE(fc.communicationFeedbackCount, 0) * 3
-            ) AS "popularityScore"
+                ) AS "popularityScore"
         FROM textbook t
-        LEFT JOIN ReaderCounts rc ON t.id = rc.textbook_id
-        LEFT JOIN ReadingDurations rd ON t.id = rd.textbook_id
-        LEFT JOIN ActivityCounts ac ON t.id = ac.textbook_id
-        LEFT JOIN FeedbackCounts fc ON t.id = fc.textbook_id
+                 LEFT JOIN ReaderCounts rc ON t.id = rc.textbook_id
+                 LEFT JOIN ReadingDurations rd ON t.id = rd.textbook_id
+                 LEFT JOIN ActivityCounts ac ON t.id = ac.textbook_id
+                 LEFT JOIN FeedbackCounts fc ON t.id = fc.textbook_id
         WHERE t.release_status = '1'
         ORDER BY "popularityScore" DESC
     </select>
@@ -590,11 +590,11 @@
             -- 2. 阅读时长（分钟）
             SELECT textbook_id, COUNT(*) AS readingDurationMinutes
             FROM (
-                SELECT
-                    textbook_id,
-                    EXTRACT(EPOCH FROM age(LEAD(add_datetime, 1) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime), add_datetime)) as diff_seconds
-                FROM learning_log
-            ) AS durations
+                     SELECT
+                         textbook_id,
+                         EXTRACT(EPOCH FROM age(LEAD(add_datetime, 1) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime), add_datetime)) as diff_seconds
+                     FROM learning_log
+                 ) AS durations
             WHERE diff_seconds BETWEEN 55 AND 65
             GROUP BY textbook_id
         ), ActivityCounts AS (
@@ -607,8 +607,8 @@
             -- 4. 交流反馈数量
             SELECT t.id as textbook_id, COUNT(dtr.id) AS communicationFeedbackCount
             FROM textbook t
-            LEFT JOIN discussion_topic dt ON t.id = dt.textbook_id
-            LEFT JOIN discussion_topic_reply dtr ON dt.id = dtr.topic_id
+                     LEFT JOIN discussion_topic dt ON t.id = dt.textbook_id
+                     LEFT JOIN discussion_topic_reply dtr ON dt.id = dtr.topic_id
             GROUP BY t.id
         )
         -- 5. 组合并计算热度值
@@ -624,12 +624,12 @@
                 COALESCE(rd.readingDurationMinutes, 0) * 2 +
                 COALESCE(ac.teachingActivityCount, 0) * 5 +
                 COALESCE(fc.communicationFeedbackCount, 0) * 3
-            ) AS "popularityScore"
+                ) AS "popularityScore"
         FROM textbook t
-        LEFT JOIN ReaderCounts rc ON t.id = rc.textbook_id
-        LEFT JOIN ReadingDurations rd ON t.id = rd.textbook_id
-        LEFT JOIN ActivityCounts ac ON t.id = ac.textbook_id
-        LEFT JOIN FeedbackCounts fc ON t.id = fc.textbook_id
+                 LEFT JOIN ReaderCounts rc ON t.id = rc.textbook_id
+                 LEFT JOIN ReadingDurations rd ON t.id = rd.textbook_id
+                 LEFT JOIN ActivityCounts ac ON t.id = ac.textbook_id
+                 LEFT JOIN FeedbackCounts fc ON t.id = fc.textbook_id
         WHERE t.release_status = '1'
         ORDER BY "popularityScore" DESC
     </select>
@@ -735,111 +735,111 @@
     <!-- 教师教材统计概览 -->
     <select id="getTeacherTextbookStatisticsOverview" resultType="map">
         SELECT
-            t.id AS "textbookId",
-            t.textbook_name AS "textbookName",
-            COALESCE(reader_stats.reader_count, 0) as "readerCount",
-            COALESCE(activity_stats.teaching_activity_count, 0) as "teachingActivityCount",
-            COALESCE(material_stats.material_count, 0) as "materialCount",
-            COALESCE(feedback_stats.communication_feedback_count, 0) as "communicationFeedbackCount",
-            COALESCE(ideological_stats.ideological_material_count, 0) as "ideologicalMaterialCount",
-            COALESCE(question_stats.question_correct_rate, 0) as "questionCorrectRate",
-            COALESCE(participation_stats.communication_participation_count, 0) as "communicationParticipationCount",
-            COALESCE(annotation_stats.annotation_count, 0) as "annotationCount"
+        t.id AS "textbookId",
+        t.textbook_name AS "textbookName",
+        COALESCE(reader_stats.reader_count, 0) as "readerCount",
+        COALESCE(activity_stats.teaching_activity_count, 0) as "teachingActivityCount",
+        COALESCE(material_stats.material_count, 0) as "materialCount",
+        COALESCE(feedback_stats.communication_feedback_count, 0) as "communicationFeedbackCount",
+        COALESCE(ideological_stats.ideological_material_count, 0) as "ideologicalMaterialCount",
+        COALESCE(question_stats.question_correct_rate, 0) as "questionCorrectRate",
+        COALESCE(participation_stats.communication_participation_count, 0) as "communicationParticipationCount",
+        COALESCE(annotation_stats.annotation_count, 0) as "annotationCount"
         FROM textbook t
         INNER JOIN (
-            -- 教师作为作者的教材
-            SELECT DISTINCT t.id as textbook_id
-            FROM textbook t
-            WHERE t.creator = #{userId} AND t.release_status = '1'
-            
-            UNION
-            
-            -- 教师作为协作者的教材
-            SELECT DISTINCT t.id as textbook_id
-            FROM textbook t
-            INNER JOIN textbook_authority ta ON t.id = ta.textbook_id
-            WHERE ta.user_id = #{userId} AND ta.authority_type = 1 AND t.release_status = '1'
+        -- 教师作为作者的教材
+        SELECT DISTINCT t.id as textbook_id
+        FROM textbook t
+        WHERE t.creator = #{userId} AND t.release_status = '1'
+
+        UNION
+
+        -- 教师作为协作者的教材
+        SELECT DISTINCT t.id as textbook_id
+        FROM textbook t
+        INNER JOIN textbook_authority ta ON t.id = ta.textbook_id
+        WHERE ta.user_id = #{userId} AND ta.authority_type = 1 AND t.release_status = '1'
         ) teacher_textbooks ON t.id = teacher_textbooks.textbook_id
         LEFT JOIN (
-            -- 统计阅读人数（统计该教材关联班级中的所有学生，与reader-statistics接口保持一致）
-            SELECT 
-                ctl.textbook_id,
-                COUNT(DISTINCT s.id) as reader_count
-            FROM student s
-            INNER JOIN user_class_list ucl ON s.user_id = ucl.user_id
-            INNER JOIN course_class_list ccl ON ucl.class_id = ccl.class_id
-            INNER JOIN course_textbook_list ctl ON ccl.course_id = ctl.course_id
-            WHERE ucl.type = 1
-            GROUP BY ctl.textbook_id
+        -- 统计阅读人数（统计该教材关联班级中的所有学生，与reader-statistics接口保持一致）
+        SELECT
+        ctl.textbook_id,
+        COUNT(DISTINCT s.id) as reader_count
+        FROM student s
+        INNER JOIN user_class_list ucl ON s.user_id = ucl.user_id
+        INNER JOIN course_class_list ccl ON ucl.class_id = ccl.class_id
+        INNER JOIN course_textbook_list ctl ON ccl.course_id = ctl.course_id
+        WHERE ucl.type = 1
+        GROUP BY ctl.textbook_id
         ) reader_stats ON t.id = reader_stats.textbook_id
         LEFT JOIN (
-            -- 统计教学活动数量
-            SELECT 
-                dt.textbook_id,
-                COUNT(*) as teaching_activity_count
-            FROM discussion_topic dt
-            GROUP BY dt.textbook_id
+        -- 统计教学活动数量
+        SELECT
+        dt.textbook_id,
+        COUNT(*) as teaching_activity_count
+        FROM discussion_topic dt
+        GROUP BY dt.textbook_id
         ) activity_stats ON t.id = activity_stats.textbook_id
         LEFT JOIN (
-            -- 统计素材数量
-            SELECT 
-                mtm.textbook_id,
-                COUNT(*) as material_count
-            FROM materials_textbook_mapping mtm
-            GROUP BY mtm.textbook_id
+        -- 统计素材数量
+        SELECT
+        mtm.textbook_id,
+        COUNT(*) as material_count
+        FROM materials_textbook_mapping mtm
+        GROUP BY mtm.textbook_id
         ) material_stats ON t.id = material_stats.textbook_id
         LEFT JOIN (
-            -- 统计交流反馈数量
-            SELECT 
-                dt.textbook_id,
-                COUNT(dtr.id) as communication_feedback_count
-            FROM discussion_topic dt
-            LEFT JOIN discussion_topic_reply dtr ON dt.id = dtr.topic_id
-            GROUP BY dt.textbook_id
+        -- 统计交流反馈数量
+        SELECT
+        dt.textbook_id,
+        COUNT(dtr.id) as communication_feedback_count
+        FROM discussion_topic dt
+        LEFT JOIN discussion_topic_reply dtr ON dt.id = dtr.topic_id
+        GROUP BY dt.textbook_id
         ) feedback_stats ON t.id = feedback_stats.textbook_id
         LEFT JOIN (
-            -- 统计教学思政数量
-            SELECT 
-                im.textbook_id,
-                COUNT(*) as ideological_material_count
-            FROM ideological_material im
-            GROUP BY im.textbook_id
+        -- 统计教学思政数量
+        SELECT
+        im.textbook_id,
+        COUNT(*) as ideological_material_count
+        FROM ideological_material im
+        GROUP BY im.textbook_id
         ) ideological_stats ON t.id = ideological_stats.textbook_id
         LEFT JOIN (
-            -- 统计答题正确率
-            SELECT 
-                tqb.textbook_id,
-                CASE 
-                    WHEN SUM(qbl.total_score) > 0 THEN 
-                        ROUND((SUM(sfg.final_score) / SUM(qbl.total_score)) * 100, 2)
-                    ELSE 0 
-                END as question_correct_rate
-            FROM teaching_question_bank tqb
-            LEFT JOIN (
-                SELECT bank_id, SUM(score) as total_score
-                FROM questions_banks_list
-                GROUP BY bank_id
-            ) qbl ON tqb.id = qbl.bank_id
-            LEFT JOIN student_final_grade sfg ON tqb.id = sfg.bank_id
-            WHERE tqb.status = 1
-            GROUP BY tqb.textbook_id
+        -- 统计答题正确率
+        SELECT
+        tqb.textbook_id,
+        CASE
+        WHEN SUM(qbl.total_score) > 0 THEN
+        ROUND((SUM(sfg.final_score) / SUM(qbl.total_score)) * 100, 2)
+        ELSE 0
+        END as question_correct_rate
+        FROM teaching_question_bank tqb
+        LEFT JOIN (
+        SELECT bank_id, SUM(score) as total_score
+        FROM questions_banks_list
+        GROUP BY bank_id
+        ) qbl ON tqb.id = qbl.bank_id
+        LEFT JOIN student_final_grade sfg ON tqb.id = sfg.bank_id
+        WHERE tqb.status = 1
+        GROUP BY tqb.textbook_id
         ) question_stats ON t.id = question_stats.textbook_id
         LEFT JOIN (
-            -- 统计交流反馈参与量
-            SELECT 
-                dt.textbook_id,
-                COUNT(DISTINCT dtr.creator) as communication_participation_count
-            FROM discussion_topic dt
-            LEFT JOIN discussion_topic_reply dtr ON dt.id = dtr.topic_id
-            GROUP BY dt.textbook_id
+        -- 统计交流反馈参与量
+        SELECT
+        dt.textbook_id,
+        COUNT(DISTINCT dtr.creator) as communication_participation_count
+        FROM discussion_topic dt
+        LEFT JOIN discussion_topic_reply dtr ON dt.id = dtr.topic_id
+        GROUP BY dt.textbook_id
         ) participation_stats ON t.id = participation_stats.textbook_id
         LEFT JOIN (
-            -- 统计知识点批注量
-            SELECT 
-                ta.textbook_id,
-                COUNT(*) as annotation_count
-            FROM teacher_annotation ta
-            GROUP BY ta.textbook_id
+        -- 统计知识点批注量
+        SELECT
+        ta.textbook_id,
+        COUNT(*) as annotation_count
+        FROM teacher_annotation ta
+        GROUP BY ta.textbook_id
         ) annotation_stats ON t.id = annotation_stats.textbook_id
         WHERE 1=1
         <if test="textbookName != null and textbookName != ''">
@@ -858,32 +858,32 @@
                 WHEN COALESCE(reading_stats.reading_duration, 0) >= 300 THEN '高'
                 WHEN COALESCE(reading_stats.reading_duration, 0) >= 150 THEN '中'
                 ELSE '低'
-            END as "learningBehavior",
+                END as "learningBehavior",
             COALESCE(chapter_stats.chapter_count, 0) as "chapterCount",
             reading_stats.last_reading_time as "lastReadingTime",
             COALESCE(progress_stats.progress_percentage, 0) as "progressPercentage"
         FROM student s
-        LEFT JOIN (
+                 LEFT JOIN (
             -- 统计学生阅读时长
             SELECT
                 creator,
                 COUNT(CASE
-                    WHEN diff_seconds BETWEEN 55 AND 65
-                    THEN 1
-                    ELSE NULL
-                END) as reading_duration,
+                          WHEN diff_seconds BETWEEN 55 AND 65
+                              THEN 1
+                          ELSE NULL
+                    END) as reading_duration,
                 MAX(add_datetime) as last_reading_time
             FROM (
-                SELECT
-                    ll.creator,
-                    ll.add_datetime,
-                    EXTRACT(EPOCH FROM age(LEAD(ll.add_datetime, 1) OVER (PARTITION BY ll.creator, ll.textbook_id ORDER BY ll.add_datetime), ll.add_datetime)) as diff_seconds
-                FROM learning_log ll
-                WHERE ll.textbook_id = #{textbookId}
-            ) AS user_reading_intervals
+                     SELECT
+                         ll.creator,
+                         ll.add_datetime,
+                         EXTRACT(EPOCH FROM age(LEAD(ll.add_datetime, 1) OVER (PARTITION BY ll.creator, ll.textbook_id ORDER BY ll.add_datetime), ll.add_datetime)) as diff_seconds
+                     FROM learning_log ll
+                     WHERE ll.textbook_id = #{textbookId}
+                 ) AS user_reading_intervals
             GROUP BY creator
         ) reading_stats ON s.user_id = reading_stats.creator
-        LEFT JOIN (
+                 LEFT JOIN (
             -- 统计学生阅读章节数
             SELECT
                 ll.creator,
@@ -892,7 +892,7 @@
             WHERE ll.textbook_id = #{textbookId}
             GROUP BY ll.creator
         ) chapter_stats ON s.user_id = chapter_stats.creator
-        LEFT JOIN (
+                 LEFT JOIN (
             -- 统计学习进度
             SELECT
                 ll.creator,
@@ -914,22 +914,22 @@
     <select id="findLearningLogsByTextbookIdAndTime" resultType="com.upc.modular.textbook.entity.LearningLog">
         SELECT * FROM learning_log
         WHERE textbook_id = #{textbookId}
-        AND add_datetime BETWEEN CAST(#{startTime} AS TIMESTAMP) AND CAST(#{endTime} AS TIMESTAMP)
+          AND add_datetime BETWEEN CAST(#{startTime} AS TIMESTAMP) AND CAST(#{endTime} AS TIMESTAMP)
     </select>
 
     <select id="findCommunicationFeedbackByTextbookId" resultType="com.upc.modular.teachingactivities.entity.DiscussionTopicReply">
         SELECT dtr.*
         FROM discussion_topic_reply dtr
-        INNER JOIN discussion_topic dt ON dtr.topic_id = dt.id
+                 INNER JOIN discussion_topic dt ON dtr.topic_id = dt.id
         WHERE dt.textbook_id = #{textbookId}
     </select>
 
     <select id="findCommunicationFeedbackByTextbookIdAndTime" resultType="com.upc.modular.teachingactivities.entity.DiscussionTopicReply">
         SELECT dtr.*
         FROM discussion_topic_reply dtr
-        INNER JOIN discussion_topic dt ON dtr.topic_id = dt.id
+                 INNER JOIN discussion_topic dt ON dtr.topic_id = dt.id
         WHERE dt.textbook_id = #{textbookId}
-        AND dtr.add_datetime BETWEEN CAST(#{startTime} AS TIMESTAMP) AND CAST(#{endTime} AS TIMESTAMP)
+          AND dtr.add_datetime BETWEEN CAST(#{startTime} AS TIMESTAMP) AND CAST(#{endTime} AS TIMESTAMP)
     </select>
 
     <!-- 获取各章节习题正确率统计 -->
@@ -946,9 +946,9 @@
             CASE
                 WHEN COALESCE(stat.totalAnswerCount, 0) = 0 THEN 0.0
                 ELSE ROUND(COALESCE(stat.correctAnswerCount, 0) * 100.0 / stat.totalAnswerCount, 2)
-            END as "correctRate"
+                END as "correctRate"
         FROM textbook_catalog tc
-        LEFT JOIN (
+                 LEFT JOIN (
             -- 按照您的思路：先查题库，再查总分，再计算正确率
             SELECT
                 tqb.textbook_catalog_id,
@@ -959,15 +959,15 @@
                     WHEN SUM(qbl.total_score) > 0 THEN
                         ROUND((SUM(sfg.final_score) / SUM(qbl.total_score)) * 100, 2)
                     ELSE 0
-                END as correctRate,
+                    END as correctRate,
                 -- 统计正确作答次数（正确率 >= 60% 视为正确）
                 SUM(CASE
-                    WHEN qbl.total_score > 0 AND (sfg.final_score / qbl.total_score) >= 0.6 THEN 1
-                    ELSE 0
-                END) as correctAnswerCount
+                        WHEN qbl.total_score > 0 AND (sfg.final_score / qbl.total_score) >= 0.6 THEN 1
+                        ELSE 0
+                    END) as correctAnswerCount
             FROM teaching_question_bank tqb
-            -- 步骤1：查出教材对应的所有题库
-            LEFT JOIN (
+                     -- 步骤1：查出教材对应的所有题库
+                     LEFT JOIN (
                 -- 步骤2：统计每个题库的总分
                 SELECT
                     bank_id,
@@ -975,10 +975,10 @@
                 FROM questions_banks_list
                 GROUP BY bank_id
             ) qbl ON tqb.id = qbl.bank_id
-            -- 步骤3：联查学生最终成绩表
-            LEFT JOIN student_final_grade sfg ON tqb.id = sfg.bank_id
+                -- 步骤3：联查学生最终成绩表
+                     LEFT JOIN student_final_grade sfg ON tqb.id = sfg.bank_id
             WHERE tqb.textbook_id = #{textbookId}
-                AND tqb.status = 1
+              AND tqb.status = 1
             GROUP BY tqb.textbook_catalog_id
         ) stat ON tc.id = stat.textbook_catalog_id
         WHERE tc.textbook_id = #{textbookId}
