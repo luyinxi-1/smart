@@ -3,9 +3,9 @@ package com.upc.modular.textbook.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.common.responseparam.R;
-import com.upc.modular.textbook.controller.param.dto.StudentLearningLogSaveParam;
 import com.upc.modular.textbook.entity.StudentLearningLog;
 import com.upc.modular.textbook.param.StudentLearningLogPageSearchParam;
+import com.upc.modular.textbook.param.StudentLearningLogSaveParam;
 
 public interface IStudentLearningLogService extends IService<StudentLearningLog> {
 

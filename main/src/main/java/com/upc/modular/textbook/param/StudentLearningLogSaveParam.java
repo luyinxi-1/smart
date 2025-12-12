@@ -1,4 +1,4 @@
-package com.upc.modular.textbook.controller.param.dto;
+package com.upc.modular.textbook.param;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;

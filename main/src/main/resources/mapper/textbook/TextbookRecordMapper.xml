@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.upc.modular.textbook.mapper.TextbookRecordMapper">
+
+    <!-- 通用查询映射结果：对应实体 com.upc.modular.textbook.entity.TextbookRecord -->
+    <resultMap id="BaseResultMap" type="com.upc.modular.textbook.entity.TextbookRecord">
+        <id column="id" property="id"/>
+        <result column="textbook_id" property="textbookId"/>
+        <!-- 你表里字段名是 textbok_name（少了一个 o），实体里如果也叫 textbokName 就这样写；
+             如果实体里用 @TableField("textbok_name") 映射到 textbookName，这里就写 property="textbookName" -->
+        <result column="textbook_name" property="textbookName"/>
+        <result column="creator" property="creator"/>
+        <result column="add_datetime" property="addDatetime"/>
+        <result column="status" property="status"/>
+        <result column="catalog_id" property="catalogId"/>
+        <result column="catalog_name" property="catalogName"/>
+    </resultMap>
+
+    <select id="selectRecordPage"
+            resultType="com.upc.modular.textbook.param.TextbookRecordPageDto">
+
+        SELECT
+        tr.id                                      AS id,
+        tr.textbook_id                             AS textbookId,
+        t.textbook_name                            AS textbookName,
+        tr.catalog_id                              AS catalogId,
+        c.catalog_name                             AS catalogName,
+        u.nickname                                 AS creatorName,
+        tr.creator                                 AS creator,
+        tr.add_datetime                            AS addDatetime,
+        tr.status                                  AS status
+        FROM textbook_record tr
+        LEFT JOIN textbook t
+        ON tr.textbook_id = t.id
+        LEFT JOIN textbook_catalog c
+        ON tr.catalog_id = c.id
+        LEFT JOIN sys_tbuser u                -- ✅ 新增：关联用户表
+        ON tr.creator = u.id
+        <where>
+            <if test="param.textbookId != null">
+                AND tr.textbook_id = #{param.textbookId}
+            </if>
+            <if test="param.catalogId != null">
+                AND tr.catalog_id = #{param.catalogId}
+            </if>
+            <if test="param.status != null">
+                AND tr.status = #{param.status}
+            </if>
+            <if test="param.keyword != null and param.keyword != ''">
+                AND (
+                t.textbook_name LIKE CONCAT('%', #{param.keyword}, '%')
+                OR c.catalog_name LIKE CONCAT('%', #{param.keyword}, '%')
+                )
+            </if>
+        </where>
+        ORDER BY tr.add_datetime DESC
+    </select>
+
+</mapper>

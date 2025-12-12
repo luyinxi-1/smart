@@ -41,12 +41,6 @@ public class SysUserController {
     private ISysUserService sysUserService;
     @Autowired
     private SysRoleServiceImpl sysRoleService;
-
-
-    @Api(tags = "学生同步")
-    @RestController
-    @RequestMapping("/sync")
-    public class StudentSyncController {
         @ApiOperation("从对方接口同步学生，返回新增/更新详情")
         @PostMapping("/student")
         public R<SyncResultDTO> syncStudent() {
@@ -67,7 +61,7 @@ public class SysUserController {
         }
 
         @PostMapping("/login1")
-        @ApiOperation("登录")
+        @ApiOperation("登录（不使用")
         public R<UserLoginResultParam> login1(@RequestBody UserLoginParam userLogin, HttpServletRequest request) {
             return R.ok(sysUserService.login1(userLogin, request));
         }
@@ -137,5 +131,4 @@ public class SysUserController {
             return R.ok(userInfoToRedis);
         }
     }
-}
 
