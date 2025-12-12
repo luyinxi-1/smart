@@ -59,10 +59,13 @@
             <if test="param.isPartyNumber != null">
                 AND t.is_party_number = #{param.isPartyNumber}
             </if>
-            <if test="param.status != null">
-                AND t.status = #{param.status}
+            <if test="param.changeStatus != null">
+                AND t.status = #{param.changeStatus}
             </if>
-            <!-- 新增的detailTypeOption条件 -->
+            <if test="param.detailTypeOption != null">
+                AND u.institution_id = #{param.detailTypeOption}
+            </if>
+  <!--          &lt;!&ndash; 新增的detailTypeOption条件 &ndash;&gt;
             <if test="param.detailTypeOption != null">
                 AND EXISTS (
                     SELECT 1 FROM textbook_authority ta 
@@ -70,7 +73,7 @@
                     AND ta.visible_institute_id = #{param.detailTypeOption} 
                     AND ta.authority_type = 2
                 )
-            </if>
+            </if>-->
         </where>
         ORDER BY t.add_datetime
         <choose>
