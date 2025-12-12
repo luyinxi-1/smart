@@ -9,6 +9,7 @@ import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchR
 import com.upc.modular.questionbank.controller.param.QuestionCountByTypeReturnParam;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -47,4 +48,6 @@ public interface ITeachingQuestionService extends IService<TeachingQuestion> {
      * @return 各题型题目数量列表
      */
     List<QuestionCountByTypeReturnParam> countQuestionsByType(Long textbookId, Long chapterId);
+
+    void batchImportQuestions(MultipartFile file, Long textbookId, Long chapterId);
 }

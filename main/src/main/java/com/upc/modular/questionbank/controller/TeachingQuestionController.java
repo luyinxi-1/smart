@@ -16,6 +16,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -82,5 +83,24 @@ public R<TeachingQuestion> selectQuestionById(@RequestParam Long id) {
     public R<List<QuestionCountByTypeReturnParam>> countQuestionsByType(@RequestBody QuestionCountSearchParam param) {
         List<QuestionCountByTypeReturnParam> result = teachingQuestionService.countQuestionsByType(param.getTextbookId(), param.getChapterId());
         return R.ok(result);
+    }
+
+    @ApiOperation("批量导入题目")
+    @PostMapping("/import")
+    public R<String> importQuestions(@RequestParam("file") MultipartFile file,
+                                     @RequestParam(required = false) Long textbookId,
+                                     @RequestParam(required = false) Long chapterId) {
+        try {
+            // 调用 Service 层处理导入逻辑
+            teachingQuestionService.batchImportQuestions(file, textbookId, chapterId);
+
+            // 使用您定义的 R.ok() 方法返回成功
+            return R.ok("题目批量导入成功");
+
+        } catch (Exception e) {
+            // 捕获异常，并使用您定义的 R.fail(message) 方法返回失败
+            // 建议在这里打印完整的堆栈信息到日志中：logger.error("导入失败", e);
+            return R.fail("题目批量导入失败: " + e.getMessage());
+        }
     }
 }
