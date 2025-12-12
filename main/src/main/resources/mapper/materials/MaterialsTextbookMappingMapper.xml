@@ -20,12 +20,12 @@
         t.name,
         t.type,
         m.chapter_name,
-        te.name as uploader,
+        u.nickname as uploader,
         m.add_datetime
         FROM
         materials_textbook_mapping m
         LEFT JOIN teaching_materials t ON m.material_id = t.id
-        LEFT JOIN teacher te ON t.creator = te.id
+        LEFT JOIN sys_tbuser u ON t.creator = u.id
         WHERE
         m.textbook_id = #{param.textbookId}
         <if test="param.materialName != null and param.materialName != ''">
