@@ -81,3 +81,7 @@ iam:
   redirect-uri: http://60.217.79.210:8088/sso/callback
   scope: openid
   front-host:  http://60.217.79.210:6190/#/publicHome
+
+remote:
+  base-data:
+    host: http://对方基础数据系统地址:端口
