@@ -2,9 +2,9 @@ package com.upc.modular.textbook.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.R;
-import com.upc.modular.textbook.controller.param.dto.StudentLearningLogSaveParam;
 import com.upc.modular.textbook.entity.StudentLearningLog;
 import com.upc.modular.textbook.param.StudentLearningLogPageSearchParam;
+import com.upc.modular.textbook.param.StudentLearningLogSaveParam;
 import com.upc.modular.textbook.service.IStudentLearningLogService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

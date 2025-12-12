@@ -15,6 +15,11 @@ import com.upc.common.utils.UserUtils;
 import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.auth.client.RemoteBaseDataClient;
+import com.upc.modular.auth.dto.RemoteStudentDTO;
+import com.upc.modular.auth.dto.RemoteTeacherDTO;
+import com.upc.modular.auth.dto.SyncItemDTO;
+import com.upc.modular.auth.dto.SyncResultDTO;
 import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.entity.UserRoleList;
@@ -26,22 +31,26 @@ import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.auth.service.IUserRoleListService;
 import com.upc.modular.institution.entity.Institution;
 import com.upc.modular.institution.mapper.InstitutionMapper;
+import com.upc.modular.student.entity.Student;
+import com.upc.modular.student.mapper.StudentMapper;
+import com.upc.modular.teacher.entity.Teacher;
+import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.utils.AesCbcCompatUtil;
 import com.upc.utils.InstitutionUtil;
 import com.upc.utils.MD5Utils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -53,6 +62,7 @@ import java.util.stream.Collectors;
  * @author byh
  * @since 2025-06-26
  */
+@Slf4j
 @Service
 public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> implements ISysUserService {
 
@@ -69,11 +79,245 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
     private InstitutionMapper institutionMapper;
 
     @Autowired
+    private StudentMapper studentMapper;
+    @Autowired
     private SysUserMapper sysUserMapper;
+    @Autowired
+    private TeacherMapper teacherMapper;
+    
+    @Autowired
+    private RemoteBaseDataClient remoteBaseDataClient;
 
     private static Integer ENABLE_STATUS = 1;
 
 
+    @Override
+    @Transactional
+    public SyncResultDTO syncTeacherFromRemote() {
+
+        List<RemoteTeacherDTO> remoteList = remoteBaseDataClient.getAllTeachers();
+        log.info("远端教师数量: {}", remoteList.size());
+
+        List<SyncItemDTO> inserted = new ArrayList<>();
+        List<SyncItemDTO> updated = new ArrayList<>();
+
+        for (RemoteTeacherDTO r : remoteList) {
+
+            String username = r.getJobNo(); // 账号 = 工号
+            if (username == null || username.trim().isEmpty()) {
+                continue;
+            }
+
+            // 1. sys_tbuser
+            SysTbuser user = sysUserMapper.selectOne(
+                    new LambdaQueryWrapper<SysTbuser>()
+                            .eq(SysTbuser::getUsername, username)
+            );
+            boolean newUser = (user == null);
+            LocalDateTime now = LocalDateTime.now();
+
+            if (user == null) {
+                user = new SysTbuser();
+                user.setUsername(username);
+                user.setUserType(1); // 教师
+                user.setStatus(r.getStatus() == null ? 1 : r.getStatus());
+                user.setNickname(r.getName());
+                user.setInstitutionId(r.getUnitId());
+                user.setAddDatetime(now);
+                user.setOperationDatetime(now);
+                sysUserMapper.insert(user);
+            } else {
+                user.setUserType(1);
+                if (r.getStatus() != null) {
+                    user.setStatus(r.getStatus());
+                }
+                user.setNickname(r.getName());
+                if (r.getUnitId() != null) {
+                    user.setInstitutionId(r.getUnitId());
+                }
+                user.setOperationDatetime(now);
+                sysUserMapper.updateById(user);
+            }
+
+            Long userId = user.getId();
+
+            // 2. teacher
+            Teacher t = teacherMapper.selectOne(
+                    new LambdaQueryWrapper<Teacher>()
+                            .eq(Teacher::getUserId, userId)
+            );
+            boolean newTeacher = (t == null);
+
+            if (t == null) {
+                t = new Teacher();
+                t.setUserId(userId);
+                t.setIdentityId(r.getJobNo());
+                t.setIdcard(r.getIdCard());
+                t.setName(r.getName());
+                t.setGender(r.getGender());
+                t.setNationality(r.getNationality());
+                t.setBirthday(r.getBirthday());
+                t.setPosition(r.getPosition());
+                t.setProfessionalTitle(r.getProfessionalTitle());
+                t.setEmail(r.getEmail());
+                t.setPhone(r.getPhone());
+                t.setStatus(r.getStatus());
+                t.setAddDatetime(now);
+                t.setOperationDatetime(now);
+                teacherMapper.insert(t);
+            } else {
+                t.setIdentityId(r.getJobNo());
+                t.setIdcard(r.getIdCard());
+                t.setName(r.getName());
+                t.setGender(r.getGender());
+                t.setNationality(r.getNationality());
+                t.setBirthday(r.getBirthday());
+                t.setPosition(r.getPosition());
+                t.setProfessionalTitle(r.getProfessionalTitle());
+                t.setEmail(r.getEmail());
+                t.setPhone(r.getPhone());
+                if (r.getStatus() != null) {
+                    t.setStatus(r.getStatus());
+                }
+                t.setOperationDatetime(now);
+                teacherMapper.updateById(t);
+            }
+
+            SyncItemDTO item = new SyncItemDTO();
+            item.setUserId(userId);
+            item.setBizId(t.getId());
+            item.setUsername(username);
+            item.setName(r.getName());
+
+            if (newUser || newTeacher) {
+                item.setOpType("INSERT");
+                inserted.add(item);
+            } else {
+                item.setOpType("UPDATE");
+                updated.add(item);
+            }
+        }
+
+        SyncResultDTO result = new SyncResultDTO();
+        result.setInsertCount(inserted.size());
+        result.setUpdateCount(updated.size());
+        result.setInsertedList(inserted);
+        result.setUpdatedList(updated);
+        return result;
+    }
+    @Override
+    @Transactional
+    public SyncResultDTO syncStudentFromRemote() {
+
+        List<RemoteStudentDTO> remoteList = remoteBaseDataClient.getAllStudents();
+        log.info("远端学生数量: {}", remoteList.size());
+
+        List<SyncItemDTO> inserted = new ArrayList<>();
+        List<SyncItemDTO> updated = new ArrayList<>();
+
+        for (RemoteStudentDTO r : remoteList) {
+
+            String username = r.getStudentNo(); // 账号 = 学号
+            if (username == null || username.trim().isEmpty()) {
+                continue;
+            }
+
+            // 1. sys_tbuser
+            SysTbuser user = sysUserMapper.selectOne(
+                    new LambdaQueryWrapper<SysTbuser>()
+                            .eq(SysTbuser::getUsername, username)
+            );
+            boolean newUser = (user == null);
+            LocalDateTime now = LocalDateTime.now();
+
+            if (user == null) {
+                user = new SysTbuser();
+                user.setUsername(username);
+                user.setUserType(2);                           // 学生
+                user.setStatus(r.getStatus() == null ? 1 : r.getStatus());
+                user.setNickname(r.getName());
+                user.setInstitutionId(r.getUnitId());
+                user.setAddDatetime(now);
+                user.setOperationDatetime(now);
+                sysUserMapper.insert(user);
+            } else {
+                user.setUserType(2);
+                if (r.getStatus() != null) {
+                    user.setStatus(r.getStatus());
+                }
+                user.setNickname(r.getName());
+                if (r.getUnitId() != null) {
+                    user.setInstitutionId(r.getUnitId());
+                }
+                user.setOperationDatetime(now);
+                sysUserMapper.updateById(user);
+            }
+
+            Long userId = user.getId();
+
+            // 2. student
+            Student stu = studentMapper.selectOne(
+                    new LambdaQueryWrapper<Student>()
+                            .eq(Student::getUserId, userId)
+            );
+            boolean newStu = (stu == null);
+
+            if (stu == null) {
+                stu = new Student();
+                stu.setUserId(userId);
+                stu.setIdentityId(r.getStudentNo());
+                stu.setIdcard(r.getIdCard());
+                stu.setName(r.getName());
+                stu.setGender(r.getGender());
+                stu.setCollege(r.getCollegeName());
+                stu.setMajor(r.getMajorName());
+                stu.setClassId(r.getClassId());
+                stu.setEmail(r.getEmail());
+                stu.setPhone(r.getPhone());
+                stu.setAccountStatus(r.getStatus());
+                stu.setAddDatetime(now);
+                stu.setOperationDatetime(now);
+                studentMapper.insert(stu);
+            } else {
+                stu.setIdentityId(r.getStudentNo());
+                stu.setIdcard(r.getIdCard());
+                stu.setName(r.getName());
+                stu.setGender(r.getGender());
+                stu.setCollege(r.getCollegeName());
+                stu.setMajor(r.getMajorName());
+                stu.setClassId(r.getClassId());
+                stu.setEmail(r.getEmail());
+                stu.setPhone(r.getPhone());
+                if (r.getStatus() != null) {
+                    stu.setAccountStatus(r.getStatus());
+                }
+                stu.setOperationDatetime(now);
+                studentMapper.updateById(stu);
+            }
+
+            // 3. 记录本条结果
+            SyncItemDTO item = new SyncItemDTO();
+            item.setUserId(userId);
+            item.setBizId(stu.getId());
+            item.setUsername(username);
+            item.setName(r.getName());
+
+            if (newUser || newStu) {
+                item.setOpType("INSERT");
+                inserted.add(item);
+            } else {
+                item.setOpType("UPDATE");
+                updated.add(item);
+            }
+        }
+
+        SyncResultDTO result = new SyncResultDTO();
+        result.setInsertCount(inserted.size());
+        result.setUpdateCount(updated.size());
+        result.setInsertedList(inserted);
+        result.setUpdatedList(updated);
+        return result;
+    }
     @Override
     public UserLoginResultParam login(UserLoginParam userLogin, HttpServletRequest request) {
         if (userLogin == null || StringUtils.isBlank(userLogin.getUsername()) || StringUtils.isBlank(userLogin.getPassword())) {
@@ -165,6 +409,79 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
         Page<SysTbuser> page = new Page<>(param.getCurrent(), param.getSize());
         MyLambdaQueryWrapper<SysTbuser> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
 
+        // 1. 综合查询：昵称模糊（顶部搜索框）
+        lambdaQueryWrapper.like(
+                ObjectUtils.isNotEmpty(param.getNickname()),
+                SysTbuser::getNickname,
+                param.getNickname()
+        );
+
+        // 2. 用户名称：同样查 nickname 字段
+        lambdaQueryWrapper.like(
+                ObjectUtils.isNotEmpty(param.getUsername()),
+                SysTbuser::getNickname,
+                param.getUsername()
+        );
+
+        // 3. 登录账号：查 username 字段
+        lambdaQueryWrapper.like(
+                ObjectUtils.isNotEmpty(param.getUserCode()),
+                SysTbuser::getUsername,
+                param.getUserCode()
+        );
+
+        // 4. 使用状态：查 status 字段
+        lambdaQueryWrapper.eq(
+                ObjectUtils.isNotEmpty(param.getStatus()),
+                SysTbuser::getStatus,
+                param.getStatus()
+        );
+
+        // 5. 用户类型逻辑（沿用你原来的）
+        if (ObjectUtils.isNotEmpty(param.getUserType())) {
+            if (param.getUserType() == -1) {
+                lambdaQueryWrapper.and(w -> w.eq(SysTbuser::getUserType, 1)
+                        .or()
+                        .eq(SysTbuser::getUserType, 2));
+            } else {
+                lambdaQueryWrapper.eq(SysTbuser::getUserType, param.getUserType());
+            }
+        }
+
+        // 6. 排序：按创建时间
+        lambdaQueryWrapper.orderBy(true, param.getIsAsc() == 1, SysTbuser::getAddDatetime);
+
+        Page<SysTbuser> resultPage = this.page(page, lambdaQueryWrapper);
+
+        // ===== 下面这块填充创建人昵称的逻辑保持不变 =====
+        List<SysTbuser> userList = resultPage.getRecords();
+        if (ObjectUtils.isNotEmpty(userList)) {
+            Set<Long> creatorIds = userList.stream()
+                    .map(SysTbuser::getCreator)
+                    .filter(ObjectUtils::isNotEmpty)
+                    .collect(Collectors.toSet());
+
+            if (ObjectUtils.isNotEmpty(creatorIds)) {
+                List<SysTbuser> creators = this.listByIds(creatorIds);
+                Map<Long, String> creatorMap = creators.stream()
+                        .collect(Collectors.toMap(SysTbuser::getId, SysTbuser::getNickname));
+
+                userList.forEach(user -> {
+                    if (user.getCreator() != null) {
+                        user.setCreatorName(creatorMap.get(user.getCreator()));
+                    }
+                });
+            }
+        }
+
+        return resultPage;
+    }
+
+/*    @Override
+    public Page<SysTbuser> getPage(SysUserPageSearchParam param) {
+        Page<SysTbuser> page = new Page<>(param.getCurrent(), param.getSize());
+        MyLambdaQueryWrapper<SysTbuser> lambdaQueryWrapper = new MyLambdaQueryWrapper<>();
+
         // 统一处理通用查询条件：昵称模糊查询
         lambdaQueryWrapper.like(ObjectUtils.isNotEmpty(param.getNickname()), SysTbuser::getNickname, param.getNickname());
 
@@ -213,7 +530,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
         }
 
         return resultPage;
-    }
+    }*/
 
     @Override
     public Boolean getUserIsInInstitution(GetUserIsInInstitutionParam param) {

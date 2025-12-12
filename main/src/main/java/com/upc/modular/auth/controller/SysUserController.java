@@ -7,6 +7,7 @@ import com.upc.common.responseparam.R;
 import com.upc.common.utils.UserInfoToRedis;
 import com.upc.common.utils.UserUtils;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.dto.SyncResultDTO;
 import com.upc.modular.auth.entity.SysDictType;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.param.*;
@@ -40,81 +41,94 @@ public class SysUserController {
     private ISysUserService sysUserService;
     @Autowired
     private SysRoleServiceImpl sysRoleService;
+        @ApiOperation("从对方接口同步学生，返回新增/更新详情")
+        @PostMapping("/student")
+        public R<SyncResultDTO> syncStudent() {
+            SyncResultDTO result = sysUserService.syncStudentFromRemote();
+            return R.ok(result);
+        }
+            @ApiOperation("从对方接口同步教师，返回新增/更新详情")
+            @PostMapping("/teacher")
+            public R<SyncResultDTO> syncTeacher() {
+                SyncResultDTO result = sysUserService.syncTeacherFromRemote();
+                return R.ok(result);
+            }
 
-    @PostMapping("/login")
-    @ApiOperation("登录")
-    public R<UserLoginResultParam> login(@RequestBody UserLoginParam userLogin, HttpServletRequest request) {
-        return R.ok(sysUserService.login(userLogin, request));
+        @PostMapping("/login")
+        @ApiOperation("登录")
+        public R<UserLoginResultParam> login(@RequestBody UserLoginParam userLogin, HttpServletRequest request) {
+            return R.ok(sysUserService.login(userLogin, request));
+        }
+
+        @PostMapping("/login1")
+        @ApiOperation("登录（不使用")
+        public R<UserLoginResultParam> login1(@RequestBody UserLoginParam userLogin, HttpServletRequest request) {
+            return R.ok(sysUserService.login1(userLogin, request));
+        }
+
+        @PostMapping("/resetPassword")
+        @ApiOperation("重置密码")
+        public R resetPassword(@RequestParam Long userId) {
+            return sysUserService.resetPassword(userId);
+        }
+
+        @PostMapping("/updatePassword")
+        @ApiOperation("修改密码")
+        public R updatePassword(@RequestBody UpdatePasswordParam param) {
+            return sysUserService.updatePassword(param);
+        }
+
+        @ApiOperation(value = "删除用户")
+        @PostMapping("/batchDelete")
+        public R batchDelete(@RequestBody IdParam idParam) {
+            sysUserService.batchDelete(idParam.getIdList());
+            return R.commonReturn(200, "删除成功", "");
+        }
+
+        @ApiOperation(value = "修改用户信息")
+        @PostMapping("/update")
+        public R update(@RequestBody SysTbuser param) {
+            sysUserService.updateById(param);
+            return R.commonReturn(200, "修改成功", "");
+        }
+
+        @ApiOperation(value = "分页查询用户信息")
+        @PostMapping("/getPage")
+        public R<PageBaseReturnParam<SysTbuser>> getPage(@RequestBody SysUserPageSearchParam param) {
+            Page<SysTbuser> page = sysUserService.getPage(param);
+            PageBaseReturnParam<SysTbuser> result = PageBaseReturnParam.ok(page);
+            return R.page(result);
+        }
+
+        @ApiOperation(value = "查询用户是否在该机构里")
+        @PostMapping("/getUserIsInInstitution")
+        public R<Boolean> getUserIsInInstitution(@RequestBody GetUserIsInInstitutionParam param) {
+            Boolean result = sysUserService.getUserIsInInstitution(param);
+            return R.ok(result);
+        }
+
+        @ApiOperation(value = "新增用户")
+        @PostMapping("/insert")
+        public R<Boolean> insert(@RequestBody SysTbuser sysTbuser) {
+            return R.ok(sysUserService.insert(sysTbuser));
+        }
+
+        @GetMapping("/getUserAuthTree")
+        @ApiOperation("获取用户权限树")
+        public R<UserAuthTree> getUserAuthTree() {
+            return R.ok(sysRoleService.getUserAuthTree());
+        }
+
+        @GetMapping("/getUserInfo")
+        @ApiOperation("获取当前用户信息")
+        public R getUserInfo() {
+            UserInfoToRedis userInfoToRedis = UserUtils.get();
+            Long id = sysUserService.getUserInfo(userInfoToRedis.getId(), userInfoToRedis.getUserType());
+            // 直接从user表中的user_picture字段获取用户头像
+            SysTbuser user = sysUserService.getById(userInfoToRedis.getId());
+            String userPicture = user.getUserPicture();
+            userInfoToRedis.setUserPicture(userPicture);
+            return R.ok(userInfoToRedis);
+        }
     }
 
-    @PostMapping("/login1")
-    @ApiOperation("登录")
-    public R<UserLoginResultParam> login1(@RequestBody UserLoginParam userLogin, HttpServletRequest request) {
-        return R.ok(sysUserService.login1(userLogin, request));
-    }
-
-    @PostMapping("/resetPassword")
-    @ApiOperation("重置密码")
-    public R resetPassword(@RequestParam Long userId) {
-        return sysUserService.resetPassword(userId);
-    }
-
-    @PostMapping("/updatePassword")
-    @ApiOperation("修改密码")
-    public R updatePassword(@RequestBody UpdatePasswordParam param) {
-        return sysUserService.updatePassword(param);
-    }
-
-    @ApiOperation(value = "删除用户")
-    @PostMapping("/batchDelete")
-    public R batchDelete(@RequestBody IdParam idParam) {
-        sysUserService.batchDelete(idParam.getIdList());
-        return R.commonReturn(200, "删除成功", "");
-    }
-
-    @ApiOperation(value = "修改用户信息")
-    @PostMapping("/update")
-    public R update(@RequestBody SysTbuser param) {
-        sysUserService.updateById(param);
-        return R.commonReturn(200, "修改成功", "");
-    }
-
-    @ApiOperation(value = "分页查询用户信息")
-    @PostMapping("/getPage")
-    public R<PageBaseReturnParam<SysTbuser>> getPage(@RequestBody SysUserPageSearchParam param) {
-        Page<SysTbuser> page = sysUserService.getPage(param);
-        PageBaseReturnParam<SysTbuser> result = PageBaseReturnParam.ok(page);
-        return R.page(result);
-    }
-
-    @ApiOperation(value = "查询用户是否在该机构里")
-    @PostMapping("/getUserIsInInstitution")
-    public R<Boolean> getUserIsInInstitution(@RequestBody GetUserIsInInstitutionParam param) {
-        Boolean result = sysUserService.getUserIsInInstitution(param);
-        return R.ok(result);
-    }
-
-    @ApiOperation(value = "新增用户")
-    @PostMapping("/insert")
-    public R<Boolean> insert(@RequestBody SysTbuser sysTbuser) {
-        return R.ok(sysUserService.insert(sysTbuser));
-    }
-
-    @GetMapping("/getUserAuthTree")
-    @ApiOperation("获取用户权限树")
-    public R<UserAuthTree> getUserAuthTree() {
-        return R.ok(sysRoleService.getUserAuthTree());
-    }
-
-    @GetMapping("/getUserInfo")
-    @ApiOperation("获取当前用户信息")
-    public R getUserInfo() {
-        UserInfoToRedis userInfoToRedis = UserUtils.get();
-        Long id = sysUserService.getUserInfo(userInfoToRedis.getId(), userInfoToRedis.getUserType());
-        // 直接从user表中的user_picture字段获取用户头像
-        SysTbuser user = sysUserService.getById(userInfoToRedis.getId());
-        String userPicture = user.getUserPicture();
-        userInfoToRedis.setUserPicture(userPicture);
-        return R.ok(userInfoToRedis);
-    }
-}

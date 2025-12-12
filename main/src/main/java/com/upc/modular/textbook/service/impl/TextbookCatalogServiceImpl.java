@@ -32,15 +32,12 @@ import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
 import com.upc.modular.textbook.entity.IdeologicalMaterial;
 import com.upc.modular.textbook.entity.LearningAnnotationsAndLabels;
 import com.upc.modular.textbook.param.*;
-import com.upc.modular.textbook.service.IIdeologicalMaterialService;
+import com.upc.modular.textbook.service.*;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
 import com.upc.modular.textbook.mapper.TextbookCatalogMapper;
 import com.upc.modular.textbook.mapper.TextbookMapper;
-import com.upc.modular.textbook.service.ILearningAnnotationsAndLabelsService;
-import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.upc.modular.textbook.service.ITextbookService;
 import com.upc.utils.Word2HtmlUtils;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
@@ -92,6 +89,8 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
     @Autowired
     private ILearningAnnotationsAndLabelsService labelsService;
 
+    @Autowired
+    private ITextbookRecordService textbookRecordService;
     @Autowired
     private SysUserMapper sysUserMapper;
     
@@ -212,6 +211,13 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             // 插入
             textbookCatalogMapper.insert(entity);
 
+            // ✅ 新增记录：status = 1
+            textbookRecordService.recordCatalogChange(
+                    textbookId,
+                    entity.getId(),
+                    1L
+            );
+
 
             if (StringUtils.isNotBlank(p.getCatalogUuid())) {
                 tempId2RealId.put(p.getCatalogUuid(), entity.getId());
@@ -259,6 +265,12 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
 
             // 插入
             textbookCatalogMapper.insert(entity);
+
+            textbookRecordService.recordCatalogChange(
+                    textbookId,
+                    entity.getId(),
+                    1L
+            );
 
             // 建立批内临时ID映射（供后续条目引用）
             if (StringUtils.isNotBlank(p.getCatalogUuid())) {
@@ -449,9 +461,22 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         mappingQueryWrapper.in(MaterialsTextbookMapping::getChapterId, allIdsToDelete);
         materialsTextbookMappingService.remove(mappingQueryWrapper);
 
+
+        // ✅ 先查出要删除的所有目录，记录“删除”操作
+        List<TextbookCatalog> needDeleteCatalogs = this.listByIds(allIdsToDelete);
+        for (TextbookCatalog catalog : needDeleteCatalogs) {
+            if (catalog == null) continue;
+            textbookRecordService.recordCatalogChange(
+                    catalog.getTextbookId(),
+                    catalog.getId(),
+                    3L   // 删除
+            );
+        }
+
         // 3. 批量删除所有收集到的ID
         // 注意：MyBatis-Plus的批量删除方法是 removeByIds
         return this.removeByIds(allIdsToDelete);
+        // 记录“删除”：status = 3
     }
 
     @Override
@@ -460,7 +485,21 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         if (ObjectUtils.isEmpty(param)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参不能为空");
         }
-        return this.updateBatchById(param);
+       // return this.updateBatchById(param);
+        boolean ok = this.updateBatchById(param);
+
+        // ✅ 更新成功后，记录“修改”：status = 2
+        if (ok) {
+            for (TextbookCatalog catalog : param) {
+                if (catalog == null) continue;
+                textbookRecordService.recordCatalogChange(
+                        catalog.getTextbookId(),
+                        catalog.getId(),
+                        2L   // 修改
+                );
+            }
+        }
+        return ok;
     }
 
     @Override
