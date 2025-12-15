@@ -22,6 +22,7 @@ import com.upc.modular.questionbank.service.ITeachingQuestionService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
+import com.upc.modular.textbook.param.TextbookSpecifiedCatalogSearchParam;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.upc.modular.textbook.service.ITextbookService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -285,8 +286,14 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
     
     @Override
     public List<QuestionCountByTypeReturnParam> countQuestionsByType(Long textbookId, Long chapterId) {
-        // 查询数据库获取各题型数量
-        List<QuestionCountByTypeReturnParam> result = teachingQuestionMapper.countQuestionsByType(textbookId, chapterId);
+        // 获取指定章节及其所有子章节的ID列表
+        TextbookSpecifiedCatalogSearchParam param = new TextbookSpecifiedCatalogSearchParam();
+        param.setTextbookId(textbookId);
+        param.setCatalogId(chapterId);
+        List<Long> chapterIds = textbookCatalogService.getTextbookSpecifiedCatalog(param);
+        
+        // 使用章节ID列表查询数据库获取各题型数量
+        List<QuestionCountByTypeReturnParam> result = teachingQuestionMapper.countQuestionsByTypeWithChapters(textbookId, chapterIds);
         
         return result;
     }

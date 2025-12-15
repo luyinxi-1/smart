@@ -1278,21 +1278,12 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
 
     @Override
     public List<Long> getTextbookSpecifiedCatalog(TextbookSpecifiedCatalogSearchParam param) {
-        MyLambdaQueryWrapper<TextbookCatalog> wrapper = new MyLambdaQueryWrapper<>();
-        wrapper.eq(TextbookCatalog::getTextbookId, param.getTextbookId());
-
-        if (param.getCatalogId() == null) {
-            wrapper.eq(TextbookCatalog::getFatherCatalogId, 0L);
-        } else {
-            wrapper.eq(TextbookCatalog::getFatherCatalogId, param.getCatalogId());
-        }
-        wrapper.orderByAsc(TextbookCatalog::getSort);
-        List<TextbookCatalog> catalogList = textbookCatalogMapper.selectList(wrapper);
-        return catalogList.stream()
-                .map(TextbookCatalog::getId)
-                .collect(Collectors.toList());
+        // 获取指定章节及其所有子章节的ID
+        Set<Long> catalogIds = new HashSet<>();
+        catalogIds.add(param.getCatalogId());
+        collectAllChildCatalogIds(param.getTextbookId(), param.getCatalogId(), catalogIds);
+        return new ArrayList<>(catalogIds);
     }
-
 
 
     /**
