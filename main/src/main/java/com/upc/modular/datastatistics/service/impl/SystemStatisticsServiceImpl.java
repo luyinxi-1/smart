@@ -9,6 +9,7 @@ import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.course.service.ICourseService;
 import com.upc.modular.datastatistics.mapper.SystemDataStatisticsMapper;
+import com.upc.modular.datastatistics.mapper.TeacherStatisticsMapper;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
 import com.upc.modular.group.service.IGroupService;
 import com.upc.modular.materials.entity.TeachingMaterials;
@@ -95,6 +96,9 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
     private IDiscussionTopicReplyService discussionTopicReplyService;
     @Autowired
     private SystemDataStatisticsMapper systemDataStatisticsMapper;
+    
+    @Autowired
+    private TeacherStatisticsMapper teacherStatisticsMapper;
 
     // 添加SysLogMapper的依赖
     @Autowired
@@ -303,7 +307,14 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         if (userType == 0) { // 管理员
             getAdminCounts(countsDto);
         } else if (userType == 2) { // 教师
-            getTeacherCounts(countsDto, userId);
+            // 正确获取教师ID，不能直接使用userId
+            Long teacherId = teacherService.getTeacherIdByUserId(userId);
+            if (teacherId != null) {
+                getTeacherCounts(countsDto, teacherId);
+            } else {
+                // 如果找不到对应的教师ID，则返回空数据
+                return new SystemAllCountsDto();
+            }
         } else { // 其他角色返回空数据
             return new SystemAllCountsDto();
         }
@@ -350,16 +361,23 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
      */
     private void getTeacherCounts(SystemAllCountsDto countsDto, Long teacherId) {
         // 1. 统计与教师相关的教材及资源
-        // 假设教师创建的或作为编辑的为“相关教材”
-        List<Long> teacherTextbookIds = textbookMapper.findTextbookIdsByTeacher(teacherId);
+        // 只统计已发布的教材，与/teacher-statistics/personal接口保持一致
+        Integer teacherTextbookCount = teacherStatisticsMapper.countTeacherTextbooks(teacherId);
+        countsDto.setTextbookCount(teacherTextbookCount.longValue());
+        
+        // 获取教材ID列表用于后续资源统计
+        List<Long> teacherTextbookIds = textbookMapper.findTextbookIdsByTeacher(teacherId).stream()
+                .filter(id -> textbookService.lambdaQuery()
+                        .eq(Textbook::getId, id)
+                        .eq(Textbook::getReleaseStatus, "1")
+                        .exists())
+                .collect(Collectors.toList());
 
         if (teacherTextbookIds.isEmpty()) {
-            countsDto.setTextbookCount(0L);
             countsDto.setTeachingideologicalMaterialCount(0L);
             countsDto.setDiscussionTopicCount(0L);
             countsDto.setTeachingQuestionBankCount(0L);
         } else {
-            countsDto.setTextbookCount((long) teacherTextbookIds.size());
             countsDto.setTeachingideologicalMaterialCount(ideologicalMaterialService.lambdaQuery().in(com.upc.modular.textbook.entity.IdeologicalMaterial::getTextbookId, teacherTextbookIds).count());
             countsDto.setDiscussionTopicCount(discussionTopicService.lambdaQuery().in(DiscussionTopic::getTextbookId, teacherTextbookIds).count());
             countsDto.setTeachingQuestionBankCount(teachingQuestionbankService.lambdaQuery().in(com.upc.modular.questionbank.entity.TeachingQuestionBank::getTextbookId, teacherTextbookIds).count());
