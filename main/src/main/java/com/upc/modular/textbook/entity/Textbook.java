@@ -59,7 +59,7 @@ public class Textbook implements Serializable {
     @TableField("textbook_version")
     private String textbookVersion;
 
-    @ApiModelProperty("教材发布状态（1 已发布/ 0 未发布）")
+    @ApiModelProperty("教材发布状态（1 已发布/ 0 未发布/2 取消发布审核中）")
     @TableField("release_status")
     private Integer releaseStatus;
 
