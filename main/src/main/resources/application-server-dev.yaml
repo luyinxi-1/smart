@@ -84,4 +84,4 @@ iam:
 
 remote:
   base-data:
-    host: http://对方基础数据系统地址:端口
+    host:  http://localhost:8080
