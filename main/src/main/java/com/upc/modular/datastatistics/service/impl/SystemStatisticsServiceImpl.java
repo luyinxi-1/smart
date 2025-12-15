@@ -386,8 +386,13 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         // 2. 统计教师授课的课程数量
         countsDto.setCourseCount(courseService.lambdaQuery().eq(com.upc.modular.course.entity.Course::getTeacherId, teacherId).count());
 
-        // 3. 统计教师作为导员的班级下的学生数量
-        // 假设 group 表中的 teacher_id 字段表示导员
+        // 3. 统计教师授课的学生数量（修改为与/teacher-statistics/personal一致）
+        countsDto.setStudentCount(teacherStatisticsMapper.countTeacherStudents(teacherId).longValue());
+        
+        // 其他非要求统计项，根据教师上下文设为合理值
+        countsDto.setTeacherCount(1L); // 教师自己
+        
+        // 获取教师授课的班级列表
         List<Long> advisedGroupIds = groupService.lambdaQuery()
                 .eq(com.upc.modular.group.entity.Group::getTeacherId, teacherId)
                 .select(com.upc.modular.group.entity.Group::getId)
@@ -395,21 +400,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
                 .stream()
                 .map(com.upc.modular.group.entity.Group::getId)
                 .collect(Collectors.toList());
-
-        if (advisedGroupIds.isEmpty()) {
-            countsDto.setStudentCount(0L);
-        } else {
-            // 通过 user_class_list 表查询学生数量，type=1 表示学生
-            countsDto.setStudentCount(studentService.lambdaQuery()
-                    .inSql(com.upc.modular.student.entity.Student::getUserId, 
-                           "SELECT user_id FROM user_class_list WHERE class_id IN (" + 
-                           advisedGroupIds.stream().map(String::valueOf).collect(Collectors.joining(",")) + 
-                           ") AND type = 1")
-                    .count());
-        }
         
-        // 其他非要求统计项，根据教师上下文设为合理值
-        countsDto.setTeacherCount(1L); // 教师自己
         countsDto.setGroupCount((long) advisedGroupIds.size()); // 教师带的班级数
         countsDto.setTeachingMaterialsCount(teachingMaterialsService.lambdaQuery().eq(TeachingMaterials::getCreator, teacherId).count());
         countsDto.setDiscussionTopicReplyCount(discussionTopicReplyService.lambdaQuery().eq(DiscussionTopicReply::getCreator, teacherId).count());
