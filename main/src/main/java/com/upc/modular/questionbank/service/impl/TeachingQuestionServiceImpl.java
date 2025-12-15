@@ -27,6 +27,7 @@ import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.upc.modular.textbook.service.ITextbookService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -172,6 +173,17 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
 
         // 调用 Mapper 方法，并传入 isAdmin 标志
         Page<TeachingQuestionPageSearchReturnVO> resultPage = teachingQuestionMapper.selectQuestion(page, param, userId, isAdmin);
+
+        // 处理章节名称，去除HTML标签
+        if (!CollectionUtils.isEmpty(resultPage.getRecords())) {
+            for (TeachingQuestionPageSearchReturnVO vo : resultPage.getRecords()) {
+                String chapterName = vo.getChapterName();
+                if (chapterName != null) {
+                    chapterName = com.upc.utils.HtmlUtils.stripHtml(chapterName);
+                    vo.setChapterName(chapterName);
+                }
+            }
+        }
 
         return resultPage;
     }

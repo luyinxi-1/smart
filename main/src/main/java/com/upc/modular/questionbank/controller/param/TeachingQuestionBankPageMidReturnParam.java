@@ -48,4 +48,7 @@ public class TeachingQuestionBankPageMidReturnParam {
     
     @ApiModelProperty("教材发布状态")
     private String releaseStatus;
+    
+    @ApiModelProperty("章节名称")
+    private String catalogName;
 }
