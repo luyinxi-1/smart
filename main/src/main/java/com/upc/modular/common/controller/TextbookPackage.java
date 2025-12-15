@@ -108,6 +108,47 @@ public class TextbookPackage {
     @Autowired
     private TeacherMapper teacherMapper;
 
+    /**
+     * 规范化参数值，处理 "undefined"、"null"、空字符串等情况
+     * @param s 原始参数值
+     * @return 规范化后的参数值，如果为无效值则返回 null
+     */
+    private String normalizeParam(String s) {
+        if (s == null) {
+            return null;
+        }
+        String trimmed = s.trim();
+        if (trimmed.isEmpty() || "undefined".equalsIgnoreCase(trimmed) || "null".equalsIgnoreCase(trimmed)) {
+            return null;
+        }
+        return trimmed;
+    }
+
+    /**
+     * 解析设备ID列表，支持逗号、分号、换行等分隔符
+     * @param raw 原始设备ID字符串
+     * @return 设备ID列表
+     */
+    private List<String> parseDeviceIds(String raw) {
+        String normalized = normalizeParam(raw);
+        if (normalized == null) {
+            return Collections.emptyList();
+        }
+        
+        // 使用正则表达式分割，支持多种分隔符
+        String[] parts = normalized.split("[,;\\n\\r\\t ]+");
+        Set<String> uniqueIds = new LinkedHashSet<>(); // 保持顺序并去重
+        
+        for (String part : parts) {
+            String trimmed = part.trim();
+            if (!trimmed.isEmpty()) {
+                uniqueIds.add(trimmed);
+            }
+        }
+        
+        return new ArrayList<>(uniqueIds);
+    }
+
     // Go 语言编译的工作区
     private static final String GO_BUILD_WORKSPACE = "/opt/GoBuildWorkspace";
     // 临时改成这个，部署到linux之前得改回来。
@@ -123,7 +164,8 @@ public class TextbookPackage {
 
     @ApiOperation(value = "教材打包（包含图片等资源）")
     @PostMapping("/do")
-    public void textbookPackage(@RequestParam String targetDeviceID,
+    public void textbookPackage(@RequestParam(required = false) String targetDeviceID,
+                               @RequestParam(required = false) String zipPassword,
                                @RequestParam Long textbookId,
                                HttpServletResponse response) throws IOException {
         long startTime = System.currentTimeMillis();
@@ -134,6 +176,11 @@ public class TextbookPackage {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材不存在");
         }
         String outputBaseName = textbook.getTextbookName().replaceAll("[\\\\/:*?\"<>|]", "_");
+
+        // 1.5 规范化参数
+        String normalizedTargetDeviceID = normalizeParam(targetDeviceID);
+        String normalizedZipPassword = normalizeParam(zipPassword);
+        List<String> deviceIdsList = parseDeviceIds(normalizedTargetDeviceID);
 
         // 2. 创建唯一的临时工作目录
         Path temporaryWorkDir = null;
@@ -147,12 +194,12 @@ public class TextbookPackage {
 
             // 4. 打包HTML及资源文件、编译Go解锁程序，并生成最终的包
             long packageStartTime = System.currentTimeMillis();
-            Path finalPackagePath = packageAndCompile(targetDeviceID, textbookHtmlPath, temporaryWorkDir, outputBaseName);
+            Path finalPackagePath = packageAndCompile(deviceIdsList, normalizedZipPassword, textbookHtmlPath, temporaryWorkDir, outputBaseName);
             long packageEndTime = System.currentTimeMillis();
 
             // 5. 直接将文件流写入HTTP响应
             File zipFile = finalPackagePath.toFile();
-            String fileName = outputBaseName + "_Package.zip";
+            String fileName = finalPackagePath.getFileName().toString();
             String encodedFileName = java.net.URLEncoder.encode(fileName, StandardCharsets.UTF_8.toString())
                                       .replaceAll("\\+", "%20");
             String fallbackName = fileName.replaceAll("[^a-zA-Z0-9\\.\\-_]", "_");
@@ -654,72 +701,104 @@ public class TextbookPackage {
     /**
      * 核心流程：打包内容（HTML和资源）、编译程序、生成最终包。
      *
-     * @param deviceId         目标设备ID
+     * @param deviceIdsList    目标设备ID列表
+     * @param zipPassword      统一密码
      * @param textbookHtmlPath 要打包的HTML文件路径
      * @param workDir          工作目录
      * @param outputBaseName   文件基础名称
      * @return 最终生成的总包路径
      */
-    public Path packageAndCompile(String deviceId, Path textbookHtmlPath, Path workDir, String outputBaseName) throws Exception {
+    public Path packageAndCompile(List<String> deviceIdsList, String zipPassword, Path textbookHtmlPath, Path workDir, String outputBaseName) throws Exception {
         System.out.println("  -> 开始打包和编译流程...");
         
-        // 1. 生成随机密码
-        String password = generateRandomPassword(12);
-        System.out.println(" -> 1. 生成随机密码: " + password);
+        // 模式2：统一密码模式
+        if (zipPassword != null) {
+            System.out.println(" -> 模式2：使用统一密码打包...");
+            // 直接创建加密ZIP包，不生成解锁器和外层包
+            Path contentZipPath = workDir.resolve(outputBaseName + "_Content.zip");
+            long zipStartTime = System.currentTimeMillis();
+            createEncryptedZipWithResources(textbookHtmlPath, workDir.resolve("resource"), contentZipPath, zipPassword);
+            long zipEndTime = System.currentTimeMillis();
+            System.out.println(" -> 已创建加密的内容ZIP包: " + contentZipPath + ", 耗时: " + (zipEndTime - zipStartTime) + "ms");
+            
+            System.out.println("  -> 打包和编译流程完成");
+            return contentZipPath; // 直接返回内容包
+        }
+        
+        // 模式1：设备绑定模式
+        if (!deviceIdsList.isEmpty()) {
+            System.out.println(" -> 模式1：使用设备绑定打包...");
+            // 1. 生成随机密码
+            String password = generateRandomPassword(12);
+            System.out.println(" -> 1. 生成随机密码: " + password);
 
-        // 2. 将HTML文件和resource文件夹创建为一个加密的ZIP包
-        System.out.println(" -> 2. 创建加密的内容ZIP包...");
+            // 2. 将HTML文件和resource文件夹创建为一个加密的ZIP包
+            System.out.println(" -> 2. 创建加密的内容ZIP包...");
+            Path contentZipPath = workDir.resolve(outputBaseName + "_Content.zip");
+            long zipStartTime = System.currentTimeMillis();
+            createEncryptedZipWithResources(textbookHtmlPath, workDir.resolve("resource"), contentZipPath, password);
+            long zipEndTime = System.currentTimeMillis();
+            System.out.println(" -> 2. 已创建加密的内容ZIP包: " + contentZipPath + ", 耗时: " + (zipEndTime - zipStartTime) + "ms");
+
+            // 3. 编译Go语言的解锁程序 (Windows版本)
+            System.out.println(" -> 3. 编译Windows Go可执行文件...");
+            Path winUnlockerPath = workDir.resolve(outputBaseName + "_Unlocker_win_amd64.exe");
+            long compileStartTime = System.currentTimeMillis();
+            // 将设备ID列表连接成字符串传递给编译函数
+            String deviceIdsJoined = String.join(",", deviceIdsList);
+            compileGoExecutable(deviceIdsJoined, password, winUnlockerPath);
+            long compileEndTime = System.currentTimeMillis();
+            System.out.println(" -> 3. 已编译Windows Go可执行文件: " + winUnlockerPath + ", 耗时: " + (compileEndTime - compileStartTime) + "ms");
+
+            // 4. 编译Linux ARM64版本的解锁程序
+            System.out.println(" -> 4. 编译Linux ARM64 Go可执行文件...");
+            Path linuxArmUnlockerPath = workDir.resolve(outputBaseName + "_Unlocker_linux_arm64");
+            long compileLinuxStartTime = System.currentTimeMillis();
+            compileGoExecutableLinuxArm64(deviceIdsJoined, password, linuxArmUnlockerPath);
+            long compileLinuxEndTime = System.currentTimeMillis();
+            System.out.println(" -> 4. 已编译Linux ARM64 Go可执行文件: " + linuxArmUnlockerPath + ", 耗时: " + (compileLinuxEndTime - compileLinuxStartTime) + "ms");
+
+            // 5. 编译Linux AMD64版本的解锁程序
+            System.out.println(" -> 5. 编译Linux AMD64 Go可执行文件...");
+            Path linuxAmdUnlockerPath = workDir.resolve(outputBaseName + "_Unlocker_linux_amd64");
+            long compileLinuxAmdStartTime = System.currentTimeMillis();
+            compileGoExecutableLinuxAmd64(deviceIdsJoined, password, linuxAmdUnlockerPath);
+            long compileLinuxAmdEndTime = System.currentTimeMillis();
+            System.out.println(" -> 5. 已编译Linux AMD64 Go可执行文件: " + linuxAmdUnlockerPath + ", 耗时: " + (compileLinuxAmdEndTime - compileLinuxAmdStartTime) + "ms");
+
+            // 6. 将加密内容ZIP包和Go解锁程序打包成一个最终的ZIP包
+            System.out.println(" -> 6. 创建最终下载包...");
+            Path finalPackagePath = workDir.resolve(outputBaseName + "_Package.zip");
+            System.out.println(" -> 6. 创建最终下载包: " + finalPackagePath);
+            long packageStartTime = System.currentTimeMillis();
+            try (ZipFile finalZip = new ZipFile(finalPackagePath.toFile())) {
+                System.out.println("    --> 添加内容ZIP包到最终包...");
+                finalZip.addFile(contentZipPath.toFile());
+                System.out.println("    --> 添加Windows解锁程序到最终包...");
+                finalZip.addFile(winUnlockerPath.toFile());
+                System.out.println("    --> 添加Linux ARM64解锁程序到最终包...");
+                finalZip.addFile(linuxArmUnlockerPath.toFile());
+                System.out.println("    --> 添加Linux AMD64解锁程序到最终包...");
+                finalZip.addFile(linuxAmdUnlockerPath.toFile());
+            }
+            long packageEndTime = System.currentTimeMillis();
+            System.out.println(" -> 6. 最终下载包创建完成, 耗时: " + (packageEndTime - packageStartTime) + "ms");
+            
+            System.out.println("  -> 打包和编译流程完成");
+
+            return finalPackagePath;
+        }
+        
+        // 模式3：无密码模式
+        System.out.println(" -> 模式3：不使用密码打包...");
         Path contentZipPath = workDir.resolve(outputBaseName + "_Content.zip");
         long zipStartTime = System.currentTimeMillis();
-        createEncryptedZipWithResources(textbookHtmlPath, workDir.resolve("resource"), contentZipPath, password);
+        createUnencryptedZipWithResources(textbookHtmlPath, workDir.resolve("resource"), contentZipPath);
         long zipEndTime = System.currentTimeMillis();
-        System.out.println(" -> 2. 已创建加密的内容ZIP包: " + contentZipPath + ", 耗时: " + (zipEndTime - zipStartTime) + "ms");
-
-        // 3. 编译Go语言的解锁程序 (Windows版本)
-        System.out.println(" -> 3. 编译Windows Go可执行文件...");
-        Path winUnlockerPath = workDir.resolve(outputBaseName + "_Unlocker_win_amd64.exe");
-        long compileStartTime = System.currentTimeMillis();
-        compileGoExecutable(deviceId, password, winUnlockerPath);
-        long compileEndTime = System.currentTimeMillis();
-        System.out.println(" -> 3. 已编译Windows Go可执行文件: " + winUnlockerPath + ", 耗时: " + (compileEndTime - compileStartTime) + "ms");
-
-        // 4. 编译Linux ARM64版本的解锁程序
-        System.out.println(" -> 4. 编译Linux ARM64 Go可执行文件...");
-        Path linuxArmUnlockerPath = workDir.resolve(outputBaseName + "_Unlocker_linux_arm64");
-        long compileLinuxStartTime = System.currentTimeMillis();
-        compileGoExecutableLinuxArm64(deviceId, password, linuxArmUnlockerPath);
-        long compileLinuxEndTime = System.currentTimeMillis();
-        System.out.println(" -> 4. 已编译Linux ARM64 Go可执行文件: " + linuxArmUnlockerPath + ", 耗时: " + (compileLinuxEndTime - compileLinuxStartTime) + "ms");
-
-        // 5. 编译Linux AMD64版本的解锁程序
-        System.out.println(" -> 5. 编译Linux AMD64 Go可执行文件...");
-        Path linuxAmdUnlockerPath = workDir.resolve(outputBaseName + "_Unlocker_linux_amd64");
-        long compileLinuxAmdStartTime = System.currentTimeMillis();
-        compileGoExecutableLinuxAmd64(deviceId, password, linuxAmdUnlockerPath);
-        long compileLinuxAmdEndTime = System.currentTimeMillis();
-        System.out.println(" -> 5. 已编译Linux AMD64 Go可执行文件: " + linuxAmdUnlockerPath + ", 耗时: " + (compileLinuxAmdEndTime - compileLinuxAmdStartTime) + "ms");
-
-        // 6. 将加密内容ZIP包和Go解锁程序打包成一个最终的ZIP包
-        System.out.println(" -> 6. 创建最终下载包...");
-        Path finalPackagePath = workDir.resolve(outputBaseName + "_Package.zip");
-        System.out.println(" -> 6. 创建最终下载包: " + finalPackagePath);
-        long packageStartTime = System.currentTimeMillis();
-        try (ZipFile finalZip = new ZipFile(finalPackagePath.toFile())) {
-            System.out.println("    --> 添加内容ZIP包到最终包...");
-            finalZip.addFile(contentZipPath.toFile());
-            System.out.println("    --> 添加Windows解锁程序到最终包...");
-            finalZip.addFile(winUnlockerPath.toFile());
-            System.out.println("    --> 添加Linux ARM64解锁程序到最终包...");
-            finalZip.addFile(linuxArmUnlockerPath.toFile());
-            System.out.println("    --> 添加Linux AMD64解锁程序到最终包...");
-            finalZip.addFile(linuxAmdUnlockerPath.toFile());
-        }
-        long packageEndTime = System.currentTimeMillis();
-        System.out.println(" -> 6. 最终下载包创建完成, 耗时: " + (packageEndTime - packageStartTime) + "ms");
+        System.out.println(" -> 已创建未加密的内容ZIP包: " + contentZipPath + ", 耗时: " + (zipEndTime - zipStartTime) + "ms");
         
         System.out.println("  -> 打包和编译流程完成");
-
-        return finalPackagePath;
+        return contentZipPath; // 直接返回内容包
     }
 
     /**
@@ -782,6 +861,65 @@ public class TextbookPackage {
         }
         long zipEndTime = System.currentTimeMillis();
         System.out.println("    --> 加密ZIP包创建完成, 总耗时: " + (zipEndTime - zipStartTime) + "ms");
+    }
+
+    /**
+     * 创建一个包含HTML文件和整个resource文件夹的未加密ZIP。
+     */
+    private void createUnencryptedZipWithResources(Path htmlFile, Path resourceDir, Path zipOutputPath) throws IOException {
+        System.out.println("    --> 开始创建未加密ZIP包...");
+        ZipParameters params = new ZipParameters();
+
+        long zipStartTime = System.currentTimeMillis();
+        try (ZipFile zipFile = new ZipFile(zipOutputPath.toFile())) {
+            // 添加HTML文件
+            System.out.println("    --> 添加HTML文件: " + htmlFile);
+            long addHtmlStartTime = System.currentTimeMillis();
+            zipFile.addFile(htmlFile.toFile(), params);
+            long addHtmlEndTime = System.currentTimeMillis();
+            System.out.println("    --> HTML文件添加完成, 耗时: " + (addHtmlEndTime - addHtmlStartTime) + "ms");
+
+            // 添加JS数据文件（与HTML文件同级）
+            Path jsFile = htmlFile.getParent().resolve("bookData.js");
+            if (Files.exists(jsFile)) {
+                System.out.println("    --> 添加JS文件: " + jsFile);
+                long addJsStartTime = System.currentTimeMillis();
+                zipFile.addFile(jsFile.toFile(), params);
+                long addJsEndTime = System.currentTimeMillis();
+                System.out.println("    --> JS文件添加完成, 耗时: " + (addJsEndTime - addJsStartTime) + "ms");
+            }
+            
+            // 添加resourceMap.js文件（与HTML文件同级）
+            Path resourceMapFile = htmlFile.getParent().resolve("resourceMap.js");
+            if (Files.exists(resourceMapFile)) {
+                System.out.println("    --> 添加resourceMap.js文件: " + resourceMapFile);
+                long addResourceMapStartTime = System.currentTimeMillis();
+                zipFile.addFile(resourceMapFile.toFile(), params);
+                long addResourceMapEndTime = System.currentTimeMillis();
+                System.out.println("    --> resourceMap.js文件添加完成, 耗时: " + (addResourceMapEndTime - addResourceMapStartTime) + "ms");
+            }
+            
+            // 添加index.html文件（与HTML文件同级）
+            Path indexHtmlFile = htmlFile.getParent().resolve("index.html");
+            if (Files.exists(indexHtmlFile)) {
+                System.out.println("    --> 添加index.html文件: " + indexHtmlFile);
+                long addIndexHtmlStartTime = System.currentTimeMillis();
+                zipFile.addFile(indexHtmlFile.toFile(), params);
+                long addIndexHtmlEndTime = System.currentTimeMillis();
+                System.out.println("    --> index.html文件添加完成, 耗时: " + (addIndexHtmlEndTime - addIndexHtmlStartTime) + "ms");
+            }
+
+            // 如果resource文件夹存在，则添加整个文件夹
+            if (Files.exists(resourceDir) && Files.isDirectory(resourceDir)) {
+                System.out.println("    --> 添加资源文件夹: " + resourceDir);
+                long addResourceStartTime = System.currentTimeMillis();
+                zipFile.addFolder(resourceDir.toFile(), params);
+                long addResourceEndTime = System.currentTimeMillis();
+                System.out.println("    --> 资源文件夹添加完成, 耗时: " + (addResourceEndTime - addResourceStartTime) + "ms");
+            }
+        }
+        long zipEndTime = System.currentTimeMillis();
+        System.out.println("    --> 未加密ZIP包创建完成, 总耗时: " + (zipEndTime - zipStartTime) + "ms");
     }
 
     /**
@@ -1470,7 +1608,7 @@ public class TextbookPackage {
         return sb.toString();
     }
 
-    private void compileGoExecutable(String deviceId, String password, Path exeOutputPath) throws IOException, InterruptedException {
+    private void compileGoExecutable(String deviceCodesRaw, String password, Path exeOutputPath) throws IOException, InterruptedException {
         Path workspaceDir = Paths.get(GO_BUILD_WORKSPACE);
         if (!Files.isDirectory(workspaceDir)) {
             throw new IOException("Go编译工作区不存在，请在服务器上手动创建: " + workspaceDir);
@@ -1493,7 +1631,7 @@ public class TextbookPackage {
         }
 
         String finalGoCode = templateContent
-                .replace("DEVICE_CODE_PLACEHOLDER", deviceId)
+                .replace("DEVICE_CODE_PLACEHOLDER", deviceCodesRaw)
                 .replace("PASSWORD_PLACEHOLDER", password);
 
         Path tempGoFile = Files.createTempFile(workspaceDir, "unlocker_", ".go");
@@ -1546,7 +1684,7 @@ public class TextbookPackage {
     /**
      * 编译Linux ARM64版本的Go可执行文件
      */
-    private void compileGoExecutableLinuxArm64(String deviceId, String password, Path exeOutputPath) throws IOException, InterruptedException {
+    private void compileGoExecutableLinuxArm64(String deviceCodesRaw, String password, Path exeOutputPath) throws IOException, InterruptedException {
         Path workspaceDir = Paths.get(GO_BUILD_WORKSPACE);
         if (!Files.isDirectory(workspaceDir)) {
             throw new IOException("Go编译工作区不存在，请在服务器上手动创建: " + workspaceDir);
@@ -1569,7 +1707,7 @@ public class TextbookPackage {
         }
 
         String finalGoCode = templateContent
-                .replace("DEVICE_CODE_PLACEHOLDER", deviceId)
+                .replace("DEVICE_CODE_PLACEHOLDER", deviceCodesRaw)
                 .replace("PASSWORD_PLACEHOLDER", password);
 
         Path tempGoFile = Files.createTempFile(workspaceDir, "unlocker_", ".go");
@@ -1621,7 +1759,7 @@ public class TextbookPackage {
     /**
      * 编译Linux AMD64版本的Go可执行文件
      */
-    private void compileGoExecutableLinuxAmd64(String deviceId, String password, Path exeOutputPath) throws IOException, InterruptedException {
+    private void compileGoExecutableLinuxAmd64(String deviceCodesRaw, String password, Path exeOutputPath) throws IOException, InterruptedException {
         Path workspaceDir = Paths.get(GO_BUILD_WORKSPACE);
         if (!Files.isDirectory(workspaceDir)) {
             throw new IOException("Go编译工作区不存在，请在服务器上手动创建: " + workspaceDir);
@@ -1644,7 +1782,7 @@ public class TextbookPackage {
         }
 
         String finalGoCode = templateContent
-                .replace("DEVICE_CODE_PLACEHOLDER", deviceId)
+                .replace("DEVICE_CODE_PLACEHOLDER", deviceCodesRaw)
                 .replace("PASSWORD_PLACEHOLDER", password);
 
         Path tempGoFile = Files.createTempFile(workspaceDir, "unlocker_", ".go");
