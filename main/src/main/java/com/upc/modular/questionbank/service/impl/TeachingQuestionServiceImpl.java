@@ -22,6 +22,7 @@ import com.upc.modular.questionbank.service.ITeachingQuestionService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
+import com.upc.modular.textbook.param.TextbookSpecifiedCatalogSearchParam;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.upc.modular.textbook.service.ITextbookService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -192,6 +193,12 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "题型数量不能为空");
         }
 
+        // 获取指定章节及其所有子章节的ID列表
+        TextbookSpecifiedCatalogSearchParam searchParam = new TextbookSpecifiedCatalogSearchParam();
+        searchParam.setTextbookId(param.getTextbookId());
+        searchParam.setCatalogId(param.getChapterId());
+        List<Long> chapterIds = textbookCatalogService.getTextbookSpecifiedCatalog(searchParam);
+
         List<SmartPaperQuestionVO> result = new ArrayList<>();
 
         // 遍历每个题型
@@ -218,9 +225,9 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
             }
 
             // 从选择的难易程度中抽取题目
-            List<TeachingQuestion> selectedQuestions = teachingQuestionMapper.selectQuestionsByCondition(
+            List<TeachingQuestion> selectedQuestions = teachingQuestionMapper.selectQuestionsByConditionWithChapters(
                     param.getTextbookId(),
-                    param.getChapterId(),
+                    chapterIds,
                     questionType,
                     param.getDifficulty()
             );
@@ -241,9 +248,9 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
             // 先收集所有其他难度的可用题目
             List<TeachingQuestion> allOtherQuestions = new ArrayList<>();
             for (Integer otherDifficulty : otherDifficulties) {
-                List<TeachingQuestion> otherQuestions = teachingQuestionMapper.selectQuestionsByCondition(
+                List<TeachingQuestion> otherQuestions = teachingQuestionMapper.selectQuestionsByConditionWithChapters(
                         param.getTextbookId(),
-                        param.getChapterId(),
+                        chapterIds,
                         questionType,
                         otherDifficulty
                 );
@@ -285,8 +292,14 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
     
     @Override
     public List<QuestionCountByTypeReturnParam> countQuestionsByType(Long textbookId, Long chapterId) {
-        // 查询数据库获取各题型数量
-        List<QuestionCountByTypeReturnParam> result = teachingQuestionMapper.countQuestionsByType(textbookId, chapterId);
+        // 获取指定章节及其所有子章节的ID列表
+        TextbookSpecifiedCatalogSearchParam param = new TextbookSpecifiedCatalogSearchParam();
+        param.setTextbookId(textbookId);
+        param.setCatalogId(chapterId);
+        List<Long> chapterIds = textbookCatalogService.getTextbookSpecifiedCatalog(param);
+        
+        // 使用章节ID列表查询数据库获取各题型数量
+        List<QuestionCountByTypeReturnParam> result = teachingQuestionMapper.countQuestionsByTypeWithChapters(textbookId, chapterIds);
         
         return result;
     }
