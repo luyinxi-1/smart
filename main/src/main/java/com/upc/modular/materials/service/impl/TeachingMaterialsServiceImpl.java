@@ -697,7 +697,16 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
                         temp.setTextbookName(finaltextbookIdNameMap.get(mapping.getTextbookId()));
                         temp.setChapterId(mapping.getChapterId());
                         temp.setChapterId2(mapping.getChapterId2());
-                        temp.setChapterName(finalChapterIdNameMap.get(mapping.getChapterId()));
+                        // 设置章节名称，先取chapterId对应的章节名，没有的话再取chapterId2
+                    String chapterName = finalChapterIdNameMap.get(mapping.getChapterId());
+                    if (chapterName == null || chapterName.isEmpty()) {
+                        chapterName = finalChapterIdNameMap.get(mapping.getChapterId2());
+                    }
+                    // 去除HTML标签，只保留纯文本
+                    if (chapterName != null) {
+                        chapterName = com.upc.utils.HtmlUtils.stripHtml(chapterName);
+                    }
+                    temp.setChapterName(chapterName);
                         // 设置教材状态
                         temp.setReleaseStatus(finaltextbookIdReleaseStatusMap.get(mapping.getTextbookId()));
                     }

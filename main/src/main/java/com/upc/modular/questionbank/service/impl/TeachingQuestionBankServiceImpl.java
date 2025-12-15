@@ -212,6 +212,16 @@ public class TeachingQuestionBankServiceImpl extends ServiceImpl<TeachingQuestio
             finalParam.setReleaseStatus(midParam.getReleaseStatus());
             return finalParam;
         }).collect(Collectors.toList());
+        // 处理章节名称，先取textbookCatalogId对应的章节名，没有的话再取textbookCatalogId2
+        for (TeachingQuestionBankPageReturnParam record : finalRecords) {
+            // 章节名称已经在SQL中查询，这里只需去除HTML标签
+            String catalogName = record.getCatalogName();
+            if (catalogName != null) {
+                catalogName = com.upc.utils.HtmlUtils.stripHtml(catalogName);
+                record.setCatalogName(catalogName);
+            }
+        }
+        
         // 6. 构建并返回最终的分页对象
         Page<TeachingQuestionBankPageReturnParam> finalPage = new Page<>(
                 midResultPage.getCurrent(),

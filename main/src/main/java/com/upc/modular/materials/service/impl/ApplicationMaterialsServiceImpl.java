@@ -456,6 +456,14 @@ public class ApplicationMaterialsServiceImpl extends ServiceImpl<ApplicationMate
                         applicationMaterialsMappingMapper.getTeachingMaterialsByApplicationId(vo.getId());
                     vo.setTeachingMaterials(teachingMaterials);
                 }
+                
+                // 设置章节名称，先取textbookCatalogId对应的章节名，没有的话再取textbookCatalogId2
+                String textbookCatalogName = vo.getTextbookCatalogName();
+                // 去除HTML标签，只保留纯文本
+                if (textbookCatalogName != null) {
+                    textbookCatalogName = com.upc.utils.HtmlUtils.stripHtml(textbookCatalogName);
+                }
+                vo.setTextbookCatalogName(textbookCatalogName);
             }
         }
         

@@ -37,12 +37,14 @@
         u.nickname AS creatorName,
         t.add_datetime AS addDatetime,
         COUNT(qbl.id) AS questionCount,
-        tb.release_status AS releaseStatus
+        tb.release_status AS releaseStatus,
+        tc.catalog_name AS catalogName
         FROM
         teaching_question_bank t
         LEFT JOIN questions_banks_list qbl ON t.id = qbl.bank_id
         LEFT JOIN sys_tbuser u ON t.creator = u.id
         LEFT JOIN textbook tb ON t.textbook_id = tb.id
+        LEFT JOIN textbook_catalog tc ON t.textbook_catalog_id = tc.id
         <where>
             <!-- 教师只能看自己创建的 -->
             <if test="userRole != null and userRole == 'teacher'">
@@ -160,7 +162,7 @@
         t.id, t.name, t.description, t.status, t.textbook_id, tb.textbook_name,
         t.textbook_catalog_id, t.textbook_catalog_id2,
         t.max_attempts, t.score_policy,
-        t.creator, u.nickname, t.add_datetime, tb.release_status
+        t.creator, u.nickname, t.add_datetime, tb.release_status, tc.catalog_name
         ORDER BY
         t.add_datetime
         <choose>
