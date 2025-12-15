@@ -114,4 +114,8 @@ public class Textbook implements Serializable {
     @ApiModelProperty("教材归属机构ID")
     @TableField(value = "belong_institution_id")
     private Long belongInstitutionId;
+
+    @ApiModelProperty("是否逻辑删除")
+    @TableField(value = "is_delete")
+    private Integer isDelete;
 }
