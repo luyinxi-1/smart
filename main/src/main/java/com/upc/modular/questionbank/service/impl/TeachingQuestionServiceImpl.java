@@ -1,5 +1,6 @@
 package com.upc.modular.questionbank.service.impl;
 
+import com.alibaba.excel.EasyExcel;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.utils.UserUtils;
@@ -13,6 +14,8 @@ import com.upc.modular.questionbank.controller.param.SmartPaperQuestionVO;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchParam;
 import com.upc.modular.questionbank.controller.param.TeachingQuestionPageSearchReturnVO;
 import com.upc.modular.questionbank.controller.param.QuestionCountByTypeReturnParam;
+import com.upc.modular.questionbank.entity.QuestionImportDTO;
+import com.upc.modular.questionbank.entity.QuestionImportListener;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
 import com.upc.modular.questionbank.mapper.TeachingQuestionMapper;
 import com.upc.modular.questionbank.service.ITeachingQuestionService;
@@ -23,7 +26,9 @@ import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.upc.modular.textbook.service.ITextbookService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +54,37 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
     private ITextbookService textbookService;
     @Autowired
     private ITextbookCatalogService textbookCatalogService;
+
+    @Override
+    public void batchImportQuestions(MultipartFile file, Long textbookId, Long chapterId) {
+        // 1. 预先查询教材和章节信息 (避免在 Loop 中查库)
+        String tbName = null;
+        if (textbookId != null) {
+            Textbook textbook = textbookService.getById(textbookId);
+            if (textbook != null) {
+                tbName = textbook.getTextbookName();
+            }
+        }
+
+        String catName = null;
+        if (chapterId != null) {
+            TextbookCatalog chapter = textbookCatalogService.getById(chapterId);
+            if (chapter != null) {
+                catName = chapter.getCatalogName();
+            }
+        }
+
+        // 2. 启动 EasyExcel 读取
+        try {
+            EasyExcel.read(file.getInputStream(), QuestionImportDTO.class,
+                            // 传入 Service 实例以及预查好的名称信息
+                            new QuestionImportListener(this, textbookId, tbName, chapterId, catName))
+                    .sheet()
+                    .doRead();
+        } catch (IOException e) {
+            throw new RuntimeException("Excel文件读取失败", e);
+        }
+    }
 
     @Override
     public void saveQuestionWithTextbookInfo(TeachingQuestion teachingQuestion) {
