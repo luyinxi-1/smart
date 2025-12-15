@@ -193,6 +193,12 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "题型数量不能为空");
         }
 
+        // 获取指定章节及其所有子章节的ID列表
+        TextbookSpecifiedCatalogSearchParam searchParam = new TextbookSpecifiedCatalogSearchParam();
+        searchParam.setTextbookId(param.getTextbookId());
+        searchParam.setCatalogId(param.getChapterId());
+        List<Long> chapterIds = textbookCatalogService.getTextbookSpecifiedCatalog(searchParam);
+
         List<SmartPaperQuestionVO> result = new ArrayList<>();
 
         // 遍历每个题型
@@ -219,9 +225,9 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
             }
 
             // 从选择的难易程度中抽取题目
-            List<TeachingQuestion> selectedQuestions = teachingQuestionMapper.selectQuestionsByCondition(
+            List<TeachingQuestion> selectedQuestions = teachingQuestionMapper.selectQuestionsByConditionWithChapters(
                     param.getTextbookId(),
-                    param.getChapterId(),
+                    chapterIds,
                     questionType,
                     param.getDifficulty()
             );
@@ -242,9 +248,9 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
             // 先收集所有其他难度的可用题目
             List<TeachingQuestion> allOtherQuestions = new ArrayList<>();
             for (Integer otherDifficulty : otherDifficulties) {
-                List<TeachingQuestion> otherQuestions = teachingQuestionMapper.selectQuestionsByCondition(
+                List<TeachingQuestion> otherQuestions = teachingQuestionMapper.selectQuestionsByConditionWithChapters(
                         param.getTextbookId(),
-                        param.getChapterId(),
+                        chapterIds,
                         questionType,
                         otherDifficulty
                 );

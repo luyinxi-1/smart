@@ -56,6 +56,33 @@ public interface TeachingQuestionMapper extends BaseMapper<TeachingQuestion> {
     );
     
     /**
+     * 根据教材ID、章节ID列表、题型、难度查询题目列表（用于智能组卷，支持查询子章节）
+     * @param textbookId 教材ID
+     * @param chapterIds 章节ID列表
+     * @param type 题型
+     * @param difficulty 难度
+     * @return 题目列表
+     */
+    @Select("<script>" +
+            "SELECT id, type, content, difficulty FROM teaching_question " +
+            "WHERE textbook_id = #{textbookId} " +
+            "AND chapter_id IN " +
+            "<foreach item='item' collection='chapterIds' open='(' separator=',' close=')'>" +
+            "#{item}" +
+            "</foreach> " +
+            "AND type = #{type} " +
+            "AND difficulty = #{difficulty} " +
+            "AND status = 1 " +
+            "ORDER BY RAND()" +
+            "</script>")
+    java.util.List<TeachingQuestion> selectQuestionsByConditionWithChapters(
+            @Param("textbookId") Long textbookId,
+            @Param("chapterIds") List<Long> chapterIds,
+            @Param("type") Integer type,
+            @Param("difficulty") Integer difficulty
+    );
+    
+    /**
      * 根据教材ID和章节ID统计各题型题目数量
      * @param textbookId 教材ID
      * @param chapterId 章节ID
