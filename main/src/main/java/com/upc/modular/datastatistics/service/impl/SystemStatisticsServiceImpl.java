@@ -25,12 +25,14 @@ import com.upc.modular.teachingactivities.service.IDiscussionTopicReplyService;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
 import com.upc.modular.textbook.entity.LearningLog;
 import com.upc.modular.textbook.entity.Textbook;
+import com.upc.modular.textbook.entity.UserFavorites;
 import com.upc.modular.textbook.mapper.TextbookMapper;
 import com.upc.modular.textbook.service.IIdeologicalMaterialService;
 import com.upc.modular.textbook.service.ITextbookService;
 import com.lowagie.text.*;
 import com.lowagie.text.Font;
 import com.lowagie.text.pdf.*;
+import com.upc.modular.textbook.service.IUserFavoritesService;
 import org.springframework.stereotype.Service;
 import org.springframework.core.io.ClassPathResource;
 import java.io.InputStream;
@@ -99,6 +101,8 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
     
     @Autowired
     private TeacherStatisticsMapper teacherStatisticsMapper;
+    @Autowired
+    private IUserFavoritesService userFavoritesService;
 
     // 添加SysLogMapper的依赖
     @Autowired
@@ -357,12 +361,18 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
             countsDto.setTeachingideologicalMaterialCount(0L);
             countsDto.setDiscussionTopicCount(0L);
             countsDto.setTeachingQuestionBankCount(0L);
+            countsDto.setTextbookFavoriteCount(0L);
         } else {
             countsDto.setTextbookCount((long) publishedTextbookIds.size());
             // 统计已发布教材下的相关资源
             countsDto.setTeachingideologicalMaterialCount(ideologicalMaterialService.lambdaQuery().in(com.upc.modular.textbook.entity.IdeologicalMaterial::getTextbookId, publishedTextbookIds).count());
             countsDto.setDiscussionTopicCount(discussionTopicService.lambdaQuery().in(DiscussionTopic::getTextbookId, publishedTextbookIds).count());
             countsDto.setTeachingQuestionBankCount(teachingQuestionbankService.lambdaQuery().in(com.upc.modular.questionbank.entity.TeachingQuestionBank::getTextbookId, publishedTextbookIds).count());
+            // ✅ 新增：管理员统计全部已发布教材被收藏次数（直接从 user_favorites 的 textbook_id 统计）
+            long favoriteCount = userFavoritesService.lambdaQuery()
+                    .in(UserFavorites::getTextbookId, publishedTextbookIds)
+                    .count();
+            countsDto.setTextbookFavoriteCount(favoriteCount);
         }
     }
 
@@ -392,6 +402,24 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
             countsDto.setDiscussionTopicCount(discussionTopicService.lambdaQuery().in(DiscussionTopic::getTextbookId, teacherTextbookIds).count());
             countsDto.setTeachingQuestionBankCount(teachingQuestionbankService.lambdaQuery().in(com.upc.modular.questionbank.entity.TeachingQuestionBank::getTextbookId, teacherTextbookIds).count());
         }
+
+        // === 新增：教师自己已发布教材被收藏次数（不改传参） ===
+        Long userIdOfTeacher = teacherService.getById(teacherId).getUserId(); // 这里按你的 Teacher 实体字段名改
+        List<Long> myPublishedTextbookIds = textbookService.lambdaQuery()
+                .select(Textbook::getId)
+                .eq(Textbook::getReleaseStatus, "1")
+                .eq(Textbook::getCreator, userIdOfTeacher)
+                .list()
+                .stream()
+                .map(Textbook::getId)
+                .collect(Collectors.toList());
+
+        long favoriteCount = myPublishedTextbookIds.isEmpty() ? 0L
+                : userFavoritesService.lambdaQuery()
+                .in(UserFavorites::getTextbookId, myPublishedTextbookIds)
+                .count();
+
+        countsDto.setTextbookFavoriteCount(favoriteCount);
 
         // 2. 统计教师授课的课程数量
         countsDto.setCourseCount(courseService.lambdaQuery().eq(com.upc.modular.course.entity.Course::getTeacherId, teacherId).count());

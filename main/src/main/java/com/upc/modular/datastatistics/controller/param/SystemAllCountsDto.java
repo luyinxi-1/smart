@@ -46,4 +46,8 @@ public class SystemAllCountsDto {
 
     @ApiModelProperty(value = "某日访问人数", example = "350")
     private Long todayVisitorCount;
+
+    @ApiModelProperty("教材收藏数量（已发布教材被收藏次数）")
+    private Long textbookFavoriteCount;
+
 }
