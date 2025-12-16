@@ -150,17 +150,17 @@ public class TextbookPackage {
     }
 
     // Go 语言编译的工作区
-    private static final String GO_BUILD_WORKSPACE = "/opt/GoBuildWorkspace";
+//    private static final String GO_BUILD_WORKSPACE = "/opt/GoBuildWorkspace";
     // 临时改成这个，部署到linux之前得改回来。
-//    private static final String GO_BUILD_WORKSPACE = "D:/GoBuildWorkspace";
+    private static final String GO_BUILD_WORKSPACE = "D:/GoBuildWorkspace";
 
     // *** UPDATED ***: Base path for textbook pictures updated to the specific server path.
-    private static final String TEXTBOOK_PICTURE_BASE_PATH = "/opt/textbook-app/upload/public/picture/convertTextbookImage/";
-//    private static final String TEXTBOOK_PICTURE_BASE_PATH = "D:/textbook-app/upload/public/picture/convertTextbookImage/";
+//    private static final String TEXTBOOK_PICTURE_BASE_PATH = "/opt/textbook-app/upload/public/picture/convertTextbookImage/";
+    private static final String TEXTBOOK_PICTURE_BASE_PATH = "D:/textbook-app/upload/public/picture/convertTextbookImage/";
 
     // 教学素材文件基础路径
-    private static final String TEACHING_MATERIALS_BASE_PATH = "/opt/textbook-app/";
-//    private static final String TEACHING_MATERIALS_BASE_PATH = "D:/textbook-app/";
+//    private static final String TEACHING_MATERIALS_BASE_PATH = "/opt/textbook-app/";
+    private static final String TEACHING_MATERIALS_BASE_PATH = "D:/textbook-app/";
 
     @ApiOperation(value = "教材打包（包含图片等资源）")
     @PostMapping("/do")
@@ -222,9 +222,9 @@ public class TextbookPackage {
             long endTime = System.currentTimeMillis();
 
         } catch (Exception e) {
-            System.err.println("教材打包失败！Textbook ID: " + textbookId);
-            System.err.println("异常类型: " + e.getClass().getName());
-            System.err.println("异常信息: " + e.getMessage());
+            //System.err.println("教材打包失败！Textbook ID: " + textbookId);
+            //System.err.println("异常类型: " + e.getClass().getName());
+            //System.err.println("异常信息: " + e.getMessage());
             e.printStackTrace();
             // 出现异常时返回错误信息
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "教材打包失败");
@@ -234,7 +234,7 @@ public class TextbookPackage {
                 try {
                     deleteDirectoryRecursively(temporaryWorkDir);
                 } catch (IOException ex) {
-                    System.err.println("警告：未能成功删除临时文件夹: " + temporaryWorkDir);
+                    //System.err.println("警告：未能成功删除临时文件夹: " + temporaryWorkDir);
                 }
             }
         }
@@ -250,21 +250,21 @@ public class TextbookPackage {
      * @throws IOException 如果文件操作失败或未找到内容
      */
     private Path generateTextbookHtmlWithResources(Long textbookId, Path workDir, String outputBaseName) throws IOException {
-        System.out.println("  -> 查询数据库获取章节内容...");
+        //System.out.println("  -> 查询数据库获取章节内容...");
         // 查询数据库获取章节内容
         LambdaQueryWrapper<TextbookCatalog> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(TextbookCatalog::getTextbookId, textbookId);
         queryWrapper.orderByAsc(TextbookCatalog::getSort);
         List<TextbookCatalog> textbookCatalogs = textbookCatalogMapper.selectList(queryWrapper);
-        System.out.println("  -> 共获取到 " + textbookCatalogs.size() + " 个章节");
+        //System.out.println("  -> 共获取到 " + textbookCatalogs.size() + " 个章节");
         
         // 记录前几个章节的信息用于调试
         if (!textbookCatalogs.isEmpty()) {
-            System.out.println("  -> 前3个章节ID: " + 
-                             textbookCatalogs.stream()
-                                           .limit(3)
-                                           .map(c -> String.valueOf(c.getId()))
-                                           .collect(java.util.stream.Collectors.joining(", ")));
+//            System.out.println("  -> 前3个章节ID: " +
+//                             textbookCatalogs.stream()
+//                                           .limit(3)
+//                                           .map(c -> String.valueOf(c.getId()))
+//                                           .collect(java.util.stream.Collectors.joining(", ")));
         }
 
         if (textbookCatalogs.isEmpty()) {
@@ -272,7 +272,7 @@ public class TextbookPackage {
         }
 
         // 拼接成一个完整的HTML文档
-        System.out.println("  -> 拼接HTML内容...");
+        //System.out.println("  -> 拼接HTML内容...");
         StringBuilder htmlBuilder = new StringBuilder();
         htmlBuilder.append("<!DOCTYPE html><html lang=\"zh-CN\"><head><meta charset='UTF-8'><title>").append(outputBaseName).append("</title></head><body>");
 
@@ -297,11 +297,11 @@ public class TextbookPackage {
 
         // 2. 如果源图片目录存在，则复制并修改HTML
         if (Files.exists(sourceImageDir) && Files.isDirectory(sourceImageDir)) {
-            System.out.println("  -> 发现资源目录: " + sourceImageDir);
+            //System.out.println("  -> 发现资源目录: " + sourceImageDir);
             Files.createDirectories(targetImgDir); // 创建 resource/img 文件夹
 
             // 复制整个图片目录到临时工作区的 resource/img 下
-            System.out.println("  -> 开始复制资源文件...");
+            //System.out.println("  -> 开始复制资源文件...");
             long copyStartTime = System.currentTimeMillis();
             int fileCount = 0;
             int totalFiles = 0;
@@ -311,7 +311,7 @@ public class TextbookPackage {
                 totalFiles = (int) stream.filter(Files::isRegularFile).count();
             }
             
-            System.out.println("  -> 发现 " + totalFiles + " 个文件需要复制");
+            //System.out.println("  -> 发现 " + totalFiles + " 个文件需要复制");
             
             try (Stream<Path> stream = Files.walk(sourceImageDir)) {
                 // 使用AtomicInteger来安全地在lambda表达式中更新计数器
@@ -326,26 +326,26 @@ public class TextbookPackage {
                             
                             // 每复制100个文件打印一次进度
                             if (currentCount % 100 == 0) {
-                                System.out.println("  -> 已复制 " + currentCount + " / " + finalTotalFiles + " 个文件");
+                                //System.out.println("  -> 已复制 " + currentCount + " / " + finalTotalFiles + " 个文件");
                             }
                         }
                         return source;
                     } catch (IOException e) {
-                        System.err.println("警告：复制文件失败 " + source + " -> " + e.getMessage());
+                        //System.err.println("警告：复制文件失败 " + source + " -> " + e.getMessage());
                         return null;
                     }
                 }).count();
             }
             
             long copyEndTime = System.currentTimeMillis();
-            System.out.println("  -> 资源文件复制完成，共复制 " + fileCount + " 个文件，耗时: " + (copyEndTime - copyStartTime) + "ms");
+            //System.out.println("  -> 资源文件复制完成，共复制 " + fileCount + " 个文件，耗时: " + (copyEndTime - copyStartTime) + "ms");
 
             // 3. 使用Jsoup解析HTML并修改图片路径为相对路径
-            System.out.println("  -> 更新HTML中的图片路径...");
+            //System.out.println("  -> 更新HTML中的图片路径...");
             long htmlProcessStartTime = System.currentTimeMillis();
             Document doc = Jsoup.parse(finalHtmlContent);
             Elements images = doc.select("img");
-            System.out.println("  -> 共找到 " + images.size() + " 个图片标签");
+            //System.out.println("  -> 共找到 " + images.size() + " 个图片标签");
             
             int processedImages = 0;
             for (Element img : images) {
@@ -357,62 +357,62 @@ public class TextbookPackage {
                 
                 processedImages++;
                 if (processedImages % 1000 == 0) {
-                    System.out.println("  -> 已处理 " + processedImages + " / " + images.size() + " 个图片标签");
+                    //System.out.println("  -> 已处理 " + processedImages + " / " + images.size() + " 个图片标签");
                 }
             }
             
             finalHtmlContent = doc.html();
             long htmlProcessEndTime = System.currentTimeMillis();
-            System.out.println("  -> HTML图片路径更新完成, 耗时: " + (htmlProcessEndTime - htmlProcessStartTime) + "ms");
+            //System.out.println("  -> HTML图片路径更新完成, 耗时: " + (htmlProcessEndTime - htmlProcessStartTime) + "ms");
         } else {
-            System.out.println("  -> 未找到资源目录: " + sourceImageDir + ", 将直接打包纯文本HTML。");
+            //System.out.println("  -> 未找到资源目录: " + sourceImageDir + ", 将直接打包纯文本HTML。");
         }
 
         // 4. 在指定工作目录中创建最终的HTML文件
         Path htmlFilePath = workDir.resolve(outputBaseName + ".html");
         Files.write(htmlFilePath, finalHtmlContent.getBytes(StandardCharsets.UTF_8));
-        System.out.println("  -> 已生成HTML文件: " + htmlFilePath);
+        //System.out.println("  -> 已生成HTML文件: " + htmlFilePath);
         
         // 5. 添加生成JS数据文件的调用
-        System.out.println("  -> 开始生成JS数据文件...");
+        //System.out.println("  -> 开始生成JS数据文件...");
         long jsStartTime = System.currentTimeMillis();
         generateBookDataJs(textbookId, workDir);
         long jsEndTime = System.currentTimeMillis();
-        System.out.println("  -> JS数据文件生成完成，耗时: " + (jsEndTime - jsStartTime) + "ms");
+        //System.out.println("  -> JS数据文件生成完成，耗时: " + (jsEndTime - jsStartTime) + "ms");
         
         // 6. 添加教学素材处理
-        System.out.println("  -> 开始处理教学素材...");
+        //System.out.println("  -> 开始处理教学素材...");
         long materialsStartTime = System.currentTimeMillis();
         Map<String, Map<String, String>> resourceMap = processTeachingMaterials(textbookId, workDir);
         long materialsEndTime = System.currentTimeMillis();
-        System.out.println("  -> 教学素材处理完成，耗时: " + (materialsEndTime - materialsStartTime) + "ms");
+        //System.out.println("  -> 教学素材处理完成，耗时: " + (materialsEndTime - materialsStartTime) + "ms");
         
         // 7. 添加应用素材处理
-        System.out.println("  -> 开始处理应用素材...");
+        //System.out.println("  -> 开始处理应用素材...");
         long appMaterialsStartTime = System.currentTimeMillis();
         processApplicationMaterials(textbookId, workDir, resourceMap);
         long appMaterialsEndTime = System.currentTimeMillis();
-        System.out.println("  -> 应用素材处理完成，耗时: " + (appMaterialsEndTime - appMaterialsStartTime) + "ms");
+        //System.out.println("  -> 应用素材处理完成，耗时: " + (appMaterialsEndTime - appMaterialsStartTime) + "ms");
         
         // 8. 生成resourceMap.js文件
         generateResourceMapJs(resourceMap, workDir);
         
         // 9. 添加资料推送处理
-        System.out.println("  -> 开始处理资料推送...");
+        //System.out.println("  -> 开始处理资料推送...");
         long materialPushStartTime = System.currentTimeMillis();
         processMaterialPushes(textbookId, workDir, resourceMap);
         long materialPushEndTime = System.currentTimeMillis();
-        System.out.println("  -> 资料推送处理完成，耗时: " + (materialPushEndTime - materialPushStartTime) + "ms");
+        //System.out.println("  -> 资料推送处理完成，耗时: " + (materialPushEndTime - materialPushStartTime) + "ms");
         
         // 10. 重新生成resourceMap.js文件（包含资料推送）
         generateResourceMapJs(resourceMap, workDir);
         
         // 11. 复制index.html文件到工作目录
-        System.out.println("  -> 开始复制index.html文件...");
+        //System.out.println("  -> 开始复制index.html文件...");
         long indexHtmlStartTime = System.currentTimeMillis();
         copyIndexHtmlToWorkDir(workDir);
         long indexHtmlEndTime = System.currentTimeMillis();
-        System.out.println("  -> index.html文件复制完成，耗时: " + (indexHtmlEndTime - indexHtmlStartTime) + "ms");
+        //System.out.println("  -> index.html文件复制完成，耗时: " + (indexHtmlEndTime - indexHtmlStartTime) + "ms");
 
         return htmlFilePath;
     }
@@ -429,13 +429,13 @@ public class TextbookPackage {
                 .getResourceAsStream("static/index.html");
         
         if (indexHtmlStream == null) {
-            System.out.println("    --> 警告：未找到resources/static/index.html文件");
+            //System.out.println("    --> 警告：未找到resources/static/index.html文件");
             return;
         }
         
         // 定义目标文件路径
         Path targetIndexPath = workDir.resolve("index.html");
-        System.out.println("    --> 目标文件路径: " + targetIndexPath);
+        //System.out.println("    --> 目标文件路径: " + targetIndexPath);
         
         // 复制文件
         try {
@@ -444,15 +444,15 @@ public class TextbookPackage {
                 targetIndexPath, 
                 StandardCopyOption.REPLACE_EXISTING
             );
-            System.out.println("    --> index.html文件复制完成");
+            //System.out.println("    --> index.html文件复制完成");
         } catch (IOException e) {
-            System.err.println("    --> 复制index.html文件失败: " + e.getMessage());
+            //System.err.println("    --> 复制index.html文件失败: " + e.getMessage());
             throw e;
         } finally {
             try {
                 indexHtmlStream.close();
             } catch (IOException e) {
-                System.err.println("    --> 关闭index.html输入流失败: " + e.getMessage());
+                //System.err.println("    --> 关闭index.html输入流失败: " + e.getMessage());
             }
         }
     }
@@ -466,67 +466,67 @@ public class TextbookPackage {
      * @throws IOException 文件操作异常
      */
     private void generateBookDataJs(Long textbookId, Path workDir) throws IOException {
-        System.out.println("    --> 调用readTextbook接口获取章节数据...");
+        //System.out.println("    --> 调用readTextbook接口获取章节数据...");
         // 1. 调用readTextbook接口获取章节数据
         long apiCallStartTime = System.currentTimeMillis();
         List<ReadTextbookReturnParam> catalogList = textbookCatalogService.readTextbook(textbookId);
         long apiCallEndTime = System.currentTimeMillis();
-        System.out.println("    --> 共获取到 " + catalogList.size() + " 个章节数据, API调用耗时: " + (apiCallEndTime - apiCallStartTime) + "ms");
+        //System.out.println("    --> 共获取到 " + catalogList.size() + " 个章节数据, API调用耗时: " + (apiCallEndTime - apiCallStartTime) + "ms");
         
         // 2. 处理章节数据中的资源链接，确保与HTML中的一致
         Path sourceImageDir = Paths.get(TEXTBOOK_PICTURE_BASE_PATH, String.valueOf(textbookId));
         if (Files.exists(sourceImageDir) && Files.isDirectory(sourceImageDir)) {
-            System.out.println("    --> 处理章节数据中的资源链接...");
+            //System.out.println("    --> 处理章节数据中的资源链接...");
             // 对章节数据应用与HTML相同的资源链接处理
             processResourceLinksInCatalogList(catalogList, textbookId);
-            System.out.println("    --> 资源链接处理完成");
+            //System.out.println("    --> 资源链接处理完成");
         }
         
         // 3. 调用getOneTextbookDetails接口获取教材信息
-        System.out.println("    --> 调用getOneTextbookDetails接口获取教材信息...");
+        //System.out.println("    --> 调用getOneTextbookDetails接口获取教材信息...");
         long apiCallStartTime2 = System.currentTimeMillis();
         TextbookPageReturnParam bookInfo = textbookService.getOneTextbookDetails(textbookId);
         long apiCallEndTime2 = System.currentTimeMillis();
-        System.out.println("    --> 教材信息获取完成, API调用耗时: " + (apiCallEndTime2 - apiCallStartTime2) + "ms");
+        //System.out.println("    --> 教材信息获取完成, API调用耗时: " + (apiCallEndTime2 - apiCallStartTime2) + "ms");
         
         // 4. 处理教材信息，创建一个Map来精确控制输出字段
-        System.out.println("    --> 处理教材信息...");
+        //System.out.println("    --> 处理教材信息...");
         java.util.Map<String, Object> processedBookInfo = createBookInfoWithReplacedFields(bookInfo);
-        System.out.println("    --> 教材信息处理完成");
+        //System.out.println("    --> 教材信息处理完成");
         
         // 5. 构造JS文件内容
-        System.out.println("    --> 构造JS文件内容...");
+        //System.out.println("    --> 构造JS文件内容...");
         StringBuilder jsContent = new StringBuilder();
         
         // 添加章节数据
-        System.out.println("    --> 序列化章节数据...");
+        //System.out.println("    --> 序列化章节数据...");
         long jsonSerializeStart1 = System.currentTimeMillis();
         String catalogListJson = convertToJsonString(catalogList);
         long jsonSerializeEnd1 = System.currentTimeMillis();
-        System.out.println("    --> 章节数据序列化完成, 耗时: " + (jsonSerializeEnd1 - jsonSerializeStart1) + "ms");
+        //System.out.println("    --> 章节数据序列化完成, 耗时: " + (jsonSerializeEnd1 - jsonSerializeStart1) + "ms");
         
         jsContent.append("const catalogList = ")
                  .append(catalogListJson)
                  .append(";\n\n");
         
         // 添加教材信息
-        System.out.println("    --> 序列化教材信息...");
+        //System.out.println("    --> 序列化教材信息...");
         long jsonSerializeStart2 = System.currentTimeMillis();
         String bookInfoJson = convertToJsonString(processedBookInfo);
         long jsonSerializeEnd2 = System.currentTimeMillis();
-        System.out.println("    --> 教材信息序列化完成, 耗时: " + (jsonSerializeEnd2 - jsonSerializeStart2) + "ms");
+        //System.out.println("    --> 教材信息序列化完成, 耗时: " + (jsonSerializeEnd2 - jsonSerializeStart2) + "ms");
         
         jsContent.append("const bookInfo = ")
                  .append(bookInfoJson)
                  .append(";");
         
-        System.out.println("    --> JS内容构造完成");
+        //System.out.println("    --> JS内容构造完成");
 
         // 6. 写入文件
-        System.out.println("    --> 写入JS文件...");
+        //System.out.println("    --> 写入JS文件...");
         Path jsFilePath = workDir.resolve("bookData.js");
         Files.write(jsFilePath, jsContent.toString().getBytes(StandardCharsets.UTF_8));
-        System.out.println("    --> JS文件写入完成: " + jsFilePath);
+        //System.out.println("    --> JS文件写入完成: " + jsFilePath);
     }
     
     /**
@@ -542,7 +542,7 @@ public class TextbookPackage {
         
         // 定义教材图片的基础路径模式
         String textbookPictureBasePath = "/upload/public/picture/convertTextbookImage/" + textbookId + "/";
-        System.out.println("    --> 处理资源链接，基础路径: " + textbookPictureBasePath);
+        //System.out.println("    --> 处理资源链接，基础路径: " + textbookPictureBasePath);
         
         int processedItems = 0;
         long sectionProcessStartTime = System.currentTimeMillis();
@@ -607,7 +607,7 @@ public class TextbookPackage {
             
             processedItems++;
             if (processedItems % 100 == 0) {
-                System.out.println("    --> 已处理 " + processedItems + "/" + catalogList.size() + " 个章节");
+                //System.out.println("    --> 已处理 " + processedItems + "/" + catalogList.size() + " 个章节");
             }
             
             // 每处理500个章节输出一次详细进度
@@ -616,11 +616,11 @@ public class TextbookPackage {
                 long elapsedTime = currentTime - sectionProcessStartTime;
                 double avgTimePerItem = (double) elapsedTime / processedItems;
                 long estimatedRemaining = (long) (avgTimePerItem * (catalogList.size() - processedItems));
-                System.out.println("    --> 处理进度: " + processedItems + "/" + catalogList.size() + 
-                                 " 章节, 已用时: " + elapsedTime + "ms, 预计剩余时间: " + estimatedRemaining + "ms");
+//                System.out.println("    --> 处理进度: " + processedItems + "/" + catalogList.size() +
+//                                 " 章节, 已用时: " + elapsedTime + "ms, 预计剩余时间: " + estimatedRemaining + "ms");
             }
         }
-        System.out.println("    --> 资源链接处理完成，共处理 " + catalogList.size() + " 个章节");
+        //System.out.println("    --> 资源链接处理完成，共处理 " + catalogList.size() + " 个章节");
     }
     
     /**
@@ -630,7 +630,7 @@ public class TextbookPackage {
      * @return 处理后的教材信息Map，只包含教材名称、作者、简介、教材分类、创建日期五个字段
      */
     private java.util.Map<String, Object> createBookInfoWithReplacedFields(TextbookPageReturnParam bookInfo) {
-        System.out.println("    --> 开始处理bookInfo，只保留指定字段");
+        //System.out.println("    --> 开始处理bookInfo，只保留指定字段");
         
         java.util.Map<String, Object> processedBookInfo = new java.util.HashMap<>();
         
@@ -658,7 +658,7 @@ public class TextbookPackage {
         
         processedBookInfo.put("addDatetime", bookInfo.getAddDatetime()); // 创建日期
         
-        System.out.println("    --> 处理完成");
+        //System.out.println("    --> 处理完成");
         return processedBookInfo;
     }
 
@@ -679,12 +679,12 @@ public class TextbookPackage {
             long serializeEndTime = System.currentTimeMillis();
             
             // 输出序列化结果大小
-            System.out.println("      ---> JSON序列化完成, 结果大小: " + result.length() + " 字符, 耗时: " + (serializeEndTime - serializeStartTime) + "ms");
+            //System.out.println("      ---> JSON序列化完成, 结果大小: " + result.length() + " 字符, 耗时: " + (serializeEndTime - serializeStartTime) + "ms");
             
             return result;
         } catch (Exception e) {
             // 记录异常日志，避免静默捕获异常导致问题无法追踪
-            System.err.println("JSON序列化失败: " + e.getMessage());
+            //System.err.println("JSON序列化失败: " + e.getMessage());
             e.printStackTrace();
             
             // 如果序列化失败，返回空对象或数组
@@ -709,95 +709,95 @@ public class TextbookPackage {
      * @return 最终生成的总包路径
      */
     public Path packageAndCompile(List<String> deviceIdsList, String zipPassword, Path textbookHtmlPath, Path workDir, String outputBaseName) throws Exception {
-        System.out.println("  -> 开始打包和编译流程...");
+        //System.out.println("  -> 开始打包和编译流程...");
         
         // 模式2：统一密码模式
         if (zipPassword != null) {
-            System.out.println(" -> 模式2：使用统一密码打包...");
+            //System.out.println(" -> 模式2：使用统一密码打包...");
             // 直接创建加密ZIP包，不生成解锁器和外层包
             Path contentZipPath = workDir.resolve(outputBaseName + "_Content.zip");
             long zipStartTime = System.currentTimeMillis();
             createEncryptedZipWithResources(textbookHtmlPath, workDir.resolve("resource"), contentZipPath, zipPassword);
             long zipEndTime = System.currentTimeMillis();
-            System.out.println(" -> 已创建加密的内容ZIP包: " + contentZipPath + ", 耗时: " + (zipEndTime - zipStartTime) + "ms");
+            //System.out.println(" -> 已创建加密的内容ZIP包: " + contentZipPath + ", 耗时: " + (zipEndTime - zipStartTime) + "ms");
             
-            System.out.println("  -> 打包和编译流程完成");
+            //System.out.println("  -> 打包和编译流程完成");
             return contentZipPath; // 直接返回内容包
         }
         
         // 模式1：设备绑定模式
         if (!deviceIdsList.isEmpty()) {
-            System.out.println(" -> 模式1：使用设备绑定打包...");
+            //System.out.println(" -> 模式1：使用设备绑定打包...");
             // 1. 生成随机密码
             String password = generateRandomPassword(12);
-            System.out.println(" -> 1. 生成随机密码: " + password);
+            //System.out.println(" -> 1. 生成随机密码: " + password);
 
             // 2. 将HTML文件和resource文件夹创建为一个加密的ZIP包
-            System.out.println(" -> 2. 创建加密的内容ZIP包...");
+            //System.out.println(" -> 2. 创建加密的内容ZIP包...");
             Path contentZipPath = workDir.resolve(outputBaseName + "_Content.zip");
             long zipStartTime = System.currentTimeMillis();
             createEncryptedZipWithResources(textbookHtmlPath, workDir.resolve("resource"), contentZipPath, password);
             long zipEndTime = System.currentTimeMillis();
-            System.out.println(" -> 2. 已创建加密的内容ZIP包: " + contentZipPath + ", 耗时: " + (zipEndTime - zipStartTime) + "ms");
+            //System.out.println(" -> 2. 已创建加密的内容ZIP包: " + contentZipPath + ", 耗时: " + (zipEndTime - zipStartTime) + "ms");
 
             // 3. 编译Go语言的解锁程序 (Windows版本)
-            System.out.println(" -> 3. 编译Windows Go可执行文件...");
+            //System.out.println(" -> 3. 编译Windows Go可执行文件...");
             Path winUnlockerPath = workDir.resolve(outputBaseName + "_Unlocker_win_amd64.exe");
             long compileStartTime = System.currentTimeMillis();
             // 将设备ID列表连接成字符串传递给编译函数
             String deviceIdsJoined = String.join(",", deviceIdsList);
             compileGoExecutable(deviceIdsJoined, password, winUnlockerPath);
             long compileEndTime = System.currentTimeMillis();
-            System.out.println(" -> 3. 已编译Windows Go可执行文件: " + winUnlockerPath + ", 耗时: " + (compileEndTime - compileStartTime) + "ms");
+            //System.out.println(" -> 3. 已编译Windows Go可执行文件: " + winUnlockerPath + ", 耗时: " + (compileEndTime - compileStartTime) + "ms");
 
             // 4. 编译Linux ARM64版本的解锁程序
-            System.out.println(" -> 4. 编译Linux ARM64 Go可执行文件...");
+            //System.out.println(" -> 4. 编译Linux ARM64 Go可执行文件...");
             Path linuxArmUnlockerPath = workDir.resolve(outputBaseName + "_Unlocker_linux_arm64");
             long compileLinuxStartTime = System.currentTimeMillis();
             compileGoExecutableLinuxArm64(deviceIdsJoined, password, linuxArmUnlockerPath);
             long compileLinuxEndTime = System.currentTimeMillis();
-            System.out.println(" -> 4. 已编译Linux ARM64 Go可执行文件: " + linuxArmUnlockerPath + ", 耗时: " + (compileLinuxEndTime - compileLinuxStartTime) + "ms");
+            //System.out.println(" -> 4. 已编译Linux ARM64 Go可执行文件: " + linuxArmUnlockerPath + ", 耗时: " + (compileLinuxEndTime - compileLinuxStartTime) + "ms");
 
             // 5. 编译Linux AMD64版本的解锁程序
-            System.out.println(" -> 5. 编译Linux AMD64 Go可执行文件...");
+            //System.out.println(" -> 5. 编译Linux AMD64 Go可执行文件...");
             Path linuxAmdUnlockerPath = workDir.resolve(outputBaseName + "_Unlocker_linux_amd64");
             long compileLinuxAmdStartTime = System.currentTimeMillis();
             compileGoExecutableLinuxAmd64(deviceIdsJoined, password, linuxAmdUnlockerPath);
             long compileLinuxAmdEndTime = System.currentTimeMillis();
-            System.out.println(" -> 5. 已编译Linux AMD64 Go可执行文件: " + linuxAmdUnlockerPath + ", 耗时: " + (compileLinuxAmdEndTime - compileLinuxAmdStartTime) + "ms");
+            //System.out.println(" -> 5. 已编译Linux AMD64 Go可执行文件: " + linuxAmdUnlockerPath + ", 耗时: " + (compileLinuxAmdEndTime - compileLinuxAmdStartTime) + "ms");
 
             // 6. 将加密内容ZIP包和Go解锁程序打包成一个最终的ZIP包
-            System.out.println(" -> 6. 创建最终下载包...");
+            //System.out.println(" -> 6. 创建最终下载包...");
             Path finalPackagePath = workDir.resolve(outputBaseName + "_Package.zip");
-            System.out.println(" -> 6. 创建最终下载包: " + finalPackagePath);
+            //System.out.println(" -> 6. 创建最终下载包: " + finalPackagePath);
             long packageStartTime = System.currentTimeMillis();
             try (ZipFile finalZip = new ZipFile(finalPackagePath.toFile())) {
-                System.out.println("    --> 添加内容ZIP包到最终包...");
+                //System.out.println("    --> 添加内容ZIP包到最终包...");
                 finalZip.addFile(contentZipPath.toFile());
-                System.out.println("    --> 添加Windows解锁程序到最终包...");
+                //System.out.println("    --> 添加Windows解锁程序到最终包...");
                 finalZip.addFile(winUnlockerPath.toFile());
-                System.out.println("    --> 添加Linux ARM64解锁程序到最终包...");
+                //System.out.println("    --> 添加Linux ARM64解锁程序到最终包...");
                 finalZip.addFile(linuxArmUnlockerPath.toFile());
-                System.out.println("    --> 添加Linux AMD64解锁程序到最终包...");
+                //System.out.println("    --> 添加Linux AMD64解锁程序到最终包...");
                 finalZip.addFile(linuxAmdUnlockerPath.toFile());
             }
             long packageEndTime = System.currentTimeMillis();
-            System.out.println(" -> 6. 最终下载包创建完成, 耗时: " + (packageEndTime - packageStartTime) + "ms");
+            //System.out.println(" -> 6. 最终下载包创建完成, 耗时: " + (packageEndTime - packageStartTime) + "ms");
             
-            System.out.println("  -> 打包和编译流程完成");
+            //System.out.println("  -> 打包和编译流程完成");
 
             return finalPackagePath;
         }
         
         // 模式3：无密码模式
-        System.out.println(" -> 模式3：不使用密码打包...");
+        //System.out.println(" -> 模式3：不使用密码打包...");
         Path contentZipPath = workDir.resolve(outputBaseName + "_Content.zip");
         long zipStartTime = System.currentTimeMillis();
         createUnencryptedZipWithResources(textbookHtmlPath, workDir.resolve("resource"), contentZipPath);
         long zipEndTime = System.currentTimeMillis();
-        System.out.println(" -> 已创建未加密的内容ZIP包: " + contentZipPath + ", 耗时: " + (zipEndTime - zipStartTime) + "ms");
+        //System.out.println(" -> 已创建未加密的内容ZIP包: " + contentZipPath + ", 耗时: " + (zipEndTime - zipStartTime) + "ms");
         
-        System.out.println("  -> 打包和编译流程完成");
+        //System.out.println("  -> 打包和编译流程完成");
         return contentZipPath; // 直接返回内容包
     }
 
@@ -805,7 +805,7 @@ public class TextbookPackage {
      * 创建一个包含HTML文件和整个resource文件夹的加密ZIP。
      */
     private void createEncryptedZipWithResources(Path htmlFile, Path resourceDir, Path zipOutputPath, String password) throws IOException {
-        System.out.println("    --> 开始创建加密ZIP包...");
+        //System.out.println("    --> 开始创建加密ZIP包...");
         ZipParameters params = new ZipParameters();
         params.setEncryptFiles(true);
         params.setEncryptionMethod(EncryptionMethod.AES);
@@ -814,112 +814,112 @@ public class TextbookPackage {
         long zipStartTime = System.currentTimeMillis();
         try (ZipFile zipFile = new ZipFile(zipOutputPath.toFile(), password.toCharArray())) {
             // 添加HTML文件
-            System.out.println("    --> 添加HTML文件: " + htmlFile);
+            //System.out.println("    --> 添加HTML文件: " + htmlFile);
             long addHtmlStartTime = System.currentTimeMillis();
             zipFile.addFile(htmlFile.toFile(), params);
             long addHtmlEndTime = System.currentTimeMillis();
-            System.out.println("    --> HTML文件添加完成, 耗时: " + (addHtmlEndTime - addHtmlStartTime) + "ms");
+            //System.out.println("    --> HTML文件添加完成, 耗时: " + (addHtmlEndTime - addHtmlStartTime) + "ms");
 
             // 添加JS数据文件（与HTML文件同级）
             Path jsFile = htmlFile.getParent().resolve("bookData.js");
             if (Files.exists(jsFile)) {
-                System.out.println("    --> 添加JS文件: " + jsFile);
+                //System.out.println("    --> 添加JS文件: " + jsFile);
                 long addJsStartTime = System.currentTimeMillis();
                 zipFile.addFile(jsFile.toFile(), params);
                 long addJsEndTime = System.currentTimeMillis();
-                System.out.println("    --> JS文件添加完成, 耗时: " + (addJsEndTime - addJsStartTime) + "ms");
+                //System.out.println("    --> JS文件添加完成, 耗时: " + (addJsEndTime - addJsStartTime) + "ms");
             }
             
             // 添加resourceMap.js文件（与HTML文件同级）
             Path resourceMapFile = htmlFile.getParent().resolve("resourceMap.js");
             if (Files.exists(resourceMapFile)) {
-                System.out.println("    --> 添加resourceMap.js文件: " + resourceMapFile);
+                //System.out.println("    --> 添加resourceMap.js文件: " + resourceMapFile);
                 long addResourceMapStartTime = System.currentTimeMillis();
                 zipFile.addFile(resourceMapFile.toFile(), params);
                 long addResourceMapEndTime = System.currentTimeMillis();
-                System.out.println("    --> resourceMap.js文件添加完成, 耗时: " + (addResourceMapEndTime - addResourceMapStartTime) + "ms");
+                //System.out.println("    --> resourceMap.js文件添加完成, 耗时: " + (addResourceMapEndTime - addResourceMapStartTime) + "ms");
             }
             
             // 添加index.html文件（与HTML文件同级）
             Path indexHtmlFile = htmlFile.getParent().resolve("index.html");
             if (Files.exists(indexHtmlFile)) {
-                System.out.println("    --> 添加index.html文件: " + indexHtmlFile);
+                //System.out.println("    --> 添加index.html文件: " + indexHtmlFile);
                 long addIndexHtmlStartTime = System.currentTimeMillis();
                 zipFile.addFile(indexHtmlFile.toFile(), params);
                 long addIndexHtmlEndTime = System.currentTimeMillis();
-                System.out.println("    --> index.html文件添加完成, 耗时: " + (addIndexHtmlEndTime - addIndexHtmlStartTime) + "ms");
+                //System.out.println("    --> index.html文件添加完成, 耗时: " + (addIndexHtmlEndTime - addIndexHtmlStartTime) + "ms");
             }
 
             // 如果resource文件夹存在，则添加整个文件夹
             if (Files.exists(resourceDir) && Files.isDirectory(resourceDir)) {
-                System.out.println("    --> 添加资源文件夹: " + resourceDir);
+                //System.out.println("    --> 添加资源文件夹: " + resourceDir);
                 long addResourceStartTime = System.currentTimeMillis();
                 zipFile.addFolder(resourceDir.toFile(), params);
                 long addResourceEndTime = System.currentTimeMillis();
-                System.out.println("    --> 资源文件夹添加完成, 耗时: " + (addResourceEndTime - addResourceStartTime) + "ms");
+                //System.out.println("    --> 资源文件夹添加完成, 耗时: " + (addResourceEndTime - addResourceStartTime) + "ms");
             }
         }
         long zipEndTime = System.currentTimeMillis();
-        System.out.println("    --> 加密ZIP包创建完成, 总耗时: " + (zipEndTime - zipStartTime) + "ms");
+        //System.out.println("    --> 加密ZIP包创建完成, 总耗时: " + (zipEndTime - zipStartTime) + "ms");
     }
 
     /**
      * 创建一个包含HTML文件和整个resource文件夹的未加密ZIP。
      */
     private void createUnencryptedZipWithResources(Path htmlFile, Path resourceDir, Path zipOutputPath) throws IOException {
-        System.out.println("    --> 开始创建未加密ZIP包...");
+        //System.out.println("    --> 开始创建未加密ZIP包...");
         ZipParameters params = new ZipParameters();
 
         long zipStartTime = System.currentTimeMillis();
         try (ZipFile zipFile = new ZipFile(zipOutputPath.toFile())) {
             // 添加HTML文件
-            System.out.println("    --> 添加HTML文件: " + htmlFile);
+            //System.out.println("    --> 添加HTML文件: " + htmlFile);
             long addHtmlStartTime = System.currentTimeMillis();
             zipFile.addFile(htmlFile.toFile(), params);
             long addHtmlEndTime = System.currentTimeMillis();
-            System.out.println("    --> HTML文件添加完成, 耗时: " + (addHtmlEndTime - addHtmlStartTime) + "ms");
+            //System.out.println("    --> HTML文件添加完成, 耗时: " + (addHtmlEndTime - addHtmlStartTime) + "ms");
 
             // 添加JS数据文件（与HTML文件同级）
             Path jsFile = htmlFile.getParent().resolve("bookData.js");
             if (Files.exists(jsFile)) {
-                System.out.println("    --> 添加JS文件: " + jsFile);
+                //System.out.println("    --> 添加JS文件: " + jsFile);
                 long addJsStartTime = System.currentTimeMillis();
                 zipFile.addFile(jsFile.toFile(), params);
                 long addJsEndTime = System.currentTimeMillis();
-                System.out.println("    --> JS文件添加完成, 耗时: " + (addJsEndTime - addJsStartTime) + "ms");
+                //System.out.println("    --> JS文件添加完成, 耗时: " + (addJsEndTime - addJsStartTime) + "ms");
             }
             
             // 添加resourceMap.js文件（与HTML文件同级）
             Path resourceMapFile = htmlFile.getParent().resolve("resourceMap.js");
             if (Files.exists(resourceMapFile)) {
-                System.out.println("    --> 添加resourceMap.js文件: " + resourceMapFile);
+                //System.out.println("    --> 添加resourceMap.js文件: " + resourceMapFile);
                 long addResourceMapStartTime = System.currentTimeMillis();
                 zipFile.addFile(resourceMapFile.toFile(), params);
                 long addResourceMapEndTime = System.currentTimeMillis();
-                System.out.println("    --> resourceMap.js文件添加完成, 耗时: " + (addResourceMapEndTime - addResourceMapStartTime) + "ms");
+                //System.out.println("    --> resourceMap.js文件添加完成, 耗时: " + (addResourceMapEndTime - addResourceMapStartTime) + "ms");
             }
             
             // 添加index.html文件（与HTML文件同级）
             Path indexHtmlFile = htmlFile.getParent().resolve("index.html");
             if (Files.exists(indexHtmlFile)) {
-                System.out.println("    --> 添加index.html文件: " + indexHtmlFile);
+                //System.out.println("    --> 添加index.html文件: " + indexHtmlFile);
                 long addIndexHtmlStartTime = System.currentTimeMillis();
                 zipFile.addFile(indexHtmlFile.toFile(), params);
                 long addIndexHtmlEndTime = System.currentTimeMillis();
-                System.out.println("    --> index.html文件添加完成, 耗时: " + (addIndexHtmlEndTime - addIndexHtmlStartTime) + "ms");
+                //System.out.println("    --> index.html文件添加完成, 耗时: " + (addIndexHtmlEndTime - addIndexHtmlStartTime) + "ms");
             }
 
             // 如果resource文件夹存在，则添加整个文件夹
             if (Files.exists(resourceDir) && Files.isDirectory(resourceDir)) {
-                System.out.println("    --> 添加资源文件夹: " + resourceDir);
+                //System.out.println("    --> 添加资源文件夹: " + resourceDir);
                 long addResourceStartTime = System.currentTimeMillis();
                 zipFile.addFolder(resourceDir.toFile(), params);
                 long addResourceEndTime = System.currentTimeMillis();
-                System.out.println("    --> 资源文件夹添加完成, 耗时: " + (addResourceEndTime - addResourceStartTime) + "ms");
+                //System.out.println("    --> 资源文件夹添加完成, 耗时: " + (addResourceEndTime - addResourceStartTime) + "ms");
             }
         }
         long zipEndTime = System.currentTimeMillis();
-        System.out.println("    --> 未加密ZIP包创建完成, 总耗时: " + (zipEndTime - zipStartTime) + "ms");
+        //System.out.println("    --> 未加密ZIP包创建完成, 总耗时: " + (zipEndTime - zipStartTime) + "ms");
     }
 
     /**
@@ -930,19 +930,19 @@ public class TextbookPackage {
      * @throws IOException 文件操作异常
      */
     private Map<String, Map<String, String>> processTeachingMaterials(Long textbookId, Path workDir) throws IOException {
-        System.out.println("    --> 开始处理教学素材，教材ID: " + textbookId);
-        System.out.println("    --> 工作目录: " + workDir.toString());
+        //System.out.println("    --> 开始处理教学素材，教材ID: " + textbookId);
+        //System.out.println("    --> 工作目录: " + workDir.toString());
         
         // 1. 查询教材绑定的所有教学素材
-        System.out.println("    --> 查询教材绑定的教学素材...");
+        //System.out.println("    --> 查询教材绑定的教学素材...");
         List<MaterialsTextbookMapping> mappings = materialsTextbookMappingService.selectMaterialsTextbookMappingByTextbookId(textbookId);
         if (mappings == null || mappings.isEmpty()) {
-            System.out.println("    --> 未找到绑定的教学素材");
+            //System.out.println("    --> 未找到绑定的教学素材");
             // 即使没有教学素材也要生成空的resourceMap.js文件
             return new HashMap<>();
         }
         
-        System.out.println("    --> 共找到 " + mappings.size() + " 个素材映射关系");
+        //System.out.println("    --> 共找到 " + mappings.size() + " 个素材映射关系");
         
         // 2. 获取所有教学素材的详细信息
         List<Long> materialIds = mappings.stream()
@@ -950,27 +950,27 @@ public class TextbookPackage {
                 .distinct()
                 .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
         
-        System.out.println("    --> 查询教学素材详情，素材ID列表: " + materialIds);
+        //System.out.println("    --> 查询教学素材详情，素材ID列表: " + materialIds);
         List<TeachingMaterials> materialsList = teachingMaterialsService.listByIds(materialIds);
-        System.out.println("    --> 成功获取 " + materialsList.size() + " 个教学素材");
+        //System.out.println("    --> 成功获取 " + materialsList.size() + " 个教学素材");
         
         // 3. 创建素材ID到文件信息的映射
         Map<String, Map<String, String>> resourceMap = new HashMap<>();
         
         // 4. 创建目标目录
         Path materialsDir = workDir.resolve("resource").resolve("materials");
-        System.out.println("    --> 创建教学素材目录: " + materialsDir);
+        //System.out.println("    --> 创建教学素材目录: " + materialsDir);
         Files.createDirectories(materialsDir);
         
         // 5. 处理每个教学素材
         for (TeachingMaterials material : materialsList) {
             try {
-                System.out.println("    --> 开始处理教学素材: ID=" + material.getId() + ", 名称=" + material.getName() + ", 类型=" + material.getType());
-                System.out.println("    --> 教学素材文件路径: " + material.getFilePath());
+                //System.out.println("    --> 开始处理教学素材: ID=" + material.getId() + ", 名称=" + material.getName() + ", 类型=" + material.getType());
+                //System.out.println("    --> 教学素材文件路径: " + material.getFilePath());
                 
                 // 只处理教学素材类型（跳过group和dataPush类型）
                 if ("group".equals(material.getType()) || "dataPush".equals(material.getType())) {
-                    System.out.println("    --> 跳过不需要处理的素材类型: " + material.getType());
+                    //System.out.println("    --> 跳过不需要处理的素材类型: " + material.getType());
                     continue;
                 }
                 
@@ -978,20 +978,20 @@ public class TextbookPackage {
                 if ("link".equals(material.getType())) {
                     // 处理链接类型素材
                     String url = material.getFilePath();
-                    System.out.println("    --> 处理链接类型素材，URL: " + url);
+                    //System.out.println("    --> 处理链接类型素材，URL: " + url);
                     if (url != null && !url.isEmpty()) {
                         Map<String, String> linkInfo = new HashMap<>();
                         linkInfo.put("category", "link");
                         linkInfo.put("url", url);
                         linkInfo.put("type", "link");
                         resourceMap.put(String.valueOf(material.getId()), linkInfo);
-                        System.out.println("    --> 链接素材处理完成: " + url);
+                        //System.out.println("    --> 链接素材处理完成: " + url);
                     } else {
-                        System.out.println("    --> 链接素材URL为空，跳过: ID=" + material.getId());
+                        //System.out.println("    --> 链接素材URL为空，跳过: ID=" + material.getId());
                     }
                 } else {
                     // 处理普通文件类型素材
-                    System.out.println("    --> 处理文件类型素材: " + material.getType());
+                    //System.out.println("    --> 处理文件类型素材: " + material.getType());
                     String fileName = downloadMaterialFile(material, materialsDir);
                     if (fileName != null) {
                         // 下载成功，添加到资源映射中
@@ -1001,23 +1001,23 @@ public class TextbookPackage {
                         fileInfo.put("filePath", "resource/materials/" + fileName);
                         fileInfo.put("type", material.getType());
                         resourceMap.put(String.valueOf(material.getId()), fileInfo);
-                        System.out.println("    --> 文件素材处理完成: " + fileName);
+                        //System.out.println("    --> 文件素材处理完成: " + fileName);
                     } else {
                         // 下载失败，跳过该素材（不添加到resourceMap中）
-                        System.out.println("    --> 文件素材下载失败，已跳过: ID=" + material.getId());
+                        //System.out.println("    --> 文件素材下载失败，已跳过: ID=" + material.getId());
                     }
                 }
             } catch (Exception e) {
                 // 容错处理：遇到任何异常都跳过该素材，继续处理下一个
-                System.err.println("    --> 处理素材时发生错误，已跳过: ID=" + material.getId() + ", 错误: " + e.getMessage());
+                //System.err.println("    --> 处理素材时发生错误，已跳过: ID=" + material.getId() + ", 错误: " + e.getMessage());
                 e.printStackTrace();
             }
         }
         
-        System.out.println("    --> 教学素材处理完成，共处理了 " + resourceMap.size() + " 个有效素材");
+        //System.out.println("    --> 教学素材处理完成，共处理了 " + resourceMap.size() + " 个有效素材");
         
         // 添加调试日志，显示resourceMap中的所有键
-        System.out.println("    --> 教学素材处理后 resourceMap 中的键: " + resourceMap.keySet());
+        //System.out.println("    --> 教学素材处理后 resourceMap 中的键: " + resourceMap.keySet());
         
         return resourceMap;
     }
@@ -1031,33 +1031,33 @@ public class TextbookPackage {
      * @throws IOException 文件操作异常
      */
     private void processApplicationMaterials(Long textbookId, Path workDir, Map<String, Map<String, String>> resourceMap) throws IOException {
-        System.out.println("    --> 开始处理应用素材，教材ID: " + textbookId);
-        System.out.println("    --> 工作目录: " + workDir.toString());
-        System.out.println("    --> 处理前 resourceMap 中的键: " + resourceMap.keySet());
+        //System.out.println("    --> 开始处理应用素材，教材ID: " + textbookId);
+        //System.out.println("    --> 工作目录: " + workDir.toString());
+        //System.out.println("    --> 处理前 resourceMap 中的键: " + resourceMap.keySet());
 
         // 1. 查询教材绑定的所有应用素材
-        System.out.println("    --> 查询教材绑定的应用素材...");
+        //System.out.println("    --> 查询教材绑定的应用素材...");
         List<ApplicationMaterials> appMaterialsList = applicationMaterialsService.listByTextbookId(textbookId);
         if (appMaterialsList == null || appMaterialsList.isEmpty()) {
-            System.out.println("    --> 未找到绑定的应用素材");
+            //System.out.println("    --> 未找到绑定的应用素材");
             return;
         }
 
-        System.out.println("    --> 共找到 " + appMaterialsList.size() + " 个应用素材");
+        //System.out.println("    --> 共找到 " + appMaterialsList.size() + " 个应用素材");
 
         // 2. 创建应用素材根目录
         Path groupsDir = workDir.resolve("resource").resolve("groups");
-        System.out.println("    --> 创建应用素材根目录: " + groupsDir);
+        //System.out.println("    --> 创建应用素材根目录: " + groupsDir);
         Files.createDirectories(groupsDir);
 
         // 3. 处理每个应用素材
         for (ApplicationMaterials appMaterial : appMaterialsList) {
             try {
-                System.out.println("    --> 开始处理应用素材: ID=" + appMaterial.getId() + ", 名称=" + appMaterial.getName());
+                //System.out.println("    --> 开始处理应用素材: ID=" + appMaterial.getId() + ", 名称=" + appMaterial.getName());
 
                 // 为每个应用素材创建独立的文件夹
                 Path appDir = groupsDir.resolve(String.valueOf(appMaterial.getId()));
-                System.out.println("    --> 创建应用素材独立目录: " + appDir);
+                //System.out.println("    --> 创建应用素材独立目录: " + appDir);
                 Files.createDirectories(appDir);
 
                 // 获取应用素材详细信息，包括关联的教学素材
@@ -1066,7 +1066,7 @@ public class TextbookPackage {
 
                 if (appMaterialDetail.getTeachingMaterials() == null || 
                     appMaterialDetail.getTeachingMaterials().isEmpty()) {
-                    System.out.println("    --> 应用素材没有关联的教学素材，跳过: ID=" + appMaterial.getId());
+                    //System.out.println("    --> 应用素材没有关联的教学素材，跳过: ID=" + appMaterial.getId());
                     continue;
                 }
 
@@ -1090,7 +1090,7 @@ public class TextbookPackage {
                             creatorName = "教师ID:" + appMaterial.getCreator();
                         }
                     } catch (Exception e) {
-                        System.err.println("    --> 获取教师信息失败: " + e.getMessage());
+                        //System.err.println("    --> 获取教师信息失败: " + e.getMessage());
                         creatorName = "教师ID:" + appMaterial.getCreator();
                     }
                 }
@@ -1123,18 +1123,18 @@ public class TextbookPackage {
                 
                 // 处理每个关联的教学素材
                 for (ApplicationMaterialsDetailVO detailVO : appMaterialDetail.getTeachingMaterials()) {
-                    System.out.println("    --> 处理关联的教学素材: ID=" + detailVO.getTeachingMaterialId() + 
-                                     ", 名称=" + detailVO.getTeachingMaterialName() + ", 类型=" + detailVO.getType());
+//                    System.out.println("    --> 处理关联的教学素材: ID=" + detailVO.getTeachingMaterialId() +
+//                                     ", 名称=" + detailVO.getTeachingMaterialName() + ", 类型=" + detailVO.getType());
                     
                     // 检查这个教学素材是否已经在resourceMap中存在
                     if (resourceMap.containsKey(String.valueOf(detailVO.getTeachingMaterialId()))) {
-                        System.out.println("    --> 教学素材已在resourceMap中存在: ID=" + detailVO.getTeachingMaterialId());
+                        //System.out.println("    --> 教学素材已在resourceMap中存在: ID=" + detailVO.getTeachingMaterialId());
                     }
                     
                     if ("link".equals(detailVO.getType())) {
                         // 处理链接类型素材
                         String url = detailVO.getFilePath();
-                        System.out.println("    --> 处理链接类型素材，URL: " + url);
+                        //System.out.println("    --> 处理链接类型素材，URL: " + url);
                         if (url != null && !url.isEmpty()) {
                             // 添加到应用素材的子文件列表
                             Map<String, String> childInfo = new HashMap<>();
@@ -1143,18 +1143,18 @@ public class TextbookPackage {
                             childInfo.put("path", url);
                             children.add(childInfo);
                             
-                            System.out.println("    --> 链接素材处理完成: " + url);
+                            //System.out.println("    --> 链接素材处理完成: " + url);
                         } else {
-                            System.out.println("    --> 链接素材URL为空，跳过: ID=" + detailVO.getTeachingMaterialId());
+                            //System.out.println("    --> 链接素材URL为空，跳过: ID=" + detailVO.getTeachingMaterialId());
                         }
                     } else {
                         // 处理普通文件类型素材
-                        System.out.println("    --> 处理文件类型素材: " + detailVO.getType());
+                        //System.out.println("    --> 处理文件类型素材: " + detailVO.getType());
                         
                         // 获取教学素材实体以获取文件名信息
                         TeachingMaterials teachingMaterial = teachingMaterialsService.getById(detailVO.getTeachingMaterialId());
                         if (teachingMaterial == null) {
-                            System.out.println("    --> 未找到教学素材: ID=" + detailVO.getTeachingMaterialId());
+                            //System.out.println("    --> 未找到教学素材: ID=" + detailVO.getTeachingMaterialId());
                             continue;
                         }
                         
@@ -1164,12 +1164,12 @@ public class TextbookPackage {
                             // 如果没有存储原始文件名，则从文件路径中提取
                             Path sourceFile = getMaterialFilePath(teachingMaterial, null);
                             originalFileName = sourceFile.getFileName().toString();
-                            System.out.println("    --> 从文件路径提取文件名: " + originalFileName);
+                            //System.out.println("    --> 从文件路径提取文件名: " + originalFileName);
                         }
                         
                         // 对文件名进行清洗，将空格、括号等特殊符号替换为下划线
                         String sanitizedFileName = originalFileName.replaceAll("[\\s()\\[\\]{}<>:\"|?*\\\\/]", "_");
-                        System.out.println("    --> 清洗后的文件名: " + sanitizedFileName);
+                        //System.out.println("    --> 清洗后的文件名: " + sanitizedFileName);
                         
                         // 分离文件名和扩展名
                         String fileNameWithoutExtension = sanitizedFileName;
@@ -1183,31 +1183,31 @@ public class TextbookPackage {
                         // 构造目标文件名：{teachingMaterialId}_{原始文件名}.{后缀}
                         String targetFileName = detailVO.getTeachingMaterialId() + "_" + fileNameWithoutExtension + extension;
                         Path targetFile = appDir.resolve(targetFileName);
-                        System.out.println("    --> 目标文件路径: " + targetFile.toString());
+                        //System.out.println("    --> 目标文件路径: " + targetFile.toString());
                         
                         // 检查是否已存在以该ID开头的文件，如果存在则跳过下载
                         boolean fileExists = false;
                         try (Stream<Path> files = Files.list(appDir)) {
                             fileExists = files.anyMatch(f -> f.getFileName().toString().startsWith(detailVO.getTeachingMaterialId() + "_"));
                         }
-                        System.out.println("    --> 检查文件是否已存在: " + fileExists);
+                        //System.out.println("    --> 检查文件是否已存在: " + fileExists);
                         
                         if (!fileExists) {
                             // 下载文件
-                            System.out.println("    --> 开始下载教学素材文件: ID=" + detailVO.getTeachingMaterialId());
+                            //System.out.println("    --> 开始下载教学素材文件: ID=" + detailVO.getTeachingMaterialId());
                             try {
                                 Path sourceFilePath = getMaterialFilePath(teachingMaterial, null);
-                                System.out.println("    --> 源文件路径: " + sourceFilePath.toString());
+                                //System.out.println("    --> 源文件路径: " + sourceFilePath.toString());
                                 
                                 if (Files.exists(sourceFilePath)) {
                                     Files.copy(sourceFilePath, targetFile, StandardCopyOption.REPLACE_EXISTING);
-                                    System.out.println("    --> 文件复制完成: " + targetFile);
+                                    //System.out.println("    --> 文件复制完成: " + targetFile);
                                 } else {
-                                    System.out.println("    --> 源文件不存在: " + sourceFilePath);
+                                    //System.out.println("    --> 源文件不存在: " + sourceFilePath);
                                     continue;
                                 }
                             } catch (Exception e) {
-                                System.err.println("    --> 文件下载失败: ID=" + detailVO.getTeachingMaterialId() + ", 错误: " + e.getMessage());
+                                //System.err.println("    --> 文件下载失败: ID=" + detailVO.getTeachingMaterialId() + ", 错误: " + e.getMessage());
                                 e.printStackTrace();
                                 continue;
                             }
@@ -1220,7 +1220,7 @@ public class TextbookPackage {
                         childInfo.put("path", "resource/groups/" + appMaterial.getId() + "/" + targetFileName);
                         children.add(childInfo);
                         
-                        System.out.println("    --> 文件素材处理完成: " + targetFileName);
+                        //System.out.println("    --> 文件素材处理完成: " + targetFileName);
                     }
                 }
                 
@@ -1230,16 +1230,16 @@ public class TextbookPackage {
                 // 将应用素材信息添加到资源映射中
                 resourceMap.put(String.valueOf(appMaterial.getId()), appResourceInfo);
                 
-                System.out.println("    --> 应用素材处理完成: ID=" + appMaterial.getId());
+                //System.out.println("    --> 应用素材处理完成: ID=" + appMaterial.getId());
             } catch (Exception e) {
                 // 容错处理：遇到任何异常都跳过该素材，继续处理下一个
-                System.err.println("    --> 处理应用素材时发生错误，已跳过: ID=" + appMaterial.getId() + ", 错误: " + e.getMessage());
+                //System.err.println("    --> 处理应用素材时发生错误，已跳过: ID=" + appMaterial.getId() + ", 错误: " + e.getMessage());
                 e.printStackTrace();
             }
         }
 
-        System.out.println("    --> 应用素材处理完成");
-        System.out.println("    --> 处理后 resourceMap 中的键: " + resourceMap.keySet());
+        //System.out.println("    --> 应用素材处理完成");
+        //System.out.println("    --> 处理后 resourceMap 中的键: " + resourceMap.keySet());
     }
 
     /**
@@ -1251,33 +1251,33 @@ public class TextbookPackage {
      * @throws IOException 文件操作异常
      */
     private void processMaterialPushes(Long textbookId, Path workDir, Map<String, Map<String, String>> resourceMap) throws IOException {
-        System.out.println("    --> 开始处理资料推送，教材ID: " + textbookId);
-        System.out.println("    --> 工作目录: " + workDir.toString());
-        System.out.println("    --> 处理前 resourceMap 中的键: " + resourceMap.keySet());
+        //System.out.println("    --> 开始处理资料推送，教材ID: " + textbookId);
+        //System.out.println("    --> 工作目录: " + workDir.toString());
+        //System.out.println("    --> 处理前 resourceMap 中的键: " + resourceMap.keySet());
 
         // 1. 查询教材绑定的所有资料推送
-        System.out.println("    --> 查询教材绑定的资料推送...");
+        //System.out.println("    --> 查询教材绑定的资料推送...");
         List<MaterialPush> materialPushList = materialPushService.listByTextbookId(textbookId);
         if (materialPushList == null || materialPushList.isEmpty()) {
-            System.out.println("    --> 未找到绑定的资料推送");
+            //System.out.println("    --> 未找到绑定的资料推送");
             return;
         }
 
-        System.out.println("    --> 共找到 " + materialPushList.size() + " 个资料推送");
+        //System.out.println("    --> 共找到 " + materialPushList.size() + " 个资料推送");
 
         // 2. 创建资料推送根目录
         Path pushesDir = workDir.resolve("resource").resolve("pushes");
-        System.out.println("    --> 创建资料推送根目录: " + pushesDir);
+        //System.out.println("    --> 创建资料推送根目录: " + pushesDir);
         Files.createDirectories(pushesDir);
 
         // 3. 处理每个资料推送
         for (MaterialPush materialPush : materialPushList) {
             try {
-                System.out.println("    --> 开始处理资料推送: ID=" + materialPush.getId() + ", 名称=" + materialPush.getName());
+                //System.out.println("    --> 开始处理资料推送: ID=" + materialPush.getId() + ", 名称=" + materialPush.getName());
 
                 // 为每个资料推送创建独立的文件夹
                 Path pushDir = pushesDir.resolve(String.valueOf(materialPush.getId()));
-                System.out.println("    --> 创建资料推送独立目录: " + pushDir);
+                //System.out.println("    --> 创建资料推送独立目录: " + pushDir);
                 Files.createDirectories(pushDir);
 
                 // 获取资料推送详细信息，包括关联的附件列表
@@ -1286,7 +1286,7 @@ public class TextbookPackage {
                         .collect(Collectors.toList());
 
                 if (materialList == null || materialList.isEmpty()) {
-                    System.out.println("    --> 资料推送没有关联的附件，跳过: ID=" + materialPush.getId());
+                    //System.out.println("    --> 资料推送没有关联的附件，跳过: ID=" + materialPush.getId());
                     continue;
                 }
 
@@ -1326,13 +1326,13 @@ public class TextbookPackage {
 
                 // 处理每个关联的附件
                 for (MaterialList materialListItem : materialList) {
-                    System.out.println("    --> 处理关联的附件: ID=" + materialListItem.getId() +
-                            ", 名称=" + materialListItem.getName() + ", 类型=" + materialListItem.getType());
+//                    System.out.println("    --> 处理关联的附件: ID=" + materialListItem.getId() +
+//                            ", 名称=" + materialListItem.getName() + ", 类型=" + materialListItem.getType());
 
                     if ("link".equals(materialListItem.getType())) {
                         // 处理链接类型附件
                         String url = materialListItem.getAddress();
-                        System.out.println("    --> 处理链接类型附件，URL: " + url);
+                        //System.out.println("    --> 处理链接类型附件，URL: " + url);
                         if (url != null && !url.isEmpty()) {
                             // 添加到资料推送的子文件列表
                             Map<String, String> childInfo = new HashMap<>();
@@ -1341,24 +1341,24 @@ public class TextbookPackage {
                             childInfo.put("path", url);
                             children.add(childInfo);
 
-                            System.out.println("    --> 链接附件处理完成: " + url);
+                            //System.out.println("    --> 链接附件处理完成: " + url);
                         } else {
-                            System.out.println("    --> 链接附件URL为空，跳过: ID=" + materialListItem.getId());
+                            //System.out.println("    --> 链接附件URL为空，跳过: ID=" + materialListItem.getId());
                         }
                     } else {
                         // 处理普通文件类型附件
-                        System.out.println("    --> 处理文件类型附件: " + materialListItem.getType());
+                        //System.out.println("    --> 处理文件类型附件: " + materialListItem.getType());
 
                         // 获取原始文件名
                         String originalFileName = materialListItem.getName();
                         if (originalFileName == null || originalFileName.isEmpty()) {
-                            System.out.println("    --> 附件名称为空，跳过: ID=" + materialListItem.getId());
+                            //System.out.println("    --> 附件名称为空，跳过: ID=" + materialListItem.getId());
                             continue;
                         }
 
                         // 对文件名进行清洗，将空格、括号等特殊符号替换为下划线
                         String sanitizedFileName = originalFileName.replaceAll("[\\s()\\[\\]{}<>:\"|?*\\\\/]", "_");
-                        System.out.println("    --> 清洗后的文件名: " + sanitizedFileName);
+                        //System.out.println("    --> 清洗后的文件名: " + sanitizedFileName);
 
                         // 分离文件名和扩展名
                         String fileNameWithoutExtension = sanitizedFileName;
@@ -1372,31 +1372,31 @@ public class TextbookPackage {
                         // 构造目标文件名：{materialListId}_{原始文件名}.{后缀}
                         String targetFileName = materialListItem.getId() + "_" + fileNameWithoutExtension + extension;
                         Path targetFile = pushDir.resolve(targetFileName);
-                        System.out.println("    --> 目标文件路径: " + targetFile.toString());
+                        //System.out.println("    --> 目标文件路径: " + targetFile.toString());
 
                         // 检查是否已存在以该ID开头的文件，如果存在则跳过下载
                         boolean fileExists = false;
                         try (Stream<Path> files = Files.list(pushDir)) {
                             fileExists = files.anyMatch(f -> f.getFileName().toString().startsWith(materialListItem.getId() + "_"));
                         }
-                        System.out.println("    --> 检查文件是否已存在: " + fileExists);
+                        //System.out.println("    --> 检查文件是否已存在: " + fileExists);
 
                         if (!fileExists) {
                             // 下载文件
-                            System.out.println("    --> 开始下载附件文件: ID=" + materialListItem.getId());
+                            //System.out.println("    --> 开始下载附件文件: ID=" + materialListItem.getId());
                             try {
                                 Path sourceFilePath = getMaterialPushFilePath(materialListItem);
-                                System.out.println("    --> 源文件路径: " + sourceFilePath.toString());
+                                //System.out.println("    --> 源文件路径: " + sourceFilePath.toString());
 
                                 if (Files.exists(sourceFilePath)) {
                                     Files.copy(sourceFilePath, targetFile, StandardCopyOption.REPLACE_EXISTING);
-                                    System.out.println("    --> 文件复制完成: " + targetFile);
+                                    //System.out.println("    --> 文件复制完成: " + targetFile);
                                 } else {
-                                    System.out.println("    --> 源文件不存在: " + sourceFilePath);
+                                    //System.out.println("    --> 源文件不存在: " + sourceFilePath);
                                     continue;
                                 }
                             } catch (Exception e) {
-                                System.err.println("    --> 文件下载失败: ID=" + materialListItem.getId() + ", 错误: " + e.getMessage());
+                                //System.err.println("    --> 文件下载失败: ID=" + materialListItem.getId() + ", 错误: " + e.getMessage());
                                 e.printStackTrace();
                                 // 即使文件下载失败，我们也继续处理，不中断整个流程
                                 continue;
@@ -1410,7 +1410,7 @@ public class TextbookPackage {
                         childInfo.put("path", "resource/pushes/" + materialPush.getId() + "/" + targetFileName);
                         children.add(childInfo);
 
-                        System.out.println("    --> 文件附件处理完成: " + targetFileName);
+                        //System.out.println("    --> 文件附件处理完成: " + targetFileName);
                     }
                 }
 
@@ -1420,17 +1420,17 @@ public class TextbookPackage {
                 // 将资料推送信息添加到资源映射中
                 resourceMap.put(String.valueOf(materialPush.getId()), pushResourceInfo);
 
-                System.out.println("    --> 资料推送处理完成: ID=" + materialPush.getId());
+                //System.out.println("    --> 资料推送处理完成: ID=" + materialPush.getId());
             } catch (Exception e) {
                 // 容错处理：遇到任何异常都跳过该推送，继续处理下一个
-                System.err.println("    --> 处理资料推送时发生错误，已跳过: ID=" + materialPush.getId() + ", 错误: " + e.getMessage());
+                //System.err.println("    --> 处理资料推送时发生错误，已跳过: ID=" + materialPush.getId() + ", 错误: " + e.getMessage());
                 e.printStackTrace();
                 // 继续处理下一个推送，不中断整个流程
             }
         }
 
-        System.out.println("    --> 资料推送处理完成");
-        System.out.println("    --> 处理后 resourceMap 中的键: " + resourceMap.keySet());
+        //System.out.println("    --> 资料推送处理完成");
+        //System.out.println("    --> 处理后 resourceMap 中的键: " + resourceMap.keySet());
     }
 
     /**
@@ -1441,13 +1441,13 @@ public class TextbookPackage {
      * @throws IOException IO异常
      */
     private Path getMaterialPushFilePath(MaterialList materialListItem) throws IOException {
-        System.out.println("    --> getMaterialPushFilePath 开始处理附件: ID=" + materialListItem.getId() + ", 类型=" + materialListItem.getType());
-        System.out.println("    --> getMaterialPushFilePath 数据库中的文件路径: " + materialListItem.getAddress());
+        //System.out.println("    --> getMaterialPushFilePath 开始处理附件: ID=" + materialListItem.getId() + ", 类型=" + materialListItem.getType());
+        //System.out.println("    --> getMaterialPushFilePath 数据库中的文件路径: " + materialListItem.getAddress());
 
         // 检查filePath是否为绝对路径，如果不是则加上基础路径
         Path rawPath = Paths.get(materialListItem.getAddress());
-        System.out.println("    --> getMaterialPushFilePath 原始路径是否为绝对路径: " + rawPath.isAbsolute());
-        System.out.println("    --> getMaterialPushFilePath 配置的基础路径: " + TEACHING_MATERIALS_BASE_PATH);
+        //System.out.println("    --> getMaterialPushFilePath 原始路径是否为绝对路径: " + rawPath.isAbsolute());
+        //System.out.println("    --> getMaterialPushFilePath 配置的基础路径: " + TEACHING_MATERIALS_BASE_PATH);
 
         Path filePath;
         if (rawPath.isAbsolute()) {
@@ -1457,11 +1457,11 @@ public class TextbookPackage {
             filePath = Paths.get(TEACHING_MATERIALS_BASE_PATH, materialListItem.getAddress());
         }
 
-        System.out.println("    --> getMaterialPushFilePath 拼接后的路径: " + filePath.toString());
-        System.out.println("    --> getMaterialPushFilePath 文件是否存在: " + Files.exists(filePath));
+        //System.out.println("    --> getMaterialPushFilePath 拼接后的路径: " + filePath.toString());
+        //System.out.println("    --> getMaterialPushFilePath 文件是否存在: " + Files.exists(filePath));
         
         if (!Files.exists(filePath)) {
-            System.out.println("    --> getMaterialPushFilePath 文件不存在，将抛出异常");
+            //System.out.println("    --> getMaterialPushFilePath 文件不存在，将抛出异常");
             throw new IOException("文件不存在");
         }
 
@@ -1476,9 +1476,9 @@ public class TextbookPackage {
      * @throws IOException 文件操作异常
      */
     private void generateResourceMapJs(Map<String, Map<String, String>> resourceMap, Path workDir) throws IOException {
-        System.out.println("    --> 开始生成resourceMap.js文件...");
-        System.out.println("    --> resourceMap 中的键数量: " + resourceMap.size());
-        System.out.println("    --> resourceMap 中的键列表: " + resourceMap.keySet());
+        //System.out.println("    --> 开始生成resourceMap.js文件...");
+        //System.out.println("    --> resourceMap 中的键数量: " + resourceMap.size());
+        //System.out.println("    --> resourceMap 中的键列表: " + resourceMap.keySet());
         
         // 构造JS文件内容
         StringBuilder jsContent = new StringBuilder();
@@ -1534,14 +1534,14 @@ public class TextbookPackage {
         // 写入文件到工作目录根目录下，与其他JS文件保持一致
         Path jsFilePath = workDir.resolve("resourceMap.js");
         Files.write(jsFilePath, jsContent.toString().getBytes(StandardCharsets.UTF_8));
-        System.out.println("    --> resourceMap.js文件生成完成: " + jsFilePath);
+        //System.out.println("    --> resourceMap.js文件生成完成: " + jsFilePath);
         
         // 添加调试信息，输出生成的文件内容的前1000个字符
         String contentPreview = jsContent.toString();
         if (contentPreview.length() > 1000) {
             contentPreview = contentPreview.substring(0, 1000) + "...(内容过长，省略后续部分)";
         }
-        System.out.println("    --> resourceMap.js 文件内容预览:\n" + contentPreview);
+        //System.out.println("    --> resourceMap.js 文件内容预览:\n" + contentPreview);
     }
     
     /**
@@ -1586,7 +1586,7 @@ public class TextbookPackage {
             return indentedJson.toString();
         } catch (Exception e) {
             // 记录异常日志，避免静默捕获异常导致问题无法追踪
-            System.err.println("JSON格式化失败: " + e.getMessage());
+            //System.err.println("JSON格式化失败: " + e.getMessage());
             e.printStackTrace();
             
             // 如果格式化失败，至少去掉首尾引号
@@ -1650,7 +1650,7 @@ public class TextbookPackage {
             pb.environment().put("CGO_ENABLED", "0");
             pb.directory(workspaceDir.toFile());
 
-            System.out.println(" ... 开始编译Go程序，工作目录: " + workspaceDir + " ...");
+            //System.out.println(" ... 开始编译Go程序，工作目录: " + workspaceDir + " ...");
             Process process = pb.start();
 
             try (InputStream processInputStream = process.getInputStream()) {
@@ -1663,7 +1663,7 @@ public class TextbookPackage {
                 processOutputBuffer.flush();
                 String result = new String(processOutputBuffer.toByteArray(), StandardCharsets.UTF_8);
                 if (result != null && !result.trim().isEmpty()) {
-                    System.out.println("Go build output:\n" + result);
+                    //System.out.println("Go build output:\n" + result);
                 }
             }
 
@@ -1725,7 +1725,7 @@ public class TextbookPackage {
             pb.environment().put("CGO_ENABLED", "0");
             pb.directory(workspaceDir.toFile());
 
-            System.out.println(" ... 开始编译Linux ARM64 Go程序，工作目录: " + workspaceDir + " ...");
+            //System.out.println(" ... 开始编译Linux ARM64 Go程序，工作目录: " + workspaceDir + " ...");
             Process process = pb.start();
 
             try (InputStream processInputStream = process.getInputStream()) {
@@ -1738,7 +1738,7 @@ public class TextbookPackage {
                 processOutputBuffer.flush();
                 String result = new String(processOutputBuffer.toByteArray(), StandardCharsets.UTF_8);
                 if (result != null && !result.trim().isEmpty()) {
-                    System.out.println("Go build output:\n" + result);
+                    //System.out.println("Go build output:\n" + result);
                 }
             }
 
@@ -1800,7 +1800,7 @@ public class TextbookPackage {
             pb.environment().put("CGO_ENABLED", "0");
             pb.directory(workspaceDir.toFile());
 
-            System.out.println(" ... 开始编译Linux AMD64 Go程序，工作目录: " + workspaceDir + " ...");
+            //System.out.println(" ... 开始编译Linux AMD64 Go程序，工作目录: " + workspaceDir + " ...");
             Process process = pb.start();
 
             try (InputStream processInputStream = process.getInputStream()) {
@@ -1813,7 +1813,7 @@ public class TextbookPackage {
                 processOutputBuffer.flush();
                 String result = new String(processOutputBuffer.toByteArray(), StandardCharsets.UTF_8);
                 if (result != null && !result.trim().isEmpty()) {
-                    System.out.println("Go build output:\n" + result);
+                    //System.out.println("Go build output:\n" + result);
                 }
             }
 
@@ -1850,9 +1850,9 @@ public class TextbookPackage {
      * @throws IOException 文件操作异常
      */
     private String downloadMaterialFile(TeachingMaterials material, Path targetDir) throws IOException {
-        System.out.println("    --> 开始下载教学素材文件: ID=" + material.getId() + ", 名称=" + material.getName() + ", 类型=" + material.getType());
-        System.out.println("    --> 教学素材文件路径: " + material.getFilePath());
-        System.out.println("    --> 教学素材文件名: " + material.getFileName());
+        //System.out.println("    --> 开始下载教学素材文件: ID=" + material.getId() + ", 名称=" + material.getName() + ", 类型=" + material.getType());
+        //System.out.println("    --> 教学素材文件路径: " + material.getFilePath());
+        //System.out.println("    --> 教学素材文件名: " + material.getFileName());
         
         // 构造目标文件名：{id}_{原始文件名}.{后缀}
         String originalFileName = material.getFileName();
@@ -1860,12 +1860,12 @@ public class TextbookPackage {
             // 如果没有存储原始文件名，则从文件路径中提取
             Path sourceFile = getMaterialFilePath(material, null);
             originalFileName = sourceFile.getFileName().toString();
-            System.out.println("    --> 从文件路径提取文件名: " + originalFileName);
+            //System.out.println("    --> 从文件路径提取文件名: " + originalFileName);
         }
         
         // 对文件名进行清洗，将空格、括号等特殊符号替换为下划线
         String sanitizedFileName = originalFileName.replaceAll("[\\s()\\[\\]{}<>:\"|?*\\\\/]", "_");
-        System.out.println("    --> 清洗后的文件名: " + sanitizedFileName);
+        //System.out.println("    --> 清洗后的文件名: " + sanitizedFileName);
         
         String extension = "";
         int lastDotIndex = sanitizedFileName.lastIndexOf('.');
@@ -1876,37 +1876,37 @@ public class TextbookPackage {
         
         String targetFileName = material.getId() + "_" + sanitizedFileName + extension;
         Path targetFile = targetDir.resolve(targetFileName);
-        System.out.println("    --> 目标文件路径: " + targetFile.toString());
+        //System.out.println("    --> 目标文件路径: " + targetFile.toString());
         
         // 检查是否已存在以该ID开头的文件，如果存在则跳过下载
         boolean fileExists = false;
         try (Stream<Path> files = Files.list(targetDir)) {
             fileExists = files.anyMatch(f -> f.getFileName().toString().startsWith(material.getId() + "_"));
         }
-        System.out.println("    --> 检查文件是否已存在: " + fileExists);
+        //System.out.println("    --> 检查文件是否已存在: " + fileExists);
         
         if (fileExists) {
-            System.out.println("    --> 文件已存在，跳过下载: " + targetFileName);
+            //System.out.println("    --> 文件已存在，跳过下载: " + targetFileName);
             return targetFileName;
         }
         
         // 直接读取文件并写入目标文件，避免通过服务层接口
-        System.out.println("    --> 直接读取素材文件并写入目标文件: ID=" + material.getId());
+        //System.out.println("    --> 直接读取素材文件并写入目标文件: ID=" + material.getId());
         try {
             Path sourceFilePath = getMaterialFilePath(material, null);
-            System.out.println("    --> 源文件路径: " + sourceFilePath.toString());
+            //System.out.println("    --> 源文件路径: " + sourceFilePath.toString());
             
             if (Files.exists(sourceFilePath)) {
                 Files.copy(sourceFilePath, targetFile, StandardCopyOption.REPLACE_EXISTING);
-                System.out.println("    --> 文件复制完成: " + targetFile);
+                //System.out.println("    --> 文件复制完成: " + targetFile);
                 return targetFileName;
             } else {
-                System.out.println("    --> 源文件不存在: " + sourceFilePath);
+                //System.out.println("    --> 源文件不存在: " + sourceFilePath);
                 return null;
             }
         } catch (Exception e) {
             // 容错处理：遇到任何异常都返回null，表示下载失败
-            System.err.println("    --> 文件下载失败: ID=" + material.getId() + ", 错误: " + e.getMessage());
+            //System.err.println("    --> 文件下载失败: ID=" + material.getId() + ", 错误: " + e.getMessage());
             e.printStackTrace();
             return null;
         }
@@ -1921,12 +1921,12 @@ public class TextbookPackage {
      * @throws IOException IO异常
      */
     private Path getMaterialFilePath(TeachingMaterials materials, Integer imageSetId) throws IOException {
-        System.out.println("    --> getMaterialFilePath 开始处理素材: ID=" + materials.getId() + ", 类型=" + materials.getType());
-        System.out.println("    --> getMaterialFilePath 数据库中的文件路径: " + materials.getFilePath());
+        //System.out.println("    --> getMaterialFilePath 开始处理素材: ID=" + materials.getId() + ", 类型=" + materials.getType());
+        //System.out.println("    --> getMaterialFilePath 数据库中的文件路径: " + materials.getFilePath());
         
         Path filePath;
         if (materials.getType().equals("imageSet")) {
-            System.out.println("    --> getMaterialFilePath 处理imageSet类型素材");
+            //System.out.println("    --> getMaterialFilePath 处理imageSet类型素材");
             Path dir = Paths.get(materials.getFilePath());
             List<Path> files;
             try (Stream<Path> stream = Files.walk(dir)) {
@@ -1939,11 +1939,11 @@ public class TextbookPackage {
                 throw new IllegalArgumentException("图片不存在");
             filePath = imageSetId != null ? files.get(imageSetId) : dir;
         } else {
-            System.out.println("    --> getMaterialFilePath 处理普通类型素材");
+            //System.out.println("    --> getMaterialFilePath 处理普通类型素材");
             // 检查filePath是否为绝对路径，如果不是则加上基础路径
             Path rawPath = Paths.get(materials.getFilePath());
-            System.out.println("    --> getMaterialFilePath 原始路径是否为绝对路径: " + rawPath.isAbsolute());
-            System.out.println("    --> getMaterialFilePath 配置的基础路径: " + TEACHING_MATERIALS_BASE_PATH);
+            //System.out.println("    --> getMaterialFilePath 原始路径是否为绝对路径: " + rawPath.isAbsolute());
+            //System.out.println("    --> getMaterialFilePath 配置的基础路径: " + TEACHING_MATERIALS_BASE_PATH);
             
             if (rawPath.isAbsolute()) {
                 filePath = rawPath;
@@ -1953,12 +1953,12 @@ public class TextbookPackage {
                 filePath = Paths.get(TEACHING_MATERIALS_BASE_PATH, materials.getFilePath());
             }
             
-            System.out.println("    --> getMaterialFilePath 拼接后的路径: " + filePath.toString());
+            //System.out.println("    --> getMaterialFilePath 拼接后的路径: " + filePath.toString());
 
             // 对于 H5 和 simulation 类型，如果 filePath 指向的是目录，则尝试查找同级的原始压缩包
             // 如果路径不存在且是目录，则直接在该路径的同级目录下查找压缩包文件
             if (("H5".equalsIgnoreCase(materials.getType()) || "simulation".equalsIgnoreCase(materials.getType()))) {
-                System.out.println("    --> getMaterialFilePath 处理H5或simulation类型素材");
+                //System.out.println("    --> getMaterialFilePath 处理H5或simulation类型素材");
                 
                 // 允许的压缩包后缀
                 String[] exts = {".zip", ".7z", ".tar", ".tgz"};
@@ -1966,14 +1966,14 @@ public class TextbookPackage {
 
                 if (Files.isDirectory(filePath)) {
                     // 如果路径是一个已存在的目录，则在同级目录下查找原始压缩包
-                    System.out.println("    --> getMaterialFilePath 路径是目录，查找同级压缩包");
+                    //System.out.println("    --> getMaterialFilePath 路径是目录，查找同级压缩包");
                     Path parent = filePath.getParent();
                     String baseName = filePath.getFileName().toString();
 
                     // 首先尝试精确匹配 baseName + ext
                     for (String ext : exts) {
                         Path p1 = parent.resolve(baseName + ext);
-                        System.out.println("    --> getMaterialFilePath 检查文件是否存在: " + p1.toString() + ", 存在: " + (Files.exists(p1) && Files.isRegularFile(p1)));
+                        //System.out.println("    --> getMaterialFilePath 检查文件是否存在: " + p1.toString() + ", 存在: " + (Files.exists(p1) && Files.isRegularFile(p1)));
                         if (Files.exists(p1) && Files.isRegularFile(p1)) {
                             candidate = p1;
                             break;
@@ -1991,7 +1991,7 @@ public class TextbookPackage {
                                         for (String ext : exts) {
                                             if (name.endsWith(ext)) {
                                             candidate = p;
-                                            System.out.println("    --> getMaterialFilePath 找到候选文件: " + candidate.toString());
+                                            //System.out.println("    --> getMaterialFilePath 找到候选文件: " + candidate.toString());
                                             break;
                                             }
                                         }
@@ -2002,19 +2002,19 @@ public class TextbookPackage {
                                 }
                             }
                         } catch (IOException e) {
-                            System.err.println("Failed to search directory for original archive: " + parent);
+                            //System.err.println("Failed to search directory for original archive: " + parent);
                         }
                     }
                 } else if (!Files.exists(filePath)) {
                     // 如果路径不存在且应该是一个目录，则直接在同级目录下查找压缩包
-                    System.out.println("    --> getMaterialFilePath 路径不存在，直接查找同级压缩包");
+                    //System.out.println("    --> getMaterialFilePath 路径不存在，直接查找同级压缩包");
                     Path parent = filePath.getParent();
                     String baseName = filePath.getFileName().toString();
 
                     // 首先尝试精确匹配 baseName + ext
                     for (String ext : exts) {
                         Path p1 = parent.resolve(baseName + ext);
-                        System.out.println("    --> getMaterialFilePath 检查文件是否存在: " + p1.toString() + ", 存在: " + (Files.exists(p1) && Files.isRegularFile(p1)));
+                        //System.out.println("    --> getMaterialFilePath 检查文件是否存在: " + p1.toString() + ", 存在: " + (Files.exists(p1) && Files.isRegularFile(p1)));
                         if (Files.exists(p1) && Files.isRegularFile(p1)) {
                             candidate = p1;
                             break;
@@ -2032,7 +2032,7 @@ public class TextbookPackage {
                                         for (String ext : exts) {
                                             if (name.endsWith(ext)) {
                                                 candidate = p;
-                                                System.out.println("    --> getMaterialFilePath 找到候选文件: " + candidate.toString());
+                                                //System.out.println("    --> getMaterialFilePath 找到候选文件: " + candidate.toString());
                                                 break;
                                             }
                                         }
@@ -2043,7 +2043,7 @@ public class TextbookPackage {
                                 }
                             }
                         } catch (IOException e) {
-                            System.err.println("Failed to search directory for original archive: " + parent);
+                            //System.err.println("Failed to search directory for original archive: " + parent);
                         }
                     }
                 }
@@ -2051,14 +2051,14 @@ public class TextbookPackage {
                 // 如果找到压缩包，就用 candidate 作为真正的下载文件
                 if (candidate != null) {
                     filePath = candidate;
-                    System.out.println("    --> getMaterialFilePath 使用候选文件: " + filePath.toString());
+                    //System.out.println("    --> getMaterialFilePath 使用候选文件: " + filePath.toString());
                 } else {
-                    System.out.println("    --> getMaterialFilePath 未找到原始压缩包文件");
+                    //System.out.println("    --> getMaterialFilePath 未找到原始压缩包文件");
                 }
             }
         }
 
-        System.out.println("    --> getMaterialFilePath 最终文件路径: " + filePath.toString() + ", 文件是否存在: " + Files.exists(filePath));
+        //System.out.println("    --> getMaterialFilePath 最终文件路径: " + filePath.toString() + ", 文件是否存在: " + Files.exists(filePath));
         if (!Files.exists(filePath))
             throw new IOException("文件不存在");
 
