@@ -82,4 +82,6 @@ public interface IStudentDataStatistics extends IService<StudentStatisticsData> 
      * @return 平均得分率（百分比形式，保留两位小数）
      */
     Double getStudentScoreRate(Long studentId);
+
+    List<TextStudentRankParam> countStudentTextbookReadingRankByTextbookId(Long textbookId);
 }

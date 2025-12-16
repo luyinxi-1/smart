@@ -1316,6 +1316,72 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         return studentDataStatisticsMapper.getStudentScoreRate(studentId);
     }
 
+    @Override
+    public List<TextStudentRankParam> countStudentTextbookReadingRankByTextbookId(Long textbookId) {
+        // 获取阅读过该教材的所有学生的学习日志记录
+        List<LearningLog> records = studentDataStatisticsMapper.findLearningLogsByTextbookId(textbookId);
+        
+        if (records == null || records.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // 按用户ID分组学习日志
+        Map<Long, List<LearningLog>> logsByUser = records.stream()
+                .filter(log -> log.getCreator() != null)
+                .collect(Collectors.groupingBy(LearningLog::getCreator));
+        
+        // 计算每个学生的阅读时长
+        List<TextStudentRankParam> result = new ArrayList<>();
+        
+        for (Map.Entry<Long, List<LearningLog>> entry : logsByUser.entrySet()) {
+            Long userId = entry.getKey();
+            List<LearningLog> userLogs = entry.getValue();
+            
+            // 对用户的日志按时间排序
+            userLogs.sort(Comparator.comparing(LearningLog::getAddDatetime));
+            
+            // 计算阅读时长
+            long readingTime = 0L;
+            for (int i = 0; i < userLogs.size() - 1; i++) {
+                LocalDateTime currentTime = userLogs.get(i).getAddDatetime();
+                LocalDateTime nextTime = userLogs.get(i + 1).getAddDatetime();
+                
+                if (currentTime == null || nextTime == null) {
+                    continue;
+                }
+                
+                Duration duration = Duration.between(currentTime, nextTime);
+                long seconds = duration.getSeconds();
+                
+                // 如果时间差在预设范围内，则视为有效阅读时间
+                if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
+                    readingTime += 1;
+                }
+            }
+            
+            // 获取学生姓名
+            Student student = studentMapper.selectOne(new LambdaQueryWrapper<Student>().eq(Student::getUserId, userId));
+            String studentName = (student != null) ? student.getName() : "未知学生";
+            
+            // 创建排名参数对象
+            TextStudentRankParam param = new TextStudentRankParam();
+            param.setStudent_name(studentName);
+            param.setRead_time(readingTime);
+            
+            result.add(param);
+        }
+        
+        // 按阅读时长降序排序
+        result.sort(Comparator.comparingLong(TextStudentRankParam::getRead_time).reversed());
+        
+        // 设置排名
+        for (int i = 0; i < result.size(); i++) {
+            result.get(i).setRank(i + 1);
+        }
+        
+        return result;
+    }
+
     private Double scaleTo2Decimal(Double value) {
         if (value == null) {
             return null;
