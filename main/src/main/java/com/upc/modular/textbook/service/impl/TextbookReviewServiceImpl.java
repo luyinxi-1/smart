@@ -48,9 +48,14 @@ public class TextbookReviewServiceImpl extends ServiceImpl<TextbookReviewMapper,
 
         // 1. Update the textbook's review status to 2 (审核中)
         textbook.setReviewStatus(2);
+        
+        // 如果是取消发布申请，同时更新发布状态为2 (取消发布审核中)
+        if (Integer.valueOf(3).equals(textbookReview.getReasonForReview())) {
+            textbook.setReleaseStatus(2);
+        }
+        
         textbookService.updateById(textbook);
 
-        // 2. Save the review record
         this.save(textbookReview);
     }
 
