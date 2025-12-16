@@ -126,6 +126,9 @@ public interface StudentDataStatisticsMapper extends BaseMapper<StudentStatistic
             "WHERE sfg.student_id = #{studentId}")
     Double getStudentScoreRate(@Param("studentId") Long studentId);
 
+    @Select("SELECT * FROM learning_log WHERE textbook_id = #{textbookId} ORDER BY add_datetime ASC")
+    List<LearningLog> findLearningLogsByTextbookId(@Param("textbookId") Long textbookId);
+
     // 添加getStudentQuestionAnsweringStatistics方法的声明
     List<Map<String, Object>> getStudentQuestionAnsweringStatistics(@Param("textbookId") Long textbookId, @Param("studentId") Long studentId);
 }

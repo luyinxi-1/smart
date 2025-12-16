@@ -95,7 +95,7 @@ public class StudentDataStatisticsController {
         return R.ok(iStudentDataStatistics.countStudentTextbookReadingTimeByTime(startTime, endTime));
     }
 
-    @ApiOperation("学生阅读时间排行榜")
+    @ApiOperation("统计当年学生阅读时间排行榜")
     @GetMapping("/reading-time-currentyear")
     public R<List<StudentStatisticsData>> countStudentTextbookReadingTimeCurrentYear(){
         return R.ok(iStudentDataStatistics.countStudentCurrentYearTextbookReadingTime());
@@ -105,12 +105,17 @@ public class StudentDataStatisticsController {
     public R<List<StudentStatisticsData>> countStudentTextbookReadingCurrentYear(){
         return R.ok(iStudentDataStatistics.countStudentCurrentTextbookRead());
     }
-    @ApiOperation("统计学生教材阅读排行榜")
+    @ApiOperation("统计学生教材阅读时间排行榜")
     @GetMapping("/textbook-rank")
     public R<List<StudentTextbookRankParam>> countStudentTextbookReadingRank(){
         return R.ok(iStudentDataStatistics.countStudentTextbookReadingRank());
     }
 
+    @ApiOperation("按教材id统计学生阅读排行榜")
+    @GetMapping("/textbook-rank-by-textbookId")
+    public R<List<TextStudentRankParam>> countStudentTextbookReadingRankByTextbookId(@RequestParam Long textbookId){
+        return R.ok(iStudentDataStatistics.countStudentTextbookReadingRankByTextbookId(textbookId));
+    }
 
     @ApiOperation("统计学生教材完成度")
     @GetMapping("/textbook-completion")
