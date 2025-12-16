@@ -15,7 +15,7 @@ import com.upc.modular.course.entity.CourseTextbookList;
 import com.upc.modular.course.mapper.CourseClassListMapper;
 import com.upc.modular.course.service.ICourseClassListService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.upc.modular.course.service.ICourseService;
+import com.upc.modular.course.mapper.CourseMapper;
 import com.upc.modular.course.service.ICourseTextbookListService;
 import com.upc.modular.group.entity.Group;
 import com.upc.modular.group.service.IGroupService;
@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 public class CourseClassListServiceImpl extends ServiceImpl<CourseClassListMapper, CourseClassList> implements ICourseClassListService {
 
     @Autowired
-    private ICourseService courseService;
+    private CourseMapper courseMapper;
 
     @Autowired
     private IGroupService groupService;
@@ -56,7 +56,7 @@ public class CourseClassListServiceImpl extends ServiceImpl<CourseClassListMappe
     @Override
     public void associateClasses(Long courseId, List<Long> classIds) {
         // 校验 courseId 是否存在
-        if (courseService.getById(courseId) == null) {
+        if (courseMapper.selectById(courseId) == null) {
             throw new BusinessException(
                     BusinessErrorEnum.PARAMETER_VALIDATION_ERROR,
                     "课程 ID " + courseId + " 不存在"
