@@ -454,8 +454,12 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             // 学生：查看所有教材（可根据实际需求调整为只查看有查看权限的教材）
             returnParams.addAll(textbookPageReturnParams);
         } else if (userType == 2) {
-            // 教师：只查看有编辑权限的教材
+            // 教师：只查看有编辑权限的教材，并且不显示已逻辑删除的教材
             for (TextbookPageReturnParam returnParam : textbookPageReturnParams) {
+                // 过滤掉已逻辑删除的教材 (is_delete = 1)
+                if (returnParam.getIsDelete() != null && returnParam.getIsDelete() == 1) {
+                    continue;
+                }
                 if (textbookAuthorityEditJudge(returnParam.getId(), UserUtils.get().getId())) {
                     returnParams.add(returnParam);
                 }
@@ -1301,4 +1305,21 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         return null;
     }
 
+    @Override
+    public void updateTextbookDeleteStatus(List<Long> ids, Integer isDelete) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材ID列表不能为空");
+        }
+        
+        // 批量更新教材的is_delete字段
+        List<Textbook> textbooksToUpdate = new ArrayList<>();
+        for (Long id : ids) {
+            Textbook textbook = new Textbook();
+            textbook.setId(id);
+            textbook.setIsDelete(isDelete);
+            textbooksToUpdate.add(textbook);
+        }
+        
+        this.updateBatchById(textbooksToUpdate);
+    }
 }

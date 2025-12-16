@@ -82,6 +82,8 @@ iam:
   scope: openid
   front-host:  http://60.217.79.210:6190/#/publicHome
 
+# 远端基础数据平台配置（给 RemoteBaseDataClient 用）
 remote:
   base-data:
-    host: http://对方基础数据系统地址:端口
+    host: http://localhost:8080  # 配置后记得改成真实地址
+

@@ -206,6 +206,7 @@ public class DiscussionTopicServiceImpl extends ServiceImpl<DiscussionTopicMappe
                 returnParam.setId(discussionTopic.getId());
                 returnParam.setActivityName(discussionTopic.getTopicTitle());
                 returnParam.setActivityType(discussionTopic.getType());
+                returnParam.setTopicContent(discussionTopic.getTopicContent());
                 if (discussionTopic.getAddDatetime() != null) {
                     returnParam.setAddDatetime(discussionTopic.getAddDatetime().toString());
                 }

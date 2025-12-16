@@ -35,4 +35,7 @@ public class DiscussionTopicReturnParam {
     @ApiModelProperty("讨论下的回复数")
     private Integer replyCount;
 
+    @ApiModelProperty("话题内容")
+    private String topicContent;
+
 }

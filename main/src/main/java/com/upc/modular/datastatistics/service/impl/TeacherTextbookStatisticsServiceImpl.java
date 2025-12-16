@@ -437,7 +437,9 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
                 chapterName = chapterName.trim();
             }
             param.setChapterName(chapterName);
-            param.setQuestionAnsweringDuration(getLongValue(data.get("questionAnsweringDuration")));
+            // 将做题时长从分钟转换为小时
+            Long questionAnsweringDuration = getLongValue(data.get("questionAnsweringDuration"));
+            param.setQuestionAnsweringDuration(questionAnsweringDuration != null ? questionAnsweringDuration / 60 : null);
             param.setChapterScore(getDoubleValue(data.get("chapterScore")));
             param.setCorrectRate(getDoubleValue(data.get("correctRate")));
             param.setTotalQuestions(getIntValue(data.get("totalQuestions")));
@@ -445,7 +447,9 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
             param.setAverageScore(getDoubleValue(data.get("averageScore")));
             param.setChapterLevel(getIntValue(data.get("chapterLevel")));
             param.setParentChapterId(getLongValue(data.get("parentChapterId")));
-            param.setReadingDuration(getLongValue(data.get("readingDuration")));
+            // 将阅读时长从分钟转换为小时
+            Long readingDuration = getLongValue(data.get("readingDuration"));
+            param.setReadingDuration(readingDuration != null ? readingDuration / 60 : null);
             param.setMasteryPercentage(getDoubleValue(data.get("masteryPercentage")));
             
             result.add(param);

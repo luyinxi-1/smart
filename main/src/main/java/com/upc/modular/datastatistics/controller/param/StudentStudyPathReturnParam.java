@@ -22,7 +22,7 @@ public class StudentStudyPathReturnParam {
     @ApiModelProperty("已完成阅读教材数")
     private Long completionNum;
 
-    @ApiModelProperty("学生教材阅读总时长")
+    @ApiModelProperty("学生教材阅读总时长(小时)")
     private Long textbookReadingTime;
 
     @ApiModelProperty("学生教材阅读时长Top10")

@@ -4,6 +4,8 @@ package com.upc.modular.course.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.common.responseparam.R;
+import com.upc.exception.BusinessErrorEnum;
+import com.upc.exception.BusinessException;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
 import com.upc.modular.course.controller.param.CoursePageReturnParam;
 import com.upc.modular.course.controller.param.CoursePageSearchParam;
@@ -14,10 +16,11 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletResponse;
@@ -86,5 +89,16 @@ public class CourseController {
     @PostMapping("/exportCourseData")
     public void exportLikeData(HttpServletResponse response, @RequestBody IdParam param){
         courseService.exportCourseData(response,param);
+    }
+    
+    @ApiOperation("导出课程信息docx文档")
+    @GetMapping("/exportCourseInfoDocx")
+    public void exportCourseInfoDocx(HttpServletResponse response,
+                                 @RequestParam Long courseId,
+                                 @RequestParam(value = "classId", required = false) Long classId) {
+        if (courseId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "课程ID不能为空");
+        }
+        courseService.exportCourseInfoDocx(response, courseId, classId);
     }
 }

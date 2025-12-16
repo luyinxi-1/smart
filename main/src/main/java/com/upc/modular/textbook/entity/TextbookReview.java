@@ -51,7 +51,7 @@ public class TextbookReview implements Serializable {
     @TableField(value = "operator", fill = FieldFill.UPDATE)
     private Long operator;
 
-    @ApiModelProperty("提交审核原因 1新书发布 2 章节更新")
+    @ApiModelProperty("提交审核原因 1新书发布 2 章节更新  3取消发布")
     @TableField(value ="reason_for_review")
     private Integer reasonForReview;
 

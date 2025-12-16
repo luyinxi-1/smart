@@ -9,6 +9,7 @@ import com.upc.modular.datastatistics.controller.param.*;
 import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.course.service.ICourseService;
 import com.upc.modular.datastatistics.mapper.SystemDataStatisticsMapper;
+import com.upc.modular.datastatistics.mapper.TeacherStatisticsMapper;
 import com.upc.modular.datastatistics.service.ISystemStatisticsService;
 import com.upc.modular.group.service.IGroupService;
 import com.upc.modular.materials.entity.TeachingMaterials;
@@ -24,12 +25,14 @@ import com.upc.modular.teachingactivities.service.IDiscussionTopicReplyService;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
 import com.upc.modular.textbook.entity.LearningLog;
 import com.upc.modular.textbook.entity.Textbook;
+import com.upc.modular.textbook.entity.UserFavorites;
 import com.upc.modular.textbook.mapper.TextbookMapper;
 import com.upc.modular.textbook.service.IIdeologicalMaterialService;
 import com.upc.modular.textbook.service.ITextbookService;
 import com.lowagie.text.*;
 import com.lowagie.text.Font;
 import com.lowagie.text.pdf.*;
+import com.upc.modular.textbook.service.IUserFavoritesService;
 import org.springframework.stereotype.Service;
 import org.springframework.core.io.ClassPathResource;
 import java.io.InputStream;
@@ -95,6 +98,11 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
     private IDiscussionTopicReplyService discussionTopicReplyService;
     @Autowired
     private SystemDataStatisticsMapper systemDataStatisticsMapper;
+    
+    @Autowired
+    private TeacherStatisticsMapper teacherStatisticsMapper;
+    @Autowired
+    private IUserFavoritesService userFavoritesService;
 
     // 添加SysLogMapper的依赖
     @Autowired
@@ -178,54 +186,64 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
 
     @Override
     public List<DailyStudyDurationDto> getStudyDurationByTime(String timeRange) {
-        // 定义业务所需的时区为一个常量，这是最佳实践
-        final ZoneId BUSINESS_ZONE_ID = ZoneId.of("Asia/Shanghai");
-
-        // 确保 endDate 也是基于业务时区生成的
-        LocalDate endDate = LocalDate.now(BUSINESS_ZONE_ID);
+        // 1. 参数校验和处理
+        LocalDate now = LocalDate.now();
         LocalDate startDate;
+        LocalDate endDate;
 
-        // 1. 日期范围计算... (这部分不变)
         switch (timeRange.toLowerCase()) {
             case "week":
-                startDate = endDate.minusDays(6);
+                // 获取本周一作为开始日期
+                startDate = now.with(java.time.DayOfWeek.MONDAY);
+                endDate = startDate.plusDays(6);
                 break;
             case "month":
-                startDate = endDate.minusMonths(1).plusDays(1);
+                // 获取本月第一天作为开始日期
+                startDate = now.with(java.time.temporal.TemporalAdjusters.firstDayOfMonth());
+                endDate = now.with(java.time.temporal.TemporalAdjusters.lastDayOfMonth());
                 break;
             case "year":
-                startDate = endDate.minusYears(1).plusDays(1);
+                // 获取本年第一天作为开始日期
+                startDate = now.with(java.time.temporal.TemporalAdjusters.firstDayOfYear());
+                endDate = now.with(java.time.temporal.TemporalAdjusters.lastDayOfYear());
                 break;
             default:
-                throw new IllegalArgumentException("无效的时间范围: " + timeRange);
+                throw new IllegalArgumentException("不支持的时间范围: " + timeRange + "。只支持 'week', 'month', 'year'。");
         }
 
-        // 2. 从 Mapper 获取数据 (不变)
-        List<DailyStudyDurationDto> recordedDurations = systemDataStatisticsMapper.getStudyDurationsByDateRange(startDate, endDate);
+        // 2. 调用 Mapper 获取原始数据
+        List<DailyStudyDurationDto> dbResults = systemDataStatisticsMapper.getStudyDurationsByDateRange(startDate, endDate);
 
-        // 3. 将结果转换为 Map，使用统一的业务时区
-        Map<LocalDate, Long> durationMapInSeconds = recordedDurations.stream()
+        // 3. 构建一个从日期到 DTO 的映射，方便快速查找
+        Map<LocalDate, DailyStudyDurationDto> resultsMap = dbResults.stream()
                 .collect(Collectors.toMap(
-                        // 使用业务时区进行转换，与SQL的逻辑保持一致
-                        dto -> dto.getDate().toInstant().atZone(BUSINESS_ZONE_ID).toLocalDate(),
-                        dto -> dto.getDurationInSeconds()
+                        // 关键：将 java.util.Date 转换为 LocalDate
+                        dto -> dto.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
+                        dto -> dto,
+                        (existing, replacement) -> existing // 用于处理重复的键，虽然这里不太可能发生
                 ));
 
-        // 4. 生成完整的日期序列并补全数据
-        long daysBetween = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        // 4. 生成完整的日期范围并补全数据
+        long numOfDays = startDate.until(endDate, ChronoUnit.DAYS) + 1;
 
         return Stream.iterate(startDate, date -> date.plusDays(1))
-                .limit(daysBetween)
+                .limit(numOfDays)
                 .map(date -> {
-                    Long durationInSeconds = durationMapInSeconds.getOrDefault(date, 0L);
-                    DailyStudyDurationDto resultDto = new DailyStudyDurationDto();
-
-                    // 在将 LocalDate 转回 Date 时，也应指定业务时区
-                    resultDto.setDate(Date.from(date.atStartOfDay(BUSINESS_ZONE_ID).toInstant()));
-                    resultDto.setDurationInMinutes(durationInSeconds / 60);
-                    resultDto.setDurationInSeconds(durationInSeconds);
-
-                    return resultDto;
+                    DailyStudyDurationDto foundDto = resultsMap.get(date);
+                    if (foundDto != null) {
+                        // 将秒转换为小时
+                        if (foundDto.getDurationInSeconds() != null) {
+                            foundDto.setDurationInHours(foundDto.getDurationInSeconds() / 3600);
+                        }
+                        return foundDto;
+                    } else {
+                        // 关键：创建 DTO 时，将 LocalDate 转换回 java.util.Date
+                        Date missingDate = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
+                        DailyStudyDurationDto newDto = new DailyStudyDurationDto();
+                        newDto.setDate(missingDate);
+                        newDto.setDurationInHours(0L);
+                        return newDto;
+                    }
                 })
                 .collect(Collectors.toList());
     }
@@ -297,13 +315,20 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         // 对所有角色通用的统计
         countsDto.setTodayVisitorCount(systemDataStatisticsMapper.getVisitorCountByDate(dateParams));
         Long studyTimeInSeconds = systemDataStatisticsMapper.getStudyDurationByDate(dateParams);
-        countsDto.setTodayStudyTime(studyTimeInSeconds != null ? studyTimeInSeconds / 60 : 0L);
+        countsDto.setTodayStudyTime(studyTimeInSeconds != null ? studyTimeInSeconds / 3600 : 0L);
 
         // 根据角色进行差异化统计
         if (userType == 0) { // 管理员
             getAdminCounts(countsDto);
         } else if (userType == 2) { // 教师
-            getTeacherCounts(countsDto, userId);
+            // 正确获取教师ID，不能直接使用userId
+            Long teacherId = teacherService.getTeacherIdByUserId(userId);
+            if (teacherId != null) {
+                getTeacherCounts(countsDto, teacherId);
+            } else {
+                // 如果找不到对应的教师ID，则返回空数据
+                return new SystemAllCountsDto();
+            }
         } else { // 其他角色返回空数据
             return new SystemAllCountsDto();
         }
@@ -336,12 +361,18 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
             countsDto.setTeachingideologicalMaterialCount(0L);
             countsDto.setDiscussionTopicCount(0L);
             countsDto.setTeachingQuestionBankCount(0L);
+            countsDto.setTextbookFavoriteCount(0L);
         } else {
             countsDto.setTextbookCount((long) publishedTextbookIds.size());
             // 统计已发布教材下的相关资源
             countsDto.setTeachingideologicalMaterialCount(ideologicalMaterialService.lambdaQuery().in(com.upc.modular.textbook.entity.IdeologicalMaterial::getTextbookId, publishedTextbookIds).count());
             countsDto.setDiscussionTopicCount(discussionTopicService.lambdaQuery().in(DiscussionTopic::getTextbookId, publishedTextbookIds).count());
             countsDto.setTeachingQuestionBankCount(teachingQuestionbankService.lambdaQuery().in(com.upc.modular.questionbank.entity.TeachingQuestionBank::getTextbookId, publishedTextbookIds).count());
+            // ✅ 新增：管理员统计全部已发布教材被收藏次数（直接从 user_favorites 的 textbook_id 统计）
+            long favoriteCount = userFavoritesService.lambdaQuery()
+                    .in(UserFavorites::getTextbookId, publishedTextbookIds)
+                    .count();
+            countsDto.setTextbookFavoriteCount(favoriteCount);
         }
     }
 
@@ -350,26 +381,56 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
      */
     private void getTeacherCounts(SystemAllCountsDto countsDto, Long teacherId) {
         // 1. 统计与教师相关的教材及资源
-        // 假设教师创建的或作为编辑的为“相关教材”
-        List<Long> teacherTextbookIds = textbookMapper.findTextbookIdsByTeacher(teacherId);
+        // 只统计已发布的教材，与/teacher-statistics/personal接口保持一致
+        Integer teacherTextbookCount = teacherStatisticsMapper.countTeacherTextbooks(teacherId);
+        countsDto.setTextbookCount(teacherTextbookCount.longValue());
+        
+        // 获取教材ID列表用于后续资源统计
+        List<Long> teacherTextbookIds = textbookMapper.findTextbookIdsByTeacher(teacherId).stream()
+                .filter(id -> textbookService.lambdaQuery()
+                        .eq(Textbook::getId, id)
+                        .eq(Textbook::getReleaseStatus, "1")
+                        .exists())
+                .collect(Collectors.toList());
 
         if (teacherTextbookIds.isEmpty()) {
-            countsDto.setTextbookCount(0L);
             countsDto.setTeachingideologicalMaterialCount(0L);
             countsDto.setDiscussionTopicCount(0L);
             countsDto.setTeachingQuestionBankCount(0L);
         } else {
-            countsDto.setTextbookCount((long) teacherTextbookIds.size());
             countsDto.setTeachingideologicalMaterialCount(ideologicalMaterialService.lambdaQuery().in(com.upc.modular.textbook.entity.IdeologicalMaterial::getTextbookId, teacherTextbookIds).count());
             countsDto.setDiscussionTopicCount(discussionTopicService.lambdaQuery().in(DiscussionTopic::getTextbookId, teacherTextbookIds).count());
             countsDto.setTeachingQuestionBankCount(teachingQuestionbankService.lambdaQuery().in(com.upc.modular.questionbank.entity.TeachingQuestionBank::getTextbookId, teacherTextbookIds).count());
         }
 
+        // === 新增：教师自己已发布教材被收藏次数（不改传参） ===
+        Long userIdOfTeacher = teacherService.getById(teacherId).getUserId(); // 这里按你的 Teacher 实体字段名改
+        List<Long> myPublishedTextbookIds = textbookService.lambdaQuery()
+                .select(Textbook::getId)
+                .eq(Textbook::getReleaseStatus, "1")
+                .eq(Textbook::getCreator, userIdOfTeacher)
+                .list()
+                .stream()
+                .map(Textbook::getId)
+                .collect(Collectors.toList());
+
+        long favoriteCount = myPublishedTextbookIds.isEmpty() ? 0L
+                : userFavoritesService.lambdaQuery()
+                .in(UserFavorites::getTextbookId, myPublishedTextbookIds)
+                .count();
+
+        countsDto.setTextbookFavoriteCount(favoriteCount);
+
         // 2. 统计教师授课的课程数量
         countsDto.setCourseCount(courseService.lambdaQuery().eq(com.upc.modular.course.entity.Course::getTeacherId, teacherId).count());
 
-        // 3. 统计教师作为导员的班级下的学生数量
-        // 假设 group 表中的 teacher_id 字段表示导员
+        // 3. 统计教师授课的学生数量（修改为与/teacher-statistics/personal一致）
+        countsDto.setStudentCount(teacherStatisticsMapper.countTeacherStudents(teacherId).longValue());
+        
+        // 其他非要求统计项，根据教师上下文设为合理值
+        countsDto.setTeacherCount(1L); // 教师自己
+        
+        // 获取教师授课的班级列表
         List<Long> advisedGroupIds = groupService.lambdaQuery()
                 .eq(com.upc.modular.group.entity.Group::getTeacherId, teacherId)
                 .select(com.upc.modular.group.entity.Group::getId)
@@ -377,21 +438,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
                 .stream()
                 .map(com.upc.modular.group.entity.Group::getId)
                 .collect(Collectors.toList());
-
-        if (advisedGroupIds.isEmpty()) {
-            countsDto.setStudentCount(0L);
-        } else {
-            // 通过 user_class_list 表查询学生数量，type=1 表示学生
-            countsDto.setStudentCount(studentService.lambdaQuery()
-                    .inSql(com.upc.modular.student.entity.Student::getUserId, 
-                           "SELECT user_id FROM user_class_list WHERE class_id IN (" + 
-                           advisedGroupIds.stream().map(String::valueOf).collect(Collectors.joining(",")) + 
-                           ") AND type = 1")
-                    .count());
-        }
         
-        // 其他非要求统计项，根据教师上下文设为合理值
-        countsDto.setTeacherCount(1L); // 教师自己
         countsDto.setGroupCount((long) advisedGroupIds.size()); // 教师带的班级数
         countsDto.setTeachingMaterialsCount(teachingMaterialsService.lambdaQuery().eq(TeachingMaterials::getCreator, teacherId).count());
         countsDto.setDiscussionTopicReplyCount(discussionTopicReplyService.lambdaQuery().eq(DiscussionTopicReply::getCreator, teacherId).count());

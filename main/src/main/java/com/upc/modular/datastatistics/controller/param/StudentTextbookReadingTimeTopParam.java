@@ -12,7 +12,7 @@ public class StudentTextbookReadingTimeTopParam {
     @ApiModelProperty("教材名称")
     private String textbookName;
 
-    @ApiModelProperty("阅读时长")
+    @ApiModelProperty("阅读时长(小时)")
     private Long readingTime;
 
     @ApiModelProperty("学习占比")

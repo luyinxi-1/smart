@@ -22,14 +22,17 @@ import com.upc.modular.questionbank.service.ITeachingQuestionService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.TextbookCatalog;
+import com.upc.modular.textbook.param.TextbookSpecifiedCatalogSearchParam;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.upc.modular.textbook.service.ITextbookService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -171,6 +174,17 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
         // 调用 Mapper 方法，并传入 isAdmin 标志
         Page<TeachingQuestionPageSearchReturnVO> resultPage = teachingQuestionMapper.selectQuestion(page, param, userId, isAdmin);
 
+        // 处理章节名称，去除HTML标签
+        if (!CollectionUtils.isEmpty(resultPage.getRecords())) {
+            for (TeachingQuestionPageSearchReturnVO vo : resultPage.getRecords()) {
+                String chapterName = vo.getChapterName();
+                if (chapterName != null) {
+                    chapterName = com.upc.utils.HtmlUtils.stripHtml(chapterName);
+                    vo.setChapterName(chapterName);
+                }
+            }
+        }
+
         return resultPage;
     }
 
@@ -192,9 +206,16 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "题型数量不能为空");
         }
 
+        // 获取指定章节及其所有子章节的ID列表
+        TextbookSpecifiedCatalogSearchParam searchParam = new TextbookSpecifiedCatalogSearchParam();
+        searchParam.setTextbookId(param.getTextbookId());
+        searchParam.setCatalogId(param.getChapterId());
+        List<Long> chapterIds = textbookCatalogService.getTextbookSpecifiedCatalog(searchParam);
+
+        // 初始化结果列表
         List<SmartPaperQuestionVO> result = new ArrayList<>();
 
-        // 遍历每个题型
+        // 遍历每种题型及其需要的数量
         for (Map.Entry<Integer, Integer> entry : param.getQuestionTypeCount().entrySet()) {
             Integer questionType = entry.getKey();
             Integer totalCount = entry.getValue();
@@ -218,9 +239,9 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
             }
 
             // 从选择的难易程度中抽取题目
-            List<TeachingQuestion> selectedQuestions = teachingQuestionMapper.selectQuestionsByCondition(
+            List<TeachingQuestion> selectedQuestions = teachingQuestionMapper.selectQuestionsByConditionWithChapters(
                     param.getTextbookId(),
-                    param.getChapterId(),
+                    chapterIds,
                     questionType,
                     param.getDifficulty()
             );
@@ -241,9 +262,9 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
             // 先收集所有其他难度的可用题目
             List<TeachingQuestion> allOtherQuestions = new ArrayList<>();
             for (Integer otherDifficulty : otherDifficulties) {
-                List<TeachingQuestion> otherQuestions = teachingQuestionMapper.selectQuestionsByCondition(
+                List<TeachingQuestion> otherQuestions = teachingQuestionMapper.selectQuestionsByConditionWithChapters(
                         param.getTextbookId(),
-                        param.getChapterId(),
+                        chapterIds,
                         questionType,
                         otherDifficulty
                 );
@@ -285,9 +306,61 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
     
     @Override
     public List<QuestionCountByTypeReturnParam> countQuestionsByType(Long textbookId, Long chapterId) {
-        // 查询数据库获取各题型数量
-        List<QuestionCountByTypeReturnParam> result = teachingQuestionMapper.countQuestionsByType(textbookId, chapterId);
+        // 获取指定章节及其所有子章节的ID列表
+        TextbookSpecifiedCatalogSearchParam param = new TextbookSpecifiedCatalogSearchParam();
+        param.setTextbookId(textbookId);
+        param.setCatalogId(chapterId);
+        List<Long> chapterIds = textbookCatalogService.getTextbookSpecifiedCatalog(param);
         
-        return result;
+        // 使用章节ID列表查询数据库获取各题型数量
+        List<QuestionCountByTypeReturnParam> result = teachingQuestionMapper.countQuestionsByTypeWithChapters(textbookId, chapterIds);
+        
+        // 创建一个包含所有题型的映射，确保即使题型没有题目也会显示
+        Map<Integer, QuestionCountByTypeReturnParam> typeMap = new HashMap<>();
+        
+        // 初始化所有可能的题型（1-7）
+        for (int i = 1; i <= 7; i++) {
+            QuestionCountByTypeReturnParam returnTypeParam = new QuestionCountByTypeReturnParam();
+            returnTypeParam.setTypeId(i);
+            returnTypeParam.setCount(0L);
+            
+            // 设置题型名称
+            switch (i) {
+                case 1:
+                    returnTypeParam.setTypeName("单选题");
+                    break;
+                case 2:
+                    returnTypeParam.setTypeName("多选题");
+                    break;
+                case 3:
+                    returnTypeParam.setTypeName("判断题");
+                    break;
+                case 4:
+                    returnTypeParam.setTypeName("填空题");
+                    break;
+                case 5:
+                    returnTypeParam.setTypeName("简答题");
+                    break;
+                case 6:
+                    returnTypeParam.setTypeName("计算题");
+                    break;
+                case 7:
+                    returnTypeParam.setTypeName("论述题");
+                    break;
+                default:
+                    returnTypeParam.setTypeName("未知题型");
+                    break;
+            }
+            
+            typeMap.put(i, returnTypeParam);
+        }
+        
+        // 更新实际有题目的题型数量
+        for (QuestionCountByTypeReturnParam item : result) {
+            typeMap.get(item.getTypeId()).setCount(item.getCount());
+        }
+        
+        // 返回完整的结果列表
+        return new ArrayList<>(typeMap.values());
     }
 }

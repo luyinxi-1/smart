@@ -12,7 +12,7 @@ import (
 )
 
 // === 这些占位符将被 Java 程序动态替换 ===
-const presetDeviceCode = "DEVICE_CODE_PLACEHOLDER"
+const presetDeviceCodes = `DEVICE_CODE_PLACEHOLDER`
 const zipPassword = "PASSWORD_PLACEHOLDER"
 // =====================================
 
@@ -110,10 +110,21 @@ func runWindows() {
 		return
 	}
 
-	if localDeviceCode != presetDeviceCode {
+	// 解析允许的设备码列表
+	allowed := make(map[string]bool)
+	for _, code := range strings.FieldsFunc(presetDeviceCodes, func(r rune) bool {
+		return strings.ContainsRune(",;\n\r\t ", r)
+	}) {
+		trimmed := strings.TrimSpace(code)
+		if trimmed != "" {
+			allowed[trimmed] = true
+		}
+	}
+
+	if !allowed[localDeviceCode] {
 		zenity.Error(
-			fmt.Sprintf("此程序无法在当前设备上运行。\n\n程序设备码: %s\n本地设备码: %s",
-				presetDeviceCode, localDeviceCode),
+			fmt.Sprintf("此程序无法在当前设备上运行。\n\n允许设备数量: %d\n本地设备码: %s",
+				len(allowed), localDeviceCode),
 			zenity.Title("验证失败"),
 		)
 		return
@@ -148,9 +159,20 @@ func runLinux() {
 
 	fmt.Println("当前设备码：", localDeviceCode)
 
-	if localDeviceCode != presetDeviceCode {
+	// 解析允许的设备码列表
+	allowed := make(map[string]bool)
+	for _, code := range strings.FieldsFunc(presetDeviceCodes, func(r rune) bool {
+		return strings.ContainsRune(",;\n\r\t ", r)
+	}) {
+		trimmed := strings.TrimSpace(code)
+		if trimmed != "" {
+			allowed[trimmed] = true
+		}
+	}
+
+	if !allowed[localDeviceCode] {
 		fmt.Println("\n[验证失败] 此程序无法在当前设备上运行。")
-		fmt.Println("期望设备码：", presetDeviceCode)
+		fmt.Printf("允许设备数量: %d\n本地设备码: %s\n", len(allowed), localDeviceCode)
 		pauseForEnter()
 		return
 	}

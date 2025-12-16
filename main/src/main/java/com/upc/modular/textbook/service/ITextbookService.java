@@ -44,4 +44,11 @@ public interface ITextbookService extends IService<Textbook> {
     List<TextbookIntelligentQueryReturnParam> smartSearch(String query);
     
     List<TextbookContentSearchResult> smartSearchInTextbook(Long textbookId, String query);
+    
+    /**
+     * 批量更新教材的is_delete状态
+     * @param ids 教材ID列表
+     * @param isDelete 删除状态 1:已删除 0:未删除
+     */
+    void updateTextbookDeleteStatus(List<Long> ids, Integer isDelete);
 }

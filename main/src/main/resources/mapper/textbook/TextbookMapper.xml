@@ -110,6 +110,10 @@
                     #{cid}
                 </foreach>
             </if>
+            <!-- 教师查询时，不显示已逻辑删除的教材 -->
+            <if test="userType == 2">
+                AND (t.is_delete IS NULL OR t.is_delete != 1)
+            </if>
         </where>
         ORDER BY
         t.operation_datetime DESC

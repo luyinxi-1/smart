@@ -175,4 +175,11 @@ public R<VersionCheckResultDto> checkTextbookVersion(
             @RequestParam("query") String query) {
         return R.ok(textbookService.smartSearchInTextbook(textbookId, query));
     }
+    
+    @ApiOperation(value = "批量更新教材删除状态")
+    @PostMapping("/batchUpdateDeleteStatus")
+    public R batchUpdateDeleteStatus(@RequestBody BatchUpdateDeleteStatusParam param) {
+        textbookService.updateTextbookDeleteStatus(param.getIds(), param.getIsDelete());
+        return R.commonReturn(200, "更新成功", "");
+    }
 }

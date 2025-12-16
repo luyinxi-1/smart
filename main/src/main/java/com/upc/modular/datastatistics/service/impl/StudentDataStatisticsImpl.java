@@ -31,6 +31,7 @@ import com.upc.modular.textbook.entity.LearningLog;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.param.TextbookTree;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
+import com.upc.modular.textbook.service.ITextbookService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.apache.poi.ss.usermodel.Row;
@@ -93,6 +94,9 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
 
     @Autowired
     private ICourseService courseService;
+
+    @Autowired
+    private ITextbookService textbookService;
 
     @Autowired
     private ICourseClassListService courseClassListService;
@@ -170,16 +174,18 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
     @Override
     public Long countStudentTextbookReadingTime() {
         Long currentUserId = UserUtils.get().getId();
-//        容忍范围
-        final long MIN_DIFF_SECONDS = 55;
-        final long MAX_DIFF_SECONDS = 65;
-//        获取时间列表
+        // 获取学习日志记录
         List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(currentUserId);
 
         if(records == null || records.size() < 2){
             return 0L;
         }
-//        计算总时间
+
+        // 容忍范围
+        final long MIN_DIFF_SECONDS = 55;
+        final long MAX_DIFF_SECONDS = 65;
+
+        // 计算总时间(秒)
         long totalReadingTime = 0;
         for (int i = 0; i < records.size() - 1; i++) {
             LocalDateTime currentAddDatetime = records.get(i).getAddDatetime();
@@ -193,8 +199,45 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                 totalReadingTime += 1;//假设定时数据间隔时间为1秒
             }
         }
-        return totalReadingTime;
+        // 返回小时数
+        return totalReadingTime / 3600;
     }
+
+    /**
+     * 根据用户ID统计学生教材总阅读时间
+     * @param userId 用户ID
+     * @return 阅读时长(小时)
+     */
+    public Long countStudentTextbookReadingTimeByUserId(Long userId) {
+        // 获取学习日志记录
+        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(userId);
+
+        if(records == null || records.size() < 2){
+            return 0L;
+        }
+
+        // 容忍范围
+        final long MIN_DIFF_SECONDS = 55;
+        final long MAX_DIFF_SECONDS = 65;
+
+        // 计算总时间(秒)
+        long totalReadingTime = 0;
+        for (int i = 0; i < records.size() - 1; i++) {
+            LocalDateTime currentAddDatetime = records.get(i).getAddDatetime();
+            LocalDateTime nextAddDatetime = records.get(i + 1).getAddDatetime();
+            if(currentAddDatetime == null || nextAddDatetime == null){
+                continue;
+            }
+            Duration duration = Duration.between(currentAddDatetime, nextAddDatetime);
+            long seconds = duration.getSeconds();
+            if(seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS){
+                totalReadingTime += 1;//假设定时数据间隔时间为1秒
+            }
+        }
+        // 返回小时数
+        return totalReadingTime / 3600;
+    }
+
     /**
      * 按月统计学生教材阅读时间
      * @param year 年份
@@ -215,6 +258,9 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         final long MIN_DIFF_SECONDS = 55;
         final long MAX_DIFF_SECONDS = 65;
 
+        // 用于存储每个月的阅读时长(秒)
+        long[] monthlyReadingTime = new long[13]; // 索引0不使用，1-12对应月份
+
         for (int i = 0; i < records.size() - 1; i++) {
             LocalDateTime currentAddDatetime = records.get(i).getAddDatetime();
             LocalDateTime nextAddDatetime = records.get(i + 1).getAddDatetime();
@@ -226,12 +272,16 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             }
             Duration duration = Duration.between(currentAddDatetime, nextAddDatetime);
             long seconds = duration.getSeconds();
-
             if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
+                // 累加到对应月份
                 int month = currentAddDatetime.getMonthValue();
-                StudentReadingTimeByMonthReturnParam param = result.get(month - 1);
-                param.setReadingTime(param.getReadingTime() + 1);
+                monthlyReadingTime[month] += 1; // 每个有效间隔计为1秒
             }
+        }
+
+        // 转换为小时并设置到结果中
+        for (int i = 1; i <= 12; i++) {
+            result.get(i - 1).setReadingTime(monthlyReadingTime[i] / 3600);
         }
 
         return result;
@@ -431,31 +481,31 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
      * 根据时间段计算学生的教材阅读时长
      * @param  startTime 开始时间
      * @param  endTime   结束时间
-     * @return 学生的教材阅读总时长
      */
     @Override
     public Long countStudentTextbookReadingTimeByTime(String startTime, String endTime) {
-        Long userId = UserUtils.get().getId();
-        final long MIN_DIFF_SECONDS = 55;
-        final long MAX_DIFF_SECONDS = 65;
-        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetimeByTime(userId, startTime, endTime,0);
+        Long currentUserId = UserUtils.get().getId();
+        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetimeByTime(currentUserId,startTime,endTime,0);
         if(records == null || records.size() < 2){
             return 0L;
         }
-        long totalReadingTime = 0L;
+        final long MIN_DIFF_SECONDS = 55;
+        final long MAX_DIFF_SECONDS = 65;
+        long totalReadingTime = 0;
         for (int i = 0; i < records.size() - 1; i++) {
             LocalDateTime currentAddDatetime = records.get(i).getAddDatetime();
             LocalDateTime nextAddDatetime = records.get(i + 1).getAddDatetime();
-            if (currentAddDatetime == null || nextAddDatetime == null) {
+            if(currentAddDatetime == null || nextAddDatetime == null){
                 continue;
             }
             Duration duration = Duration.between(currentAddDatetime, nextAddDatetime);
             long seconds = duration.getSeconds();
-            if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
-                totalReadingTime += 1;
+            if(seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS){
+                totalReadingTime += 1;//假设定时数据间隔时间为1秒
             }
         }
-        return totalReadingTime;
+        // 返回小时数
+        return totalReadingTime / 3600;
     }
 
     /**
@@ -623,13 +673,13 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
 
             // 创建并填充排行参数对象
             result.add(new StudentTextbookRankParam()
-                    .setTextbook_id(textbookId)
-                    .setTextbook_name(textbookName)
-                    .setRead_time(readingTime));
+                    .setTextbookId(textbookId)
+                    .setTextbookName(textbookName)
+                    .setReadingTime(readingTime));
         }
 
-        // 按阅读时长（read_time）进行降序排序
-        result.sort(Comparator.comparingLong(StudentTextbookRankParam::getRead_time).reversed());
+        // 按阅读时长（readingTime）进行降序排序
+        result.sort(Comparator.comparingLong(StudentTextbookRankParam::getReadingTime).reversed());
 
         return result;
     }
@@ -831,68 +881,53 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             Long textbookId = entry.getKey();
             List<LearningLog> list = entry.getValue();
 
-//            Long readingTime = 0L;  // 默认阅读时长为0
-//
-//            // 只有当教材有≥2条记录时，才计算有效阅读
-//            if (list.size() >= 2) {
-//                // 确保每本教材内部按时间排序
-//                list.sort(Comparator.comparing(LearningLog::getAddDatetime));
-//
-//                // 计算有效阅读次数
-//                for (int i = 0; i < list.size() - 1; i++) {
-//                    LearningLog currentLog = list.get(i);
-//                    LearningLog nextLog = list.get(i + 1);
-//
-//                    if (currentLog.getAddDatetime() == null || nextLog.getAddDatetime() == null) {
-//                        continue;
-//                    }
-//
-//                    long seconds = Duration.between(currentLog.getAddDatetime(), nextLog.getAddDatetime()).getSeconds();
-//
-//                    // 时间差在预设范围内，视为有效阅读
-//                    if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
-//                        readingTime += 1;  // 一次有效阅读增加1
-//                    }
-//                }
-//            }
-            // 注意：这里不再有 continue，即使list.size() < 2也会继续处理
+            Long readingTime = 0L;  // 默认阅读时长为0小时
 
-            // 修改部分：使用getStudentQuestionAnsweringStatistics方法获取各章节阅读时间并求和
-            Long chapterReadingTime = 0L;
-            List<Map<String, Object>> rawData = studentDataStatisticsMapper.getStudentQuestionAnsweringStatistics(textbookId, studentId);
-            if (rawData != null && !rawData.isEmpty()) {
-                for (Map<String, Object> data : rawData) {
-                    Object readingDurationObj = data.get("readingDuration");
-                    if (readingDurationObj instanceof Number) {
-                        chapterReadingTime += ((Number) readingDurationObj).longValue();
+            // 只有当教材有≥2条记录时，才计算有效阅读
+            if (list.size() >= 2) {
+                // 确保每本教材内部按时间排序
+                list.sort(Comparator.comparing(LearningLog::getAddDatetime));
+
+                // 遍历计算有效阅读时长
+                for (int i = 0; i < list.size() - 1; i++) {
+                    LocalDateTime currentDatetime = list.get(i).getAddDatetime();
+                    LocalDateTime nextDatetime = list.get(i + 1).getAddDatetime();
+
+                    // 跳过无效时间
+                    if (currentDatetime == null || nextDatetime == null) {
+                        continue;
+                    }
+
+                    // 计算时间差
+                    Duration duration = Duration.between(currentDatetime, nextDatetime);
+                    long seconds = duration.getSeconds();
+
+                    // 如果在容忍范围内，计为有效阅读(1秒)
+                    if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
+                        readingTime += 1;
                     }
                 }
+                
+                // 将秒转换为小时
+                readingTime = readingTime / 3600;
             }
 
-            // 总阅读时间 = 连续阅读次数 + 章节阅读时间
-            Long totalReadingTime = chapterReadingTime;
-
-            // 根据教材 ID 获取教材信息
-            Textbook textbook = studentDataStatisticsMapper.getTextbookById(textbookId);
+            // 获取教材名称
+            Textbook textbook = textbookService.getById(textbookId);
             String textbookName = (textbook != null) ? textbook.getTextbookName() : "未知教材";
 
-            // 创建并填充排行参数对象
-            StudentTextbookRankParam param = new StudentTextbookRankParam()
-                    .setTextbook_id(textbookId)
-                    .setTextbook_name(textbookName)
-                    .setRead_time(totalReadingTime);  // 使用总阅读时间
-
-            // 计算教材掌握度
-            Double mastery = Double.parseDouble(String.format("%.2f", calculateTextbookMastery(studentId, textbookId)));
-            param.setMastery(mastery);
-
-            result.add(param);
+            // 构造返回对象
+            result.add(new StudentTextbookRankParam()
+                    .setTextbookId(textbookId)
+                    .setTextbookName(textbookName)
+                    .setReadingTime(readingTime));
         }
 
-        // 6. 按阅读时长（read_time）降序排序
-        result.sort(Comparator.comparingLong(StudentTextbookRankParam::getRead_time).reversed());
-
-        return result;
+        // 按阅读时长降序排序，取前10条
+        return result.stream()
+                .sorted((a, b) -> b.getReadingTime().compareTo(a.getReadingTime()))
+                .limit(10)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -928,16 +963,17 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
 
                     // 教材名称
                     row.createCell(1).setCellValue(
-                            p.getTextbook_name() == null ? "" : p.getTextbook_name()
+                            p.getTextbookName() == null ? "" : p.getTextbookName()
                     );
 
-                    // 有效阅读次数（read_time 是 long，直接写）
-                    row.createCell(2).setCellValue(p.getRead_time());
+                    // 有效阅读次数（readingTime 是 long，直接写）
+                    row.createCell(2).setCellValue(p.getReadingTime());
 
                     // 掌握度：数值 + 两位小数样式
                     Cell masteryCell = row.createCell(3);
-                    if (p.getMastery() != null) {
-                        masteryCell.setCellValue(p.getMastery());
+                    Double mastery = calculateTextbookMastery(studentId, p.getTextbookId());
+                    if (mastery != null) {
+                        masteryCell.setCellValue(mastery);
                         masteryCell.setCellStyle(twoDecimalStyle);
                     } else {
                         masteryCell.setCellValue("");
@@ -1108,10 +1144,10 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                  .setGroupId(group.getId())
                  .setGroupName(group.getName());
             
-            // 计算该学生的教材阅读数量
-            Long readingCount = studentDataStatisticsMapper.countTextbookByUserId(student.getUserId());
-            param.setReadingCount(readingCount == null ? 0L : readingCount);
-            
+            // 计算该学生的教材阅读时长(小时)
+            Long readingTime = this.countStudentTextbookReadingTimeByUserId(student.getUserId());
+            param.setReadingCount(readingTime == null ? 0L : readingTime);
+
             // 调用countStudentBehavior接口，获取学生行为分析结果
             StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(null,null);
             param.setBehavior(behaviorParam.getHabitType());
@@ -1119,7 +1155,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             result.add(param);
         }
         
-        // 根据阅读量排序并设置排名
+        // 根据阅读时长排序并设置排名
         result.sort((a, b) -> b.getReadingCount().compareTo(a.getReadingCount()));
         for (int i = 0; i < result.size(); i++) {
             result.get(i).setRank((long) (i + 1));

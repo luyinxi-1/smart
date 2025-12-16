@@ -41,9 +41,13 @@ public class SystemAllCountsDto {
     @ApiModelProperty(value = "智慧教材数量 (已发布)", example = "25")
     private Long textbookCount;
 
-    @ApiModelProperty(value = "某日总学习时长(分钟)", example = "1800")
+    @ApiModelProperty(value = "某日总学习时长(小时)", example = "30")
     private Long todayStudyTime;
 
     @ApiModelProperty(value = "某日访问人数", example = "350")
     private Long todayVisitorCount;
+
+    @ApiModelProperty("教材收藏数量（已发布教材被收藏次数）")
+    private Long textbookFavoriteCount;
+
 }
