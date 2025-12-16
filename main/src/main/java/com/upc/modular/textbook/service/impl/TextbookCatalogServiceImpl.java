@@ -580,13 +580,12 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         }
 
         Document doc = Jsoup.parse(html);
-        Elements fileDivs = doc.select("div[type=file-div1]"); // 确保你的HTML里真的是type属性，而不是class
+        Elements fileDivs = doc.select("div[type=file-div1]");
 
         if (fileDivs.isEmpty()) {
             return doc.outerHtml();
         }
 
-        // 遍历每一个附件块，原地处理
         for (Element fileDiv : fileDivs) {
 
             String idStr = fileDiv.attr("id");
@@ -597,14 +596,12 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             if (idStr != null && !idStr.trim().isEmpty()) {
                 try {
                     Long materialId = Long.valueOf(idStr.trim());
-                    // 假设这里能获取到 service，实际代码可能需要调整上下文
                     TeachingMaterials tm = teachingMaterialsService.getById(materialId);
                     if (tm != null && tm.getFilePath() != null && !tm.getFilePath().trim().isEmpty()) {
                         String path = tm.getFilePath().trim();
                         if (path.startsWith("http")) {
                             fileUrl = path;
                         } else {
-                            // 处理相对路径
                             if (baseUrl.endsWith("/") && path.startsWith("/")) {
                                 fileUrl = baseUrl + path.substring(1);
                             } else if (!baseUrl.endsWith("/") && !path.startsWith("/")) {
@@ -613,7 +610,6 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
                                 fileUrl = baseUrl + path;
                             }
                         }
-                        // 获取名称
                         if (tm.getName() != null && !tm.getName().trim().isEmpty()) {
                             displayName = tm.getName().trim();
                         } else if (tm.getFileName() != null && !tm.getFileName().trim().isEmpty()) {
@@ -626,13 +622,11 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             // --- 2. 清理原来的灰色说明文字 (保持不变) ---
             Element tailSpan = null;
             Node next = fileDiv.nextSibling();
-            // 跳过空白文本节点
             while (next instanceof TextNode && ((TextNode) next).text().trim().isEmpty()) {
                 next = next.nextSibling();
             }
             if (next instanceof Element) {
                 Element nextElem = (Element) next;
-                // 宽松匹配，防止因为样式微调导致匹配失败
                 if ("span".equalsIgnoreCase(nextElem.tagName())) {
                     tailSpan = nextElem;
                 }
@@ -642,7 +636,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             if (fileUrl == null || fileUrl.isEmpty()) {
                 fileDiv.remove();
                 if (tailSpan != null) tailSpan.remove();
-                continue; // 继续下一个
+                continue;
             }
 
             String qrDataUrl = generateQrCodeDataUrl(fileUrl);
@@ -652,36 +646,37 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
                 continue;
             }
 
-            // --- 4. 【核心修改】创建一个独立的 Table，原地插入 ---
+            // ============================================================
+            // --- 4. 【核心修改】改为垂直居中布局 (上图下文) ---
+            // ============================================================
 
-            // 创建一个只包含当前这一个二维码的表格
-            Element miniTable = doc.createElement("table");
-            miniTable.attr("style", "width:100%; border:none; margin: 10px 0;");
+            // 创建一个容器 DIV，通过 text-align: center 实现内部元素居中
+            Element containerDiv = doc.createElement("div");
+            // margin: 15px 0 增加一些上下的间距，防止过于拥挤
+            containerDiv.attr("style", "text-align: center; margin: 15px 0; width: 100%;");
 
-            Element tr = doc.createElement("tr");
-
-            // 左侧：显示标题/文件名 (模仿通常的排版)
-            Element tdInfo = doc.createElement("td");
-            tdInfo.attr("style", "vertical-align: middle; padding: 5px;");
-            tdInfo.html(displayName != null ? displayName : "未命名资源");
-
-            // 右侧：显示二维码
-            Element tdQr = doc.createElement("td");
-            tdQr.attr("style", "width:100px; text-align:right; vertical-align: middle; padding: 5px;");
-
+            // 1. 创建二维码图片
             Element qrImg = doc.createElement("img");
             qrImg.attr("src", qrDataUrl);
             qrImg.attr("width", "80");
             qrImg.attr("height", "80");
+            // display: inline-block 有助于保持图片属性，同时受父级 text-align 控制
+            qrImg.attr("style", "display: inline-block; border: none;");
 
-            tdQr.appendChild(qrImg);
-            tr.appendChild(tdInfo);
-            tr.appendChild(tdQr);
-            miniTable.appendChild(tr);
+            // 2. 创建文件名显示的块
+            Element nameDiv = doc.createElement("div");
+            // margin-top: 5px 让文字和二维码之间有一点空隙
+            // font-size/color 根据需要调整，这里给个通用的样式
+            nameDiv.attr("style", "margin-top: 5px; font-size: 14px; color: #333; line-height: 1.5;");
+            nameDiv.text(displayName != null ? displayName : "未命名资源");
+
+            // 将图片和文字依次放入容器
+            containerDiv.appendChild(qrImg);
+            containerDiv.appendChild(nameDiv);
 
             // --- 5. 执行替换 ---
-            // 在原来的 fileDiv 之前插入这个新表格
-            fileDiv.before(miniTable);
+            // 在原来的 fileDiv 之前插入这个新容器
+            fileDiv.before(containerDiv);
 
             // 删除旧元素
             fileDiv.remove();
