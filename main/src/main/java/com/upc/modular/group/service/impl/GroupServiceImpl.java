@@ -381,17 +381,21 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
         }
         result.put("studentCount", studentUserIds.size());
         
-        // 3. 班级总阅读量 - 使用批量查询优化性能
-        long totalReadingCount = 0;
+        // 3. 班级总阅读时长(小时) - 使用批量查询优化性能
+        long totalReadingHours = 0;
         if (!studentUserIds.isEmpty()) {
-            // 批量查询所有学生的阅读数量
-            List<Long> userIdList = new ArrayList<>(studentUserIds);
-            Long count = studentDataStatisticsMapper.countTextbookByUserIds(userIdList);
-            if (count != null) {
-                totalReadingCount = count;
+            // 批量查询所有学生的阅读时长
+            for (Long studentUserId : studentUserIds) {
+                // 获取每个学生的阅读时长并累加(以秒为单位)
+                Long studentReadingTime = studentDataStatisticsMapper.getStudentReadingTimeByUserId(studentUserId);
+                if (studentReadingTime != null) {
+                    totalReadingHours += studentReadingTime;
+                }
             }
+            // 将秒转换为小时
+            totalReadingHours = totalReadingHours / 3600;
         }
-        result.put("readingCount", totalReadingCount);
+        result.put("readingCount", totalReadingHours);
         
         return result;
     }
