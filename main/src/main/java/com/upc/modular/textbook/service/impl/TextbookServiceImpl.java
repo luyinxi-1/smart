@@ -1305,4 +1305,21 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         return null;
     }
 
+    @Override
+    public void updateTextbookDeleteStatus(List<Long> ids, Integer isDelete) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材ID列表不能为空");
+        }
+        
+        // 批量更新教材的is_delete字段
+        List<Textbook> textbooksToUpdate = new ArrayList<>();
+        for (Long id : ids) {
+            Textbook textbook = new Textbook();
+            textbook.setId(id);
+            textbook.setIsDelete(isDelete);
+            textbooksToUpdate.add(textbook);
+        }
+        
+        this.updateBatchById(textbooksToUpdate);
+    }
 }
