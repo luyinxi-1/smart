@@ -23,9 +23,9 @@ public class DailyStudyDurationDto {
      * 这个字段直接映射 MyBatis 从数据库查询出的结果。
      */
     @JsonIgnore
-   private Long durationInSeconds;
+    private Long durationInSeconds;
     /**
-     * 学习时长（分钟）
+     * 学习时长（小时）
      */
-    private Long durationInMinutes;
+    private Long durationInHours;
 }

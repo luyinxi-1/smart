@@ -7,26 +7,27 @@ import lombok.experimental.Accessors;
 
 @Data
 @Accessors(chain = true)
-@ApiModel(value = "StudentReadingRankParam对象", description = "学生阅读排名参数")
+@ApiModel(value = "StudentReadingRankParam", description = "学生阅读排行榜参数")
 public class StudentReadingRankParam {
-    @ApiModelProperty("班级名称")
-    private String groupName;
-    
-    @ApiModelProperty("班级ID")
-    private Long groupId;
-    
-    @ApiModelProperty("学生姓名")
-    private String studentName;
-    
+
     @ApiModelProperty("学生ID")
     private Long studentId;
-    
-    @ApiModelProperty("阅读量（该学生看所有书的总计阅读量）")
+
+    @ApiModelProperty("学生姓名")
+    private String studentName;
+
+    @ApiModelProperty("班级ID")
+    private Long groupId;
+
+    @ApiModelProperty("班级名称")
+    private String groupName;
+
+    @ApiModelProperty("阅读时长(小时)")
     private Long readingCount;
-    
-    @ApiModelProperty("排名（按阅读量排名）")
+
+    @ApiModelProperty("排名")
     private Long rank;
 
-    @ApiModelProperty("学生行为")
+    @ApiModelProperty("学习行为类型")
     private String behavior;
 }

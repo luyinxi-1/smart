@@ -30,5 +30,13 @@ public interface ICourseService extends IService<Course> {
 
     Long inserCourse(Course course);
     //
+    
+    /**
+     * 导出课程信息docx文档
+     * @param response HTTP响应
+     * @param courseId 课程ID
+     * @param classId 班级ID（可空；为空则导出该课程关联的所有班级）
+     */
+    void exportCourseInfoDocx(HttpServletResponse response, Long courseId, Long classId);
 
 }

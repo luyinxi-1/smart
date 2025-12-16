@@ -182,54 +182,64 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
 
     @Override
     public List<DailyStudyDurationDto> getStudyDurationByTime(String timeRange) {
-        // 定义业务所需的时区为一个常量，这是最佳实践
-        final ZoneId BUSINESS_ZONE_ID = ZoneId.of("Asia/Shanghai");
-
-        // 确保 endDate 也是基于业务时区生成的
-        LocalDate endDate = LocalDate.now(BUSINESS_ZONE_ID);
+        // 1. 参数校验和处理
+        LocalDate now = LocalDate.now();
         LocalDate startDate;
+        LocalDate endDate;
 
-        // 1. 日期范围计算... (这部分不变)
         switch (timeRange.toLowerCase()) {
             case "week":
-                startDate = endDate.minusDays(6);
+                // 获取本周一作为开始日期
+                startDate = now.with(java.time.DayOfWeek.MONDAY);
+                endDate = startDate.plusDays(6);
                 break;
             case "month":
-                startDate = endDate.minusMonths(1).plusDays(1);
+                // 获取本月第一天作为开始日期
+                startDate = now.with(java.time.temporal.TemporalAdjusters.firstDayOfMonth());
+                endDate = now.with(java.time.temporal.TemporalAdjusters.lastDayOfMonth());
                 break;
             case "year":
-                startDate = endDate.minusYears(1).plusDays(1);
+                // 获取本年第一天作为开始日期
+                startDate = now.with(java.time.temporal.TemporalAdjusters.firstDayOfYear());
+                endDate = now.with(java.time.temporal.TemporalAdjusters.lastDayOfYear());
                 break;
             default:
-                throw new IllegalArgumentException("无效的时间范围: " + timeRange);
+                throw new IllegalArgumentException("不支持的时间范围: " + timeRange + "。只支持 'week', 'month', 'year'。");
         }
 
-        // 2. 从 Mapper 获取数据 (不变)
-        List<DailyStudyDurationDto> recordedDurations = systemDataStatisticsMapper.getStudyDurationsByDateRange(startDate, endDate);
+        // 2. 调用 Mapper 获取原始数据
+        List<DailyStudyDurationDto> dbResults = systemDataStatisticsMapper.getStudyDurationsByDateRange(startDate, endDate);
 
-        // 3. 将结果转换为 Map，使用统一的业务时区
-        Map<LocalDate, Long> durationMapInSeconds = recordedDurations.stream()
+        // 3. 构建一个从日期到 DTO 的映射，方便快速查找
+        Map<LocalDate, DailyStudyDurationDto> resultsMap = dbResults.stream()
                 .collect(Collectors.toMap(
-                        // 使用业务时区进行转换，与SQL的逻辑保持一致
-                        dto -> dto.getDate().toInstant().atZone(BUSINESS_ZONE_ID).toLocalDate(),
-                        dto -> dto.getDurationInSeconds()
+                        // 关键：将 java.util.Date 转换为 LocalDate
+                        dto -> dto.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
+                        dto -> dto,
+                        (existing, replacement) -> existing // 用于处理重复的键，虽然这里不太可能发生
                 ));
 
-        // 4. 生成完整的日期序列并补全数据
-        long daysBetween = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        // 4. 生成完整的日期范围并补全数据
+        long numOfDays = startDate.until(endDate, ChronoUnit.DAYS) + 1;
 
         return Stream.iterate(startDate, date -> date.plusDays(1))
-                .limit(daysBetween)
+                .limit(numOfDays)
                 .map(date -> {
-                    Long durationInSeconds = durationMapInSeconds.getOrDefault(date, 0L);
-                    DailyStudyDurationDto resultDto = new DailyStudyDurationDto();
-
-                    // 在将 LocalDate 转回 Date 时，也应指定业务时区
-                    resultDto.setDate(Date.from(date.atStartOfDay(BUSINESS_ZONE_ID).toInstant()));
-                    resultDto.setDurationInMinutes(durationInSeconds / 60);
-                    resultDto.setDurationInSeconds(durationInSeconds);
-
-                    return resultDto;
+                    DailyStudyDurationDto foundDto = resultsMap.get(date);
+                    if (foundDto != null) {
+                        // 将秒转换为小时
+                        if (foundDto.getDurationInSeconds() != null) {
+                            foundDto.setDurationInHours(foundDto.getDurationInSeconds() / 3600);
+                        }
+                        return foundDto;
+                    } else {
+                        // 关键：创建 DTO 时，将 LocalDate 转换回 java.util.Date
+                        Date missingDate = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
+                        DailyStudyDurationDto newDto = new DailyStudyDurationDto();
+                        newDto.setDate(missingDate);
+                        newDto.setDurationInHours(0L);
+                        return newDto;
+                    }
                 })
                 .collect(Collectors.toList());
     }
@@ -301,7 +311,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         // 对所有角色通用的统计
         countsDto.setTodayVisitorCount(systemDataStatisticsMapper.getVisitorCountByDate(dateParams));
         Long studyTimeInSeconds = systemDataStatisticsMapper.getStudyDurationByDate(dateParams);
-        countsDto.setTodayStudyTime(studyTimeInSeconds != null ? studyTimeInSeconds / 60 : 0L);
+        countsDto.setTodayStudyTime(studyTimeInSeconds != null ? studyTimeInSeconds / 3600 : 0L);
 
         // 根据角色进行差异化统计
         if (userType == 0) { // 管理员
