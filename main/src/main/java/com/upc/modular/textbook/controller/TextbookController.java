@@ -64,7 +64,7 @@ public class TextbookController {
         PageBaseReturnParam<TextbookPageReturnParam> result = PageBaseReturnParam.ok(page);
         return R.page(result);
     }
-    @ApiOperation(value = "教材中心查询教材")
+    @ApiOperation(value = "教材中心按教学讨论查询教材")
     @PostMapping("/getTextbookCenter")
     public R<PageBaseReturnParam<TextbookCenterPageReturnParam>> getTextbookCenter(@RequestBody TextbookCenterPageSearchParam param) {
         Page<TextbookCenterPageReturnParam> page = textbookService.getTextbookCenter(param);

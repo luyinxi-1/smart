@@ -176,6 +176,13 @@
             <version>2.1.1</version>
         </dependency>
 
+        <!-- 添加缺失的POI OOXML Schemas依赖，解决WorkbookDocument$Factory类找不到的问题 -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml-schemas</artifactId>
+            <version>4.1.2</version>
+        </dependency>
+
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
