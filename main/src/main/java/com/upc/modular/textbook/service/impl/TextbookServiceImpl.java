@@ -197,6 +197,10 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             result.setChapterId(matchedContentCatalog != null ? matchedContentCatalog.getId() : null);
             results.add(result);
         }
+        
+        // 按照修改时间降序排序
+        results.sort(Comparator.comparing(TextbookIntelligentQueryReturnParam::getUpdateDate, 
+                                         Comparator.nullsLast(Comparator.reverseOrder())));
 
         return results;
     }
@@ -224,7 +228,18 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             return true;
         }
         
-        // 如果是教师，可以直接访问
+        // 检查是否存在类型为2的权限记录（机构可见权限）
+        MyLambdaQueryWrapper<TextbookAuthority> type2Wrapper = new MyLambdaQueryWrapper<>();
+        type2Wrapper.eq(TextbookAuthority::getTextbookId, textbookId);
+        type2Wrapper.eq(TextbookAuthority::getAuthorityType, 2);
+        long type2Count = textbookAuthorityMapper.selectCount(type2Wrapper);
+        
+        // 如果没有类型为2的权限记录，则所有机构都可以访问
+        if (type2Count == 0) {
+            return true;
+        }
+        
+        // 如果是教师，判断权限
         if (userType != null && userType == 2) {
             // 获取教师所在机构
             SysTbuser user = sysUserService.getById(userId);
@@ -237,18 +252,28 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                 return false;
             }
 
-            // 检查权限：
-            // 1. authority_type = 1 且 user_id = 教师的 user_id
-            // 2. authority_type = 2 且 visible_institute_id = 教师的 institution_id
+            // 查询该教材的所有权限记录
             MyLambdaQueryWrapper<TextbookAuthority> accessWrapper = new MyLambdaQueryWrapper<>();
             accessWrapper.eq(TextbookAuthority::getTextbookId, textbookId);
-            accessWrapper.and(wrapper ->
-                    wrapper.eq(TextbookAuthority::getAuthorityType, 1).eq(TextbookAuthority::getUserId, userId)
-                            .or()
-                            .eq(TextbookAuthority::getAuthorityType, 2).eq(TextbookAuthority::getVisibleInstituteId, institutionId)
-            );
-
-            return textbookAuthorityMapper.selectCount(accessWrapper) > 0;
+            List<TextbookAuthority> authorities = textbookAuthorityMapper.selectList(accessWrapper);
+            
+            // 遍历权限记录，检查是否满足访问条件
+            for (TextbookAuthority authority : authorities) {
+                // 检查协作者权限：authority_type = 1 且 user_id = 教师的 user_id
+                if (Integer.valueOf(1).equals(authority.getAuthorityType()) 
+                    && userId.equals(authority.getUserId())) {
+                    return true;
+                }
+                
+                // 检查机构可见权限：authority_type = 2 且 教师所在机构在可见范围内
+                if (Integer.valueOf(2).equals(authority.getAuthorityType()) 
+                    && authority.getVisibleInstituteId() != null 
+                    && institutionService.judgeInclusion(institutionId, authority.getVisibleInstituteId())) {
+                    return true;
+                }
+            }
+            
+            return false;
         }
         
         // 如果是学生，需要检查班级权限
@@ -275,13 +300,21 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                 return false;
             }
             
-            // 检查该机构是否有权限访问该教材
+            // 查询该教材的机构可见权限记录
             MyLambdaQueryWrapper<TextbookAuthority> accessWrapper = new MyLambdaQueryWrapper<>();
             accessWrapper.eq(TextbookAuthority::getTextbookId, textbookId)
-                         .eq(TextbookAuthority::getAuthorityType, 2) // 机构权限类型
-                         .eq(TextbookAuthority::getVisibleInstituteId, institutionId);
+                         .eq(TextbookAuthority::getAuthorityType, 2); // 机构权限类型
+            List<TextbookAuthority> authorities = textbookAuthorityMapper.selectList(accessWrapper);
             
-            return textbookAuthorityMapper.selectCount(accessWrapper) > 0;
+            // 检查学生所在机构是否在可见范围内
+            for (TextbookAuthority authority : authorities) {
+                if (authority.getVisibleInstituteId() != null 
+                    && institutionService.judgeInclusion(institutionId, authority.getVisibleInstituteId())) {
+                    return true;
+                }
+            }
+            
+            return false;
         }
         
         return false;
