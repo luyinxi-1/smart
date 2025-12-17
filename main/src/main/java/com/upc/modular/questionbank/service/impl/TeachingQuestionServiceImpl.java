@@ -303,64 +303,62 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
             return vo;
         }).collect(Collectors.toList());
     }
-    
+
+
     @Override
     public List<QuestionCountByTypeReturnParam> countQuestionsByType(Long textbookId, Long chapterId) {
-        // 获取指定章节及其所有子章节的ID列表
+        // 1. 获取指定章节及其所有子章节的ID列表
         TextbookSpecifiedCatalogSearchParam param = new TextbookSpecifiedCatalogSearchParam();
         param.setTextbookId(textbookId);
         param.setCatalogId(chapterId);
         List<Long> chapterIds = textbookCatalogService.getTextbookSpecifiedCatalog(param);
-        
-        // 使用章节ID列表查询数据库获取各题型数量
+
+        // 2. 使用章节ID列表查询数据库获取各题型数量
         List<QuestionCountByTypeReturnParam> result = teachingQuestionMapper.countQuestionsByTypeWithChapters(textbookId, chapterIds);
-        
-        // 创建一个包含所有题型的映射，确保即使题型没有题目也会显示
+
+        // 3. 创建一个包含所有题型的映射，初始化 1-7 全部为 0
         Map<Integer, QuestionCountByTypeReturnParam> typeMap = new HashMap<>();
-        
+
         // 初始化所有可能的题型（1-7）
         for (int i = 1; i <= 7; i++) {
             QuestionCountByTypeReturnParam returnTypeParam = new QuestionCountByTypeReturnParam();
             returnTypeParam.setTypeId(i);
-            returnTypeParam.setCount(0L);
-            
-            // 设置题型名称
+            returnTypeParam.setCount(0L); // 默认设置为0
+
             switch (i) {
-                case 1:
-                    returnTypeParam.setTypeName("单选题");
-                    break;
-                case 2:
-                    returnTypeParam.setTypeName("多选题");
-                    break;
-                case 3:
-                    returnTypeParam.setTypeName("判断题");
-                    break;
-                case 4:
-                    returnTypeParam.setTypeName("填空题");
-                    break;
-                case 5:
-                    returnTypeParam.setTypeName("简答题");
-                    break;
-                case 6:
-                    returnTypeParam.setTypeName("计算题");
-                    break;
-                case 7:
-                    returnTypeParam.setTypeName("论述题");
-                    break;
-                default:
-                    returnTypeParam.setTypeName("未知题型");
-                    break;
+                case 1: returnTypeParam.setTypeName("单选题"); break;
+                case 2: returnTypeParam.setTypeName("多选题"); break;
+                case 3: returnTypeParam.setTypeName("判断题"); break;
+                case 4: returnTypeParam.setTypeName("填空题"); break;
+                case 5: returnTypeParam.setTypeName("简答题"); break;
+                case 6: returnTypeParam.setTypeName("计算题"); break;
+                case 7: returnTypeParam.setTypeName("论述题"); break;
+                default: returnTypeParam.setTypeName("未知题型"); break;
             }
-            
             typeMap.put(i, returnTypeParam);
         }
-        
-        // 更新实际有题目的题型数量
-        for (QuestionCountByTypeReturnParam item : result) {
-            typeMap.get(item.getTypeId()).setCount(item.getCount());
+
+        // 4. 【安全更新】更新实际有题目的题型数量
+        // 先判断 result 是否有效
+        if (result != null && !result.isEmpty()) {
+            for (QuestionCountByTypeReturnParam item : result) {
+                // 校验数据有效性
+                if (item == null || item.getTypeId() == null) {
+                    continue;
+                }
+
+                // 尝试获取对应的题型对象
+                QuestionCountByTypeReturnParam targetParam = typeMap.get(item.getTypeId());
+
+                // 只有当 targetParam 存在时（即 typeId 是 1-7）才更新数量
+                // 这一步完美避免了 NPE
+                if (targetParam != null) {
+                    targetParam.setCount(item.getCount());
+                }
+            }
         }
-        
-        // 返回完整的结果列表
+
+        // 5. 返回完整的结果列表
         return new ArrayList<>(typeMap.values());
     }
 }

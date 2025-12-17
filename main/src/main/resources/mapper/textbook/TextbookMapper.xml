@@ -41,6 +41,7 @@
         t.operator,
         t.operation_datetime,
         t.belong_institution_id,
+        t.is_delete,
         a.name AS textbook_author_name,
         d.name AS type_name,
         i.institution_name AS belong_institution_name,
