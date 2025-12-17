@@ -21,8 +21,8 @@ public class TextbookTypeReadingRankExportParam {
     @ApiModelProperty("类型名称")
     private String typeName;
 
-    @ExcelProperty("阅读时长(分钟)")
-    @ApiModelProperty("阅读时长(分钟)")
+    @ExcelProperty("阅读时长(小时)")
+    @ApiModelProperty("阅读时长(小时)")
     private Long readingDuration;
 
     @ExcelProperty("排名")
