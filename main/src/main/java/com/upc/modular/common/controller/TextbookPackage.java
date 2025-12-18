@@ -268,7 +268,8 @@ public class TextbookPackage {
         }
 
         if (textbookCatalogs.isEmpty()) {
-            throw new IOException("数据库中未找到ID为 " + textbookId + " 的教材内容。");
+            // 注释掉原有的检查逻辑，允许下载没有章节内容的教材包
+            // throw new IOException("数据库中未找到ID为 " + textbookId + " 的教材内容。");
         }
 
         // 拼接成一个完整的HTML文档
