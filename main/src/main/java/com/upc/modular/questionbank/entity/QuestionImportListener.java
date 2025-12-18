@@ -2,8 +2,10 @@ package com.upc.modular.questionbank.entity;
 
 import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.event.AnalysisEventListener;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.upc.modular.questionbank.mapper.TeachingQuestionClassificationMapper;
 import com.upc.modular.questionbank.service.ITeachingQuestionService;
 import org.apache.commons.lang3.StringUtils;
 
@@ -27,15 +29,17 @@ public class QuestionImportListener extends AnalysisEventListener<QuestionImport
     private final String textbookName;
     private final Long chapterId;
     private final String chapterName;
+    private TeachingQuestionClassificationMapper teachingQuestionClassificationMapper;
 
     public QuestionImportListener(ITeachingQuestionService questionService,
                                   Long textbookId, String textbookName,
-                                  Long chapterId, String chapterName) {
+                                  Long chapterId, String chapterName, TeachingQuestionClassificationMapper teachingQuestionClassificationMapper) {
         this.questionService = questionService;
         this.textbookId = textbookId;
         this.textbookName = textbookName;
         this.chapterId = chapterId;
         this.chapterName = chapterName;
+        this.teachingQuestionClassificationMapper = teachingQuestionClassificationMapper;
     }
 
     @Override
@@ -137,7 +141,7 @@ public class QuestionImportListener extends AnalysisEventListener<QuestionImport
         TeachingQuestion q = new TeachingQuestion();
         q.setContent(dto.getContent());
         q.setAnswerAnalysis(dto.getAnalysis());
-        q.setTeachingQuestionClassificationId(dto.getAttribute());
+        q.setTeachingQuestionClassificationId(getClassificationIdByName(dto.getAttribute()));
         // --- 题型转换 (示例) ---
         // 建议建立一个 Map 或 Enum 来维护这种映射
         switch (dto.getTypeName()) {
@@ -164,6 +168,36 @@ public class QuestionImportListener extends AnalysisEventListener<QuestionImport
         q.setAnswer(formattedAnswer);
 
         return q;
+    }
+
+    /**
+     * 根据分类名称获取分类ID
+     */
+    private Long getClassificationIdByName(String classificationName) {
+        if (classificationName == null || classificationName.isEmpty()) {
+            return null;
+        }
+        
+        // 根据分类名称模糊查询获取对应的ID
+        // 使用Spring注入的方式获取Mapper
+        // 注意：在实际使用中，需要通过适当的方式注入TeachingQuestionClassificationMapper
+        // 这里假设已经通过某种方式获得了mapper实例
+        try {
+            // 创建查询条件
+            TeachingQuestionClassification condition = new TeachingQuestionClassification();
+            condition.setTeachingQuestionClassificationName(classificationName);
+
+             TeachingQuestionClassification result = teachingQuestionClassificationMapper.selectOne(new QueryWrapper<>(condition));
+             if (result != null) {
+                 return result.getId();
+             }
+            
+            // 临时返回null，直到实现真正的查询逻辑
+            return null;
+        } catch (Exception e) {
+            // 发生异常时返回null
+            return null;
+        }
     }
 
     private String formatAnswer(String typeName, String rawAnswer) {

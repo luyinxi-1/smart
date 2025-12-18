@@ -71,7 +71,7 @@ public class TeachingQuestionPageSearchReturnVO implements Serializable {
 
     @ApiModelProperty("题目分类")
     @TableField("teaching_question_classification_id")
-    private String teachingQuestionClassificationId;
+    private Long teachingQuestionClassificationId;
 
     @ApiModelProperty("选择题选项")
     @TableField("choice_question_options")
