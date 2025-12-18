@@ -64,6 +64,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.upc.modular.student.controller.param.vo.StudentExportExcelVO;
 
 import static com.upc.context.LoginContextHolder.getUserInfoToRedis;
 
@@ -453,8 +454,8 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
             List<StudentReturnVo> students = studentMapper.selectStudentExportList(param);
 
             // 2. 将查询结果转换成导出VO列表 (此部分逻辑已更新)
-            List<com.upc.modular.student.controller.param.excel.StudentExportExcelVO> exportList = students.stream().map(s -> {
-                com.upc.modular.student.controller.param.excel.StudentExportExcelVO vo = new com.upc.modular.student.controller.param.excel.StudentExportExcelVO();
+            List<StudentExportExcelVO> exportList = students.stream().map(s -> {
+                StudentExportExcelVO vo = new StudentExportExcelVO();
 
                 // --- 按新的VO进行字段映射 ---
                 vo.setIdentityId(s.getIdentityId());
@@ -481,7 +482,7 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
             }).collect(Collectors.toList());
 
             // 3. 利用 EasyExcel 写出Excel
-            EasyExcel.write(response.getOutputStream(), com.upc.modular.student.controller.param.excel.StudentExportExcelVO.class)
+            EasyExcel.write(response.getOutputStream(), StudentExportExcelVO.class)
                     .registerConverter(new LocalDateTimeConverter())
                     .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
                     .sheet("学生列表")
