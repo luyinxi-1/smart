@@ -14,4 +14,10 @@ import lombok.experimental.Accessors;
 public class MaterialPushPageSearchParam extends PageBaseSearchParam {
     @ApiModelProperty("教材ID")
     private Long textbookId;
+    
+    @ApiModelProperty("章节ID")
+    private Long textbookCatalogId;
+    
+    @ApiModelProperty("资料名称")
+    private String name;
 }

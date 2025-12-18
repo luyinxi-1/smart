@@ -89,6 +89,17 @@ public class MaterialPushServiceImpl extends ServiceImpl<MaterialPushMapper, Mat
         Page<MaterialPush> page = new Page<>(param.getCurrent(), param.getSize());
         LambdaQueryWrapper<MaterialPush> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(MaterialPush::getTextbookId, param.getTextbookId());
+
+        // 添加章节ID查询条件
+        if (param.getTextbookCatalogId() != null) {
+            queryWrapper.eq(MaterialPush::getTextbookCatalogId, param.getTextbookCatalogId());
+        }
+
+        // 添加名称模糊查询条件
+        if (StringUtils.hasText(param.getName())) {
+            queryWrapper.like(MaterialPush::getName, param.getName());
+        }
+
         Page<MaterialPush> result = this.page(page, queryWrapper);
 
         List<MaterialPush> records = result.getRecords();
