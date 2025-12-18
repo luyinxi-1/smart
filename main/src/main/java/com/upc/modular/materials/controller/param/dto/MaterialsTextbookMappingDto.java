@@ -18,8 +18,6 @@ public class MaterialsTextbookMappingDto {
     @ApiModelProperty("章节ID")
     private  Long chapterId;
 
-
-
     @ApiModelProperty("章节UUID")
     private String chapterUuid;
 }

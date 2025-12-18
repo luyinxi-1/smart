@@ -41,7 +41,16 @@ public interface ITextbookService extends IService<Textbook> {
 
     Page<TextbookCenterPageReturnParam> getTextbookCenter(TextbookCenterPageSearchParam param);
     
-    List<TextbookIntelligentQueryReturnParam> smartSearch(String query);
+
+    /**
+     * 教材智能搜索（分页版本）
+     *
+     * @param query 搜索关键词，支持多个关键词（逗号或顿号分隔）
+     * @param current 当前页码
+     * @param size 每页大小
+     * @return 分页搜索结果
+     */
+    Page<TextbookIntelligentQueryReturnParam> smartSearch(String query, long current, long size);
     
     List<TextbookContentSearchResult> smartSearchInTextbook(Long textbookId, String query);
     

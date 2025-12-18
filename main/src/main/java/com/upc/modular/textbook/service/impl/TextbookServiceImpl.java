@@ -84,11 +84,12 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     
     @Autowired
     private ITextbookTemplateService textbookTemplateService;
-
+    
     @Override
-    public List<TextbookIntelligentQueryReturnParam> smartSearch(String query) {
+    public Page<TextbookIntelligentQueryReturnParam> smartSearch(String query, long current, long size) {
         if (StringUtils.isBlank(query)) {
-            return new ArrayList<>(); // 返回空列表
+            // 返回空页面
+            return new Page<>(current, size, 0);
         }
 
         // 1. 解析关键词
@@ -98,7 +99,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                 .collect(Collectors.toList());
 
         if (keywords.isEmpty()) {
-            return new ArrayList<>();
+            return new Page<>(current, size, 0);
         }
 
         // 2.【教材查询】通过关键词分别在教材名、章节名、章节内容中搜索
@@ -156,53 +157,70 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             LocalDateTime updateDate = textbook.getOperationDatetime();
             
             // 【章节查询】在当前教材下搜索章节名
-            TextbookCatalog matchedChapter = findChapterByKeywords(keywords, targetTextbookId);
-            String chapterName = (matchedChapter != null && StringUtils.isNotBlank(matchedChapter.getCatalogName()))
-                    ? stripHtml(matchedChapter.getCatalogName())
-                    : null;
-
+            List<TextbookCatalog> matchedChapters = findChaptersByKeywords(keywords, targetTextbookId);
+            
             // 【内容查询】在当前教材下搜索内容
-            String content = null;
-            TextbookCatalog matchedContentCatalog = null;
-
-            // 优先级1: 如果找到了章节，首先检查该章节的内容是否也匹配关键词
-            if (matchedChapter != null && StringUtils.isNotBlank(matchedChapter.getContent())) {
-                // 在内存中检查已找到章节的内容是否包含所有关键词
-                boolean allKeywordsInContent = keywords.stream()
-                        .allMatch(key -> matchedChapter.getContent().contains(key));
-                if (allKeywordsInContent) {
-                    matchedContentCatalog = matchedChapter; // 内容就在已找到的章节里，这是最佳匹配
+            List<TextbookCatalog> matchedContentCatalogs = findContentByKeywords(keywords, targetTextbookId);
+            
+            // 合并章节和内容匹配的结果，并去重
+            Set<Long> processedChapterIds = new HashSet<>();
+            List<TextbookCatalog> allMatchedCatalogs = new ArrayList<>();
+            
+            // 先处理章节名匹配的结果
+            for (TextbookCatalog chapter : matchedChapters) {
+                if (processedChapterIds.add(chapter.getId())) {
+                    allMatchedCatalogs.add(chapter);
                 }
             }
-
-            // 优先级2/3: 如果在已找到的章节中没找到内容，或根本没找到章节，则在整个教材中搜索内容
-            if (matchedContentCatalog == null) {
-                // 在整个教材范围内搜索内容
-                matchedContentCatalog = findContentByKeywords(keywords, targetTextbookId);
-                chapterName = (matchedContentCatalog != null && StringUtils.isNotBlank(matchedContentCatalog.getCatalogName()))
-                        ? stripHtml(matchedContentCatalog.getCatalogName())
-                        : null;
-            }
-
-            content = (matchedContentCatalog != null) ? stripHtml(matchedContentCatalog.getContent()) : null;
             
-            // 添加到结果列表
-            TextbookIntelligentQueryReturnParam result = new TextbookIntelligentQueryReturnParam();
-            result.setTextbookName(textbookName);
-            result.setAuthorName(authorName);
-            result.setUpdateDate(updateDate);
-            result.setChapterName(chapterName);
-            result.setContent(content);
-            result.setTextbookId(targetTextbookId);
-            result.setChapterId(matchedContentCatalog != null ? matchedContentCatalog.getId() : null);
-            results.add(result);
+            // 再处理内容匹配的结果
+            for (TextbookCatalog catalog : matchedContentCatalogs) {
+                if (processedChapterIds.add(catalog.getId())) {
+                    allMatchedCatalogs.add(catalog);
+                }
+            }
+            
+            // 为每个匹配的章节创建一个返回结果
+            for (TextbookCatalog catalog : allMatchedCatalogs) {
+                TextbookIntelligentQueryReturnParam result = new TextbookIntelligentQueryReturnParam();
+                result.setTextbookName(textbookName);
+                result.setAuthorName(authorName);
+                result.setUpdateDate(updateDate);
+                result.setChapterName(StringUtils.isNotBlank(catalog.getCatalogName()) ? 
+                                    stripHtml(catalog.getCatalogName()) : null);
+                result.setContent(StringUtils.isNotBlank(catalog.getContent()) ? 
+                                extractMatchedContent(catalog.getContent(), keywords) : null);
+                result.setTextbookId(targetTextbookId);
+                result.setChapterId(catalog.getId());
+                result.setChapterCount(allMatchedCatalogs.size());
+                results.add(result);
+            }
         }
         
         // 按照修改时间降序排序
         results.sort(Comparator.comparing(TextbookIntelligentQueryReturnParam::getUpdateDate, 
                                          Comparator.nullsLast(Comparator.reverseOrder())));
 
-        return results;
+        // 分页处理
+        long total = results.size();
+        long fromIndex = (current - 1) * size;
+        
+        // 如果起始索引超出范围，返回空页
+        if (fromIndex >= total) {
+            return new Page<>(current, size, total);
+        }
+        
+        long toIndex = Math.min(fromIndex + size, total);
+        List<TextbookIntelligentQueryReturnParam> pageRecords = results.subList((int) fromIndex, (int) toIndex);
+
+        // 组装 Page
+        Page<TextbookIntelligentQueryReturnParam> resultPage = new Page<>();
+        resultPage.setCurrent(current);
+        resultPage.setSize(size);
+        resultPage.setTotal(total);
+        resultPage.setRecords(pageRecords);
+        
+        return resultPage;
     }
 
     /**
@@ -384,33 +402,31 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     }
 
     /**
-     * 根据关键词列表和可选的教材ID，在【章节名称】中模糊查询，返回找到的第一个。
+     * 根据关键词列表和可选的教材ID，在【章节名称】中模糊查询，返回找到的所有匹配章节。
      * 所有关键词都必须在章节名中出现 (AND逻辑)。
      */
-    private TextbookCatalog findChapterByKeywords(List<String> keywords, Long textbookId) {
+    private List<TextbookCatalog> findChaptersByKeywords(List<String> keywords, Long textbookId) {
         MyLambdaQueryWrapper<TextbookCatalog> wrapper = new MyLambdaQueryWrapper<>();
         if (textbookId != null) {
             wrapper.eq(TextbookCatalog::getTextbookId, textbookId);
         }
         // AND 逻辑
         keywords.forEach(key -> wrapper.like(TextbookCatalog::getCatalogName, key));
-        wrapper.last("LIMIT 1");
-        return textbookCatalogMapper.selectOne(wrapper);
+        return textbookCatalogMapper.selectList(wrapper);
     }
 
     /**
-     * 根据关键词列表和可选的教材ID，在【章节内容】中模糊查询，返回找到的第一个。
+     * 根据关键词列表和可选的教材ID，在【章节内容】中模糊查询，返回找到的所有匹配章节。
      * 所有关键词都必须在内容中出现 (AND逻辑)。
      */
-    private TextbookCatalog findContentByKeywords(List<String> keywords, Long textbookId) {
+    private List<TextbookCatalog> findContentByKeywords(List<String> keywords, Long textbookId) {
         MyLambdaQueryWrapper<TextbookCatalog> wrapper = new MyLambdaQueryWrapper<>();
         if (textbookId != null) {
             wrapper.eq(TextbookCatalog::getTextbookId, textbookId);
         }
         // AND 逻辑
         keywords.forEach(key -> wrapper.like(TextbookCatalog::getContent, key));
-        wrapper.last("LIMIT 1");
-        return textbookCatalogMapper.selectOne(wrapper);
+        return textbookCatalogMapper.selectList(wrapper);
     }
 
     /**

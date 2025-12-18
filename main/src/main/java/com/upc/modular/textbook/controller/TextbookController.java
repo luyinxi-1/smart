@@ -83,12 +83,18 @@ public class TextbookController {
         PageBaseReturnParam<Textbook> result = PageBaseReturnParam.ok(pageResult);
         return R.page(result);
     }
-    @ApiOperation(value = "智能搜索教材(关键词版)")
+    @ApiOperation("教材智能搜索")
     @GetMapping("/smartSearch")
-    public R<List<TextbookIntelligentQueryReturnParam>> smartSearch(
-            @ApiParam(value = "关键词字符串，用逗号分隔", required = true)
-            @RequestParam("query") String query) {
-        return R.ok(textbookService.smartSearch(query));
+    public R<Page<TextbookIntelligentQueryReturnParam>> smartSearch(
+            @ApiParam("搜索关键词") @RequestParam String query,
+            @ApiParam("页码") @RequestParam(defaultValue = "1") long current,
+            @ApiParam("每页条数") @RequestParam(defaultValue = "10") long size) {
+        try {
+            Page<TextbookIntelligentQueryReturnParam> result = textbookService.smartSearch(query, current, size);
+            return R.ok(result);
+        } catch (Exception e) {
+            return R.fail("搜索失败");
+        }
     }
 
 

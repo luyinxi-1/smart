@@ -33,4 +33,7 @@ public class TextbookIntelligentQueryReturnParam {
     
     @ApiModelProperty("章节ID")
     private Long chapterId;
+    
+    @ApiModelProperty("该教材中匹配到的章节总数")
+    private Integer chapterCount;
 }
