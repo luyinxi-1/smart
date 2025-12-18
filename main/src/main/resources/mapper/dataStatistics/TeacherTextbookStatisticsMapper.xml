@@ -489,33 +489,36 @@
             GROUP BY tqb.textbook_catalog_id
         ) student_stats ON tc.id = student_stats.textbook_catalog_id
         LEFT JOIN (
-            -- 统计学生章节阅读时长
+            -- 统计学生章节阅读时长（修改：先统计所有有效间隔，再归属到章节）
             SELECT 
-                t1.catalogue_id,
-                COUNT(*) as reading_duration
+                catalogue_id,
+                ROUND(SUM(duration_seconds) / 60) as reading_duration
             FROM (
                 SELECT 
-                    ll.catalogue_id,
-                    ll.add_datetime,
-                    ROW_NUMBER() OVER (PARTITION BY ll.catalogue_id ORDER BY ll.add_datetime) as rn
-                FROM learning_log ll
-                WHERE ll.textbook_id = #{textbookId} AND ll.creator = (
-                    SELECT user_id FROM student WHERE id = #{studentId}
-                )
-            ) t1
-            LEFT JOIN (
-                SELECT 
-                    ll.catalogue_id,
-                    ll.add_datetime,
-                    ROW_NUMBER() OVER (PARTITION BY ll.catalogue_id ORDER BY ll.add_datetime) as rn
-                FROM learning_log ll
-                WHERE ll.textbook_id = #{textbookId} AND ll.creator = (
-                    SELECT user_id FROM student WHERE id = #{studentId}
-                )
-            ) t2 ON t1.catalogue_id = t2.catalogue_id AND t1.rn = t2.rn - 1
-            WHERE t2.add_datetime IS NOT NULL 
-                AND EXTRACT(EPOCH FROM t2.add_datetime) - EXTRACT(EPOCH FROM t1.add_datetime) BETWEEN 55 AND 65
-            GROUP BY t1.catalogue_id
+                    ll1.catalogue_id,
+                    EXTRACT(EPOCH FROM ll2.add_datetime) - EXTRACT(EPOCH FROM ll1.add_datetime) as duration_seconds
+                FROM (
+                    SELECT 
+                        catalogue_id,
+                        add_datetime,
+                        ROW_NUMBER() OVER (ORDER BY add_datetime) as rn
+                    FROM learning_log
+                    WHERE textbook_id = #{textbookId} 
+                      AND creator = (SELECT user_id FROM student WHERE id = #{studentId})
+                ) ll1
+                INNER JOIN (
+                    SELECT 
+                        catalogue_id,
+                        add_datetime,
+                        ROW_NUMBER() OVER (ORDER BY add_datetime) as rn
+                    FROM learning_log
+                    WHERE textbook_id = #{textbookId} 
+                      AND creator = (SELECT user_id FROM student WHERE id = #{studentId})
+                ) ll2 ON ll1.rn = ll2.rn - 1
+                WHERE EXTRACT(EPOCH FROM ll2.add_datetime) - EXTRACT(EPOCH FROM ll1.add_datetime) BETWEEN 55 AND 65
+                  AND ll1.catalogue_id IS NOT NULL
+            ) intervals
+            GROUP BY catalogue_id
         ) reading_stats ON tc.id = reading_stats.catalogue_id
         WHERE tc.textbook_id = #{textbookId}
         ORDER BY tc.catalog_level, tc.sort
