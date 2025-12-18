@@ -69,3 +69,16 @@ logging:
 # Use port 465 instead of the default port 25
 #  spring.mail.properties.mail.smtp.socketFactory.port=465
 #  spring.mail.properties.mail.smtp.ssl.enable=true
+#统一身份认证相关配置
+iam:
+  host:  http://localhost:1111
+  client-id: test-client
+  client-secret: test-secret
+  redirect-uri: http://60.217.79.210:8088/sso/callback
+  scope: openid
+  front-host:  http://60.217.79.210:6190/#/publicHome
+
+# 远端基础数据平台配置（给 RemoteBaseDataClient 用）
+remote:
+  base-data:
+    host: http://localhost:8080  # 配置后记得改成真实地址

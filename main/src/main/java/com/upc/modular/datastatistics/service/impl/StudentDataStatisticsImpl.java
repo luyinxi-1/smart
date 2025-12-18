@@ -220,22 +220,40 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         final long MIN_DIFF_SECONDS = 55;
         final long MAX_DIFF_SECONDS = 65;
 
+        // 先按教材分组
+        Map<Long, List<LearningLog>> logsByTextbook = records.stream()
+                .filter(log -> log.getTextbookId() != null)
+                .collect(Collectors.groupingBy(LearningLog::getTextbookId));
+        
         // 计算总时间(秒)
         long totalReadingTime = 0;
-        for (int i = 0; i < records.size() - 1; i++) {
-            LocalDateTime currentAddDatetime = records.get(i).getAddDatetime();
-            LocalDateTime nextAddDatetime = records.get(i + 1).getAddDatetime();
-            if(currentAddDatetime == null || nextAddDatetime == null){
-                continue;
+        for (Map.Entry<Long, List<LearningLog>> entry : logsByTextbook.entrySet()) {
+            Long textbookId = entry.getKey();
+            List<LearningLog> list = entry.getValue();
+            
+            // 确保每本教材内部按时间排序
+            list.sort(Comparator.comparing(LearningLog::getAddDatetime));
+            
+            // 遍历计算有效阅读时长
+            long textbookReadingTime = 0;
+            for (int i = 0; i < list.size() - 1; i++) {
+                LocalDateTime currentAddDatetime = list.get(i).getAddDatetime();
+                LocalDateTime nextAddDatetime = list.get(i + 1).getAddDatetime();
+                if(currentAddDatetime == null || nextAddDatetime == null){
+                    continue;
+                }
+                Duration duration = Duration.between(currentAddDatetime, nextAddDatetime);
+                long seconds = duration.getSeconds();
+                if(seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS){
+                    textbookReadingTime += seconds;//累加实际秒数
+                }
             }
-            Duration duration = Duration.between(currentAddDatetime, nextAddDatetime);
-            long seconds = duration.getSeconds();
-            if(seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS){
-                totalReadingTime += 1;//假设定时数据间隔时间为1秒
-            }
+            
+            // 先转换为小时再累加，保持与textbook-rank-by-student接口一致
+            totalReadingTime += textbookReadingTime / 3600;
         }
-        // 返回小时数
-        return totalReadingTime / 3600;
+        // 返回小时数 (已提前转换为小时)
+        return totalReadingTime;
     }
 
     /**
@@ -902,9 +920,9 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                     Duration duration = Duration.between(currentDatetime, nextDatetime);
                     long seconds = duration.getSeconds();
 
-                    // 如果在容忍范围内，计为有效阅读(1秒)
+                    // 如果在容忍范围内，计为有效阅读(累加实际秒数而不是1秒)
                     if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
-                        readingTime += 1;
+                        readingTime += seconds;
                     }
                 }
                 
@@ -923,10 +941,9 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                     .setReadingTime(readingTime));
         }
 
-        // 按阅读时长降序排序，取前10条
+        // 按阅读时长降序排序，返回所有结果
         return result.stream()
                 .sorted((a, b) -> b.getReadingTime().compareTo(a.getReadingTime()))
-                .limit(10)
                 .collect(Collectors.toList());
     }
 

@@ -398,7 +398,7 @@
         SELECT
         tc.classification_name AS typeName,
         -- 使用COALESCE确保没有阅读记录的类型也显示为0
-        COALESCE(SUM(calculated_durations.readingDuration), 0) AS readingDuration
+        FLOOR(COALESCE(SUM(calculated_durations.readingDuration), 0) / 60) AS readingDuration
         FROM
         textbook_classification tc
         LEFT JOIN (
