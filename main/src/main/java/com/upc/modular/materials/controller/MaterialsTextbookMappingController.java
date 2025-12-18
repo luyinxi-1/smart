@@ -70,18 +70,13 @@ public class MaterialsTextbookMappingController {
         try {
             // 当TextbookMaterialsList为空但ChapterList不为空时，删除指定章节绑定的教学素材
             if ((mappings == null || mappings.isEmpty()) && request.getChapterList() != null && !request.getChapterList().isEmpty()) {
-                // 如果没有提供textbookId，则通过ChapterId查询textbook_id
-                if (textbookId == null) {
-                    // 从ChapterList中获取第一个章节ID来查询教材ID
-                    Long chapterId = request.getChapterList().get(0);
-                    textbookId = materialsTextbookMappingService.getTextbookIdByChapterId(chapterId);
-                    if (textbookId == null) {
-                        // 即使找不到教材ID也返回成功，因为可能本来就没有绑定关系
-                        return R.commonReturn(200, "删除成功", new ArrayList<>());
+                    for (Long chapterId : request.getChapterList()) {
+                        textbookId = materialsTextbookMappingService.getTextbookIdByChapterId(chapterId);
+                        if (textbookId == null) {
+                            continue;
+                        }
+                        materialsTextbookMappingService.removeMappingsByChapterIds(textbookId, request.getChapterList());
                     }
-                }
-                // 删除指定章节绑定的教学素材
-                materialsTextbookMappingService.removeMappingsByChapterIds(textbookId, request.getChapterList());
                 return R.commonReturn(200, "删除成功", new ArrayList<>());
             }
             

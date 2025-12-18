@@ -60,20 +60,16 @@ public class ApplicationMaterialsTextbookMappingController {
 
         // 当mappings为空但catalogList不为空时，直接删除指定章节的绑定关系
         if ((mappings == null || mappings.isEmpty()) && chapterIds != null && !chapterIds.isEmpty()) {
-            // 从章节ID中获取教材ID
-            Long textbookId = null;
-            // 如果没有提供textbookId，则通过ChapterId查询textbook_id
-            if (textbookId == null && !chapterIds.isEmpty()) {
-                // 从ChapterList中获取第一个章节ID来查询教材ID
-                Long textbookCatalogId = chapterIds.get(0);
-                textbookId = applicationMaterialsTextbookMappingService.getTextbookIdByChapterId(textbookCatalogId);
+            for (Long textbookCatalogId : request.getCatalogList()) {
+                Long textbookId = applicationMaterialsTextbookMappingService.getTextbookIdByChapterId(textbookCatalogId);
                 if (textbookId == null) {
-                    return R.commonReturn(200, "删除成功", new java.util.ArrayList<>());
+                    continue;
                 }
+                // 删除指定章节绑定的应用素材
+                applicationMaterialsTextbookMappingService.removeApplicationMaterialsBindingsByChapterIds(textbookId, chapterIds);
             }
             
-            // 删除指定章节绑定的应用素材
-            applicationMaterialsTextbookMappingService.removeApplicationMaterialsBindingsByChapterIds(textbookId, chapterIds);
+
             return R.commonReturn(200, "删除成功", new java.util.ArrayList<>());
         }
 
