@@ -1,5 +1,5 @@
 
-package com.upc.modular.student.controller.param.excel;
+package com.upc.modular.student.controller.param.vo;
 
 import com.alibaba.excel.annotation.ExcelProperty;
 import com.baomidou.mybatisplus.annotation.FieldFill;
