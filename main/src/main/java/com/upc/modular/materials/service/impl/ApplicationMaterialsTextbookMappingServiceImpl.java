@@ -323,7 +323,7 @@ public class ApplicationMaterialsTextbookMappingServiceImpl extends ServiceImpl<
         return result != null ? result.getTextbookId() : null;
     }
 
-    @Override
+/*    @Override
     @Transactional(rollbackFor = Exception.class)
     public void removeApplicationMaterialsBindingsByChapterIds(Long textbookId, List<Long> chapterIds) {
         if (textbookId == null || CollectionUtils.isEmpty(chapterIds)) {
@@ -337,7 +337,21 @@ public class ApplicationMaterialsTextbookMappingServiceImpl extends ServiceImpl<
         this.update(updateEntity, new LambdaQueryWrapper<ApplicationMaterialsTextbookMapping>()
                 .eq(ApplicationMaterialsTextbookMapping::getTextbookId, textbookId)
                 .in(ApplicationMaterialsTextbookMapping::getTextbookCatalogId, chapterIds));
+    }*/
+@Override
+@Transactional(rollbackFor = Exception.class)
+public void removeApplicationMaterialsBindingsByChapterIds(Long textbookId, List<Long> chapterIds) {
+    if (textbookId == null || CollectionUtils.isEmpty(chapterIds)) {
+        return;
     }
+
+    this.lambdaUpdate()
+            .set(ApplicationMaterialsTextbookMapping::getTextbookCatalogId, null)
+            .eq(ApplicationMaterialsTextbookMapping::getTextbookId, textbookId)
+            .in(ApplicationMaterialsTextbookMapping::getTextbookCatalogId, chapterIds)
+            .update();
+}
+
 
     @Override
     @Transactional(rollbackFor = Exception.class)

@@ -458,7 +458,7 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
         return materialsReturnVo;
     }
     
-    @Override
+/*    @Override
     public void removeMappingsByChapterIds(Long textbookId, List<Long> chapterIds) {
         if (textbookId == null || CollectionUtils.isEmpty(chapterIds)) {
             return;
@@ -471,7 +471,19 @@ public class MaterialsTextbookMappingServiceImpl extends ServiceImpl<MaterialsTe
         this.update(updateEntity, new LambdaQueryWrapper<MaterialsTextbookMapping>()
                 .eq(MaterialsTextbookMapping::getTextbookId, textbookId)
                 .in(MaterialsTextbookMapping::getChapterId, chapterIds));
+    }*/
+@Override
+public void removeMappingsByChapterIds(Long textbookId, List<Long> chapterIds) {
+    if (textbookId == null || CollectionUtils.isEmpty(chapterIds)) {
+        return;
     }
+
+    this.lambdaUpdate()
+            .set(MaterialsTextbookMapping::getChapterId, null)
+            .eq(MaterialsTextbookMapping::getTextbookId, textbookId)
+            .in(MaterialsTextbookMapping::getChapterId, chapterIds)
+            .update();
+}
     
     @Override
     public Long getTextbookIdByChapterId(Long chapterId) {
