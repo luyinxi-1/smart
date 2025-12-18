@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.upc.common.responseparam.PageBaseReturnParam;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
+import com.upc.modular.auth.entity.SysTbuser;
+import com.upc.modular.auth.service.ISysUserService;
 import com.upc.modular.textbook.entity.MaterialList;
 import com.upc.modular.textbook.entity.MaterialPush;
 import com.upc.modular.textbook.entity.TextbookCatalog;
@@ -40,7 +42,12 @@ public class MaterialPushServiceImpl extends ServiceImpl<MaterialPushMapper, Mat
     
     @Autowired
     private ITextbookCatalogService textbookCatalogService;
-    
+
+
+    @Autowired
+    private ISysUserService sysUserService;
+
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long insertPushMaterial(PushMaterialInsertAndUpdateParam param) {
@@ -102,11 +109,30 @@ public class MaterialPushServiceImpl extends ServiceImpl<MaterialPushMapper, Mat
 
         Page<MaterialPush> result = this.page(page, queryWrapper);
 
-        List<MaterialPush> records = result.getRecords();
+  /*      List<MaterialPush> records = result.getRecords();
         records.forEach(materialPush -> {
             materialPush.setContent(null);
             materialPush.setIntroduction(null);
-        });
+        });*/
+        List<MaterialPush> records = result.getRecords();
+        for (MaterialPush materialPush : records) {
+            materialPush.setContent(null);
+            materialPush.setIntroduction(null);
+
+            // 设置创建者昵称
+            if (materialPush.getCreator() != null) {
+                SysTbuser user = sysUserService.getById(materialPush.getCreator());
+                if (user != null) {
+                    materialPush.setNickname(user.getNickname());
+                }
+            }
+
+            // 计算文件数量
+            LambdaQueryWrapper<MaterialList> fileListWrapper = new LambdaQueryWrapper<>();
+            fileListWrapper.eq(MaterialList::getMaterialPushId, materialPush.getId());
+            int fileCount = materialListMapper.selectCount(fileListWrapper).intValue();
+            materialPush.setFileCount(fileCount);
+        }
         result.setRecords(records);
 
         return PageBaseReturnParam.ok(result);

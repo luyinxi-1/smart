@@ -75,4 +75,7 @@ public class MaterialPush {
     @TableField(value = "textbook_catalog_name")
     private String textbookCatalogName;
 
+    @TableField(exist = false)
+    private Integer fileCount;
+
 }
