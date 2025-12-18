@@ -45,7 +45,7 @@ public class TeachingQuestionWithCreatorDto {
     private String subject;
 
     @ApiModelProperty("题目分类")
-    private String teachingQuestionClassificationId;
+    private Long teachingQuestionClassificationId;
 
     @ApiModelProperty("选择题选项")
     private String choiceQuestionOptions;

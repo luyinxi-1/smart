@@ -17,6 +17,7 @@ import com.upc.modular.questionbank.controller.param.QuestionCountByTypeReturnPa
 import com.upc.modular.questionbank.entity.QuestionImportDTO;
 import com.upc.modular.questionbank.entity.QuestionImportListener;
 import com.upc.modular.questionbank.entity.TeachingQuestion;
+import com.upc.modular.questionbank.mapper.TeachingQuestionClassificationMapper;
 import com.upc.modular.questionbank.mapper.TeachingQuestionMapper;
 import com.upc.modular.questionbank.service.ITeachingQuestionService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -57,6 +58,8 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
     private ITextbookService textbookService;
     @Autowired
     private ITextbookCatalogService textbookCatalogService;
+    @Autowired
+    private TeachingQuestionClassificationMapper teachingQuestionClassificationMapper;
 
     @Override
     public void batchImportQuestions(MultipartFile file, Long textbookId, Long chapterId) {
@@ -81,7 +84,8 @@ public class TeachingQuestionServiceImpl extends ServiceImpl<TeachingQuestionMap
         try {
             EasyExcel.read(file.getInputStream(), QuestionImportDTO.class,
                             // 传入 Service 实例以及预查好的名称信息
-                            new QuestionImportListener(this, textbookId, tbName, chapterId, catName))
+                            new QuestionImportListener(this, textbookId, tbName, chapterId, catName, 
+                                                    teachingQuestionClassificationMapper))
                     .sheet()
                     .doRead();
         } catch (IOException e) {
