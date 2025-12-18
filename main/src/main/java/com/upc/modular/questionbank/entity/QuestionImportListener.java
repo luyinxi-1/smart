@@ -137,13 +137,17 @@ public class QuestionImportListener extends AnalysisEventListener<QuestionImport
         TeachingQuestion q = new TeachingQuestion();
         q.setContent(dto.getContent());
         q.setAnswerAnalysis(dto.getAnalysis());
-
+        q.setTeachingQuestionClassificationId(dto.getAttribute());
         // --- 题型转换 (示例) ---
         // 建议建立一个 Map 或 Enum 来维护这种映射
         switch (dto.getTypeName()) {
             case "单选题": q.setType(1); break;
             case "多选题": q.setType(2); break;
             case "判断题": q.setType(3); break;
+            case "填空题": q.setType(4); break;
+            case "简答题": q.setType(5); break;
+            case "计算题": q.setType(6); break;
+            case "论述题": q.setType(7); break;
             // ... 其他类型
             default: q.setType(0); // 默认或错误类型
         }
