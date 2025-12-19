@@ -464,4 +464,64 @@ public R<SystemAllCountsDto> getAllCounts(@RequestParam(value = "date", required
             return R.fail("获取学生章节掌握度失败: " + e.getMessage());
         }
     }
+
+    @ApiOperation("根据职称统计教师数量")
+    @GetMapping("/teacher-count-by-title")
+    public R<Map<String, Long>> getTeacherCountByProfessionalTitle() {
+        try {
+            Map<String, Long> result = systemStatisticsService.getTeacherCountByProfessionalTitle();
+            return R.ok(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("获取教师职称统计失败: " + e.getMessage());
+        }
+    }
+
+    @ApiOperation("获取阅读统计数据：今日阅读人数、今日阅读时长（小时），本周阅读人数，本月阅读人数")
+    @GetMapping("/reading-statistics")
+    public R<Map<String, Object>> getReadingStatistics() {
+        try {
+            Map<String, Object> result = systemStatisticsService.getReadingStatistics();
+            return R.ok(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("获取阅读统计数据失败: " + e.getMessage());
+        }
+    }
+
+    @ApiOperation("获取交流反馈回复数量排行榜（前20条）")
+    @GetMapping("/discussion-reply-ranking")
+    public R<List<Map<String, Object>>> getDiscussionReplyRanking() {
+        try {
+            List<Map<String, Object>> result = systemStatisticsService.getDiscussionReplyRanking();
+            return R.ok(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("获取交流反馈回复排行榜失败: " + e.getMessage());
+        }
+    }
+
+    @ApiOperation("获取学习行为类型统计")
+    @GetMapping("/learning-behavior-statistics")
+    public R<List<Map<String, Object>>> getLearningBehaviorStatistics() {
+        try {
+            List<Map<String, Object>> result = systemStatisticsService.getLearningBehaviorStatistics();
+            return R.ok(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("获取学习行为类型统计失败: " + e.getMessage());
+        }
+    }
+
+    @ApiOperation("获取学生综合统计数据")
+    @GetMapping("/student-overall-statistics")
+    public R<Map<String, Object>> getStudentOverallStatistics() {
+        try {
+            Map<String, Object> result = systemStatisticsService.getStudentOverallStatistics();
+            return R.ok(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("获取学生综合统计数据失败: " + e.getMessage());
+        }
+    }
 }

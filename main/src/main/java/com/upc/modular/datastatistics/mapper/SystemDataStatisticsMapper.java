@@ -160,4 +160,52 @@ public interface SystemDataStatisticsMapper {
      * @return List<Map<String, Object>>
      */
     List<Map<String, Object>> getChapterQuestionCorrectRateStatistics(@Param("textbookId") Long textbookId);
+    
+    /**
+     * 根据职称统计教师数量
+     * @return List<Map<String, Object>> 职称分类统计结果
+     */
+    List<Map<String, Object>> getTeacherCountByProfessionalTitle();
+    
+    /**
+     * 获取今日阅读人数
+     * @return Long 今日阅读人数
+     */
+    Long getTodayReaderCount();
+    
+    /**
+     * 获取今日阅读时长（秒）
+     * @return Long 今日阅读时长（秒）
+     */
+    Long getTodayReadingDuration();
+    
+    /**
+     * 获取本周阅读人数
+     * @return Long 本周阅读人数
+     */
+    Long getThisWeekReaderCount();
+    
+    /**
+     * 获取本月阅读人数
+     * @return Long 本月阅读人数
+     */
+    Long getThisMonthReaderCount();
+    
+    /**
+     * 获取交流反馈回复数量排行榜（前20条）
+     * @return List<Map<String, Object>> 排行榜数据
+     */
+    List<Map<String, Object>> getDiscussionReplyRanking();
+    
+    /**
+     * 获取学习行为类型统计
+     * @return List<Map<String, Object>> 学习行为类型统计数据
+     */
+    List<Map<String, Object>> getLearningBehaviorStatistics();
+    
+    /**
+     * 获取学生综合统计数据
+     * @return Map<String, Object> 学生综合统计数据
+     */
+    Map<String, Object> getStudentOverallStatistics();
 }

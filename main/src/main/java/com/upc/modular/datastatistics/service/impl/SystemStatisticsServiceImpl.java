@@ -1993,4 +1993,86 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
             return new java.awt.Font("SimHei", style, (int) size);
         }
     }
+
+    @Override
+    public Map<String, Long> getTeacherCountByProfessionalTitle() {
+        List<Map<String, Object>> rawData = systemDataStatisticsMapper.getTeacherCountByProfessionalTitle();
+        Map<String, Long> result = new LinkedHashMap<>();
+        
+        // 初始化各类职称计数
+        result.put("教授", 0L);
+        result.put("副教授", 0L);
+        result.put("讲师", 0L);
+        result.put("助教", 0L);
+        result.put("其他", 0L);
+        
+        // 处理查询结果
+        for (Map<String, Object> item : rawData) {
+            String professionalTitle = (String) item.get("professionalTitle");
+            Long count = ((Number) item.get("count")).longValue();
+            
+            if (professionalTitle != null) {
+                switch (professionalTitle) {
+                    case "教授":
+                        result.put("教授", result.get("教授") + count);
+                        break;
+                    case "副教授":
+                        result.put("副教授", result.get("副教授") + count);
+                        break;
+                    case "讲师":
+                        result.put("讲师", result.get("讲师") + count);
+                        break;
+                    case "助教":
+                        result.put("助教", result.get("助教") + count);
+                        break;
+                    default:
+                        result.put("其他", result.get("其他") + count);
+                        break;
+                }
+            } else {
+                result.put("其他", result.get("其他") + count);
+            }
+        }
+        
+        return result;
+    }
+
+    @Override
+    public Map<String, Object> getReadingStatistics() {
+        Map<String, Object> result = new HashMap<>();
+        
+        // 今日阅读人数
+        Long todayReaderCount = systemDataStatisticsMapper.getTodayReaderCount();
+        result.put("todayReaderCount", todayReaderCount != null ? todayReaderCount : 0L);
+        
+        // 今日阅读时长（小时）
+        Long todayReadingDurationSeconds = systemDataStatisticsMapper.getTodayReadingDuration();
+        Long todayReadingDurationHours = (todayReadingDurationSeconds != null ? todayReadingDurationSeconds : 0L) / 3600;
+        result.put("todayReadingDurationHours", todayReadingDurationHours);
+        
+        // 本周阅读人数
+        Long thisWeekReaderCount = systemDataStatisticsMapper.getThisWeekReaderCount();
+        result.put("thisWeekReaderCount", thisWeekReaderCount != null ? thisWeekReaderCount : 0L);
+        
+        // 本月阅读人数
+        Long thisMonthReaderCount = systemDataStatisticsMapper.getThisMonthReaderCount();
+        result.put("thisMonthReaderCount", thisMonthReaderCount != null ? thisMonthReaderCount : 0L);
+        
+        return result;
+    }
+
+    @Override
+    public List<Map<String, Object>> getDiscussionReplyRanking() {
+        return systemDataStatisticsMapper.getDiscussionReplyRanking();
+    }
+
+    @Override
+    public List<Map<String, Object>> getLearningBehaviorStatistics() {
+        return systemDataStatisticsMapper.getLearningBehaviorStatistics();
+    }
+
+    @Override
+    public Map<String, Object> getStudentOverallStatistics() {
+        return systemDataStatisticsMapper.getStudentOverallStatistics();
+    }
 }

@@ -1404,4 +1404,171 @@
         ORDER BY t.textbook_name
     </select>
 
+    <!-- 根据职称统计教师数量 -->
+    <select id="getTeacherCountByProfessionalTitle" resultType="map">
+        SELECT 
+            professional_title as professionalTitle,
+            COUNT(*) as count
+        FROM teacher
+        WHERE status = 1
+        GROUP BY professional_title
+    </select>
+
+    <!-- 获取今日阅读人数 -->
+    <select id="getTodayReaderCount" resultType="long">
+        SELECT COUNT(DISTINCT creator) 
+        FROM learning_log 
+        WHERE DATE(add_datetime) = CURRENT_DATE
+    </select>
+    
+    <!-- 获取今日阅读时长（秒） -->
+    <select id="getTodayReadingDuration" resultType="long">
+        SELECT COALESCE(SUM(
+            CASE
+                WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+                    THEN 60
+                ELSE 0
+            END
+        ), 0) AS total_reading_seconds
+        FROM (
+            SELECT
+                creator,
+                textbook_id,
+                add_datetime,
+                LEAD(add_datetime, 1) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime) AS next_add_datetime
+            FROM learning_log
+            WHERE DATE(add_datetime) = CURRENT_DATE
+        ) log_with_next_time
+    </select>
+    
+    <!-- 获取本周阅读人数 -->
+    <select id="getThisWeekReaderCount" resultType="long">
+        SELECT COUNT(DISTINCT creator) 
+        FROM learning_log 
+        WHERE add_datetime >= DATE_TRUNC('week', CURRENT_DATE)
+        AND add_datetime &lt; DATE_TRUNC('week', CURRENT_DATE) + INTERVAL '1 week'
+    </select>
+    
+    <!-- 获取本月阅读人数 -->
+    <select id="getThisMonthReaderCount" resultType="long">
+        SELECT COUNT(DISTINCT creator) 
+        FROM learning_log 
+        WHERE add_datetime >= DATE_TRUNC('month', CURRENT_DATE)
+        AND add_datetime &lt; DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
+    </select>
+    
+    <!-- 获取交流反馈回复数量排行榜（前20条） -->
+    <select id="getDiscussionReplyRanking" resultType="map">
+        SELECT 
+            dtr.creator as userId,
+            u.nickname as userName,
+            COUNT(dtr.id) as replyCount
+        FROM discussion_topic_reply dtr
+        JOIN sys_tbuser u ON dtr.creator = u.id
+        WHERE dtr.type = 1
+        GROUP BY dtr.creator, u.nickname
+        ORDER BY replyCount DESC
+        LIMIT 20
+    </select>
+    
+    <!-- 获取学习行为类型统计 -->
+    <select id="getLearningBehaviorStatistics" resultType="map">
+        WITH ReadingStats AS (
+            SELECT 
+                creator,
+                COUNT(*) as reading_count
+            FROM (
+                SELECT
+                    creator,
+                    textbook_id,
+                    add_datetime,
+                    LEAD(add_datetime) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime) AS next_add_datetime
+                FROM learning_log
+            ) log_with_next_time
+            WHERE next_add_datetime IS NOT NULL 
+            AND EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+            GROUP BY creator
+        )
+        SELECT 
+            CASE 
+                WHEN reading_count > 100 THEN '积极性学习'
+                WHEN reading_count BETWEEN 50 AND 100 THEN '一般性学习'
+                ELSE '波动性学习'
+            END as name,
+            COUNT(creator) as num
+        FROM ReadingStats
+        GROUP BY 
+            CASE 
+                WHEN reading_count > 100 THEN '积极性学习'
+                WHEN reading_count BETWEEN 50 AND 100 THEN '一般性学习'
+                ELSE '波动性学习'
+            END
+        UNION ALL
+        SELECT 
+            '积极性学习' as name,
+            0 as num
+        WHERE NOT EXISTS (
+            SELECT 1 FROM ReadingStats WHERE reading_count > 100
+        )
+        UNION ALL
+        SELECT 
+            '一般性学习' as name,
+            0 as num
+        WHERE NOT EXISTS (
+            SELECT 1 FROM ReadingStats WHERE reading_count BETWEEN 50 AND 100
+        )
+        UNION ALL
+        SELECT 
+            '波动性学习' as name,
+            0 as num
+        WHERE NOT EXISTS (
+            SELECT 1 FROM ReadingStats WHERE reading_count &lt; 50
+        )
+        ORDER BY name
+    </select>
+    
+    <!-- 获取学生综合统计数据 -->
+    <select id="getStudentOverallStatistics" resultType="map">
+        SELECT
+            -- 累计阅读量（小时）
+            COALESCE(FLOOR(SUM(reading_duration.duration) / 60), 0) as totalReadingHours,
+            -- 综合答题正确率
+            COALESCE(ROUND(AVG(
+                CASE
+                    WHEN qbl.score > 0 THEN (sfg.final_score * 100.0 / qbl.score)
+                    ELSE 0
+                END
+            ), 2), 0) as avgCorrectRate,
+            -- 参与教学讨论数量
+            COALESCE(COUNT(DISTINCT dt.id), 0) as discussionCount,
+            -- 教学活动参与量（回复数）
+            COALESCE(COUNT(dtr.id), 0) as activityReplyCount,
+            -- 班级数量
+            COALESCE((SELECT COUNT(*) FROM "group" WHERE status = 1), 0) as classCount,
+            -- 学生数量（只统计账号状态是已启用的）
+            COALESCE((SELECT COUNT(*) FROM student WHERE account_status = 1), 0) as studentCount
+        FROM student s
+        LEFT JOIN (
+            -- 计算阅读时长（分钟）
+            SELECT
+                creator,
+                COUNT(*) as duration
+            FROM (
+                SELECT
+                    creator,
+                    textbook_id,
+                    add_datetime,
+                    LEAD(add_datetime) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime) AS next_add_datetime
+                FROM learning_log
+            ) log_with_next_time
+            WHERE next_add_datetime IS NOT NULL
+            AND EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+            GROUP BY creator
+        ) reading_duration ON s.user_id = reading_duration.creator
+        LEFT JOIN student_final_grade sfg ON s.id = sfg.student_id
+        LEFT JOIN questions_banks_list qbl ON sfg.bank_id = qbl.bank_id
+        LEFT JOIN discussion_topic dt ON s.user_id = dt.creator
+        LEFT JOIN discussion_topic_reply dtr ON s.user_id = dtr.creator
+        WHERE s.account_status = 1
+    </select>
 </mapper>
