@@ -1460,13 +1460,13 @@
     <!-- 获取交流反馈回复数量排行榜（前20条） -->
     <select id="getDiscussionReplyRanking" resultType="map">
         SELECT 
-            dtr.creator as userId,
-            u.nickname as userName,
+            dt.id as topicId,
+            dt.topic_title as topicTitle,
             COUNT(dtr.id) as replyCount
-        FROM discussion_topic_reply dtr
-        JOIN sys_tbuser u ON dtr.creator = u.id
-        WHERE dtr.type = 1
-        GROUP BY dtr.creator, u.nickname
+        FROM discussion_topic dt
+        LEFT JOIN discussion_topic_reply dtr ON dt.id = dtr.topic_id
+        WHERE dt.identity_type = 1
+        GROUP BY dt.id, dt.topic_title
         ORDER BY replyCount DESC
         LIMIT 20
     </select>
