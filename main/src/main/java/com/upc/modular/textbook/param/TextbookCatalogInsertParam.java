@@ -6,6 +6,8 @@ import io.swagger.annotations.ApiOperation;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.List;
+
 @Data
 public class TextbookCatalogInsertParam extends TextbookCatalog {
 
@@ -20,4 +22,7 @@ public class TextbookCatalogInsertParam extends TextbookCatalog {
 
     @ApiModelProperty("是否是数据库为空时新增，0是，1不是")
     private Integer firstAdd;
+
+    @ApiModelProperty("接收前端字段")
+    private List children;
 }
