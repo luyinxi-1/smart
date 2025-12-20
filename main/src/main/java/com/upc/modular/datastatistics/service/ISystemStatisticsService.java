@@ -214,4 +214,33 @@ public interface ISystemStatisticsService {
      */
     List<ChapterQuestionCorrectRateParam> getChapterQuestionCorrectRateStatistics(Long textbookId);
 
+    /**
+     * 根据职称统计教师数量
+     * @return Map<String, Long> 职称分类统计结果
+     */
+    Map<String, Long> getTeacherCountByProfessionalTitle();
+    
+    /**
+     * 获取阅读统计数据
+     * @return Map<String, Object> 阅读统计数据
+     */
+    Map<String, Object> getReadingStatistics();
+    
+    /**
+     * 获取交流反馈回复数量排行榜
+     * @return List<Map<String, Object>> 排行榜数据
+     */
+    List<Map<String, Object>> getDiscussionReplyRanking();
+    
+    /**
+     * 获取学习行为类型统计
+     * @return List<Map<String, Object>> 学习行为类型统计数据
+     */
+    List<Map<String, Object>> getLearningBehaviorStatistics();
+    
+    /**
+     * 获取学生综合统计数据
+     * @return Map<String, Object> 学生综合统计数据
+     */
+    Map<String, Object> getStudentOverallStatistics();
 }
