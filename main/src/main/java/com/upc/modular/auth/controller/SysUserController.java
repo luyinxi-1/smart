@@ -7,6 +7,7 @@ import com.upc.common.responseparam.R;
 import com.upc.common.utils.UserInfoToRedis;
 import com.upc.common.utils.UserUtils;
 import com.upc.modular.auth.controller.param.SysDictTypeParam.IdParam;
+import com.upc.modular.auth.dto.SyncAllResultDTO;
 import com.upc.modular.auth.dto.SyncResultDTO;
 import com.upc.modular.auth.entity.SysDictType;
 import com.upc.modular.auth.entity.SysTbuser;
@@ -41,18 +42,28 @@ public class SysUserController {
     private ISysUserService sysUserService;
     @Autowired
     private SysRoleServiceImpl sysRoleService;
+
+
+
+        @ApiOperation("从对方接口同步学生+教师（只拉一次远端），返回新增/更新详情")
+        @PostMapping("/all")
+        public R<SyncAllResultDTO> syncAll() {
+            SyncAllResultDTO result = sysUserService.syncAllFromRemote();
+            return R.ok(result);
+        }
+
         @ApiOperation("从对方接口同步学生，返回新增/更新详情")
         @PostMapping("/student")
         public R<SyncResultDTO> syncStudent() {
-            SyncResultDTO result = sysUserService.syncStudentFromRemote();
-            return R.ok(result);
-        }
-            @ApiOperation("从对方接口同步教师，返回新增/更新详情")
-            @PostMapping("/teacher")
-            public R<SyncResultDTO> syncTeacher() {
-                SyncResultDTO result = sysUserService.syncTeacherFromRemote();
+                SyncResultDTO result = sysUserService.syncStudentFromRemote();
                 return R.ok(result);
-            }
+        }
+        @ApiOperation("从对方接口同步教师，返回新增/更新详情")
+        @PostMapping("/teacher")
+        public R<SyncResultDTO> syncTeacher() {
+            SyncResultDTO result = sysUserService.syncTeacherFromRemote();
+                return R.ok(result);
+        }
 
         @PostMapping("/login")
         @ApiOperation("登录")

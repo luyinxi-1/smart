@@ -3,6 +3,7 @@ package com.upc.modular.auth.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.upc.common.responseparam.R;
+import com.upc.modular.auth.dto.SyncAllResultDTO;
 import com.upc.modular.auth.dto.SyncResultDTO;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.param.GetUserIsInInstitutionParam;
@@ -25,7 +26,8 @@ import java.util.List;
  */
 public interface ISysUserService extends IService<SysTbuser> {
 
-        SyncResultDTO syncStudentFromRemote();
+    SyncAllResultDTO syncAllFromRemote();
+    SyncResultDTO syncStudentFromRemote();
     SyncResultDTO syncTeacherFromRemote();
 
 

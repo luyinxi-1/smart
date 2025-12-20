@@ -81,4 +81,12 @@ iam:
 # 远端基础数据平台配置（给 RemoteBaseDataClient 用）
 remote:
   base-data:
-    host: http://localhost:8080  # 配置后记得改成真实地址
+    host: http://127.0.0.1:8080
+    # 统一接口路径（A/B/C 都用这个，按对方实际改）
+    unified-path: /api/base-data
+    # 老接口（你原来那种 split 的两个路径；不用可不配）
+    student-path: /api/students
+    teacher-path: /api/teachers
+
+    # A / B / C / SPLIT
+    mode: A
