@@ -17,8 +17,66 @@
         GROUP BY textbook_id
         ORDER BY readingDuration DESC
     </select>
-
+    <!-- 1. 修复后：按天统计阅读次数 (支持动态时间) -->
     <select id="groupReadingTimeByDay" resultType="java.util.Map">
+        SELECT
+        TO_CHAR(add_datetime, 'YYYY-MM-DD') AS activity_date,
+        COUNT(*) AS count
+        FROM
+        learning_log
+        WHERE
+        creator = #{userId}
+        <if test="startTime != null and startTime != ''">
+            AND add_datetime &gt;= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
+        </if>
+        <if test="endTime != null and endTime != ''">
+            AND add_datetime &lt;= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
+        </if>
+        GROUP BY
+        TO_CHAR(add_datetime, 'YYYY-MM-DD')
+        ORDER BY activity_date
+    </select>
+
+    <!-- 2. 修复后：按天统计笔记数量 -->
+    <select id="groupNotesByDay" resultType="java.util.Map">
+        SELECT
+        TO_CHAR(add_datetime, 'YYYY-MM-DD') AS activity_date,
+        COUNT(*) AS count
+        FROM
+        learning_notes
+        WHERE
+        creator = #{userId}
+        <if test="startTime != null and startTime != ''">
+            AND add_datetime &gt;= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
+        </if>
+        <if test="endTime != null and endTime != ''">
+            AND add_datetime &lt;= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
+        </if>
+        GROUP BY
+        TO_CHAR(add_datetime, 'YYYY-MM-DD')
+        ORDER BY activity_date
+    </select>
+
+    <!-- 3. 修复后：按天统计答题次数 -->
+    <select id="groupQuestionsByDay" resultType="java.util.Map">
+        SELECT
+        TO_CHAR(add_datetime, 'YYYY-MM-DD') AS activity_date,
+        COUNT(*) AS count
+        FROM
+        teaching_question_bank
+        WHERE
+        creator = #{userId}
+        <if test="startTime != null and startTime != ''">
+            AND add_datetime &gt;= TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')
+        </if>
+        <if test="endTime != null and endTime != ''">
+            AND add_datetime &lt;= TO_TIMESTAMP(#{endTime}, 'YYYY-MM-DD HH24:MI:SS')
+        </if>
+        GROUP BY
+        TO_CHAR(add_datetime, 'YYYY-MM-DD')
+        ORDER BY activity_date
+    </select>
+<!--    <select id="groupReadingTimeByDay" resultType="java.util.Map">
         SELECT
             TO_CHAR(add_datetime, 'YYYY-MM-DD') AS activity_date,
             COUNT(*) AS count
@@ -31,7 +89,7 @@
             TO_CHAR(add_datetime, 'YYYY-MM-DD')
     </select>
 
-    <!-- 按天统计笔记数量 -->
+    &lt;!&ndash; 按天统计笔记数量 &ndash;&gt;
     <select id="groupNotesByDay" resultType="java.util.Map">
         SELECT
             TO_CHAR(add_datetime, 'YYYY-MM-DD') AS activity_date,
@@ -43,21 +101,21 @@
           AND add_datetime BETWEEN #{startTime} AND #{endTime}
         GROUP BY
             TO_CHAR(add_datetime, 'YYYY-MM-DD')
-    </select>
-
-    <!-- 按天统计答题次数 -->
+    </select>-->
+<!--
+    &lt;!&ndash; 按天统计答题次数 &ndash;&gt;
     <select id="groupQuestionsByDay" resultType="java.util.Map">
         SELECT
             TO_CHAR(add_datetime, 'YYYY-MM-DD') AS activity_date,
             COUNT(*) AS count
         FROM
-            teaching_question_bank-- 假设您的答题记录表是这个名字
+            teaching_question_bank&#45;&#45; 假设您的答题记录表是这个名字
         WHERE
             creator = #{userId}
           AND add_datetime BETWEEN #{startTime} AND #{endTime}
         GROUP BY
             TO_CHAR(add_datetime, 'YYYY-MM-DD')
-    </select>
+    </select>-->
 
     <!-- 获取学生做题情况统计 -->
     <select id="getStudentQuestionAnsweringStatistics" resultType="java.util.Map">

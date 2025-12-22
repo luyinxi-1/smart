@@ -135,7 +135,7 @@ public class StudentDataStatisticsController {
             @RequestParam String startTime,
             @RequestParam String endTime
     ){
-        return R.ok(iStudentDataStatistics.analyzeStudentBehavior(startTime,endTime));
+        return R.ok(iStudentDataStatistics.analyzeStudentBehavior(null,startTime,endTime));
     }
 
     @ApiOperation("个人层面分析报告")

@@ -1470,63 +1470,119 @@
         ORDER BY replyCount DESC
             LIMIT 20
     </select>
-
-    <!-- 获取学习行为类型统计 -->
     <select id="getLearningBehaviorStatistics" resultType="map">
-        WITH ReadingStats AS (
+        WITH UserBehaviorData AS (
+            -- 1. 获取所有学生及其学习行为数据
             SELECT
-                creator,
-                COUNT(*) as reading_count
-            FROM (
-                     SELECT
-                         creator,
-                         textbook_id,
-                         add_datetime,
-                         LEAD(add_datetime) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime) AS next_add_datetime
-                     FROM learning_log
-                 ) log_with_next_time
-            WHERE next_add_datetime IS NOT NULL
-              AND EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+                s.user_id,
+                reading_variance.variance as reading_variance,
+                note_variance.variance as note_variance,
+                question_variance.variance as question_variance
+            FROM student s
+                     LEFT JOIN (
+                -- 阅读行为方差
+                SELECT
+                    creator,
+                    CASE
+                        WHEN COUNT(*) > 1 THEN VAR_SAMP(daily_count)
+                        ELSE 0
+                        END as variance
+                FROM (
+                         SELECT
+                             creator,
+                             DATE(add_datetime) as study_date,
+                     COUNT(*) as daily_count
+                    FROM learning_log
+                GROUP BY creator, DATE(add_datetime)
+            ) daily_reading
             GROUP BY creator
-        )
-        SELECT
+        ) reading_variance ON s.user_id = reading_variance.creator
+            LEFT JOIN (
+                -- 笔记行为方差
+                SELECT
+                    creator,
+                    CASE
+                        WHEN COUNT(*) > 1 THEN VAR_SAMP(daily_count)
+                        ELSE 0
+                    END as variance
+                FROM (
+                    SELECT
+                        creator,
+                        DATE(add_datetime) as study_date,
+                        COUNT(*) as daily_count
+                    FROM learning_notes
+                    GROUP BY creator, DATE(add_datetime)
+                ) daily_notes
+                GROUP BY creator
+            ) note_variance ON s.user_id = note_variance.creator
+            LEFT JOIN (
+            -- 答题行为方差
+            SELECT
+            creator,
             CASE
-                WHEN reading_count > 100 THEN '积极性学习'
-                WHEN reading_count BETWEEN 50 AND 100 THEN '一般性学习'
-                ELSE '波动性学习'
-                END as name,
-            COUNT(creator) as num
-        FROM ReadingStats
-        GROUP BY
+            WHEN COUNT(*) > 1 THEN VAR_SAMP(daily_count)
+            ELSE 0
+            END as variance
+            FROM (
+            SELECT
+            creator,
+            DATE(add_datetime) as study_date,
+            COUNT(*) as daily_count
+            FROM teaching_question_bank
+            GROUP BY creator, DATE(add_datetime)
+            ) daily_questions
+            GROUP BY creator
+            ) question_variance ON s.user_id = question_variance.creator
+        WHERE s.account_status = 1
+            ),
+            BehaviorClassification AS (
+        -- 2. 分类逻辑
+        SELECT
+            user_id,
             CASE
-                WHEN reading_count > 100 THEN '积极性学习'
-                WHEN reading_count BETWEEN 50 AND 100 THEN '一般性学习'
-                ELSE '波动性学习'
-                END
-        UNION ALL
-        SELECT
-            '积极性学习' as name,
-            0 as num
-            WHERE NOT EXISTS (
-            SELECT 1 FROM ReadingStats WHERE reading_count > 100
-        )
-        UNION ALL
-        SELECT
-            '一般性学习' as name,
-            0 as num
-            WHERE NOT EXISTS (
-            SELECT 1 FROM ReadingStats WHERE reading_count BETWEEN 50 AND 100
-        )
-        UNION ALL
-        SELECT
-            '波动性学习' as name,
-            0 as num
-            WHERE NOT EXISTS (
-            SELECT 1 FROM ReadingStats WHERE reading_count &lt; 50
-        )
-        ORDER BY name
-    </select>
+            -- 如果三者都为 NULL，则为未开始
+            WHEN reading_variance IS NULL
+            AND note_variance IS NULL
+            AND question_variance IS NULL THEN '未开始学习'
+            -- 遇到 NULL 视为 0 参与计算
+            WHEN (COALESCE(reading_variance, 0) + COALESCE(note_variance, 0) + COALESCE(question_variance, 0)) / 3.0 > 10.0 THEN '突击型学习'
+            WHEN (COALESCE(reading_variance, 0) + COALESCE(note_variance, 0) + COALESCE(question_variance, 0)) / 3.0 &lt;= 2.0 THEN '均匀型学习'
+            ELSE '波动型学习'
+            END as behavior_type
+        FROM UserBehaviorData
+            )
 
+        -- 【修改点】：最外层包裹 SELECT，解决 Kingbase 排序报错问题
+        SELECT name, num FROM (
+                                  -- 3. 统计输出 (内部 Union)
+                                  SELECT
+                                      behavior_type as name,
+                                      COUNT(*) as num
+                                  FROM BehaviorClassification
+                                  GROUP BY behavior_type
+
+                                  UNION ALL
+                                  SELECT '未开始学习' as name, 0 as num
+                                      WHERE NOT EXISTS (SELECT 1 FROM BehaviorClassification WHERE behavior_type = '未开始学习')
+                                  UNION ALL
+                                  SELECT '均匀型学习' as name, 0 as num
+                                  WHERE NOT EXISTS (SELECT 1 FROM BehaviorClassification WHERE behavior_type = '均匀型学习')
+                                  UNION ALL
+                                  SELECT '突击型学习' as name, 0 as num
+                                  WHERE NOT EXISTS (SELECT 1 FROM BehaviorClassification WHERE behavior_type = '突击型学习')
+                                  UNION ALL
+                                  SELECT '波动型学习' as name, 0 as num
+                                  WHERE NOT EXISTS (SELECT 1 FROM BehaviorClassification WHERE behavior_type = '波动型学习')
+                              ) AS FinalResult
+        -- 【修改点】：ORDER BY 放在这里，针对子查询的结果进行表达式排序
+        ORDER BY
+            CASE name
+                WHEN '未开始学习' THEN 1
+                WHEN '均匀型学习' THEN 2
+                WHEN '波动型学习' THEN 3
+                ELSE 4
+                END
+    </select>
     <!-- 获取学生综合统计数据 -->
     <select id="getStudentOverallStatistics" resultType="map">
         SELECT
