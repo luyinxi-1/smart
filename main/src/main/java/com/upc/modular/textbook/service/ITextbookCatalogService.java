@@ -45,4 +45,6 @@ public interface ITextbookCatalogService extends IService<TextbookCatalog> {
     List<MaterialTypeCountReturnParam> getMaterialTypeCountByTextbookId(Long textbookId);
 
     List<Long> getTextbookSpecifiedCatalog(TextbookSpecifiedCatalogSearchParam param);
+
+    Boolean updateByWord(MultipartFile file, Long textbookId, Long catalogId);
 }

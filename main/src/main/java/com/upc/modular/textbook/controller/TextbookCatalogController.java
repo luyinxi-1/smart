@@ -47,6 +47,12 @@ public class TextbookCatalogController {
         return R.ok(textbookCatalogService.insert(params));
     }
 
+    @ApiOperation(value = "导入文档更新章节内容")
+    @PostMapping("/updateByWord")
+    public R<Boolean> updateByWord(@RequestParam MultipartFile file, Long textbookId, Long catalogId) {
+        return R.ok(textbookCatalogService.updateByWord(file, textbookId, catalogId));
+    }
+
     @ApiOperation(value = "删除教材章节内容")
     @PostMapping("/delete")
     public R<Boolean> delete(@RequestBody IdParam idParam) {

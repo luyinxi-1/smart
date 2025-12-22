@@ -147,6 +147,117 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
     private static final int INITIAL_SORT = 100;
     private static final int STEP = 100;
     private static final int MAX_LEVEL = 4;
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public Boolean updateByWord(MultipartFile file, Long textbookId, Long catalogId) {
+        if (file.isEmpty() || textbookId == null || catalogId == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR);
+        }
+
+        // 1. 获取原章节信息及边界
+        TextbookCatalog oldChapter = this.getById(catalogId);
+        if (oldChapter == null) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "原章节不存在");
+        }
+        if (oldChapter.getCatalogLevel() != 1) {
+            throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "只能针对一级标题（章）进行Word更新");
+        }
+
+        // 确定当前章的起始 sort
+        Integer startSort = oldChapter.getSort();
+
+        // 寻找下一章（Level 1）的起始 sort，作为右边界
+        TextbookCatalog nextChapter = this.lambdaQuery()
+                .eq(TextbookCatalog::getTextbookId, textbookId)
+                .eq(TextbookCatalog::getCatalogLevel, 1)
+                .gt(TextbookCatalog::getSort, startSort)
+                .orderByAsc(TextbookCatalog::getSort)
+                .last("LIMIT 1")
+                .one();
+
+        // 如果没有下一章，则给一个较大的步长空间（例如 10000）
+        Integer endSort = (nextChapter != null) ? nextChapter.getSort() : startSort + 10000;
+
+        // 2. 删除原章节及其下属所有子节点（调用现有的级联删除逻辑）
+        IdParam idParam = new IdParam();
+        idParam.setIdList(Collections.singletonList(catalogId));
+        this.delete(idParam);
+
+        try {
+            // 3. 解析 Word 为 HTML 字符串
+            String htmlString = Word2HtmlUtils.toHtmlString(file, textbookId);
+
+            // 4. 将 HTML 解析为目录 DTO 列表
+            List<TextbookCatalogDto> newCatalogs = this.parseHtmlToCatalogs(htmlString);
+            if (newCatalogs.isEmpty()) {
+                throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "Word解析后未发现有效目录结构");
+            }
+
+            // 5. 重新计算并分配 Sort 值
+            // 计算可用区间和步长，确保新内容能塞进原来的位置
+            int totalNewItems = newCatalogs.size();
+            long availableGap = (long) endSort - startSort;
+
+            // 如果空间不足（步长 < 1），先触发整书重排
+            if (availableGap <= totalNewItems) {
+                reindexTextbook(textbookId);
+                // 重排后重新获取边界
+                // 此时我们需要根据内容（名称）重新定位之前的 startSort，或者简化处理
+                // 为了保险，此处直接使用重新计算后的逻辑
+                return updateByWord(file, textbookId, catalogId); // 递归重试一次，或者抛异常让用户重试
+            }
+
+            int dynamicStep = (int) (availableGap / (totalNewItems + 1));
+            if (dynamicStep <= 0) dynamicStep = 1;
+
+            // 6. 递归保存新章节并分配 ID 和父子关系
+            saveReplacedCatalogTree(newCatalogs, null, textbookId, startSort, dynamicStep);
+
+            return true;
+        } catch (IOException e) {
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "Word转换失败: " + e.getMessage());
+        } catch (Exception e) {
+            throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "更新章节失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 专用于替换逻辑的递归保存方法
+     * @param allCatalogs 解析出的所有DTO
+     * @param parent 当前父节点DTO
+     * @param textbookId 教材ID
+     * @param baseSort 起始Sort
+     * @param step 步长
+     */
+    private void saveReplacedCatalogTree(List<TextbookCatalogDto> allCatalogs, TextbookCatalogDto parent,
+                                         Long textbookId, int baseSort, int step) {
+        Long parentId = (parent == null) ? 0L : parent.getId();
+
+        // 提取当前层级的子节点
+        List<TextbookCatalogDto> children = allCatalogs.stream()
+                .filter(c -> c.getParent() == parent)
+                .collect(Collectors.toList());
+
+        for (int i = 0; i < children.size(); i++) {
+            TextbookCatalogDto child = children.get(i);
+            child.setTextbookId(textbookId);
+            child.setFatherCatalogId(parentId);
+
+            // 计算当前节点的 Sort：基于在全列表中的索引位置
+            int globalIndex = allCatalogs.indexOf(child);
+            child.setSort(baseSort + (globalIndex + 1) * step);
+
+            // 保存（MyBatis-Plus 会回填自增 ID）
+            this.save(child);
+
+            // 记录日志：状态为 1 (新增)，因为旧的已经删了
+            textbookRecordService.recordCatalogChange(textbookId, child.getId(), 1L);
+
+            // 递归子节点
+            saveReplacedCatalogTree(allCatalogs, child, textbookId, baseSort, step);
+        }
+    }
     @Transactional(rollbackFor = Exception.class)
     @Override
     public Boolean insert(List<TextbookCatalogInsertParam> params) {
