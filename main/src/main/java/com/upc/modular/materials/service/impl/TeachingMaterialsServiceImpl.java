@@ -108,6 +108,9 @@ public class TeachingMaterialsServiceImpl extends ServiceImpl<TeachingMaterialsM
         BeanUtils.copyProperties(param, teachingMaterials); // 拷贝基础属性
         teachingMaterials.setId(null);
         teachingMaterials.setCreator(UserUtils.get().getId());
+        if(param.getIsPublic() == null){
+            param.setFileName("");
+        }
         teachingMaterials.setFileName(param.getFileName());
         if ("link".equals(param.getType())) {
             // 链接类型，路径由前端直接在JSON中提供
