@@ -240,10 +240,10 @@
     <select id="findTextbookIdsByTeacher" resultType="java.lang.Long">
         SELECT id
         FROM textbook
-        WHERE creator = #{teacherId}
+        WHERE creator = (SELECT user_id FROM teacher WHERE id = #{teacherId})
         UNION
         SELECT textbook_id
         FROM textbook_authority
-        WHERE user_id = #{teacherId} AND authority_type = 1
+        WHERE user_id = (SELECT user_id FROM teacher WHERE id = #{teacherId}) AND authority_type = 1
     </select>
 </mapper>

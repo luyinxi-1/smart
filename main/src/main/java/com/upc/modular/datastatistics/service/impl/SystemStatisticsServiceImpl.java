@@ -404,7 +404,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         }
 
         // === 新增：教师自己已发布教材被收藏次数（不改传参） ===
-        Long userIdOfTeacher = teacherService.getById(teacherId).getUserId(); // 这里按你的 Teacher 实体字段名改
+        Long userIdOfTeacher = teacherService.getById(teacherId).getUserId();
         List<Long> myPublishedTextbookIds = textbookService.lambdaQuery()
                 .select(Textbook::getId)
                 .eq(Textbook::getReleaseStatus, "1")
