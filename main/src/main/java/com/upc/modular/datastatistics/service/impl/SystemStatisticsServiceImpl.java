@@ -15,6 +15,7 @@ import com.upc.modular.group.service.IGroupService;
 import com.upc.modular.materials.entity.TeachingMaterials;
 import com.upc.modular.materials.mapper.TeachingMaterialsMapper;
 import com.upc.modular.materials.service.ITeachingMaterialsService;
+import com.upc.modular.questionbank.entity.TeachingQuestionBank;
 import com.upc.modular.questionbank.service.ITeachingQuestionBankService;
 import com.upc.modular.questionbank.service.ITeachingQuestionService;
 import com.upc.modular.student.service.IStudentService;
@@ -23,6 +24,7 @@ import com.upc.modular.teachingactivities.entity.DiscussionTopic;
 import com.upc.modular.teachingactivities.entity.DiscussionTopicReply;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicReplyService;
 import com.upc.modular.teachingactivities.service.IDiscussionTopicService;
+import com.upc.modular.textbook.entity.IdeologicalMaterial;
 import com.upc.modular.textbook.entity.LearningLog;
 import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.entity.UserFavorites;
@@ -398,9 +400,9 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
             countsDto.setDiscussionTopicCount(0L);
             countsDto.setTeachingQuestionBankCount(0L);
         } else {
-            countsDto.setTeachingideologicalMaterialCount(ideologicalMaterialService.lambdaQuery().in(com.upc.modular.textbook.entity.IdeologicalMaterial::getTextbookId, teacherTextbookIds).count());
+            countsDto.setTeachingideologicalMaterialCount(ideologicalMaterialService.lambdaQuery().in(IdeologicalMaterial::getTextbookId, teacherTextbookIds).count());
             countsDto.setDiscussionTopicCount(discussionTopicService.lambdaQuery().in(DiscussionTopic::getTextbookId, teacherTextbookIds).count());
-            countsDto.setTeachingQuestionBankCount(teachingQuestionbankService.lambdaQuery().in(com.upc.modular.questionbank.entity.TeachingQuestionBank::getTextbookId, teacherTextbookIds).count());
+            countsDto.setTeachingQuestionBankCount(teachingQuestionbankService.lambdaQuery().in(TeachingQuestionBank::getTextbookId, teacherTextbookIds).count());
         }
 
         // === 新增：教师自己已发布教材被收藏次数（不改传参） ===
