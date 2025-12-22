@@ -93,10 +93,22 @@ public class TextbookController {
             Page<TextbookIntelligentQueryReturnParam> result = textbookService.smartSearch(query, current, size);
             return R.ok(result);
         } catch (Exception e) {
-            return R.fail("搜索失败");
+            return R.fail("搜索失败，请稍后重试");
         }
     }
-
+    @ApiOperation("教材智能搜索（按书籍分组）")
+    @GetMapping("/smartSearchGrouped")
+    public R<Page<TextbookIntelligentQueryGroupedReturnParam>> smartSearchGrouped(
+            @ApiParam("搜索关键词") @RequestParam String query,
+            @ApiParam("页码") @RequestParam(defaultValue = "1") long current,
+            @ApiParam("每页条数") @RequestParam(defaultValue = "10") long size) {
+        try {
+            Page<TextbookIntelligentQueryGroupedReturnParam> result = textbookService.smartSearchGroupedByBook(query, current, size);
+            return R.ok(result);
+        } catch (Exception e) {
+            return R.fail("搜索失败，请稍后重试");
+        }
+    }
 
     @ApiOperation(value = "查询最新的教材")
     @PostMapping("/getNewTextbook")

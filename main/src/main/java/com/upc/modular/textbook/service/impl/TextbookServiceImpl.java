@@ -223,6 +223,64 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         return resultPage;
     }
 
+    @Override
+    public Page<TextbookIntelligentQueryGroupedReturnParam> smartSearchGroupedByBook(String query, long current, long size) {
+        // 先使用原有方法获取结果
+        Page<TextbookIntelligentQueryReturnParam> originalResults = smartSearch(query, current, size);
+        
+        // 创建新的分组结果
+        Page<TextbookIntelligentQueryGroupedReturnParam> groupedPage = new Page<>();
+        groupedPage.setCurrent(originalResults.getCurrent());
+        groupedPage.setSize(originalResults.getSize());
+        groupedPage.setTotal(originalResults.getTotal());
+        
+        // 按教材ID分组结果
+        Map<Long, List<TextbookIntelligentQueryReturnParam>> groupedByBook = originalResults.getRecords()
+                .stream()
+                .collect(Collectors.groupingBy(TextbookIntelligentQueryReturnParam::getTextbookId));
+        
+        // 转换为新的分组格式
+        List<TextbookIntelligentQueryGroupedReturnParam> groupedResults = new ArrayList<>();
+        for (List<TextbookIntelligentQueryReturnParam> bookResults : groupedByBook.values()) {
+            if (!bookResults.isEmpty()) {
+                TextbookIntelligentQueryReturnParam first = bookResults.get(0);
+                
+                TextbookIntelligentQueryGroupedReturnParam groupedParam = new TextbookIntelligentQueryGroupedReturnParam();
+                groupedParam.setTextbookId(first.getTextbookId());
+                groupedParam.setTextbookName(first.getTextbookName());
+                groupedParam.setAuthorName(first.getAuthorName());
+                groupedParam.setUpdateDate(first.getUpdateDate());
+                groupedParam.setChapterCount(first.getChapterCount());
+                
+                // 转换章节信息
+                List<TextbookIntelligentQueryGroupedReturnParam.ChapterInfo> chapters = bookResults.stream()
+                        .map(this::convertToChapterInfo)
+                        .collect(Collectors.toList());
+                
+                groupedParam.setChapters(chapters);
+                groupedResults.add(groupedParam);
+            }
+        }
+        
+        // 按照修改时间降序排序
+        groupedResults.sort(Comparator.comparing(TextbookIntelligentQueryGroupedReturnParam::getUpdateDate,
+                Comparator.nullsLast(Comparator.reverseOrder())));
+        
+        groupedPage.setRecords(groupedResults);
+        return groupedPage;
+    }
+    
+    /**
+     * 将原始返回参数转换为章节信息
+     */
+    private TextbookIntelligentQueryGroupedReturnParam.ChapterInfo convertToChapterInfo(TextbookIntelligentQueryReturnParam param) {
+        TextbookIntelligentQueryGroupedReturnParam.ChapterInfo chapterInfo = new TextbookIntelligentQueryGroupedReturnParam.ChapterInfo();
+        chapterInfo.setChapterId(param.getChapterId());
+        chapterInfo.setChapterName(param.getChapterName());
+        chapterInfo.setContent(param.getContent());
+        return chapterInfo;
+    }
+    
     /**
      * 检查用户对教材的访问权限
      * @param textbookId 教材ID
