@@ -16,10 +16,7 @@ import com.upc.common.wrapper.MyLambdaQueryWrapper;
 import com.upc.exception.BusinessErrorEnum;
 import com.upc.exception.BusinessException;
 import com.upc.modular.auth.client.RemoteBaseDataClient;
-import com.upc.modular.auth.dto.RemoteStudentDTO;
-import com.upc.modular.auth.dto.RemoteTeacherDTO;
-import com.upc.modular.auth.dto.SyncItemDTO;
-import com.upc.modular.auth.dto.SyncResultDTO;
+import com.upc.modular.auth.dto.*;
 import com.upc.modular.auth.entity.SysLog;
 import com.upc.modular.auth.entity.SysTbuser;
 import com.upc.modular.auth.entity.UserRoleList;
@@ -92,6 +89,272 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
 
 
     @Override
+    @Transactional
+    public SyncAllResultDTO syncAllFromRemote() {
+
+        // 只拉一次远端（A/B/C 时只有一次 HTTP；SPLIT 也只会各拉一次学生/教师）
+        RemoteBaseDataDTO baseData = remoteBaseDataClient.fetchAllBaseData();
+
+        // 复用同一套落库逻辑
+        SyncResultDTO studentResult = syncStudent(baseData.safeStudents());
+        SyncResultDTO teacherResult = syncTeacher(baseData.safeTeachers());
+
+        SyncAllResultDTO all = new SyncAllResultDTO();
+        all.setStudentResult(studentResult);
+        all.setTeacherResult(teacherResult);
+
+/*        all.setTotalInsertCount(
+                (studentResult.getInsertCount() == null ? 0 : studentResult.getInsertCount())
+                        + (teacherResult.getInsertCount() == null ? 0 : teacherResult.getInsertCount())
+        );
+        all.setTotalUpdateCount(
+                (studentResult.getUpdateCount() == null ? 0 : studentResult.getUpdateCount())
+                        + (teacherResult.getUpdateCount() == null ? 0 : teacherResult.getUpdateCount())
+        );*/
+        all.setTotalInsertCount(studentResult.getInsertCount() + teacherResult.getInsertCount());
+        all.setTotalUpdateCount(studentResult.getUpdateCount() + teacherResult.getUpdateCount());
+
+
+        return all;
+    }
+    private SyncResultDTO syncTeacher(List<RemoteTeacherDTO> remoteList) {
+
+        List<SyncItemDTO> inserted = new ArrayList<>();
+        List<SyncItemDTO> updated = new ArrayList<>();
+
+        for (RemoteTeacherDTO r : remoteList) {
+
+            String username = r.getJobNo(); // 账号 = 工号
+            if (username == null || username.trim().isEmpty()) {
+                continue;
+            }
+
+            // 1. sys_tbuser
+            SysTbuser user = sysUserMapper.selectOne(
+                    new LambdaQueryWrapper<SysTbuser>()
+                            .eq(SysTbuser::getUsername, username)
+            );
+            boolean newUser = (user == null);
+            LocalDateTime now = LocalDateTime.now();
+
+            if (user == null) {
+                user = new SysTbuser();
+                user.setUsername(username);
+                user.setUserType(1); // 教师
+                user.setStatus(r.getStatus() == null ? 1 : r.getStatus());
+                user.setNickname(r.getName());
+                user.setInstitutionId(r.getUnitId());
+                user.setAddDatetime(now);
+                user.setOperationDatetime(now);
+                sysUserMapper.insert(user);
+            } else {
+                user.setUserType(1);
+                if (r.getStatus() != null) {
+                    user.setStatus(r.getStatus());
+                }
+                user.setNickname(r.getName());
+                if (r.getUnitId() != null) {
+                    user.setInstitutionId(r.getUnitId());
+                }
+                user.setOperationDatetime(now);
+                sysUserMapper.updateById(user);
+            }
+
+            Long userId = user.getId();
+
+            // 2. teacher
+            Teacher t = teacherMapper.selectOne(
+                    new LambdaQueryWrapper<Teacher>()
+                            .eq(Teacher::getUserId, userId)
+            );
+            boolean newTeacher = (t == null);
+
+            if (t == null) {
+                t = new Teacher();
+                t.setUserId(userId);
+                t.setIdentityId(r.getJobNo());
+                t.setIdcard(r.getIdCard());
+                t.setName(r.getName());
+                t.setGender(r.getGender());
+                t.setNationality(r.getNationality());
+                t.setBirthday(r.getBirthday());
+                t.setPosition(r.getPosition());
+                t.setProfessionalTitle(r.getProfessionalTitle());
+                t.setEmail(r.getEmail());
+                t.setPhone(r.getPhone());
+                t.setStatus(r.getStatus());
+                t.setAddDatetime(now);
+                t.setOperationDatetime(now);
+                teacherMapper.insert(t);
+            } else {
+                t.setIdentityId(r.getJobNo());
+                t.setIdcard(r.getIdCard());
+                t.setName(r.getName());
+                t.setGender(r.getGender());
+                t.setNationality(r.getNationality());
+                t.setBirthday(r.getBirthday());
+                t.setPosition(r.getPosition());
+                t.setProfessionalTitle(r.getProfessionalTitle());
+                t.setEmail(r.getEmail());
+                t.setPhone(r.getPhone());
+                if (r.getStatus() != null) {
+                    t.setStatus(r.getStatus());
+                }
+                t.setOperationDatetime(now);
+                teacherMapper.updateById(t);
+            }
+
+            SyncItemDTO item = new SyncItemDTO();
+            item.setUserId(userId);
+            item.setBizId(t.getId());
+            item.setUsername(username);
+            item.setName(r.getName());
+
+            if (newUser || newTeacher) {
+                item.setOpType("INSERT");
+                inserted.add(item);
+            } else {
+                item.setOpType("UPDATE");
+                updated.add(item);
+            }
+        }
+
+        SyncResultDTO result = new SyncResultDTO();
+        result.setInsertCount(inserted.size());
+        result.setUpdateCount(updated.size());
+        result.setInsertedList(inserted);
+        result.setUpdatedList(updated);
+        return result;
+    }
+
+
+
+    private SyncResultDTO syncStudent(List<RemoteStudentDTO> remoteList) {
+
+        List<SyncItemDTO> inserted = new ArrayList<>();
+        List<SyncItemDTO> updated = new ArrayList<>();
+
+        for (RemoteStudentDTO r : remoteList) {
+
+            String username = r.getStudentNo(); // 账号 = 学号
+            if (username == null || username.trim().isEmpty()) {
+                continue;
+            }
+
+            // 1. sys_tbuser
+            SysTbuser user = sysUserMapper.selectOne(
+                    new LambdaQueryWrapper<SysTbuser>()
+                            .eq(SysTbuser::getUsername, username)
+            );
+            boolean newUser = (user == null);
+            LocalDateTime now = LocalDateTime.now();
+
+            if (user == null) {
+                user = new SysTbuser();
+                user.setUsername(username);
+                user.setUserType(2);                           // 学生
+                user.setStatus(r.getStatus() == null ? 1 : r.getStatus());
+                user.setNickname(r.getName());
+                user.setInstitutionId(r.getUnitId());
+                user.setAddDatetime(now);
+                user.setOperationDatetime(now);
+                sysUserMapper.insert(user);
+            } else {
+                user.setUserType(2);
+                if (r.getStatus() != null) {
+                    user.setStatus(r.getStatus());
+                }
+                user.setNickname(r.getName());
+                if (r.getUnitId() != null) {
+                    user.setInstitutionId(r.getUnitId());
+                }
+                user.setOperationDatetime(now);
+                sysUserMapper.updateById(user);
+            }
+
+            Long userId = user.getId();
+
+            // 2. student
+            Student stu = studentMapper.selectOne(
+                    new LambdaQueryWrapper<Student>()
+                            .eq(Student::getUserId, userId)
+            );
+            boolean newStu = (stu == null);
+
+            if (stu == null) {
+                stu = new Student();
+                stu.setUserId(userId);
+                stu.setIdentityId(r.getStudentNo());
+                stu.setIdcard(r.getIdCard());
+                stu.setName(r.getName());
+                stu.setGender(r.getGender());
+                stu.setCollege(r.getCollegeName());
+                stu.setMajor(r.getMajorName());
+                stu.setClassId(r.getClassId());
+                stu.setEmail(r.getEmail());
+                stu.setPhone(r.getPhone());
+                stu.setAccountStatus(r.getStatus());
+                stu.setAddDatetime(now);
+                stu.setOperationDatetime(now);
+                studentMapper.insert(stu);
+            } else {
+                stu.setIdentityId(r.getStudentNo());
+                stu.setIdcard(r.getIdCard());
+                stu.setName(r.getName());
+                stu.setGender(r.getGender());
+                stu.setCollege(r.getCollegeName());
+                stu.setMajor(r.getMajorName());
+                stu.setClassId(r.getClassId());
+                stu.setEmail(r.getEmail());
+                stu.setPhone(r.getPhone());
+                if (r.getStatus() != null) {
+                    stu.setAccountStatus(r.getStatus());
+                }
+                stu.setOperationDatetime(now);
+                studentMapper.updateById(stu);
+            }
+
+            // 3. 记录本条结果
+            SyncItemDTO item = new SyncItemDTO();
+            item.setUserId(userId);
+            item.setBizId(stu.getId());
+            item.setUsername(username);
+            item.setName(r.getName());
+
+            if (newUser || newStu) {
+                item.setOpType("INSERT");
+                inserted.add(item);
+            } else {
+                item.setOpType("UPDATE");
+                updated.add(item);
+            }
+        }
+
+        SyncResultDTO result = new SyncResultDTO();
+        result.setInsertCount(inserted.size());
+        result.setUpdateCount(updated.size());
+        result.setInsertedList(inserted);
+        result.setUpdatedList(updated);
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public SyncResultDTO syncTeacherFromRemote() {
+        List<RemoteTeacherDTO> remoteList = remoteBaseDataClient.getAllTeachers();
+        log.info("远端教师数量: {}", remoteList.size());
+        return syncTeacher(remoteList); // 复用你写的 private 方法
+    }
+
+    @Override
+    @Transactional
+    public SyncResultDTO syncStudentFromRemote() {
+        List<RemoteStudentDTO> remoteList = remoteBaseDataClient.getAllStudents();
+        log.info("远端学生数量: {}", remoteList.size());
+        return syncStudent(remoteList); // 复用你写的 private 方法
+    }
+
+    /*    @Override
     @Transactional
     public SyncResultDTO syncTeacherFromRemote() {
 
@@ -317,7 +580,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysTbuser> im
         result.setInsertedList(inserted);
         result.setUpdatedList(updated);
         return result;
-    }
+    }*/
     @Override
     public UserLoginResultParam login(UserLoginParam userLogin, HttpServletRequest request) {
         if (userLogin == null || StringUtils.isBlank(userLogin.getUsername()) || StringUtils.isBlank(userLogin.getPassword())) {

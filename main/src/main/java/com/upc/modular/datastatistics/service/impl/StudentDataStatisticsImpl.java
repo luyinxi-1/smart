@@ -544,8 +544,58 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
     }
 
     @Override
-    public StudentBehaviorReturnParam analyzeStudentBehavior(String startTime, String endTime) {
-        Long userId = UserUtils.get().getId();
+    public StudentBehaviorReturnParam analyzeStudentBehavior(Long targetUserId, String startTime, String endTime) {
+        // 1. 确定查询的用户ID
+        Long userId = (targetUserId != null) ? targetUserId : UserUtils.get().getId();
+        StudentBehaviorReturnParam result = new StudentBehaviorReturnParam();
+
+        // 2. 获取原始数据 (不直接算方差，先拿 List)
+        List<Map<String, Object>> readingData = studentDataStatisticsMapper.groupReadingTimeByDay(userId, startTime, endTime);
+        List<Map<String, Object>> noteData = studentDataStatisticsMapper.groupNotesByDay(userId, startTime, endTime);
+        List<Map<String, Object>> questionData = studentDataStatisticsMapper.groupQuestionsByDay(userId, startTime, endTime);
+
+        // =========================================================================
+        // 【核心修改点】：判断“未开始学习”
+        // 逻辑：如果三个List都为空（或null），说明没有任何学习记录
+        // =========================================================================
+        boolean isReadingEmpty = (readingData == null || readingData.isEmpty());
+        boolean isNoteEmpty = (noteData == null || noteData.isEmpty());
+        boolean isQuestionEmpty = (questionData == null || questionData.isEmpty());
+
+        if (isReadingEmpty && isNoteEmpty && isQuestionEmpty) {
+            result.setHabitType("未开始学习");
+            result.setRegularityScore(0.0); // 未开始学习，建议给 0 分（或者你可以根据业务需求设为 -1 或 null）
+            return result;
+        }
+
+        // 3. 如果有数据，则继续计算方差 (原逻辑保持不变)
+        // 注意：calculateVariance 内部对于空 List 会返回 0.0，这正好符合“均匀型”计算公式中将 NULL 视为 0 的逻辑
+        double readingVariance = calculateVariance(readingData);
+        double noteVariance = calculateVariance(noteData);
+        double questionVariance = calculateVariance(questionData);
+
+        // 4. 综合分析
+        double averageVariance = (readingVariance + noteVariance + questionVariance) / 3.0;
+
+        // 计算分数
+        double score;
+        if (averageVariance == 0) {
+            score = 100; // 有数据但方差为0（比如只学了一天，或者每天学习量完全一样），得满分
+        } else {
+            score = 100 * Math.exp(-0.1 * averageVariance);
+            score = Math.max(0, Math.min(100, score));
+        }
+
+        // 设置类型和分数
+        result.setHabitType(getBehaviorType(averageVariance));
+        result.setRegularityScore(score);
+
+        return result;
+    }
+/*    @Override
+    public StudentBehaviorReturnParam analyzeStudentBehavior(Long targetUserId, String startTime, String endTime) {
+       // Long userId = UserUtils.get().getId();
+        Long userId = (targetUserId != null) ? targetUserId : UserUtils.get().getId();
         StudentBehaviorReturnParam result = new StudentBehaviorReturnParam();
         // 1. 分析阅读时长分布
         List<Map<String, Object>> readingData = studentDataStatisticsMapper.groupReadingTimeByDay(userId, startTime, endTime);
@@ -575,7 +625,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         result.setHabitType(getBehaviorType(averageVariance));
         result.setRegularityScore(score);
         return result;
-    }
+    }*/
 
     @Override
     public StudentAnalysisReturnParam countStudentPersonalAnalysis(String startTime, String endTime) {
@@ -1109,11 +1159,11 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
      */
     public Page<StudentReadingRankParam> getStudentReadingRankByPage(String groupName, String studentName, Long current, Long size) {
         Long currentUserId = UserUtils.get().getId();
-        
+
         // 获取有权限的班级列表
         List<Group> authorizedGroups = getGroupsByTeacherUserId(currentUserId);
         Set<Long> authorizedGroupIds = authorizedGroups.stream().map(Group::getId).collect(Collectors.toSet());
-        
+
         // 如果没有权限访问任何班级，返回空结果
         if (authorizedGroupIds.isEmpty()) {
             Page<StudentReadingRankParam> emptyPage = new Page<>(current, size);
@@ -1121,20 +1171,20 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             emptyPage.setTotal(0L);
             return emptyPage;
         }
-        
+
         // 构造查询条件
         LambdaQueryWrapper<Student> queryWrapper = new LambdaQueryWrapper<>();
         if (studentName != null && !studentName.isEmpty()) {
             queryWrapper.like(Student::getName, studentName);
         }
-        
+
         // 只查询有权限的班级中的学生
         queryWrapper.in(Student::getClassId, authorizedGroupIds);
-        
+
         // 分页查询学生
         Page<Student> studentPage = new Page<>(current, size);
         Page<Student> pageResult = studentMapper.selectPage(studentPage, queryWrapper);
-        
+
         List<StudentReadingRankParam> result = new ArrayList<>();
         // 处理每个学生的信息
         for (Student student : pageResult.getRecords()) {
@@ -1143,46 +1193,47 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             if (!authorizedGroupIds.contains(classId)) {
                 continue;
             }
-            
+
             // 获取班级信息
             Group group = groupMapper.selectById(classId);
             if (group == null) {
                 continue;
             }
-            
+
             // 检查班级名称是否匹配
             if (groupName != null && !groupName.isEmpty() && !groupName.equals(group.getName())) {
                 continue;
             }
-            
+
             StudentReadingRankParam param = new StudentReadingRankParam();
             param.setStudentId(student.getId())
                  .setStudentName(student.getName())
                  .setGroupId(group.getId())
                  .setGroupName(group.getName());
-            
+
             // 计算该学生的教材阅读时长(小时)
             Long readingTime = this.countStudentTextbookReadingTimeByUserId(student.getUserId());
             param.setReadingCount(readingTime == null ? 0L : readingTime);
 
             // 调用countStudentBehavior接口，获取学生行为分析结果
-            StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(null,null);
+            //StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(null,null);
+            StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(student.getUserId(), null, null);
             param.setBehavior(behaviorParam.getHabitType());
-            
+
             result.add(param);
         }
-        
+
         // 根据阅读时长排序并设置排名
         result.sort((a, b) -> b.getReadingCount().compareTo(a.getReadingCount()));
         for (int i = 0; i < result.size(); i++) {
             result.get(i).setRank((long) (i + 1));
         }
-        
+
         // 构造返回的分页结果
         Page<StudentReadingRankParam> finalPage = new Page<>(current, size);
         finalPage.setRecords(result);
         finalPage.setTotal(pageResult.getTotal());
-        
+
         return finalPage;
     }
 

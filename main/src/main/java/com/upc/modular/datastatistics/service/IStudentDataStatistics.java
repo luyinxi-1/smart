@@ -50,7 +50,7 @@ public interface IStudentDataStatistics extends IService<StudentStatisticsData> 
      */
     Map<String, Long> countStudentTextbookReadingTimeByChapter(String startTime, String endTime);
 
-    StudentBehaviorReturnParam analyzeStudentBehavior(String startTime, String endTime);
+    StudentBehaviorReturnParam analyzeStudentBehavior(Long targetUserId,String startTime, String endTime);
 
     StudentAnalysisReturnParam countStudentPersonalAnalysis(String startTime, String endTime);
 
