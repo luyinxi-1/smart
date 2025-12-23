@@ -53,13 +53,14 @@
             COALESCE(SUM(
                              CASE
                                  -- 使用 age() 函数计算可靠的时间间隔(interval)，再用 EXTRACT 提取总秒数
-                                 WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+                                 WHEN next_add_datetime IS NOT NULL
+                                     AND (next_add_datetime - add_datetime) * 24 * 60 * 60 BETWEEN 55 AND 65
                                      THEN 60 -- 累加60秒
                                  ELSE 0
                                  END
                      ), 0) AS total_reading_seconds
         FROM
-            UserLogsWithNext;
+            UserLogsWithNext
     </select>
 
     <!-- 今日访问学生人数 -->
@@ -108,21 +109,20 @@
     </select>
     <select id="getStudentVisitorCountByTime" resultMap="visitorCountResultMap">
         SELECT
-        <!-- 将 ::date 的结果再次转换为 timestamp -->
-        (((sl.add_datetime AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Shanghai')::date)::timestamp as date,
-        COUNT(DISTINCT s.user_id) as visitorCount
+            TRUNC(sl.add_datetime) AS date,
+            COUNT(DISTINCT s.user_id) AS visitorCount
         FROM
-        sys_log sl
-        INNER JOIN
-        student s ON sl.user_id = s.user_id
+            sys_log sl
+                INNER JOIN
+            student s ON sl.user_id = s.user_id
         WHERE
-        ((sl.add_datetime AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Shanghai')::date
-        BETWEEN #{startDate} AND #{endDate}
+            TRUNC(sl.add_datetime) BETWEEN #{startDate} AND #{endDate}
         GROUP BY
-        date
+            TRUNC(sl.add_datetime)
         ORDER BY
-        date ASC
+            TRUNC(sl.add_datetime) ASC
     </select>
+
 
     <!--    &lt;!&ndash; 根据指定日期统计总阅读时长（秒） &ndash;&gt;
         <select id="getStudyDurationByDate" resultType="long">
@@ -163,14 +163,14 @@
         SELECT
             COALESCE(SUM(
                              CASE
-                                 -- 使用 age() 函数计算可靠的时间间隔(interval)，再用 EXTRACT 提取总秒数
-                                 WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+                                 -- 使用 TIMESTAMPDIFF 计算时间差（秒）
+                                 WHEN TIMESTAMPDIFF(SECOND, add_datetime, next_add_datetime) BETWEEN 55 AND 65
                                      THEN 60 -- 累加60秒
                                  ELSE 0
                                  END
                      ), 0) AS total_reading_seconds
         FROM
-            UserLogsWithNext;
+            UserLogsWithNext
     </select>
     <!-- 按时间段统计今日总学习时长（秒） -->
     <select id="getTodayStudyDurationByPeriod" resultType="com.upc.modular.datastatistics.controller.param.StatisticsDto">
@@ -196,8 +196,8 @@
                  SELECT
                      time_slot,
                      CASE
-                         -- 使用 age() 函数计算可靠的时间间隔(interval)，再用 EXTRACT 提取总秒数
-                         WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+                         -- 使用 TIMESTAMPDIFF 计算时间差（秒）
+                         WHEN TIMESTAMPDIFF(SECOND, add_datetime, next_add_datetime) BETWEEN 55 AND 65
                              THEN 60 -- 累加60秒
                          ELSE 0
                          END AS duration_seconds
@@ -221,9 +221,9 @@
             SELECT
                 add_datetime,
                 LEAD(add_datetime, 1) OVER (
-                PARTITION BY creator
-                ORDER BY add_datetime ASC
-            ) AS next_add_datetime
+                    PARTITION BY creator
+                    ORDER BY add_datetime ASC
+                    ) AS next_add_datetime
             FROM
                 learning_log
             WHERE
@@ -282,7 +282,7 @@
                  SELECT
                      add_datetime,
                      CASE
-                         WHEN EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
+                         WHEN TIMESTAMPDIFF(SECOND, add_datetime, next_add_datetime) BETWEEN 55 AND 65
                              THEN 60
                          ELSE 0
                          END AS duration_seconds
@@ -342,7 +342,7 @@
         FROM (
         SELECT
         textbook_id,
-        EXTRACT(EPOCH FROM age(LEAD(add_datetime, 1) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime), add_datetime)) as diff_seconds
+        TIMESTAMPDIFF(SECOND, add_datetime, LEAD(add_datetime, 1) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime)) as diff_seconds
         FROM learning_log
         <where>
             <!-- 时间过滤条件 -->
@@ -397,6 +397,7 @@
     <select id="getTextbookTypeReadingRank" resultType="map">
         SELECT
         tc.classification_name AS typeName,
+        tc.classification_name AS typeName,
         -- 使用COALESCE确保没有阅读记录的类型也显示为0
         FLOOR(COALESCE(SUM(calculated_durations.readingDuration), 0) / 60) AS readingDuration
         FROM
@@ -414,7 +415,8 @@
         log_with_next_time.textbook_id,
         SUM(
         CASE
-        WHEN (EXTRACT(EPOCH FROM log_with_next_time.next_add_datetime) - EXTRACT(EPOCH FROM log_with_next_time.add_datetime)) BETWEEN 55 AND 65
+        /*WHEN (EXTRACT(EPOCH FROM log_with_next_time.next_add_datetime) - EXTRACT(EPOCH FROM log_with_next_time.add_datetime)) BETWEEN 55 AND 65*/
+        WHEN DATEDIFF(SECOND, log_with_next_time.add_datetime, log_with_next_time.next_add_datetime) BETWEEN 55 AND 65
         THEN 1
         ELSE 0
         END
@@ -479,12 +481,12 @@
               AND ser.teaching_question_bank_id = tqb.id
               AND ser.status = 2
             ORDER BY ser.operation_datetime DESC
-                LIMIT 1
+            LIMIT 1
             ) latest_record ON true
-            LEFT JOIN student_exercises_content sec
-            ON qbl.bank_id = sec.teaching_question_bank_id
-            AND qbl.question_id = sec.teaching_question
-            AND sec.record_id = latest_record.id
+                 LEFT JOIN student_exercises_content sec
+                           ON qbl.bank_id = sec.teaching_question_bank_id
+                               AND qbl.question_id = sec.teaching_question
+                               AND sec.record_id = latest_record.id
         WHERE tc.textbook_id = #{textbookId}
         GROUP BY tc.id, tc.catalog_name
         ORDER BY tc.id
@@ -496,7 +498,7 @@
             COUNT(t.id) AS value
         FROM
             textbook t
-            LEFT JOIN
+                LEFT JOIN
             textbook_classification tc ON t.classification = tc.id
         WHERE
             t.release_status = '1'
@@ -1438,7 +1440,7 @@
                      LEAD(add_datetime, 1) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime) AS next_add_datetime
                  FROM learning_log
                  WHERE DATE(add_datetime) = CURRENT_DATE
-        ) log_with_next_time
+             ) log_with_next_time
     </select>
 
     <!-- 获取本周阅读人数 -->
@@ -1468,8 +1470,9 @@
         WHERE dt.identity_type = 1
         GROUP BY dt.id, dt.topic_title
         ORDER BY replyCount DESC
-            LIMIT 20
+        LIMIT 20
     </select>
+
     <select id="getLearningBehaviorStatistics" resultType="map">
         WITH UserBehaviorData AS (
             -- 1. 获取所有学生及其学习行为数据
@@ -1491,66 +1494,66 @@
                          SELECT
                              creator,
                              DATE(add_datetime) as study_date,
-                     COUNT(*) as daily_count
-                    FROM learning_log
-                GROUP BY creator, DATE(add_datetime)
-            ) daily_reading
-            GROUP BY creator
-        ) reading_variance ON s.user_id = reading_variance.creator
-            LEFT JOIN (
+                             COUNT(*) as daily_count
+                         FROM learning_log
+                         GROUP BY creator, DATE(add_datetime)
+                     ) daily_reading
+                GROUP BY creator
+            ) reading_variance ON s.user_id = reading_variance.creator
+                     LEFT JOIN (
                 -- 笔记行为方差
                 SELECT
                     creator,
                     CASE
                         WHEN COUNT(*) > 1 THEN VAR_SAMP(daily_count)
                         ELSE 0
-                    END as variance
+                        END as variance
                 FROM (
-                    SELECT
-                        creator,
-                        DATE(add_datetime) as study_date,
-                        COUNT(*) as daily_count
-                    FROM learning_notes
-                    GROUP BY creator, DATE(add_datetime)
-                ) daily_notes
+                         SELECT
+                             creator,
+                             DATE(add_datetime) as study_date,
+                             COUNT(*) as daily_count
+                         FROM learning_notes
+                         GROUP BY creator, DATE(add_datetime)
+                     ) daily_notes
                 GROUP BY creator
             ) note_variance ON s.user_id = note_variance.creator
-            LEFT JOIN (
-            -- 答题行为方差
-            SELECT
-            creator,
-            CASE
-            WHEN COUNT(*) > 1 THEN VAR_SAMP(daily_count)
-            ELSE 0
-            END as variance
-            FROM (
-            SELECT
-            creator,
-            DATE(add_datetime) as study_date,
-            COUNT(*) as daily_count
-            FROM teaching_question_bank
-            GROUP BY creator, DATE(add_datetime)
-            ) daily_questions
-            GROUP BY creator
+                     LEFT JOIN (
+                -- 答题行为方差
+                SELECT
+                    creator,
+                    CASE
+                        WHEN COUNT(*) > 1 THEN VAR_SAMP(daily_count)
+                        ELSE 0
+                        END as variance
+                FROM (
+                         SELECT
+                             creator,
+                             DATE(add_datetime) as study_date,
+                             COUNT(*) as daily_count
+                         FROM teaching_question_bank
+                         GROUP BY creator, DATE(add_datetime)
+                     ) daily_questions
+                GROUP BY creator
             ) question_variance ON s.user_id = question_variance.creator
-        WHERE s.account_status = 1
-            ),
-            BehaviorClassification AS (
-        -- 2. 分类逻辑
-        SELECT
-            user_id,
-            CASE
-            -- 如果三者都为 NULL，则为未开始
-            WHEN reading_variance IS NULL
-            AND note_variance IS NULL
-            AND question_variance IS NULL THEN '未开始学习'
-            -- 遇到 NULL 视为 0 参与计算
-            WHEN (COALESCE(reading_variance, 0) + COALESCE(note_variance, 0) + COALESCE(question_variance, 0)) / 3.0 > 10.0 THEN '突击型学习'
-            WHEN (COALESCE(reading_variance, 0) + COALESCE(note_variance, 0) + COALESCE(question_variance, 0)) / 3.0 &lt;= 2.0 THEN '均匀型学习'
-            ELSE '波动型学习'
-            END as behavior_type
-        FROM UserBehaviorData
-            )
+            WHERE s.account_status = 1
+        ),
+             BehaviorClassification AS (
+                 -- 2. 分类逻辑
+                 SELECT
+                     user_id,
+                     CASE
+                         -- 如果三者都为 NULL，则为未开始
+                         WHEN reading_variance IS NULL
+                             AND note_variance IS NULL
+                             AND question_variance IS NULL THEN '未开始学习'
+                         -- 遇到 NULL 视为 0 参与计算
+                         WHEN (COALESCE(reading_variance, 0) + COALESCE(note_variance, 0) + COALESCE(question_variance, 0)) / 3.0 > 10.0 THEN '突击型学习'
+                         WHEN (COALESCE(reading_variance, 0) + COALESCE(note_variance, 0) + COALESCE(question_variance, 0)) / 3.0 &lt;= 2.0 THEN '均匀型学习'
+                         ELSE '波动型学习'
+                         END as behavior_type
+                 FROM UserBehaviorData
+             )
 
         -- 【修改点】：最外层包裹 SELECT，解决 Kingbase 排序报错问题
         SELECT name, num FROM (
@@ -1563,7 +1566,7 @@
 
                                   UNION ALL
                                   SELECT '未开始学习' as name, 0 as num
-                                      WHERE NOT EXISTS (SELECT 1 FROM BehaviorClassification WHERE behavior_type = '未开始学习')
+                                  WHERE NOT EXISTS (SELECT 1 FROM BehaviorClassification WHERE behavior_type = '未开始学习')
                                   UNION ALL
                                   SELECT '均匀型学习' as name, 0 as num
                                   WHERE NOT EXISTS (SELECT 1 FROM BehaviorClassification WHERE behavior_type = '均匀型学习')
@@ -1586,27 +1589,26 @@
     <!-- 获取学生综合统计数据 -->
     <select id="getStudentOverallStatistics" resultType="map">
         SELECT
-            -- 累计阅读量（小时）
+            -- 1. 累计阅读量（小时）
             (
-                SELECT COALESCE(FLOOR(SUM(duration) / 60), 0)
+                SELECT COALESCE(ROUND(CAST(SUM(DATEDIFF(ss, add_datetime, next_add_datetime)) AS DECIMAL(10,2)) / 3600, 1), 0)
                 FROM (
                          SELECT
                              creator,
-                             COUNT(*) as duration
-                         FROM (
-                                  SELECT
-                                      creator,
-                                      textbook_id,
-                                      add_datetime,
-                                      LEAD(add_datetime) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime) AS next_add_datetime
-                                  FROM learning_log
-                              ) log_with_next_time
-                         WHERE next_add_datetime IS NOT NULL
-                           AND EXTRACT(EPOCH FROM age(next_add_datetime, add_datetime)) BETWEEN 55 AND 65
-                         GROUP BY creator
-                     ) reading_duration
-            ) as totalReadingHours,
-            -- 综合答题正确率
+                             textbook_id,
+                             add_datetime,
+                             LEAD(add_datetime) OVER (
+                                 PARTITION BY creator, textbook_id
+                                 ORDER BY add_datetime
+                                 ) AS next_add_datetime
+                         FROM learning_log
+                     ) log_with_next_time
+                WHERE next_add_datetime IS NOT NULL
+                  AND DATEDIFF(ss, add_datetime, next_add_datetime) BETWEEN 55 AND 65
+                  AND add_datetime IS NOT NULL
+            ) as "totalReadingHours",
+
+            -- 2. 平均正确率
             (
                 SELECT COALESCE(ROUND(AVG(
                                               CASE
@@ -1618,28 +1620,33 @@
                          LEFT JOIN student_final_grade sfg ON s.id = sfg.student_id
                          LEFT JOIN questions_banks_list qbl ON sfg.bank_id = qbl.bank_id
                 WHERE s.account_status = 1
-            ) as avgCorrectRate,
-            -- 参与教学讨论数量
+            ) as "avgCorrectRate",
+
+            -- 3. 话题发布数
             (
                 SELECT COALESCE(COUNT(DISTINCT dt.id), 0)
                 FROM student s
                          LEFT JOIN discussion_topic dt ON s.user_id = dt.creator
                 WHERE s.account_status = 1
-            ) as discussionCount,
-            -- 教学活动参与量（回复数）
+            ) as "discussionCount",
+
+            -- 4. 话题回复数
             (
                 SELECT COALESCE(COUNT(dtr.id), 0)
                 FROM student s
                          LEFT JOIN discussion_topic_reply dtr ON s.user_id = dtr.creator
                 WHERE s.account_status = 1
-            ) as activityReplyCount,
-            -- 班级数量
+            ) as "activityReplyCount",
+
+            -- 5. 班级总数
             (
                 SELECT COUNT(*) FROM "group" WHERE status = 1
-            ) as classCount,
-            -- 学生数量（只统计账号状态是已启用的）
+            ) as "classCount",
+
+            -- 6. 学生总数
             (
                 SELECT COUNT(*) FROM student WHERE account_status = 1
-            ) as studentCount
+            ) as "studentCount"
+        -- 达梦/Oracle 风格建议（可选）：如果报错提示缺少 FROM，可以在最后加上 FROM DUAL
     </select>
 </mapper>

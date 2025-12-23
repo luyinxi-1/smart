@@ -34,29 +34,29 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
     @Override
     public TextbookDataStatisticsParam getTextbookDataStatistics(Long textbookId) {
         log.info("获取教材数据统计，教材ID: {}", textbookId);
-        
+
         TextbookDataStatisticsParam param = new TextbookDataStatisticsParam();
-        
+
         // 统计阅读人数
         Long readerCount = teacherTextbookStatisticsMapper.countReadersByTextbookId(textbookId);
         param.setReaderCount(readerCount);
-        
+
         // 统计教学活动数量
         Long teachingActivityCount = teacherTextbookStatisticsMapper.countTeachingActivitiesByTextbookId(textbookId);
         param.setTeachingActivityCount(teachingActivityCount);
-        
+
         // 统计素材数量
         Long materialCount = teacherTextbookStatisticsMapper.countMaterialsByTextbookId(textbookId);
         param.setMaterialCount(materialCount);
-        
+
         // 统计阅读时长 - 使用新的基于时间间隔的算法
         Long readingDurationMinutes = calculateTextbookReadingDuration(textbookId);
         param.setReadingDurationMinutes(readingDurationMinutes);
-        
+
         // 统计交流反馈数量
         Long communicationFeedbackCount = teacherTextbookStatisticsMapper.countCommunicationFeedbackByTextbookId(textbookId);
         param.setCommunicationFeedbackCount(communicationFeedbackCount);
-        
+
         // 统计教学思政数量
         Long ideologicalMaterialCount = teacherTextbookStatisticsMapper.countIdeologicalMaterialsByTextbookId(textbookId);
         param.setIdeologicalMaterialCount(ideologicalMaterialCount);
@@ -64,7 +64,7 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
         // 统计答题正确率
         Double questionCorrectRate = teacherTextbookStatisticsMapper.getQuestionCorrectRateByTextbookId(textbookId);
         param.setQuestionCorrectRate(questionCorrectRate != null ? questionCorrectRate : 0.0);
-        
+
         log.info("教材数据统计完成，教材ID: {}, 统计结果: {}", textbookId, param);
         return param;
     }
@@ -83,10 +83,10 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
     @Override
     public List<TextbookTimeStatisticsReturnParam> getReadingDurationStatisticsByTime(TextbookTimeStatisticsSearchParam param) {
         log.info("按时间统计阅读时长，参数: {}", param);
-        
+
         // 使用新的基于时间间隔的算法
         List<TextbookTimeStatisticsReturnParam> result = calculateReadingDurationStatisticsByTime(param);
-        
+
         log.info("按时间统计阅读时长完成，结果数量: {}", result.size());
         return result;
     }
@@ -94,10 +94,10 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
     @Override
     public List<ChapterQuestionCorrectRateParam> getChapterQuestionCorrectRateStatistics(Long textbookId) {
         log.info("获取各章节习题正确率统计，教材ID: {}", textbookId);
-        
+
         List<ChapterQuestionCorrectRateParam> result = teacherTextbookStatisticsMapper
                 .getChapterQuestionCorrectRateStatistics(textbookId);
-        
+
         // 处理章节名称，去除HTML标签和常见HTML实体字符，只返回纯文本名称
         for (ChapterQuestionCorrectRateParam param : result) {
             if (param.getChapterName() != null) {
@@ -116,7 +116,7 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
                 param.setChapterName(cleanName.trim());
             }
         }
-        
+
         log.info("获取各章节习题正确率统计完成，结果数量: {}", result.size());
         return result;
     }
@@ -157,7 +157,7 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
         // 生成完整的日期序列并填充缺失日期的值为0
         List<String> dateSequence = generateDateSequence(param.getTimeRange());
         List<TextbookTimeStatisticsReturnParam> result = new ArrayList<>();
-        
+
         for (String date : dateSequence) {
             TextbookTimeStatisticsReturnParam returnParam = new TextbookTimeStatisticsReturnParam();
             returnParam.setTime(date);
@@ -181,43 +181,43 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
         // 容忍范围
         final long MIN_DIFF_SECONDS = 55;
         final long MAX_DIFF_SECONDS = 65;
-        
+
         // 获取学习日志记录
         List<LearningLog> records = teacherTextbookStatisticsMapper.findLearningLogsByTextbookId(textbookId);
-        
+
         if (records == null || records.size() < 2) {
             return 0L;
         }
-        
+
         // 按用户分组统计阅读时间
         Map<Long, List<LearningLog>> userRecordsMap = records.stream()
                 .collect(Collectors.groupingBy(LearningLog::getCreator));
-        
+
         long totalReadingTime = 0L;
-        
+
         for (Map.Entry<Long, List<LearningLog>> entry : userRecordsMap.entrySet()) {
             List<LearningLog> userRecords = entry.getValue();
-            
+
             // 按时间排序
             userRecords.sort(Comparator.comparing(LearningLog::getAddDatetime));
-            
+
             for (int i = 0; i < userRecords.size() - 1; i++) {
                 LocalDateTime currentAddDatetime = userRecords.get(i).getAddDatetime();
                 LocalDateTime nextAddDatetime = userRecords.get(i + 1).getAddDatetime();
-                
+
                 if (currentAddDatetime == null || nextAddDatetime == null) {
                     continue;
                 }
-                
+
                 Duration duration = Duration.between(currentAddDatetime, nextAddDatetime);
                 long seconds = duration.getSeconds();
-                
+
                 if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
                     totalReadingTime += 1; // 每个有效间隔计为1分钟
                 }
             }
         }
-        
+
         return totalReadingTime;
     }
 
@@ -230,14 +230,14 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
         // 容忍范围
         final long MIN_DIFF_SECONDS = 55;
         final long MAX_DIFF_SECONDS = 65;
-        
+
         // 获取学习日志记录，只获取data_type=0的记录（有效阅读行为）
         List<LearningLog> records;
         if (param.getTimeRange() != null && !param.getTimeRange().isEmpty()) {
             String[] timeRange = getTimeRangeByType(param.getTimeRange());
             if (timeRange != null) {
                 records = teacherTextbookStatisticsMapper.findLearningLogsByTextbookIdAndTime(
-                        param.getTextbookId(), timeRange[0], timeRange[1]).stream()
+                                param.getTextbookId(), timeRange[0], timeRange[1]).stream()
                         .filter(log -> log.getDataType() == 0)
                         .collect(Collectors.toList());
             } else {
@@ -250,33 +250,33 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
                     .filter(log -> log.getDataType() == 0)
                     .collect(Collectors.toList());
         }
-        
+
         // 按时间维度统计
         Map<String, Long> timeReadingMap = new HashMap<>();
-        
+
         if (records != null && !records.isEmpty()) {
             // 按用户分组，过滤掉creator为null的记录
             Map<Long, List<LearningLog>> userRecordsMap = records.stream()
                     .filter(log -> log.getCreator() != null)  // 过滤掉creator为null的记录
                     .collect(Collectors.groupingBy(LearningLog::getCreator));
-            
+
             for (Map.Entry<Long, List<LearningLog>> entry : userRecordsMap.entrySet()) {
                 List<LearningLog> userRecords = entry.getValue();
-                
+
                 // 按时间排序
                 userRecords.sort(Comparator.comparing(LearningLog::getAddDatetime));
-                
+
                 for (int i = 0; i < userRecords.size() - 1; i++) {
                     LocalDateTime currentAddDatetime = userRecords.get(i).getAddDatetime();
                     LocalDateTime nextAddDatetime = userRecords.get(i + 1).getAddDatetime();
-                    
+
                     if (currentAddDatetime == null || nextAddDatetime == null) {
                         continue;
                     }
-                    
+
                     Duration duration = Duration.between(currentAddDatetime, nextAddDatetime);
                     long seconds = duration.getSeconds();
-                    
+
                     if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
                         // 根据时间范围类型格式化时间
                         String timeKey = formatTimeByRangeType(currentAddDatetime, param.getTimeRange());
@@ -285,11 +285,11 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
                 }
             }
         }
-        
+
         // 生成完整的日期序列并填充缺失日期的值为0
         List<String> dateSequence = generateDateSequence(param.getTimeRange());
         List<TextbookTimeStatisticsReturnParam> result = new ArrayList<>();
-        
+
         for (String date : dateSequence) {
             TextbookTimeStatisticsReturnParam returnParam = new TextbookTimeStatisticsReturnParam();
             returnParam.setTime(date);
@@ -297,19 +297,19 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
             returnParam.setCount(timeReadingMap.getOrDefault(date, 0L)); // 同时设置count字段，保持兼容性
             result.add(returnParam);
         }
-        
+
         // 按时间排序，使用专门的比较器处理不同格式的时间字符串
         result.sort((o1, o2) -> {
             String time1 = o1.getTime();
             String time2 = o2.getTime();
-            
+
             // 统一格式化为可比较的形式
             String formattedTime1 = formatTimeStringForSorting(time1);
             String formattedTime2 = formatTimeStringForSorting(time2);
-            
+
             return formattedTime1.compareTo(formattedTime2);
         });
-        
+
         return result;
     }
 
@@ -321,7 +321,7 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
     private String[] getTimeRangeByType(String timeRange) {
         LocalDate now = LocalDate.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        
+
         switch (timeRange.toLowerCase()) {
             case "week":
                 // 本周：从本周一开始到今天
@@ -350,12 +350,12 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
         if (timeString == null || timeString.isEmpty()) {
             return timeString;
         }
-        
+
         // 如果是年月格式(yyyy-MM)，补充为日期格式(yyyy-MM-dd)
         if (timeString.length() == 7 && timeString.charAt(4) == '-') {
             return timeString + "-01";
         }
-        
+
         return timeString;
     }
 
@@ -369,7 +369,7 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
         if (timeRange == null || timeRange.isEmpty()) {
             return dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         }
-        
+
         switch (timeRange.toLowerCase()) {
             case "week":
             case "month":
@@ -387,12 +387,12 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
     @Override
     public List<TeacherTextbookInfoParam> getTeacherTextbooks(Long teacherId) {
         List<Map<String, Object>> rawData = teacherTextbookStatisticsMapper.getTeacherTextbooks(teacherId);
-        
+
         List<TeacherTextbookInfoParam> result = new ArrayList<>();
-        
+
         for (Map<String, Object> data : rawData) {
             TeacherTextbookInfoParam param = new TeacherTextbookInfoParam();
-            
+
             // 安全地处理可能为null的数值字段
             param.setTextbookId(getLongValue(data.get("textbookId")));
             param.setTextbookName((String) data.get("textbookName"));
@@ -402,25 +402,25 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
             param.setReleaseStatus(getIntValue(data.get("releaseStatus")));
             param.setCourseName((String) data.get("courseName"));
             param.setClassName((String) data.get("className"));
-            
+
             result.add(param);
         }
-        
+
         return result;
     }
 
     @Override
     public List<StudentQuestionAnsweringStatisticsParam> getStudentQuestionAnsweringStatistics(Long textbookId, Long studentId) {
         List<Map<String, Object>> rawData = teacherTextbookStatisticsMapper.getStudentQuestionAnsweringStatistics(textbookId, studentId);
-        
+
         List<StudentQuestionAnsweringStatisticsParam> result = new ArrayList<>();
-        
+
         for (Map<String, Object> data : rawData) {
             StudentQuestionAnsweringStatisticsParam param = new StudentQuestionAnsweringStatisticsParam();
-            
+
             param.setChapterId(getLongValue(data.get("chapterId")));
             // 清理章节名称中的HTML标签
-            String chapterName = (String) data.get("chapterName");
+            String chapterName = getStringValue(data.get("chapterName"));
             if (chapterName != null) {
                 // 去除HTML标签
                 chapterName = chapterName.replaceAll("<[^>]*>", "");
@@ -451,10 +451,10 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
             Long readingDuration = getLongValue(data.get("readingDuration"));
             param.setReadingDuration(readingDuration != null ? readingDuration / 60 : null);
             param.setMasteryPercentage(getDoubleValue(data.get("masteryPercentage")));
-            
+
             result.add(param);
         }
-        
+
         return result;
     }
 
@@ -526,12 +526,12 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
     @Override
     public List<ReaderStatisticsParam> getTextbookReaderStatistics(Long textbookId) {
         List<Map<String, Object>> rawData = teacherTextbookStatisticsMapper.getTextbookReaderStatistics(textbookId);
-        
+
         List<ReaderStatisticsParam> result = new ArrayList<>();
-        
+
         for (Map<String, Object> data : rawData) {
             ReaderStatisticsParam param = new ReaderStatisticsParam();
-            
+
             param.setStudentId(getLongValue(data.get("studentId")));
             param.setStudentName((String) data.get("studentName"));
             param.setReadingDuration(getLongValue(data.get("readingDuration")));
@@ -539,24 +539,24 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
             param.setChapterCount(getIntValue(data.get("chapterCount")));
             param.setLastReadingTime(getStringValue(data.get("lastReadingTime")));
             param.setProgressPercentage(getDoubleValue(data.get("progressPercentage")));
-            
+
             result.add(param);
         }
-        
+
         return result;
     }
 
     @Override
     public List<QuestionAnsweringStatisticsParam> getTextbookQuestionAnsweringStatistics(Long textbookId) {
         List<Map<String, Object>> rawData = teacherTextbookStatisticsMapper.getTextbookQuestionAnsweringStatistics(textbookId);
-        
+
         List<QuestionAnsweringStatisticsParam> result = new ArrayList<>();
-        
+
         for (Map<String, Object> data : rawData) {
             QuestionAnsweringStatisticsParam param = new QuestionAnsweringStatisticsParam();
-            
+
             param.setChapterId(getLongValue(data.get("chapterId")));
-            param.setChapterName((String) data.get("chapterName"));
+            param.setChapterName(getStringValue(data.get("chapterName")));
             param.setMasteryLevel(getDoubleValue(data.get("masteryLevel")));
             param.setTotalQuestions(getIntValue(data.get("totalQuestions")));
             param.setCorrectAnswers(getIntValue(data.get("correctAnswers")));
@@ -565,10 +565,10 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
             param.setAverageScore(getDoubleValue(data.get("averageScore")));
             param.setChapterLevel(getIntValue(data.get("chapterLevel")));
             param.setParentChapterId(getLongValue(data.get("parentChapterId")));
-            
+
             result.add(param);
         }
-        
+
         return result;
     }
 
@@ -616,7 +616,7 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
     private List<String> generateDateSequence(String timeRange) {
         List<String> dateSequence = new ArrayList<>();
         LocalDate now = LocalDate.now();
-        
+
         switch (timeRange == null ? "" : timeRange.toLowerCase()) {
             case "week":
                 // 本周：从本周一开始到今天
@@ -628,7 +628,7 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
                     }
                 }
                 break;
-                
+
             case "month":
                 // 本月：从本月1号到今天
                 LocalDate startOfMonth = now.withDayOfMonth(1);
@@ -637,7 +637,7 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
                     dateSequence.add(date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
                 }
                 break;
-                
+
             case "year":
                 // 本年：从今年1月到当前月
                 LocalDate startOfYear = now.withDayOfYear(1);
@@ -646,7 +646,7 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
                     dateSequence.add(yearMonth.format(DateTimeFormatter.ofPattern("yyyy-MM")));
                 }
                 break;
-                
+
             default:
                 // 默认按天生成最近7天的数据
                 for (int i = 6; i >= 0; i--) {
@@ -655,7 +655,7 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
                 }
                 break;
         }
-        
+
         return dateSequence;
     }
 

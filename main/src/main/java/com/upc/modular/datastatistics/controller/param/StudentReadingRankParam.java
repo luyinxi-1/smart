@@ -23,11 +23,14 @@ public class StudentReadingRankParam {
     private String groupName;
 
     @ApiModelProperty("阅读时长(小时)")
-    private Long readingCount;
+    private double readingCount;
 
     @ApiModelProperty("排名")
     private Long rank;
 
     @ApiModelProperty("学习行为类型")
     private String behavior;
+
+    @ApiModelProperty("学习行为分值")
+    private double behaviorScore;
 }

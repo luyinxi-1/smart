@@ -9,6 +9,7 @@
             SELECT
                 tqb.textbook_catalog_id,
                 tqb.id as bank_id,
+                -- 题库总分
                 qbl.total_score as bank_total_score,
                 sfg.student_id,
                 sfg.final_score as student_final_score,
@@ -51,13 +52,10 @@
             tc.catalog_name as chapterName,
             tc.catalog_level as chapterLevel,
             tc.father_catalog_id as parentChapterId,
-            -- 题库数量
+            tc.sort as chapterSort,
             COUNT(DISTINCT cs.bank_id) as questionBankCount,
-            -- 总答题次数（去重后的学生数）
             COUNT(DISTINCT cs.student_id || '-' || cs.bank_id) as totalAnswerCount,
-            -- 正确答题次数
             SUM(cs.is_correct) as correctAnswerCount,
-            -- 正确率（正确次数 / 总次数）
             CASE
                 WHEN COUNT(DISTINCT cs.student_id || '-' || cs.bank_id) = 0 THEN 0.0
                 ELSE ROUND(
@@ -66,13 +64,18 @@
                         2
                      )
                 END as correctRate,
-            -- 平均得分率（额外统计）
             ROUND(AVG(cs.student_score_rate) * 100, 2) as avgScoreRate
         FROM textbook_catalog tc
                  LEFT JOIN chapter_stats cs ON tc.id = cs.textbook_catalog_id
         WHERE tc.textbook_id = #{textbookId}
-        GROUP BY tc.id, tc.catalog_name, tc.catalog_level, tc.father_catalog_id
+        GROUP BY
+            tc.id,
+            tc.catalog_name,
+            tc.catalog_level,
+            tc.father_catalog_id,
+            tc.sort
         ORDER BY tc.catalog_level, tc.sort
+
     </select>
 
     <!-- 注意：getCommunicationFeedbackStatisticsByTime 方法已删除 -->
@@ -91,11 +94,11 @@
             c.course_name as courseName,
             g.name as className
         FROM textbook t
-        INNER JOIN course_textbook_list ctl ON t.id = ctl.textbook_id
-        INNER JOIN course c ON ctl.course_id = c.id
-        INNER JOIN course_class_list ccl ON c.id = ccl.course_id
-        INNER JOIN "group" g ON ccl.class_id = g.id
-        INNER JOIN user_class_list ucl ON g.id = ucl.class_id
+                 INNER JOIN course_textbook_list ctl ON t.id = ctl.textbook_id
+                 INNER JOIN course c ON ctl.course_id = c.id
+                 INNER JOIN course_class_list ccl ON c.id = ccl.course_id
+                 INNER JOIN "group" g ON ccl.class_id = g.id
+                 INNER JOIN user_class_list ucl ON g.id = ucl.class_id
         WHERE ucl.user_id = #{teacherId} AND ucl.type = 2
         ORDER BY t.textbook_name
     </select>
@@ -264,59 +267,59 @@
 
     <!-- 获取教材阅读人员统计 -->
     <select id="getTextbookReaderStatistics" resultType="java.util.Map">
-        SELECT 
+        SELECT
             s.id as studentId,
             s.name as studentName,
             COALESCE(reading_stats.reading_duration, 0) as readingDuration,
-            CASE 
+            CASE
                 WHEN COALESCE(reading_stats.reading_duration, 0) >= 300 THEN '高'
                 WHEN COALESCE(reading_stats.reading_duration, 0) >= 150 THEN '中'
                 ELSE '低'
-            END as learningBehavior,
+                END as learningBehavior,
             COALESCE(chapter_stats.chapter_count, 0) as chapterCount,
             reading_stats.last_reading_time as lastReadingTime,
             COALESCE(progress_stats.progress_percentage, 0) as progressPercentage
         FROM student s
-        INNER JOIN user_class_list ucl ON s.user_id = ucl.user_id
-        INNER JOIN course_class_list ccl ON ucl.class_id = ccl.class_id
-        INNER JOIN course_textbook_list ctl ON ccl.course_id = ctl.course_id
-        LEFT JOIN (
+                 INNER JOIN user_class_list ucl ON s.user_id = ucl.user_id
+                 INNER JOIN course_class_list ccl ON ucl.class_id = ccl.class_id
+                 INNER JOIN course_textbook_list ctl ON ccl.course_id = ctl.course_id
+                 LEFT JOIN (
             -- 统计学生阅读时长
-            SELECT 
+            SELECT
                 ll.creator,
                 COUNT(CASE
-                    WHEN EXTRACT(EPOCH FROM ll2.add_datetime::timestamp) - EXTRACT(EPOCH FROM ll.add_datetime::timestamp) BETWEEN 55 AND 65
-                    THEN 1
-                    ELSE NULL
-                END) as reading_duration,
+                          WHEN EXTRACT(EPOCH FROM ll2.add_datetime::timestamp) - EXTRACT(EPOCH FROM ll.add_datetime::timestamp) BETWEEN 55 AND 65
+                              THEN 1
+                          ELSE NULL
+                    END) as reading_duration,
                 MAX(ll.add_datetime) as last_reading_time
             FROM learning_log ll
-            LEFT JOIN learning_log ll2 ON ll.creator = ll2.creator
+                     LEFT JOIN learning_log ll2 ON ll.creator = ll2.creator
                 AND ll.textbook_id = ll2.textbook_id
                 AND ll2.add_datetime > ll.add_datetime
                 AND ll2.id = (
                     SELECT id FROM learning_log
                     WHERE creator = ll.creator
-                    AND textbook_id = ll.textbook_id
-                    AND add_datetime > ll.add_datetime
+                      AND textbook_id = ll.textbook_id
+                      AND add_datetime > ll.add_datetime
                     ORDER BY add_datetime ASC
                     LIMIT 1
                 )
             WHERE ll.textbook_id = #{textbookId}
             GROUP BY ll.creator
         ) reading_stats ON s.user_id = reading_stats.creator
-        LEFT JOIN (
+                 LEFT JOIN (
             -- 统计学生阅读章节数
-            SELECT 
+            SELECT
                 ll.creator,
                 COUNT(DISTINCT ll.catalogue_id) as chapter_count
             FROM learning_log ll
             WHERE ll.textbook_id = #{textbookId}
             GROUP BY ll.creator
         ) chapter_stats ON s.user_id = chapter_stats.creator
-        LEFT JOIN (
+                 LEFT JOIN (
             -- 统计学习进度
-            SELECT 
+            SELECT
                 ll.creator,
                 ROUND((COUNT(DISTINCT ll.catalogue_id) * 100.0 / (
                     SELECT COUNT(*) FROM textbook_catalog WHERE textbook_id = #{textbookId}
@@ -404,120 +407,133 @@
             -- 参与学生数
             COALESCE(COUNT(DISTINCT ss.student_id), 0) as participantCount,
             -- 平均得分（转换成分数，可选）
-            COALESCE(ROUND(AVG(
-                                   CASE
-                                       WHEN ss.bank_total_score > 0
-                                           THEN ss.final_score * 100.0 / ss.bank_total_score
-                                       ELSE 0
-                                       END
-                           ), 2), 0) as averageScore,
+            COALESCE(
+                    ROUND(
+                            AVG(
+                                    CASE
+                                        WHEN ss.bank_total_score > 0
+                                            THEN ss.final_score * 100.0 / ss.bank_total_score
+                                        ELSE 0
+                                        END
+                            ),
+                            2
+                    ),
+                    0
+            ) as averageScore,
             tc.catalog_level as chapterLevel,
-            tc.father_catalog_id as parentChapterId
+            tc.father_catalog_id as parentChapterId,
+            -- 排序字段（达梦要求 ORDER BY 字段必须出现在 SELECT / GROUP BY 中）
+            tc.sort as chapterSort
         FROM textbook_catalog tc
                  LEFT JOIN chapter_questions cq ON tc.id = cq.textbook_catalog_id
                  LEFT JOIN student_scores ss ON tc.id = ss.textbook_catalog_id
         WHERE tc.textbook_id = #{textbookId}
-        GROUP BY tc.id, tc.catalog_name, tc.catalog_level, tc.father_catalog_id, cq.total_questions
-        ORDER BY tc.catalog_level, tc.sort
+        GROUP BY
+            tc.id,
+            tc.catalog_name,
+            tc.catalog_level,
+            tc.father_catalog_id,
+            cq.total_questions,
+            tc.sort
+        ORDER BY
+            tc.catalog_level,
+            tc.sort
+
     </select>
 
     <!-- 获取学生做题情况统计 -->
     <select id="getStudentQuestionAnsweringStatistics" resultType="java.util.Map">
-        SELECT 
-            tc.id as chapterId,
-            tc.catalog_name as chapterName,
-            tc.catalog_level as chapterLevel,
-            tc.father_catalog_id as parentChapterId,
-            COALESCE(student_stats.question_answering_duration, 0) as questionAnsweringDuration,
-            COALESCE(student_stats.chapter_score, 0) as chapterScore,
-            COALESCE(student_stats.correct_rate, 0) as correctRate,
-            COALESCE(student_stats.total_questions, 0) as totalQuestions,
-            COALESCE(student_stats.correct_answers, 0) as correctAnswers,
-            COALESCE(student_stats.average_score, 0) as averageScore,
-            COALESCE(reading_stats.reading_duration, 0) as readingDuration,
-            COALESCE(student_stats.mastery_percentage, 0) as masteryPercentage
+        SELECT
+            tc.id as "chapterId",
+            tc.catalog_name as "chapterName",
+            tc.catalog_level as "chapterLevel",
+            tc.father_catalog_id as "parentChapterId",
+            COALESCE(student_stats.question_answering_duration, 0) as "questionAnsweringDuration",
+            COALESCE(student_stats.chapter_score, 0) as "chapterScore",
+            COALESCE(student_stats.correct_rate, 0) as "correctRate",
+            COALESCE(student_stats.total_questions, 0) as "totalQuestions",
+            COALESCE(student_stats.correct_answers, 0) as "correctAnswers",
+            COALESCE(student_stats.average_score, 0) as "averageScore",
+            COALESCE(reading_stats.reading_duration, 0) as "readingDuration",
+            COALESCE(student_stats.mastery_percentage, 0) as "masteryPercentage"
         FROM textbook_catalog tc
-        LEFT JOIN (
-            -- 统计学生章节做题情况（参考chapter-question-correct-rate接口）
-            SELECT 
+                 LEFT JOIN (
+            -- 统计学生章节做题情况（保持原始计算逻辑）
+            SELECT
                 tqb.textbook_catalog_id,
                 COUNT(DISTINCT tqb.id) as questionBankCount,
                 COUNT(sfg.id) as total_questions,
-                -- 计算正确率：总得分 / 总满分 * 100
                 CASE
                     WHEN SUM(qbl.total_score) > 0 THEN
                         ROUND((SUM(sfg.final_score) / SUM(qbl.total_score)) * 100, 2)
                     ELSE 0
-                END as correct_rate,
-                -- 统计正确作答次数（正确率 >= 60% 视为正确）
+                    END as correct_rate,
                 SUM(CASE
-                    WHEN qbl.total_score > 0 AND (sfg.final_score / qbl.total_score) >= 0.6 THEN 1
-                    ELSE 0
-                END) as correct_answers,
-                -- 计算平均得分
-                CASE 
-                    WHEN COUNT(sfg.id) > 0 THEN 
+                        WHEN qbl.total_score > 0 AND (sfg.final_score / qbl.total_score) >= 0.6 THEN 1
+                        ELSE 0
+                    END) as correct_answers,
+                CASE
+                    WHEN COUNT(sfg.id) > 0 THEN
                         ROUND(AVG(sfg.final_score), 2)
-                    ELSE 0 
-                END as average_score,
-                -- 计算章节得分（基于正确率）
+                    ELSE 0
+                    END as average_score,
                 CASE
                     WHEN SUM(qbl.total_score) > 0 THEN
                         ROUND((SUM(sfg.final_score) / SUM(qbl.total_score)) * 100, 2)
                     ELSE 0
-                END as chapter_score,
-                -- 计算掌握程度百分比（基于正确率和答题数量）
+                    END as chapter_score,
                 CASE
                     WHEN SUM(qbl.total_score) > 0 AND COUNT(sfg.id) > 0 THEN
                         ROUND((SUM(sfg.final_score) / SUM(qbl.total_score)) * 100, 2)
                     ELSE 0
-                END as mastery_percentage,
-                -- 估算做题时长（每题平均5分钟）
-                CASE 
-                    WHEN COUNT(sfg.id) > 0 THEN 
+                    END as mastery_percentage,
+                CASE
+                    WHEN COUNT(sfg.id) > 0 THEN
                         COUNT(sfg.id) * 5
-                    ELSE 0 
-                END as question_answering_duration
+                    ELSE 0
+                    END as question_answering_duration
             FROM teaching_question_bank tqb
-            LEFT JOIN (
+                     LEFT JOIN (
                 SELECT bank_id, SUM(score) as total_score
                 FROM questions_banks_list
                 GROUP BY bank_id
             ) qbl ON tqb.id = qbl.bank_id
-            LEFT JOIN student_final_grade sfg ON tqb.id = sfg.bank_id AND sfg.student_id = #{studentId}
+                     LEFT JOIN student_final_grade sfg ON tqb.id = sfg.bank_id AND sfg.student_id = #{studentId}
             WHERE tqb.textbook_id = #{textbookId} AND tqb.status = 1
             GROUP BY tqb.textbook_catalog_id
         ) student_stats ON tc.id = student_stats.textbook_catalog_id
-        LEFT JOIN (
-            -- 统计学生章节阅读时长（修改：先统计所有有效间隔，再归属到章节）
-            SELECT 
+                 LEFT JOIN (
+            -- 统计学生章节阅读时长（修复达梦时间差函数）
+            SELECT
                 catalogue_id,
                 ROUND(SUM(duration_seconds) / 60) as reading_duration
             FROM (
-                SELECT 
-                    ll1.catalogue_id,
-                    EXTRACT(EPOCH FROM ll2.add_datetime) - EXTRACT(EPOCH FROM ll1.add_datetime) as duration_seconds
-                FROM (
-                    SELECT 
-                        catalogue_id,
-                        add_datetime,
-                        ROW_NUMBER() OVER (ORDER BY add_datetime) as rn
-                    FROM learning_log
-                    WHERE textbook_id = #{textbookId} 
-                      AND creator = (SELECT user_id FROM student WHERE id = #{studentId})
-                ) ll1
-                INNER JOIN (
-                    SELECT 
-                        catalogue_id,
-                        add_datetime,
-                        ROW_NUMBER() OVER (ORDER BY add_datetime) as rn
-                    FROM learning_log
-                    WHERE textbook_id = #{textbookId} 
-                      AND creator = (SELECT user_id FROM student WHERE id = #{studentId})
-                ) ll2 ON ll1.rn = ll2.rn - 1
-                WHERE EXTRACT(EPOCH FROM ll2.add_datetime) - EXTRACT(EPOCH FROM ll1.add_datetime) BETWEEN 55 AND 65
-                  AND ll1.catalogue_id IS NOT NULL
-            ) intervals
+                     SELECT
+                         ll1.catalogue_id,
+                         -- 使用 DATEDIFF 计算秒数差
+                         DATEDIFF(ss, ll1.add_datetime, ll2.add_datetime) as duration_seconds
+                     FROM (
+                              SELECT
+                                  catalogue_id,
+                                  add_datetime,
+                                  ROW_NUMBER() OVER (ORDER BY add_datetime) as rn
+                              FROM learning_log
+                              WHERE textbook_id = #{textbookId}
+                                AND creator = (SELECT user_id FROM student WHERE id = #{studentId})
+                          ) ll1
+                              INNER JOIN (
+                         SELECT
+                             catalogue_id,
+                             add_datetime,
+                             ROW_NUMBER() OVER (ORDER BY add_datetime) as rn
+                         FROM learning_log
+                         WHERE textbook_id = #{textbookId}
+                           AND creator = (SELECT user_id FROM student WHERE id = #{studentId})
+                     ) ll2 ON ll1.rn = ll2.rn - 1
+                     -- 修复 EXTRACT 为 DATEDIFF
+                     WHERE DATEDIFF(ss, ll1.add_datetime, ll2.add_datetime) BETWEEN 55 AND 65
+                       AND ll1.catalogue_id IS NOT NULL
+                 ) AS intervals -- 确保派生表有别名
             GROUP BY catalogue_id
         ) reading_stats ON tc.id = reading_stats.catalogue_id
         WHERE tc.textbook_id = #{textbookId}

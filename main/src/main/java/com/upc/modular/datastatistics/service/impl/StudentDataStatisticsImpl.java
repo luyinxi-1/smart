@@ -208,7 +208,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
      * @param userId 用户ID
      * @return 阅读时长(小时)
      */
-    public Long countStudentTextbookReadingTimeByUserId(Long userId) {
+    public double countStudentTextbookReadingTimeByUserId(Long userId) {
         // 获取学习日志记录
         List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(userId);
 
@@ -226,16 +226,15 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                 .collect(Collectors.groupingBy(LearningLog::getTextbookId));
 
         // 计算总时间(秒)
-        long totalReadingTime = 0;
+        double totalReadingTime = 0;
         for (Map.Entry<Long, List<LearningLog>> entry : logsByTextbook.entrySet()) {
-            Long textbookId = entry.getKey();
             List<LearningLog> list = entry.getValue();
 
             // 确保每本教材内部按时间排序
             list.sort(Comparator.comparing(LearningLog::getAddDatetime));
 
             // 遍历计算有效阅读时长
-            long textbookReadingTime = 0;
+            double textbookReadingTime = 0;
             for (int i = 0; i < list.size() - 1; i++) {
                 LocalDateTime currentAddDatetime = list.get(i).getAddDatetime();
                 LocalDateTime nextAddDatetime = list.get(i + 1).getAddDatetime();
@@ -747,7 +746,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         }
 
         // 按阅读时长（readingTime）进行降序排序
-        result.sort(Comparator.comparingLong(StudentTextbookRankParam::getReadingTime).reversed());
+        result.sort(Comparator.comparingDouble(StudentTextbookRankParam::getReadingTime).reversed());
 
         return result;
     }
@@ -949,7 +948,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             Long textbookId = entry.getKey();
             List<LearningLog> list = entry.getValue();
 
-            Long readingTime = 0L;  // 默认阅读时长为0小时
+            double readingTime = 0;  // 默认阅读时长为0小时
 
             // 只有当教材有≥2条记录时，才计算有效阅读
             if (list.size() >= 2) {
@@ -993,7 +992,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
 
         // 按阅读时长降序排序，返回所有结果
         return result.stream()
-                .sorted((a, b) -> b.getReadingTime().compareTo(a.getReadingTime()))
+                .sorted((a, b) -> Double.compare(b.getReadingTime(), a.getReadingTime()))
                 .collect(Collectors.toList());
     }
 
@@ -1212,19 +1211,19 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                     .setGroupName(group.getName());
 
             // 计算该学生的教材阅读时长(小时)
-            Long readingTime = this.countStudentTextbookReadingTimeByUserId(student.getUserId());
-            param.setReadingCount(readingTime == null ? 0L : readingTime);
+            double readingTime = this.countStudentTextbookReadingTimeByUserId(student.getUserId());
+            param.setReadingCount(readingTime);
 
             // 调用countStudentBehavior接口，获取学生行为分析结果
             // StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(null,null);
             StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(student.getUserId(), null, null);
             param.setBehavior(behaviorParam.getHabitType());
-
+            param.setBehaviorScore(behaviorParam.getRegularityScore());
             result.add(param);
         }
 
         // 根据阅读时长排序并设置排名
-        result.sort((a, b) -> b.getReadingCount().compareTo(a.getReadingCount()));
+        result.sort((a, b) -> Double.compare(b.getReadingCount(), a.getReadingCount()));
         for (int i = 0; i < result.size(); i++) {
             result.get(i).setRank((long) (i + 1));
         }
@@ -1273,7 +1272,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                         param.getGroupName() == null ? "" : param.getGroupName()); // 班级名称
 
                 row.createCell(col++).setCellValue(
-                        param.getReadingCount() == null ? 0L : param.getReadingCount()); // 阅读教材数量
+                        param.getReadingCount()); // 阅读教材数量
 
                 row.createCell(col++).setCellValue(
                         param.getRank() == null ? 0L : param.getRank()); // 排名

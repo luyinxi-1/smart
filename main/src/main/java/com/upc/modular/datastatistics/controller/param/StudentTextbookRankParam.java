@@ -17,5 +17,5 @@ public class StudentTextbookRankParam {
     private String textbookName;
 
     @ApiModelProperty("阅读时长(小时)")
-    private Long readingTime;
+    private double readingTime;
 }
