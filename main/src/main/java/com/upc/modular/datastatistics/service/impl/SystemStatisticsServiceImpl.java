@@ -317,7 +317,8 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         // 对所有角色通用的统计
         countsDto.setTodayVisitorCount(systemDataStatisticsMapper.getVisitorCountByDate(dateParams));
         Long studyTimeInSeconds = systemDataStatisticsMapper.getStudyDurationByDate(dateParams);
-        countsDto.setTodayStudyTime(studyTimeInSeconds != null ? studyTimeInSeconds / 3600 : 0L);
+       // countsDto.setTodayStudyTime(studyTimeInSeconds != null ? studyTimeInSeconds / 3600 : 0L);
+        countsDto.setTodayStudyTime(studyTimeInSeconds != null ? Double.parseDouble(String.format("%.2f", studyTimeInSeconds / 3600.0)) : 0.0);
 
         // 根据角色进行差异化统计
         if (userType == 0) { // 管理员
