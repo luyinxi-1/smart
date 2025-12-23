@@ -42,7 +42,7 @@ public class SystemAllCountsDto {
     private Long textbookCount;
 
     @ApiModelProperty(value = "某日总学习时长(小时)", example = "30")
-    private Long todayStudyTime;
+    private double todayStudyTime;
 
     @ApiModelProperty(value = "某日访问人数", example = "350")
     private Long todayVisitorCount;
