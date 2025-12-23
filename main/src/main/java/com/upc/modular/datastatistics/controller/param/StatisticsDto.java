@@ -15,5 +15,5 @@ public class StatisticsDto {
     private String timeSlot;
 
     @ApiModelProperty(value = "对应时间段的统计值")
-    private Long value;
+    private double value;
 }

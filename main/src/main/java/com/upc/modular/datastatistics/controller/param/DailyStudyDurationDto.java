@@ -27,5 +27,5 @@ public class DailyStudyDurationDto {
     /**
      * 学习时长（小时）
      */
-    private Long durationInHours;
+    private double durationInHours;
 }

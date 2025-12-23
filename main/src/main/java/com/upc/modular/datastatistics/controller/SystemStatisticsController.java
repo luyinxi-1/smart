@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -98,6 +100,31 @@ public class SystemStatisticsController {
     public R<List<StatisticsDto>> getTodayStudyDurationByPeriod() {
         try {
             List<StatisticsDto> result = systemStatisticsService.getTodayStudyDurationByPeriod();
+
+            // 处理数值：秒 -> 小时，保留两位小数
+            result.forEach(dto -> {
+               //if (dto.getValue() != null) {
+                    // 使用 BigDecimal 进行精确运算
+                    BigDecimal seconds = BigDecimal.valueOf(dto.getValue());
+                    BigDecimal div = new BigDecimal("3600");
+
+                    // divide(除数, 保留位数, 舍入模式-四舍五入)
+                    double hours = seconds.divide(div, 2, RoundingMode.HALF_UP).doubleValue();
+
+                    dto.setValue(hours);
+                //}
+            });
+            return R.ok(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return R.fail("获取今日分时总学习时长失败: " + e.getMessage());
+        }
+    }
+/*    @ApiOperation("按时间段获取今日总学习时长统计(小时)")
+    @PostMapping("/todayStudyDurationByPeriod")
+    public R<List<StatisticsDto>> getTodayStudyDurationByPeriod() {
+        try {
+            List<StatisticsDto> result = systemStatisticsService.getTodayStudyDurationByPeriod();
             // 将秒转换为小时
             result.forEach(dto -> {
                 if (dto.getValue() != null) {
@@ -109,7 +136,7 @@ public class SystemStatisticsController {
             e.printStackTrace();
             return R.fail("获取今日分时总学习时长失败: " + e.getMessage());
         }
-    }
+    }*/
     @ApiOperation("根据日期范围查询学习趋势(单位:秒)")
     @GetMapping("/studyTrendByDate")
     public R<List<StudyTrendDTO>> getStudyTrendByDate(

@@ -43,6 +43,8 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.List;
 import com.upc.common.utils.UserInfoToRedis;
@@ -116,8 +118,29 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
 
         return systemDataStatisticsMapper.getTodayVisitorCount();
     }
-
     @Override
+    public List<StatisticsDto> getTodayVisitorCountByPeriod() {
+        // 从数据库获取按时间段分组的原始数据
+        List<StatisticsDto> resultsFromDb = systemDataStatisticsMapper.getTodayVisitorCountByPeriod();
+
+        // 【修改点1】将 Map<String, Long> 改为 Map<String, Double>
+        // 因为 StatisticsDto::getValue 现在返回的是 Double 类型
+        Map<String, Double> resultMap = resultsFromDb.stream()
+                .collect(Collectors.toMap(StatisticsDto::getTimeSlot, StatisticsDto::getValue));
+
+        // 定义所有期望的时间段，确保返回结果的完整性
+        List<String> timeSlots = Arrays.asList(
+                "0:00-4:00", "4:00-8:00", "8:00-12:00",
+                "12:00-16:00", "16:00-20:00", "20:00-24:00"
+        );
+
+        // 遍历所有时间段，如果数据库中没有该时间段的数据，则补充为0
+        return timeSlots.stream()
+                // 【修改点2】将 0L 改为 0.0，以匹配 Map 的 value 类型
+                .map(slot -> new StatisticsDto(slot, resultMap.getOrDefault(slot, 0.0)))
+                .collect(Collectors.toList());
+    }
+/*    @Override
     public List<StatisticsDto> getTodayVisitorCountByPeriod() {
         // 从数据库获取按时间段分组的原始数据
         List<StatisticsDto> resultsFromDb = systemDataStatisticsMapper.getTodayVisitorCountByPeriod();
@@ -136,7 +159,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         return timeSlots.stream()
                 .map(slot -> new StatisticsDto(slot, resultMap.getOrDefault(slot, 0L)))
                 .collect(Collectors.toList());
-    }
+    }*/
 
     //按时间统计访问人数
     @Override
@@ -185,8 +208,76 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
                 })
                 .collect(Collectors.toList());
     }
-
     @Override
+    public List<DailyStudyDurationDto> getStudyDurationByTime(String timeRange) {
+        // 1. 参数校验和处理 (保持不变)
+        LocalDate now = LocalDate.now();
+        LocalDate startDate;
+        LocalDate endDate;
+
+        switch (timeRange.toLowerCase()) {
+            case "week":
+                startDate = now.with(java.time.DayOfWeek.MONDAY);
+                endDate = startDate.plusDays(6);
+                break;
+            case "month":
+                startDate = now.with(java.time.temporal.TemporalAdjusters.firstDayOfMonth());
+                endDate = now.with(java.time.temporal.TemporalAdjusters.lastDayOfMonth());
+                break;
+            case "year":
+                startDate = now.with(java.time.temporal.TemporalAdjusters.firstDayOfYear());
+                endDate = now.with(java.time.temporal.TemporalAdjusters.lastDayOfYear());
+                break;
+            default:
+                throw new IllegalArgumentException("不支持的时间范围: " + timeRange);
+        }
+
+        // 2. 调用 Mapper 获取原始数据 (保持不变)
+        List<DailyStudyDurationDto> dbResults = systemDataStatisticsMapper.getStudyDurationsByDateRange(startDate, endDate);
+
+        // 3. 构建映射 (保持不变)
+        Map<LocalDate, DailyStudyDurationDto> resultsMap = dbResults.stream()
+                .collect(Collectors.toMap(
+                        dto -> dto.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
+                        dto -> dto,
+                        (existing, replacement) -> existing
+                ));
+
+        // 4. 生成完整的日期范围并补全数据
+        long numOfDays = startDate.until(endDate, ChronoUnit.DAYS) + 1;
+
+        return Stream.iterate(startDate, date -> date.plusDays(1))
+                .limit(numOfDays)
+                .map(date -> {
+                    DailyStudyDurationDto foundDto = resultsMap.get(date);
+
+                    if (foundDto != null) {
+                        // 【修改点 1】存在数据时，进行 BigDecimal 转换
+                        if (foundDto.getDurationInSeconds() != null) {
+                            BigDecimal seconds = BigDecimal.valueOf(foundDto.getDurationInSeconds());
+                            BigDecimal divisor = new BigDecimal("3600");
+
+                            // 除以3600，保留2位小数，四舍五入
+                            double hours = seconds.divide(divisor, 2, RoundingMode.HALF_UP).doubleValue();
+
+                            foundDto.setDurationInHours(hours);
+                        } else {
+                            foundDto.setDurationInHours(0.0);
+                        }
+                        return foundDto;
+                    } else {
+                        // 【修改点 2】缺失数据补全时，设置为 0.0
+                        Date missingDate = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
+                        DailyStudyDurationDto newDto = new DailyStudyDurationDto();
+                        newDto.setDate(missingDate);
+                        newDto.setDurationInSeconds(0L); // 秒数为0
+                        newDto.setDurationInHours(0.0);  // 小时数为0.0
+                        return newDto;
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+/*    @Override
     public List<DailyStudyDurationDto> getStudyDurationByTime(String timeRange) {
         // 1. 参数校验和处理
         LocalDate now = LocalDate.now();
@@ -248,14 +339,38 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
                     }
                 })
                 .collect(Collectors.toList());
-    }
+    }*/
 
     public Long getTodayStudyDuration() {
         // TODO: 实现今日总学习时长统计逻辑
         return systemDataStatisticsMapper.getTodayStudyDuration();
     }
-
     @Override
+    public List<StatisticsDto> getTodayStudyDurationByPeriod() {
+        // 1. 从数据库获取原始数据 (MyBatis 会自动将 SUM 的结果映射到 StatisticsDto 的 value 中)
+        List<StatisticsDto> resultsFromDb = systemDataStatisticsMapper.getTodayStudyDurationByPeriod();
+
+        // 2. 创建映射
+        // 注意：数据库查出来的可能是整数秒，这里 value 如果是 Double，Map 也用 Double
+        Map<String, Double> resultMap = resultsFromDb.stream()
+                .collect(Collectors.toMap(StatisticsDto::getTimeSlot, StatisticsDto::getValue));
+
+        // 3. 定义所有时间段
+        List<String> timeSlots = Arrays.asList(
+                "0:00-4:00", "4:00-8:00", "8:00-12:00",
+                "12:00-16:00", "16:00-20:00", "20:00-24:00"
+        );
+
+        // 4. 遍历并补全数据
+        return timeSlots.stream()
+                .map(slot -> {
+                    // getOrDefault 获取秒数，默认为 0.0
+                    Double seconds = resultMap.getOrDefault(slot, 0.0);
+                    return new StatisticsDto(slot, seconds);
+                })
+                .collect(Collectors.toList());
+    }
+/*    @Override
     public List<StatisticsDto> getTodayStudyDurationByPeriod() {
         // 从数据库获取按时间段分组的原始数据
         List<StatisticsDto> resultsFromDb = systemDataStatisticsMapper.getTodayStudyDurationByPeriod();
@@ -274,7 +389,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         return timeSlots.stream()
                 .map(slot -> new StatisticsDto(slot, resultMap.getOrDefault(slot, 0L)))
                 .collect(Collectors.toList());
-    }
+    }*/
 
     //按时间统计总学习时长
     @Override
