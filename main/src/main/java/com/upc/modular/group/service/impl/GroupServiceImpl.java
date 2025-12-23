@@ -32,6 +32,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -352,8 +354,65 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
         
         return groupsByTeacher;
     }
-    
     @Override
+    public Map<String, Object> getClassStatisticsByUserId(Long userId) {
+        Map<String, Object> result = new HashMap<>();
+
+        // 获取班级列表
+        List<Group> groups = getGroupsByTeacherUserId(userId);
+
+        // 1. 班级数量
+        int classCount = groups.size();
+        result.put("classCount", classCount);
+
+        // 2. 班级总人数
+        Set<Long> studentUserIds = new HashSet<>();
+        if (!groups.isEmpty()) {
+            List<Long> groupIds = groups.stream()
+                    .map(Group::getId)
+                    .collect(Collectors.toList());
+
+            // 查询这些班级中的所有学生
+            LambdaQueryWrapper<Student> studentQueryWrapper = new LambdaQueryWrapper<>();
+            studentQueryWrapper.in(Student::getClassId, groupIds);
+            List<Student> students = studentMapper.selectList(studentQueryWrapper);
+
+            // 收集学生用户ID
+            students.forEach(student -> studentUserIds.add(student.getUserId()));
+        }
+        result.put("studentCount", studentUserIds.size());
+
+        // 3. 班级总阅读时长(小时) - 保留两位小数
+        // 使用 atomic 或者 long 累加总秒数
+        long totalReadingSeconds = 0;
+
+        if (!studentUserIds.isEmpty()) {
+            // 遍历累加秒数
+            for (Long studentUserId : studentUserIds) {
+                // 获取每个学生的阅读时长(秒)
+                Long studentReadingTime = studentDataStatisticsMapper.getStudentReadingTimeByUserId(studentUserId);
+                if (studentReadingTime != null) {
+                    totalReadingSeconds += studentReadingTime;
+                }
+            }
+        }
+
+        // 【核心修改点】将总秒数转换为小时，保留两位小数
+        double readingHours = 0.0;
+        if (totalReadingSeconds > 0) {
+            BigDecimal secondsBd = BigDecimal.valueOf(totalReadingSeconds);
+            BigDecimal divisor = new BigDecimal("3600");
+
+            // divide(除数, 小数位数, 舍入模式-四舍五入)
+            readingHours = secondsBd.divide(divisor, 2, RoundingMode.HALF_UP).doubleValue();
+        }
+
+        // 放入 Map，类型为 Double
+        result.put("readingCount", readingHours);
+
+        return result;
+    }
+/*    @Override
     public Map<String, Object> getClassStatisticsByUserId(Long userId) {
         Map<String, Object> result = new HashMap<>();
         
@@ -398,5 +457,5 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
         result.put("readingCount", totalReadingHours);
         
         return result;
-    }
+    }*/
 }

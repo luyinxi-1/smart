@@ -208,7 +208,62 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
      * @param userId 用户ID
      * @return 阅读时长(小时)
      */
-    public Long countStudentTextbookReadingTimeByUserId(Long userId) {
+    public Double countStudentTextbookReadingTimeByUserId(Long userId) {
+        // 获取学习日志记录
+        List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(userId);
+
+        if(records == null || records.size() < 2){
+            return 0.0; // 返回 0.0
+        }
+
+        // 容忍范围
+        final long MIN_DIFF_SECONDS = 55;
+        final long MAX_DIFF_SECONDS = 65;
+
+        // 先按教材分组
+        Map<Long, List<LearningLog>> logsByTextbook = records.stream()
+                .filter(log -> log.getTextbookId() != null)
+                .collect(Collectors.groupingBy(LearningLog::getTextbookId));
+
+        // 【修改点2】定义总秒数变量 (用来累加所有教材的秒数)
+        long totalSecondsAllTextbooks = 0;
+
+        for (Map.Entry<Long, List<LearningLog>> entry : logsByTextbook.entrySet()) {
+            List<LearningLog> list = entry.getValue();
+
+            // 确保每本教材内部按时间排序
+            list.sort(Comparator.comparing(LearningLog::getAddDatetime));
+
+            // 遍历计算当前这本教材的有效阅读秒数
+            long textbookSeconds = 0;
+            for (int i = 0; i < list.size() - 1; i++) {
+                LocalDateTime currentAddDatetime = list.get(i).getAddDatetime();
+                LocalDateTime nextAddDatetime = list.get(i + 1).getAddDatetime();
+                if(currentAddDatetime == null || nextAddDatetime == null){
+                    continue;
+                }
+                Duration duration = Duration.between(currentAddDatetime, nextAddDatetime);
+                long seconds = duration.getSeconds();
+                if(seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS){
+                    textbookSeconds += seconds; // 累加秒数
+                }
+            }
+
+            // 【修改点3】不要在这里除以3600，直接把秒数加到总数里
+            // 这样可以避免每本书都丢掉零头，计算更精确
+            totalSecondsAllTextbooks += textbookSeconds;
+        }
+
+        // 【修改点4】最后统一将 总秒数 -> 小时 (保留两位小数)
+        if (totalSecondsAllTextbooks == 0) {
+            return 0.0;
+        }
+
+        return BigDecimal.valueOf(totalSecondsAllTextbooks)
+                .divide(new BigDecimal("3600"), 2, RoundingMode.HALF_UP)
+                .doubleValue();
+    }
+  /*  public Long countStudentTextbookReadingTimeByUserId(Long userId) {
         // 获取学习日志记录
         List<LearningLog> records = studentDataStatisticsMapper.findAddDatetime(userId);
 
@@ -254,7 +309,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         }
         // 返回小时数 (已提前转换为小时)
         return totalReadingTime;
-    }
+    }*/
 
     /**
      * 按月统计学生教材阅读时间
@@ -1160,6 +1215,81 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
     public Page<StudentReadingRankParam> getStudentReadingRankByPage(String groupName, String studentName, Long current, Long size) {
         Long currentUserId = UserUtils.get().getId();
 
+        // 1. 获取权限班级 (保持不变)
+        List<Group> authorizedGroups = getGroupsByTeacherUserId(currentUserId);
+        Set<Long> authorizedGroupIds = authorizedGroups.stream().map(Group::getId).collect(Collectors.toSet());
+
+        if (authorizedGroupIds.isEmpty()) {
+            Page<StudentReadingRankParam> emptyPage = new Page<>(current, size);
+            emptyPage.setRecords(new ArrayList<>());
+            emptyPage.setTotal(0L);
+            return emptyPage;
+        }
+
+        // 2. 构造查询条件 (保持不变)
+        LambdaQueryWrapper<Student> queryWrapper = new LambdaQueryWrapper<>();
+        if (studentName != null && !studentName.isEmpty()) {
+            queryWrapper.like(Student::getName, studentName);
+        }
+        queryWrapper.in(Student::getClassId, authorizedGroupIds);
+
+        // 3. 分页查询 (保持不变)
+        Page<Student> studentPage = new Page<>(current, size);
+        Page<Student> pageResult = studentMapper.selectPage(studentPage, queryWrapper);
+
+        List<StudentReadingRankParam> result = new ArrayList<>();
+
+        // 4. 处理数据
+        for (Student student : pageResult.getRecords()) {
+            Long classId = student.getClassId();
+            // 权限和班级名过滤逻辑 (保持不变)
+            if (!authorizedGroupIds.contains(classId)) continue;
+            Group group = groupMapper.selectById(classId);
+            if (group == null) continue;
+            if (groupName != null && !groupName.isEmpty() && !groupName.equals(group.getName())) continue;
+
+            StudentReadingRankParam param = new StudentReadingRankParam();
+            param.setStudentId(student.getId())
+                    .setStudentName(student.getName())
+                    .setGroupId(group.getId())
+                    .setGroupName(group.getName());
+
+            // 1. 获取阅读时长（既然你确认这里返回的已经是小时）
+            Double readingTimeInHours = this.countStudentTextbookReadingTimeByUserId(student.getUserId());
+
+            // 2. 直接转换为 Double 赋值，不再除以 3600
+            if (readingTimeInHours != null) {
+                // 如果需要强行保留两位小数的格式（比如 171.00），
+                // 虽然数值本身是整数，但作为 Double 传递给前端即可
+                param.setReadingCount(readingTimeInHours.doubleValue());
+            } else {
+                param.setReadingCount(0.0);
+            }
+            // 获取行为分析 (保持不变)
+            StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(student.getUserId(), null, null);
+            param.setBehavior(behaviorParam.getHabitType());
+
+            result.add(param);
+        }
+
+        // 5. 排序和设置排名
+        // Double 类型也可以直接 compareTo，这里按时长降序排列
+        //result.sort((a, b) -> b.getReadingCount().compareTo(a.getReadingCount()));
+        result.sort(Comparator.comparingDouble(StudentReadingRankParam::getReadingCount).reversed());
+        for (int i = 0; i < result.size(); i++) {
+            result.get(i).setRank((long) (i + 1));
+        }
+
+        // 6. 返回结果
+        Page<StudentReadingRankParam> finalPage = new Page<>(current, size);
+        finalPage.setRecords(result);
+        finalPage.setTotal(pageResult.getTotal());
+
+        return finalPage;
+    }
+/*    public Page<StudentReadingRankParam> getStudentReadingRankByPage(String groupName, String studentName, Long current, Long size) {
+        Long currentUserId = UserUtils.get().getId();
+
         // 获取有权限的班级列表
         List<Group> authorizedGroups = getGroupsByTeacherUserId(currentUserId);
         Set<Long> authorizedGroupIds = authorizedGroups.stream().map(Group::getId).collect(Collectors.toSet());
@@ -1235,7 +1365,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         finalPage.setTotal(pageResult.getTotal());
 
         return finalPage;
-    }
+    }*/
 
     @Override
     public void exportStudentReadingRank(String groupName, String studentName, HttpServletResponse response) {
@@ -1272,9 +1402,9 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                 row.createCell(col++).setCellValue(
                         param.getGroupName() == null ? "" : param.getGroupName()); // 班级名称
 
-                row.createCell(col++).setCellValue(
-                        param.getReadingCount() == null ? 0L : param.getReadingCount()); // 阅读教材数量
-
+                /*row.createCell(col++).setCellValue(
+                        param.getReadingCount() == null ? 0L : param.getReadingCount());*/ // 阅读教材数量
+                row.createCell(col++).setCellValue(param.getReadingCount());
                 row.createCell(col++).setCellValue(
                         param.getRank() == null ? 0L : param.getRank()); // 排名
 
