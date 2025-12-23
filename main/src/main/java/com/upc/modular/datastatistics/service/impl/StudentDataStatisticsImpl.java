@@ -67,7 +67,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
     // 阅读时间计算阈值
     private static final long MIN_DIFF_SECONDS = 55;
     private static final long MAX_DIFF_SECONDS = 65;
-    
+
     @Autowired
     private StudentDataStatisticsMapper studentDataStatisticsMapper;
 
@@ -83,11 +83,11 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
 
     @Autowired
     private ISysUserService sysUserService;
-    
+
     // 新增注入GroupMapper
     @Autowired
     private GroupMapper groupMapper;
-    
+
     // 新增注入TeacherMapper
     @Autowired
     private TeacherMapper teacherMapper;
@@ -224,16 +224,16 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         Map<Long, List<LearningLog>> logsByTextbook = records.stream()
                 .filter(log -> log.getTextbookId() != null)
                 .collect(Collectors.groupingBy(LearningLog::getTextbookId));
-        
+
         // 计算总时间(秒)
         long totalReadingTime = 0;
         for (Map.Entry<Long, List<LearningLog>> entry : logsByTextbook.entrySet()) {
             Long textbookId = entry.getKey();
             List<LearningLog> list = entry.getValue();
-            
+
             // 确保每本教材内部按时间排序
             list.sort(Comparator.comparing(LearningLog::getAddDatetime));
-            
+
             // 遍历计算有效阅读时长
             long textbookReadingTime = 0;
             for (int i = 0; i < list.size() - 1; i++) {
@@ -248,7 +248,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                     textbookReadingTime += seconds;//累加实际秒数
                 }
             }
-            
+
             // 先转换为小时再累加，保持与textbook-rank-by-student接口一致
             totalReadingTime += textbookReadingTime / 3600;
         }
@@ -331,7 +331,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                 .collect(Collectors.groupingBy(
                         map -> (Long) map.get("textbook_id"),
                         Collectors.mapping(map -> (Long) map.get("catalogue_id"), Collectors.toSet())
-                        ));
+                ));
 
         Set<Long> textbookIds = readCatalogsByBook.keySet();
         List<StudentTextbookCompletionReturnParam> result = new ArrayList<>();
@@ -593,8 +593,8 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         return result;
     }
 /*    @Override
-    public StudentBehaviorReturnParam analyzeStudentBehavior(Long targetUserId, String startTime, String endTime) {
-       // Long userId = UserUtils.get().getId();
+    public StudentBehaviorReturnParam analyzeStudentBehavior(Long targetUserId,String startTime, String endTime) {
+        //Long userId = UserUtils.get().getId();
         Long userId = (targetUserId != null) ? targetUserId : UserUtils.get().getId();
         StudentBehaviorReturnParam result = new StudentBehaviorReturnParam();
         // 1. 分析阅读时长分布
@@ -975,7 +975,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                         readingTime += seconds;
                     }
                 }
-                
+
                 // 将秒转换为小时
                 readingTime = readingTime / 3600;
             }
@@ -1092,24 +1092,24 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         try {
             // 使用反射调用systemStatisticsService.getStudentChapterMastery方法
             List<ChapterMasteryVO> chapterMasteryList = systemStatisticsService.getStudentChapterMastery(studentId, textbookId);
-            
+
             if (chapterMasteryList == null || chapterMasteryList.isEmpty()) {
                 return 0.0;
             }
-            
+
             // 过滤掉没有题目的章节(-1标记)
             List<ChapterMasteryVO> validChapters = chapterMasteryList.stream()
                     .filter(chapter -> !"-1".equals(chapter.getMasteryPercentage()))
                     .collect(Collectors.toList());
-            
+
             if (validChapters.isEmpty()) {
                 return 0.0;
             }
-            
+
             // 计算平均掌握度
             double totalMastery = 0.0;
             int validChapterCount = 0;
-            
+
             for (ChapterMasteryVO chapter : validChapters) {
                 try {
                     double mastery = Double.parseDouble(chapter.getMasteryPercentage());
@@ -1119,11 +1119,11 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                     // 忽略无法解析的掌握度数据
                 }
             }
-            
+
             if (validChapterCount == 0) {
                 return 0.0;
             }
-            
+
             return totalMastery / validChapterCount;
         } catch (Exception e) {
             // 发生异常时返回0掌握度
@@ -1148,7 +1148,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         }
         return count;
     }
-    
+
     /**
      * 根据班级名称和学生姓名分页查询学生阅读排名
      * @param groupName 班级名称
@@ -1207,16 +1207,16 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
 
             StudentReadingRankParam param = new StudentReadingRankParam();
             param.setStudentId(student.getId())
-                 .setStudentName(student.getName())
-                 .setGroupId(group.getId())
-                 .setGroupName(group.getName());
+                    .setStudentName(student.getName())
+                    .setGroupId(group.getId())
+                    .setGroupName(group.getName());
 
             // 计算该学生的教材阅读时长(小时)
             Long readingTime = this.countStudentTextbookReadingTimeByUserId(student.getUserId());
             param.setReadingCount(readingTime == null ? 0L : readingTime);
 
             // 调用countStudentBehavior接口，获取学生行为分析结果
-            //StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(null,null);
+            // StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(null,null);
             StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(student.getUserId(), null, null);
             param.setBehavior(behaviorParam.getHabitType());
 
@@ -1324,25 +1324,25 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             // 如果是管理员，返回所有班级
             return groupMapper.selectList(new LambdaQueryWrapper<Group>().eq(Group::getStatus, 1));
         }
-        
+
         // 1. 根据用户ID获取教师ID
         Long teacherId = teacherMapper.getTeacherIdByUserId(userId);
         if (teacherId == null) {
             return new ArrayList<>(); // 如果找不到对应的教师，返回空列表
         }
-        
+
         // 2. 创建用于存储班级ID的Set，以实现去重
         Set<Long> groupIds = new HashSet<>();
-        
+
         // 3. 根据教师ID在group表中查找对应的班级
         LambdaQueryWrapper<Group> groupQueryWrapper = new LambdaQueryWrapper<>();
         groupQueryWrapper.eq(Group::getTeacherId, teacherId)
                 .eq(Group::getStatus, 1); // 只查找状态为1的班级
         List<Group> groupsByTeacher = groupMapper.selectList(groupQueryWrapper);
-        
+
         // 4. 收集这些班级的ID
         groupsByTeacher.forEach(group -> groupIds.add(group.getId()));
-        
+
         // 5. 根据教师ID查找该教师对应的课程ID
         LambdaQueryWrapper<Course> courseQueryWrapper = new LambdaQueryWrapper<>();
         courseQueryWrapper.eq(Course::getTeacherId, teacherId);
@@ -1350,18 +1350,18 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         List<Long> courseIds = courses.stream()
                 .map(Course::getId)
                 .collect(Collectors.toList());
-        
+
         // 6. 如果存在课程，根据课程ID查找对应的班级ID
         if (!courseIds.isEmpty()) {
             // 通过course_class_list表查找班级ID
             LambdaQueryWrapper<CourseClassList> courseClassListQueryWrapper = new LambdaQueryWrapper<>();
             courseClassListQueryWrapper.in(CourseClassList::getCourseId, courseIds);
             List<CourseClassList> courseClassLists = courseClassListService.list(courseClassListQueryWrapper);
-            
+
             // 收集班级ID
             courseClassLists.forEach(courseClassList -> groupIds.add(courseClassList.getClassId()));
         }
-        
+
         // 7. 根据收集到的班级ID查找所有班级信息
         if (!groupIds.isEmpty()) {
             LambdaQueryWrapper<Group> finalGroupQueryWrapper = new LambdaQueryWrapper<>();
@@ -1369,10 +1369,10 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                     .eq(Group::getStatus, 1); // 只查找状态为1的班级
             return groupMapper.selectList(finalGroupQueryWrapper);
         }
-        
+
         return groupsByTeacher;
     }
-    
+
     @Override
     public Double getStudentScoreRate(Long userId) {
         // 通过userId查询对应的studentId
@@ -1386,67 +1386,71 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
 
     @Override
     public List<TextStudentRankParam> countStudentTextbookReadingRankByTextbookId(Long textbookId) {
+        // 获取当前登录用户ID
+        Long currentUserId = UserUtils.get().getId();
+
         // 获取阅读过该教材的所有学生的学习日志记录
         List<LearningLog> records = studentDataStatisticsMapper.findLearningLogsByTextbookId(textbookId);
-        
+
         if (records == null || records.isEmpty()) {
             return new ArrayList<>();
         }
-        
+
         // 按用户ID分组学习日志
         Map<Long, List<LearningLog>> logsByUser = records.stream()
                 .filter(log -> log.getCreator() != null)
                 .collect(Collectors.groupingBy(LearningLog::getCreator));
-        
+
         // 计算每个学生的阅读时长
         List<TextStudentRankParam> result = new ArrayList<>();
-        
+
         for (Map.Entry<Long, List<LearningLog>> entry : logsByUser.entrySet()) {
             Long userId = entry.getKey();
             List<LearningLog> userLogs = entry.getValue();
-            
+
             // 对用户的日志按时间排序
             userLogs.sort(Comparator.comparing(LearningLog::getAddDatetime));
-            
+
             // 计算阅读时长
             long readingTime = 0L;
             for (int i = 0; i < userLogs.size() - 1; i++) {
                 LocalDateTime currentTime = userLogs.get(i).getAddDatetime();
                 LocalDateTime nextTime = userLogs.get(i + 1).getAddDatetime();
-                
+
                 if (currentTime == null || nextTime == null) {
                     continue;
                 }
-                
+
                 Duration duration = Duration.between(currentTime, nextTime);
                 long seconds = duration.getSeconds();
-                
+
                 // 如果时间差在预设范围内，则视为有效阅读时间
                 if (seconds >= MIN_DIFF_SECONDS && seconds <= MAX_DIFF_SECONDS) {
                     readingTime += 1;
                 }
             }
-            
+
             // 获取学生姓名
             Student student = studentMapper.selectOne(new LambdaQueryWrapper<Student>().eq(Student::getUserId, userId));
             String studentName = (student != null) ? student.getName() : "未知学生";
-            
+
             // 创建排名参数对象
             TextStudentRankParam param = new TextStudentRankParam();
             param.setStudent_name(studentName);
             param.setRead_time(readingTime);
-            
+            param.setUser_id(currentUserId);
+
             result.add(param);
         }
-        
+
         // 按阅读时长降序排序
         result.sort(Comparator.comparingLong(TextStudentRankParam::getRead_time).reversed());
-        
+
         // 设置排名
         for (int i = 0; i < result.size(); i++) {
             result.get(i).setRank(i + 1);
         }
-        
+
         return result;
     }
 
@@ -1468,42 +1472,42 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
     @Override
     public Map<String, Long> countStudentTextbookReadingTimeByChapter(String startTime, String endTime) {
         Long userId = UserUtils.get().getId();
-        
+
         // 获取学习记录，按教材和章节分组
         List<LearningLog> records = studentDataStatisticsMapper.findChapterRecordsByTime(
-            userId, startTime, endTime, 0
+                userId, startTime, endTime, 0
         );
-        
+
         if (records == null || records.isEmpty()) {
             return Collections.emptyMap();
         }
-        
+
         // 使用 Map 存储每个章节的阅读时长
         Map<String, Long> chapterReadingTimeMap = new HashMap<>();
-        
+
         // 按教材和章节分组处理记录
         Map<Long, Map<Long, List<LearningLog>>> groupedRecords = groupRecordsByTextbookAndChapter(records);
-        
+
         // 计算每个章节的阅读时长
         for (Map.Entry<Long, Map<Long, List<LearningLog>>> textbookEntry : groupedRecords.entrySet()) {
             Long textbookId = textbookEntry.getKey();
-            
+
             for (Map.Entry<Long, List<LearningLog>> chapterEntry : textbookEntry.getValue().entrySet()) {
                 Long chapterId = chapterEntry.getKey();
                 List<LearningLog> chapterRecords = chapterEntry.getValue();
-                
+
                 // 计算该章节的阅读时长
                 long chapterReadingTime = calculateChapterReadingTime(
-                    chapterRecords, MIN_DIFF_SECONDS, MAX_DIFF_SECONDS
+                        chapterRecords, MIN_DIFF_SECONDS, MAX_DIFF_SECONDS
                 );
-                
+
                 // 构建章节唯一标识（教材ID-章节ID）
                 String chapterKey = String.format("%s-%s", textbookId, chapterId);
-                
+
                 chapterReadingTimeMap.put(chapterKey, chapterReadingTime);
             }
         }
-        
+
         return chapterReadingTimeMap;
     }
 
@@ -1512,57 +1516,57 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
      */
     private Map<Long, Map<Long, List<LearningLog>>> groupRecordsByTextbookAndChapter(List<LearningLog> records) {
         Map<Long, Map<Long, List<LearningLog>>> groupedMap = new HashMap<>();
-        
+
         for (LearningLog record : records) {
             Long textbookId = record.getTextbookId();
             Long chapterId = record.getCatalogueId();
-            
+
             if (textbookId == null || chapterId == null) {
                 continue; // 跳过没有教材或章节信息的记录
             }
-            
+
             // 按教材分组
             Map<Long, List<LearningLog>> chapterMap = groupedMap.computeIfAbsent(textbookId, k -> new HashMap<>());
-            
+
             // 按章节分组
             List<LearningLog> chapterRecords = chapterMap.computeIfAbsent(chapterId, k -> new ArrayList<>());
-            
+
             chapterRecords.add(record);
         }
-        
+
         return groupedMap;
     }
 
     /**
      * 计算单个章节的阅读时长
      */
-    private long calculateChapterReadingTime(List<LearningLog> chapterRecords, 
-                                            long minDiffSeconds, long maxDiffSeconds) {
+    private long calculateChapterReadingTime(List<LearningLog> chapterRecords,
+                                             long minDiffSeconds, long maxDiffSeconds) {
         if (chapterRecords == null || chapterRecords.size() < 2) {
             return 0L;
         }
-        
+
         long chapterReadingTime = 0L;
-        
+
         // 按时间排序
         chapterRecords.sort(Comparator.comparing(LearningLog::getAddDatetime));
-        
+
         for (int i = 0; i < chapterRecords.size() - 1; i++) {
             LocalDateTime currentTime = chapterRecords.get(i).getAddDatetime();
             LocalDateTime nextTime = chapterRecords.get(i + 1).getAddDatetime();
-            
+
             if (currentTime == null || nextTime == null) {
                 continue;
             }
-            
+
             Duration duration = Duration.between(currentTime, nextTime);
             long seconds = duration.getSeconds();
-            
+
             if (seconds >= minDiffSeconds && seconds <= maxDiffSeconds) {
                 chapterReadingTime += 1;
             }
         }
-        
+
         return chapterReadingTime;
     }
 }

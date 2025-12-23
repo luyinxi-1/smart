@@ -17,4 +17,7 @@ public class TextStudentRankParam {
 
     @ApiModelProperty("阅读排名")
     private Integer rank;
+
+    @ApiModelProperty("用户ID")
+    private Long user_id;
 }
