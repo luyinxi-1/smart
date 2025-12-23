@@ -1,10 +1,8 @@
 package com.upc.modular.textbook.service.impl;
 
-import com.aspose.words.HtmlLoadOptions;
-import com.aspose.words.PdfSaveOptions;
-import com.aspose.words.PdfTextCompression;
+import com.aspose.words.*;
+import com.aspose.words.Shape;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.aspose.words.SaveFormat;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
@@ -55,6 +53,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -64,6 +63,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -93,28 +93,27 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
     private ITextbookRecordService textbookRecordService;
     @Autowired
     private SysUserMapper sysUserMapper;
-    
+
     // 注入相关服务
     @Autowired
     private IAttachmentService attachmentService;
-    
+
     @Autowired
     private ITeachingQuestionBankService teachingQuestionBankService;
-    
+
     @Autowired
     @Lazy
     private IDiscussionTopicService discussionTopicService;
-    
+
     @Autowired
     @Lazy
     private IIdeologicalMaterialService ideologicalMaterialService;
-    
+
     @Autowired
     private IMaterialsTextbookMappingService materialsTextbookMappingService;
 
     @Autowired
     private ITeachingMaterialsService teachingMaterialsService;
-
     @Override
     public void processAndSaveHtml(MultipartFile file, Long textbookId) {
         if (file.isEmpty() || textbookId == null) {
@@ -549,24 +548,24 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         attachmentQueryWrapper.in(Attachment::getObjectId, allIdsToDelete)
                 .eq(Attachment::getObjectType, "textbook_catalog");
         attachmentService.remove(attachmentQueryWrapper);
-        
+
         // 2. 清空题库中的章节ID字段 (TeachingQuestionBank)
         LambdaQueryWrapper<TeachingQuestionBank> questionBankQueryWrapper = new LambdaQueryWrapper<>();
         questionBankQueryWrapper.in(TeachingQuestionBank::getTextbookCatalogId, allIdsToDelete);
         TeachingQuestionBank updateQuestionBank = new TeachingQuestionBank();
         updateQuestionBank.setTextbookCatalogId(null);
         teachingQuestionBankService.update(updateQuestionBank, questionBankQueryWrapper);
-        
+
         // 3. 删除教学活动 (DiscussionTopic)
         LambdaQueryWrapper<DiscussionTopic> discussionTopicQueryWrapper = new LambdaQueryWrapper<>();
         discussionTopicQueryWrapper.in(DiscussionTopic::getTextbookCatalogId, allIdsToDelete);
         discussionTopicService.remove(discussionTopicQueryWrapper);
-        
+
         // 4. 删除教学思政 (IdeologicalMaterial)
         LambdaQueryWrapper<IdeologicalMaterial> ideologicalMaterialQueryWrapper = new LambdaQueryWrapper<>();
         ideologicalMaterialQueryWrapper.in(IdeologicalMaterial::getTextbookCatalogId, allIdsToDelete);
         ideologicalMaterialService.remove(ideologicalMaterialQueryWrapper);
-        
+
         // 5. 删除教材素材映射关系 (MaterialsTextbookMapping)
         LambdaQueryWrapper<MaterialsTextbookMapping> mappingQueryWrapper = new LambdaQueryWrapper<>();
         mappingQueryWrapper.in(MaterialsTextbookMapping::getChapterId, allIdsToDelete);
@@ -596,7 +595,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
         if (ObjectUtils.isEmpty(param)) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "传参不能为空");
         }
-       // return this.updateBatchById(param);
+        // return this.updateBatchById(param);
         boolean ok = this.updateBatchById(param);
 
         // ✅ 更新成功后，记录“修改”：status = 2
@@ -611,6 +610,74 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             }
         }
         return ok;
+    }
+
+    /**
+     * 为文档插入图片水印，使其覆盖在页面中间
+     *
+     * @param doc       Aspose Document 对象
+     * @param imagePath 水印图片在服务器上的绝对路径
+     */
+    private void insertImageWatermark(com.aspose.words.Document doc, String imagePath) {
+        try {
+            // 创建图片水印选项
+            ImageWatermarkOptions options = new ImageWatermarkOptions();
+
+            // 【关键设置 1】设置为“冲蚀”效果 (Washout)
+            // 这会让图片变得半透明，像背景一样，不会过多干扰前景文字的阅读
+            options.isWashout(false);
+
+            // 【关键设置 2】设置缩放比例 (Scale)
+            // 默认情况下，Aspose 会自动缩放图片以适应页面宽度。
+            // 如果你希望图片更大，覆盖更多的中间区域，可以手动设置一个大于 1.0 的值。
+            // 例如设置为 2.5，表示将图片放大到原尺寸的 2.5 倍。您可以根据实际图片大小调整此值。
+            options.setScale(0.8);
+
+            // 应用水印
+            // Aspose 会默认将图片水印放置在页面中央
+            doc.getWatermark().setImage(imagePath, options);
+
+        } catch (Exception e) {
+            // 记录日志，防止因水印文件不存在等问题导致整个导出失败
+            log.error("添加图片水印失败{}");
+            // 根据需要，这里也可以选择抛出异常来中断导出流程
+        }
+    }
+
+    /**
+     * 在页面底部插入一个长条白色色块，用于遮挡底部的红色评估文字
+     */
+    private void insertBottomWhiteMaskBlock(com.aspose.words.Document doc) throws Exception {
+        DocumentBuilder builder = new DocumentBuilder(doc);
+
+        // 同样移动到主页眉，确保每一页都会出现遮盖
+        builder.moveToHeaderFooter(HeaderFooterType.HEADER_PRIMARY);
+
+        // 创建矩形形状
+        Shape bottomMask = new Shape(doc, ShapeType.RECTANGLE);
+
+        // --- 调整尺寸 ---
+        // 宽度设大一些以覆盖整行文字（约 550），高度设小一些（约 30）
+        bottomMask.setWidth(550);
+        bottomMask.setHeight(30);
+
+        // --- 设置外观 ---
+        bottomMask.setFillColor(java.awt.Color.WHITE); // 纯白填充
+        bottomMask.setStroked(false);                 // 禁用边框
+
+        // --- 设置位置：页面底部中央 ---
+        bottomMask.setRelativeHorizontalPosition(RelativeHorizontalPosition.PAGE);
+        bottomMask.setHorizontalAlignment(HorizontalAlignment.CENTER);
+        bottomMask.setRelativeVerticalPosition(RelativeVerticalPosition.PAGE);
+        // 关键点：设置为 BOTTOM（底部）
+        bottomMask.setVerticalAlignment(VerticalAlignment.BOTTOM);
+
+        // --- 设置层级 ---
+        bottomMask.setWrapType(WrapType.NONE);
+        bottomMask.setBehindText(true); // 确保在正文文字下方
+
+        // 插入到文档中
+        builder.insertNode(bottomMask);
     }
 
     @Override
@@ -660,6 +727,11 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
 
                 com.aspose.words.Document doc = new com.aspose.words.Document(
                         new ByteArrayInputStream(mergedHtml.getBytes(StandardCharsets.UTF_8)), loadOptions);
+
+                //新增代码：增加图片水印
+                String watermarkImagePath = "C:\\Users\\25313\\Desktop\\NewMakeFile\\shuiyin.png";
+                insertBottomWhiteMaskBlock(doc);
+                //========添加水印结束===========
                 doc.save(outStream, SaveFormat.DOCX);
 
                 // 设置响应头
@@ -1314,7 +1386,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
 
                 com.aspose.words.Document doc = new com.aspose.words.Document(
                         new ByteArrayInputStream(mergedHtml.getBytes(StandardCharsets.UTF_8)), loadOptions);
-                
+
                 // 保存为 PDF 格式并应用优化配置
                 doc.save(outStream, pdfOptions);
 
@@ -1345,21 +1417,21 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
     public List<MaterialTypeCountReturnParam> getMaterialTypeCountByTextbookId(Long textbookId) {
         // 定义所有支持的素材类型
         List<String> allTypes = TeachingMaterials.SUPPORTED_TYPES;
-        
+
         // 初始化结果列表
         List<MaterialTypeCountReturnParam> result = new ArrayList<>();
-        
+
         // 查询教材关联的素材映射关系
         List<MaterialsTextbookMapping> mappings = materialsTextbookMappingService.list(
                 new LambdaQueryWrapper<MaterialsTextbookMapping>()
                         .eq(MaterialsTextbookMapping::getTextbookId, textbookId)
         );
-        
+
         // 获取所有关联的素材ID
         List<Long> materialIds = mappings.stream()
                 .map(MaterialsTextbookMapping::getMaterialId)
                 .collect(Collectors.toList());
-        
+
         // 查询这些素材的类型统计
         Map<String, Long> typeCountMap = new HashMap<>();
         if (!materialIds.isEmpty()) {
@@ -1370,7 +1442,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
                             Collectors.counting()
                     ));
         }
-        
+
         // 构建返回结果，确保所有类型都包含在内，没有对应数量的返回0
         for (String type : allTypes) {
             MaterialTypeCountReturnParam param = new MaterialTypeCountReturnParam();
@@ -1378,7 +1450,7 @@ public class TextbookCatalogServiceImpl extends ServiceImpl<TextbookCatalogMappe
             param.setNum(typeCountMap.getOrDefault(type, 0L));
             result.add(param);
         }
-        
+
         return result;
     }
 
