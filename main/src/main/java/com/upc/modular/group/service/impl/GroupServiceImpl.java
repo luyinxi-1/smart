@@ -56,19 +56,19 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
 
     @Autowired
     private ITeacherService teacherService;
-
+    
     @Autowired
     private TeacherMapper teacherMapper;
-
+    
     @Autowired
     private CourseMapper courseMapper;
-
+    
     @Autowired
     private CourseClassListMapper courseClassListMapper;
-
+    
     @Autowired
     private StudentMapper studentMapper;
-
+    
     @Autowired
     private StudentDataStatisticsMapper studentDataStatisticsMapper;
 
@@ -295,7 +295,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
         result.put("老师", typeCountMap.getOrDefault(2, 0L));
         return result;
     }
-
+    
     @Override
     public List<Group> getGroupsByTeacherUserId(Long userId) {
         // 检查用户是否为管理员（userType == 0 表示管理员）
@@ -304,25 +304,25 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
             // 如果是管理员，返回所有班级
             return this.list(new LambdaQueryWrapper<Group>().eq(Group::getStatus, 1));
         }
-
+        
         // 1. 根据用户ID获取教师ID
         Long teacherId = teacherMapper.getTeacherIdByUserId(userId);
         if (teacherId == null) {
             return new ArrayList<>(); // 如果找不到对应的教师，返回空列表
         }
-
+        
         // 2. 创建用于存储班级ID的Set，以实现去重
         Set<Long> groupIds = new HashSet<>();
-
+        
         // 3. 根据教师ID在group表中查找对应的班级
         LambdaQueryWrapper<Group> groupQueryWrapper = new LambdaQueryWrapper<>();
         groupQueryWrapper.eq(Group::getTeacherId, teacherId)
                 .eq(Group::getStatus, 1); // 只查找状态为1的班级
         List<Group> groupsByTeacher = this.list(groupQueryWrapper);
-
+        
         // 4. 收集这些班级的ID
         groupsByTeacher.forEach(group -> groupIds.add(group.getId()));
-
+        
         // 5. 根据教师ID查找该教师对应的课程ID
         LambdaQueryWrapper<Course> courseQueryWrapper = new LambdaQueryWrapper<>();
         courseQueryWrapper.eq(Course::getTeacherId, teacherId);
@@ -330,18 +330,18 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
         List<Long> courseIds = courses.stream()
                 .map(Course::getId)
                 .collect(Collectors.toList());
-
+        
         // 6. 如果存在课程，根据课程ID查找对应的班级ID
         if (!courseIds.isEmpty()) {
             // 通过course_class_list表查找班级ID
             LambdaQueryWrapper<CourseClassList> courseClassListQueryWrapper = new LambdaQueryWrapper<>();
             courseClassListQueryWrapper.in(CourseClassList::getCourseId, courseIds);
             List<CourseClassList> courseClassLists = courseClassListMapper.selectList(courseClassListQueryWrapper);
-
+            
             // 收集班级ID
             courseClassLists.forEach(courseClassList -> groupIds.add(courseClassList.getClassId()));
         }
-
+        
         // 7. 根据收集到的班级ID查找所有班级信息
         if (!groupIds.isEmpty()) {
             LambdaQueryWrapper<Group> finalGroupQueryWrapper = new LambdaQueryWrapper<>();
@@ -349,7 +349,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
                     .eq(Group::getStatus, 1); // 只查找状态为1的班级
             return this.list(finalGroupQueryWrapper);
         }
-
+        
         return groupsByTeacher;
     }
 
@@ -359,28 +359,28 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
 
         // 获取班级列表（管理员获取所有班级，教师只获取筛选后的班级）
         List<Group> groups = getGroupsByTeacherUserId(userId);
-
+        
         // 1. 班级数量
         int classCount = groups.size();
         result.put("classCount", classCount);
-
+        
         // 2. 班级总人数
         Set<Long> studentUserIds = new HashSet<>();
         if (!groups.isEmpty()) {
             List<Long> groupIds = groups.stream()
                     .map(Group::getId)
                     .collect(Collectors.toList());
-
+            
             // 查询这些班级中的所有学生
             LambdaQueryWrapper<Student> studentQueryWrapper = new LambdaQueryWrapper<>();
             studentQueryWrapper.in(Student::getClassId, groupIds);
             List<Student> students = studentMapper.selectList(studentQueryWrapper);
-
+            
             // 收集学生用户ID
             students.forEach(student -> studentUserIds.add(student.getUserId()));
         }
         result.put("studentCount", studentUserIds.size());
-
+        
         // 3. 班级总阅读时长(小时) - 使用批量查询优化性能
         double totalReadingHours = 0;
         if (!studentUserIds.isEmpty()) {
@@ -396,7 +396,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
             totalReadingHours = totalReadingHours / 3600;
         }
         result.put("readingCount", totalReadingHours);
-
+        
         return result;
     }
 }

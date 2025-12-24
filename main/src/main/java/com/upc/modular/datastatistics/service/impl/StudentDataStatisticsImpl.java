@@ -746,7 +746,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         }
 
         // 按阅读时长（readingTime）进行降序排序
-        result.sort(Comparator.comparingDouble(StudentTextbookRankParam::getReadingTime).reversed());
+        result.sort(Comparator.comparingLong(StudentTextbookRankParam::getReadingTime).reversed());
 
         return result;
     }
@@ -948,7 +948,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             Long textbookId = entry.getKey();
             List<LearningLog> list = entry.getValue();
 
-            double readingTime = 0;  // 默认阅读时长为0小时
+            Long readingTime = 0L;  // 默认阅读时长为0小时
 
             // 只有当教材有≥2条记录时，才计算有效阅读
             if (list.size() >= 2) {
@@ -992,7 +992,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
 
         // 按阅读时长降序排序，返回所有结果
         return result.stream()
-                .sorted((a, b) -> Double.compare(b.getReadingTime(), a.getReadingTime()))
+                .sorted((a, b) -> b.getReadingTime().compareTo(a.getReadingTime()))
                 .collect(Collectors.toList());
     }
 

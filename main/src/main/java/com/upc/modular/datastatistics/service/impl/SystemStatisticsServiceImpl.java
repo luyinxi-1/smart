@@ -2164,10 +2164,20 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         result.put("todayReaderCount", todayReaderCount != null ? todayReaderCount : 0L);
         
         // 今日阅读时长（小时）
-        Long todayReadingDurationSeconds = systemDataStatisticsMapper.getTodayReadingDuration();
+ /*       Long todayReadingDurationSeconds = systemDataStatisticsMapper.getTodayReadingDuration();
         Long todayReadingDurationHours = (todayReadingDurationSeconds != null ? todayReadingDurationSeconds : 0L) / 3600;
+        result.put("todayReadingDurationHours", todayReadingDurationHours);*/
+        Long todayReadingDurationSeconds = systemDataStatisticsMapper.getTodayReadingDuration();
+        long seconds = todayReadingDurationSeconds != null ? todayReadingDurationSeconds : 0L;
+
+        // 使用 BigDecimal 进行计算：秒数 / 3600，保留2位小数，四舍五入
+        BigDecimal todayReadingDurationHours = BigDecimal.valueOf(seconds)
+                .divide(BigDecimal.valueOf(3600), 2, RoundingMode.HALF_UP);
+
         result.put("todayReadingDurationHours", todayReadingDurationHours);
-        
+        // --- 修改结束 ---
+
+
         // 本周阅读人数
         Long thisWeekReaderCount = systemDataStatisticsMapper.getThisWeekReaderCount();
         result.put("thisWeekReaderCount", thisWeekReaderCount != null ? thisWeekReaderCount : 0L);
