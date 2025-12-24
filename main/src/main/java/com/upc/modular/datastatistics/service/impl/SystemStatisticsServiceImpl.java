@@ -1999,6 +1999,9 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
             param.setCorrectRate(getDoubleValue(item.get("correctRate")));
             result.add(param);
         }
+
+        result.sort(Comparator.comparing(ChapterQuestionCorrectRateParam::getSort,
+                Comparator.nullsLast(Comparator.naturalOrder())));
         return result;
     }
 

@@ -52,7 +52,7 @@
             tc.catalog_name as chapterName,
             tc.catalog_level as chapterLevel,
             tc.father_catalog_id as parentChapterId,
-            tc.sort as chapterSort,
+            tc.sort as sort,
             COUNT(DISTINCT cs.bank_id) as questionBankCount,
             COUNT(DISTINCT cs.student_id || '-' || cs.bank_id) as totalAnswerCount,
             SUM(cs.is_correct) as correctAnswerCount,

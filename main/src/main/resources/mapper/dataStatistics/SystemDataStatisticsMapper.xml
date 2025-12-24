@@ -955,6 +955,7 @@
             tc.catalog_name as "chapterName",
             tc.catalog_level as "chapterLevel",
             tc.father_catalog_id as "parentChapterId",
+            tc.sort as "sort",
             COALESCE(stat.questionBankCount, 0) as "questionBankCount",
             COALESCE(stat.totalAnswerCount, 0) as "totalAnswerCount",
             COALESCE(stat.correctAnswerCount, 0) as "correctAnswerCount",

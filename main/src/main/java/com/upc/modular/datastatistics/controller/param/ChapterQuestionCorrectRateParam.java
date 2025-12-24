@@ -34,4 +34,7 @@ public class ChapterQuestionCorrectRateParam {
 
     @ApiModelProperty("正确率")
     private Double correctRate;
+
+    @ApiModelProperty("章节排序")
+    private Integer sort;
 }
