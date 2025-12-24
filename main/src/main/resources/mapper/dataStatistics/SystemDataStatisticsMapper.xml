@@ -219,39 +219,39 @@
     <![CDATA[
         WITH UserLogsWithNext AS (
             SELECT
+                creator,
                 add_datetime,
                 LEAD(add_datetime, 1) OVER (
                     PARTITION BY creator
                     ORDER BY add_datetime ASC
-                    ) AS next_add_datetime
-            FROM
-                learning_log
-            WHERE
-                add_datetime >= #{startDate}
-              AND add_datetime < #{endDate} + 1
+                ) AS next_add_datetime
+            FROM learning_log
+            WHERE add_datetime >= #{startDate}
+              AND add_datetime < (#{endDate} + INTERVAL '1 day')
         )
         SELECT
-            TRUNC(add_datetime) AS "date",      -- ★ 别名改成 date
+            date_trunc('day', CAST(add_datetime AS timestamp)) AS "date",
             COALESCE(
                     SUM(
                             CASE
-                                WHEN TIMESTAMPDIFF(SECOND, add_datetime, next_add_datetime)
-                                    BETWEEN 55 AND 65 THEN 60
+                                WHEN (
+                                    EXTRACT(EPOCH FROM CAST(next_add_datetime AS timestamp))
+                                        - EXTRACT(EPOCH FROM CAST(add_datetime AS timestamp))
+                                    ) BETWEEN 55 AND 65
+                                    THEN 60
                                 ELSE 0
                                 END
                     ),
                     0
             ) AS durationInSeconds
-        FROM
-            UserLogsWithNext
-        WHERE
-            next_add_datetime IS NOT NULL
-        GROUP BY
-            TRUNC(add_datetime)
-        ORDER BY
-            "date" ASC
+        FROM UserLogsWithNext
+        WHERE next_add_datetime IS NOT NULL
+        GROUP BY date_trunc('day', CAST(add_datetime AS timestamp))
+        ORDER BY "date" ASC
         ]]>
 </select>
+
+
 
 
     <select id="getStudyTrendByTimeRange" resultType="com.upc.modular.datastatistics.controller.param.StudyTrendDTO">
