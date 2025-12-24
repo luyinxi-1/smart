@@ -102,7 +102,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
     private IDiscussionTopicReplyService discussionTopicReplyService;
     @Autowired
     private SystemDataStatisticsMapper systemDataStatisticsMapper;
-    
+
     @Autowired
     private TeacherStatisticsMapper teacherStatisticsMapper;
     @Autowired
@@ -118,6 +118,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
 
         return systemDataStatisticsMapper.getTodayVisitorCount();
     }
+
     @Override
     public List<StatisticsDto> getTodayVisitorCountByPeriod() {
         // 从数据库获取按时间段分组的原始数据
@@ -431,9 +432,27 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
 
         // 对所有角色通用的统计
         countsDto.setTodayVisitorCount(systemDataStatisticsMapper.getVisitorCountByDate(dateParams));
-        Long studyTimeInSeconds = systemDataStatisticsMapper.getStudyDurationByDate(dateParams);
-       // countsDto.setTodayStudyTime(studyTimeInSeconds != null ? studyTimeInSeconds / 3600 : 0L);
-        countsDto.setTodayStudyTime(studyTimeInSeconds != null ? Double.parseDouble(String.format("%.2f", studyTimeInSeconds / 3600.0)) : 0.0);
+
+        // 今日学习时长（小时）- 直接从getStudyDurationByTime获取指定日期的值
+        List<DailyStudyDurationDto> dailyDurations = this.getStudyDurationByTime("week");
+
+        // 从返回的列表中找到目标日期的记录
+        Optional<DailyStudyDurationDto> targetDateRecord = dailyDurations.stream()
+                .filter(dto -> {
+                    if (dto.getDate() != null) {
+                        LocalDate dtoDate = dto.getDate().toInstant()
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDate();
+                        return dtoDate.equals(targetDate);
+                    }
+                    return false;
+                })
+                .findFirst();
+
+        double todayStudyTime = targetDateRecord.isPresent() ?
+                targetDateRecord.get().getDurationInHours() : 0.0;
+
+        countsDto.setTodayStudyTime(todayStudyTime);
 
         // 根据角色进行差异化统计
         if (userType == 0) { // 管理员
@@ -502,7 +521,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         // 只统计已发布的教材，与/teacher-statistics/personal接口保持一致
         Integer teacherTextbookCount = teacherStatisticsMapper.countTeacherTextbooks(teacherId);
         countsDto.setTextbookCount(teacherTextbookCount.longValue());
-        
+
         // 获取教材ID列表用于后续资源统计
         List<Long> teacherTextbookIds = textbookMapper.findTextbookIdsByTeacher(teacherId).stream()
                 .filter(id -> textbookService.lambdaQuery()
@@ -544,10 +563,10 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
 
         // 3. 统计教师授课的学生数量（修改为与/teacher-statistics/personal一致）
         countsDto.setStudentCount(teacherStatisticsMapper.countTeacherStudents(teacherId).longValue());
-        
+
         // 其他非要求统计项，根据教师上下文设为合理值
         countsDto.setTeacherCount(1L); // 教师自己
-        
+
         // 获取教师授课的班级列表
         List<Long> advisedGroupIds = groupService.lambdaQuery()
                 .eq(com.upc.modular.group.entity.Group::getTeacherId, teacherId)
@@ -556,7 +575,7 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
                 .stream()
                 .map(com.upc.modular.group.entity.Group::getId)
                 .collect(Collectors.toList());
-        
+
         countsDto.setGroupCount((long) advisedGroupIds.size()); // 教师带的班级数
         countsDto.setTeachingMaterialsCount(teachingMaterialsService.lambdaQuery().eq(TeachingMaterials::getCreator, teacherId).count());
         countsDto.setDiscussionTopicReplyCount(discussionTopicReplyService.lambdaQuery().eq(DiscussionTopicReply::getCreator, teacherId).count());
@@ -2112,23 +2131,24 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         }
     }
 
+
     @Override
     public Map<String, Long> getTeacherCountByProfessionalTitle() {
         List<Map<String, Object>> rawData = systemDataStatisticsMapper.getTeacherCountByProfessionalTitle();
         Map<String, Long> result = new LinkedHashMap<>();
-        
+
         // 初始化各类职称计数
         result.put("教授", 0L);
         result.put("副教授", 0L);
         result.put("讲师", 0L);
         result.put("助教", 0L);
         result.put("其他", 0L);
-        
+
         // 处理查询结果
         for (Map<String, Object> item : rawData) {
             String professionalTitle = (String) item.get("professionalTitle");
             Long count = ((Number) item.get("count")).longValue();
-            
+
             if (professionalTitle != null) {
                 switch (professionalTitle) {
                     case "教授":
@@ -2151,41 +2171,48 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
                 result.put("其他", result.get("其他") + count);
             }
         }
-        
+
         return result;
     }
 
     @Override
     public Map<String, Object> getReadingStatistics() {
         Map<String, Object> result = new HashMap<>();
-        
+
         // 今日阅读人数
         Long todayReaderCount = systemDataStatisticsMapper.getTodayReaderCount();
         result.put("todayReaderCount", todayReaderCount != null ? todayReaderCount : 0L);
-        
-        // 今日阅读时长（小时）
- /*       Long todayReadingDurationSeconds = systemDataStatisticsMapper.getTodayReadingDuration();
-        Long todayReadingDurationHours = (todayReadingDurationSeconds != null ? todayReadingDurationSeconds : 0L) / 3600;
-        result.put("todayReadingDurationHours", todayReadingDurationHours);*/
-        Long todayReadingDurationSeconds = systemDataStatisticsMapper.getTodayReadingDuration();
-        long seconds = todayReadingDurationSeconds != null ? todayReadingDurationSeconds : 0L;
 
-        // 使用 BigDecimal 进行计算：秒数 / 3600，保留2位小数，四舍五入
-        BigDecimal todayReadingDurationHours = BigDecimal.valueOf(seconds)
-                .divide(BigDecimal.valueOf(3600), 2, RoundingMode.HALF_UP);
+        // 今日阅读时长（小时）- 直接从getStudyDurationByTime获取当天的值
+        List<DailyStudyDurationDto> dailyDurations = this.getStudyDurationByTime("week");
+        LocalDate today = LocalDate.now();
+
+        // 从返回的列表中找到今天的记录
+        Optional<DailyStudyDurationDto> todayRecord = dailyDurations.stream()
+                .filter(dto -> {
+                    if (dto.getDate() != null) {
+                        LocalDate dtoDate = dto.getDate().toInstant()
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDate();
+                        return dtoDate.equals(today);
+                    }
+                    return false;
+                })
+                .findFirst();
+
+        double todayReadingDurationHours = todayRecord.isPresent() ?
+                todayRecord.get().getDurationInHours() : 0.0;
 
         result.put("todayReadingDurationHours", todayReadingDurationHours);
-        // --- 修改结束 ---
-
 
         // 本周阅读人数
         Long thisWeekReaderCount = systemDataStatisticsMapper.getThisWeekReaderCount();
         result.put("thisWeekReaderCount", thisWeekReaderCount != null ? thisWeekReaderCount : 0L);
-        
+
         // 本月阅读人数
         Long thisMonthReaderCount = systemDataStatisticsMapper.getThisMonthReaderCount();
         result.put("thisMonthReaderCount", thisMonthReaderCount != null ? thisMonthReaderCount : 0L);
-        
+
         return result;
     }
 
