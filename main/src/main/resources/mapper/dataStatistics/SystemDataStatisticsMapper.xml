@@ -416,7 +416,7 @@
         SUM(
         CASE
         /*WHEN (EXTRACT(EPOCH FROM log_with_next_time.next_add_datetime) - EXTRACT(EPOCH FROM log_with_next_time.add_datetime)) BETWEEN 55 AND 65*/
-        WHEN DATEDIFF(SECOND, log_with_next_time.add_datetime, log_with_next_time.next_add_datetime) BETWEEN 55 AND 65
+        WHEN EXTRACT(EPOCH FROM (log_with_next_time.next_add_datetime - log_with_next_time.add_datetime)) BETWEEN 55 AND 65
         THEN 1
         ELSE 0
         END
@@ -1591,7 +1591,7 @@
         SELECT
             -- 1. 累计阅读量（小时）
             (
-                SELECT COALESCE(ROUND(CAST(SUM(DATEDIFF(ss, add_datetime, next_add_datetime)) AS DECIMAL(10,2)) / 3600, 1), 0)
+                SELECT COALESCE(ROUND(CAST(SUM(EXTRACT(EPOCH FROM (next_add_datetime - add_datetime))) AS DECIMAL(10,2)) / 3600, 1), 0)
                 FROM (
                          SELECT
                              creator,
@@ -1604,7 +1604,7 @@
                          FROM learning_log
                      ) log_with_next_time
                 WHERE next_add_datetime IS NOT NULL
-                  AND DATEDIFF(ss, add_datetime, next_add_datetime) BETWEEN 55 AND 65
+                  AND EXTRACT(EPOCH FROM (next_add_datetime - add_datetime)) BETWEEN 55 AND 65
                   AND add_datetime IS NOT NULL
             ) as "totalReadingHours",
 

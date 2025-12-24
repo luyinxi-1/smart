@@ -511,7 +511,7 @@
                      SELECT
                          ll1.catalogue_id,
                          -- 使用 DATEDIFF 计算秒数差
-                         DATEDIFF(ss, ll1.add_datetime, ll2.add_datetime) as duration_seconds
+                         EXTRACT(EPOCH FROM (ll2.add_datetime - ll1.add_datetime)) as duration_seconds
                      FROM (
                               SELECT
                                   catalogue_id,
@@ -531,7 +531,7 @@
                            AND creator = (SELECT user_id FROM student WHERE id = #{studentId})
                      ) ll2 ON ll1.rn = ll2.rn - 1
                      -- 修复 EXTRACT 为 DATEDIFF
-                     WHERE DATEDIFF(ss, ll1.add_datetime, ll2.add_datetime) BETWEEN 55 AND 65
+                     WHERE EXTRACT(EPOCH FROM (ll2.add_datetime - ll1.add_datetime)) BETWEEN 55 AND 65
                        AND ll1.catalogue_id IS NOT NULL
                  ) AS intervals -- 确保派生表有别名
             GROUP BY catalogue_id
