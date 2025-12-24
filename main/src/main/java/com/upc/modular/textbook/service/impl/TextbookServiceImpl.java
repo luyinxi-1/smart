@@ -81,10 +81,10 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     private DiscussionTopicReplyMapper discussionTopicReplyMapper;
     @Autowired
     private DiscussionTopicMapper discussionTopicMapper;
-    
+
     @Autowired
     private ITextbookTemplateService textbookTemplateService;
-    
+
     @Override
     public Page<TextbookIntelligentQueryReturnParam> smartSearch(String query, long current, long size) {
         if (StringUtils.isBlank(query)) {
@@ -109,107 +109,107 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         // 3. 合并所有教材，去除重复项
         Set<Long> textbookIds = new HashSet<>();
         List<Textbook> allMatchedTextbooks = new ArrayList<>();
-        
+
         // 添加通过教材名匹配的教材
         for (Textbook textbook : textbooksByName) {
             if (textbookIds.add(textbook.getId())) {
                 allMatchedTextbooks.add(textbook);
             }
         }
-        
+
         // 添加通过章节名匹配的教材
         for (Textbook textbook : textbooksByCatalogName) {
             if (textbookIds.add(textbook.getId())) {
                 allMatchedTextbooks.add(textbook);
             }
         }
-        
+
         // 添加通过内容匹配的教材
         for (Textbook textbook : textbooksByContent) {
             if (textbookIds.add(textbook.getId())) {
                 allMatchedTextbooks.add(textbook);
             }
         }
-        
+
         // 4. 获取当前用户信息
         UserInfoToRedis currentUser = UserUtils.get();
         Long currentUserId = currentUser != null ? currentUser.getId() : null;
         Integer userType = currentUser != null ? currentUser.getUserType() : null;
-        
+
         // 5. 遍历每个教材，查找匹配的章节和内容，并进行权限检查
         List<TextbookIntelligentQueryReturnParam> results = new ArrayList<>();
-        
+
         for (Textbook textbook : allMatchedTextbooks) {
             Long targetTextbookId = textbook.getId();
             String textbookName = textbook.getTextbookName();
-            
+
             // 权限检查 - 如果不是管理员，需要检查教材权限
             if (userType == null || userType != 0) { // 非管理员需要检查权限
                 if (!hasTextbookAccess(targetTextbookId, currentUserId, userType)) {
                     continue; // 没有权限，跳过该教材
                 }
             }
-            
+
             // 获取教材作者信息
             String authorName = textbook.getAuthorName();
-            
+
             // 获取教材更新日期
             LocalDateTime updateDate = textbook.getOperationDatetime();
-            
+
             // 【章节查询】在当前教材下搜索章节名
             List<TextbookCatalog> matchedChapters = findChaptersByKeywords(keywords, targetTextbookId);
-            
+
             // 【内容查询】在当前教材下搜索内容
             List<TextbookCatalog> matchedContentCatalogs = findContentByKeywords(keywords, targetTextbookId);
-            
+
             // 合并章节和内容匹配的结果，并去重
             Set<Long> processedChapterIds = new HashSet<>();
             List<TextbookCatalog> allMatchedCatalogs = new ArrayList<>();
-            
+
             // 先处理章节名匹配的结果
             for (TextbookCatalog chapter : matchedChapters) {
                 if (processedChapterIds.add(chapter.getId())) {
                     allMatchedCatalogs.add(chapter);
                 }
             }
-            
+
             // 再处理内容匹配的结果
             for (TextbookCatalog catalog : matchedContentCatalogs) {
                 if (processedChapterIds.add(catalog.getId())) {
                     allMatchedCatalogs.add(catalog);
                 }
             }
-            
+
             // 为每个匹配的章节创建一个返回结果
             for (TextbookCatalog catalog : allMatchedCatalogs) {
                 TextbookIntelligentQueryReturnParam result = new TextbookIntelligentQueryReturnParam();
                 result.setTextbookName(textbookName);
                 result.setAuthorName(authorName);
                 result.setUpdateDate(updateDate);
-                result.setChapterName(StringUtils.isNotBlank(catalog.getCatalogName()) ? 
-                                    stripHtml(catalog.getCatalogName()) : null);
-                result.setContent(StringUtils.isNotBlank(catalog.getContent()) ? 
-                                extractMatchedContent(catalog.getContent(), keywords) : null);
+                result.setChapterName(StringUtils.isNotBlank(catalog.getCatalogName()) ?
+                        stripHtml(catalog.getCatalogName()) : null);
+                result.setContent(StringUtils.isNotBlank(catalog.getContent()) ?
+                        extractMatchedContent(catalog.getContent(), keywords) : null);
                 result.setTextbookId(targetTextbookId);
                 result.setChapterId(catalog.getId());
                 result.setChapterCount(allMatchedCatalogs.size());
                 results.add(result);
             }
         }
-        
+
         // 按照修改时间降序排序
-        results.sort(Comparator.comparing(TextbookIntelligentQueryReturnParam::getUpdateDate, 
-                                         Comparator.nullsLast(Comparator.reverseOrder())));
+        results.sort(Comparator.comparing(TextbookIntelligentQueryReturnParam::getUpdateDate,
+                Comparator.nullsLast(Comparator.reverseOrder())));
 
         // 分页处理
         long total = results.size();
         long fromIndex = (current - 1) * size;
-        
+
         // 如果起始索引超出范围，返回空页
         if (fromIndex >= total) {
             return new Page<>(current, size, total);
         }
-        
+
         long toIndex = Math.min(fromIndex + size, total);
         List<TextbookIntelligentQueryReturnParam> pageRecords = results.subList((int) fromIndex, (int) toIndex);
 
@@ -219,7 +219,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         resultPage.setSize(size);
         resultPage.setTotal(total);
         resultPage.setRecords(pageRecords);
-        
+
         return resultPage;
     }
 
@@ -227,49 +227,68 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     public Page<TextbookIntelligentQueryGroupedReturnParam> smartSearchGroupedByBook(String query, long current, long size) {
         // 先使用原有方法获取结果
         Page<TextbookIntelligentQueryReturnParam> originalResults = smartSearch(query, current, size);
-        
+
         // 创建新的分组结果
         Page<TextbookIntelligentQueryGroupedReturnParam> groupedPage = new Page<>();
         groupedPage.setCurrent(originalResults.getCurrent());
         groupedPage.setSize(originalResults.getSize());
         groupedPage.setTotal(originalResults.getTotal());
-        
+
         // 按教材ID分组结果
         Map<Long, List<TextbookIntelligentQueryReturnParam>> groupedByBook = originalResults.getRecords()
                 .stream()
                 .collect(Collectors.groupingBy(TextbookIntelligentQueryReturnParam::getTextbookId));
-        
+
         // 转换为新的分组格式
         List<TextbookIntelligentQueryGroupedReturnParam> groupedResults = new ArrayList<>();
         for (List<TextbookIntelligentQueryReturnParam> bookResults : groupedByBook.values()) {
             if (!bookResults.isEmpty()) {
                 TextbookIntelligentQueryReturnParam first = bookResults.get(0);
-                
+
                 TextbookIntelligentQueryGroupedReturnParam groupedParam = new TextbookIntelligentQueryGroupedReturnParam();
                 groupedParam.setTextbookId(first.getTextbookId());
                 groupedParam.setTextbookName(first.getTextbookName());
                 groupedParam.setAuthorName(first.getAuthorName());
                 groupedParam.setUpdateDate(first.getUpdateDate());
-                groupedParam.setChapterCount(first.getChapterCount());
-                
-                // 转换章节信息
-                List<TextbookIntelligentQueryGroupedReturnParam.ChapterInfo> chapters = bookResults.stream()
+
+                // 修改逻辑：只保留一级标题，与smartSearchInTextbook保持一致
+                Set<Long> processedLevelOneCatalogIds = new HashSet<>();
+                List<TextbookIntelligentQueryReturnParam> levelOneResults = new ArrayList<>();
+
+                for (TextbookIntelligentQueryReturnParam result : bookResults) {
+                    // 获取当前章节的完整信息
+                    TextbookCatalog catalog = textbookCatalogMapper.selectById(result.getChapterId());
+                    if (catalog != null) {
+                        Long levelOneCatalogId = getLevelOneCatalogId(catalog);
+
+                        // 如果该一级标题ID尚未处理过，则添加到结果中
+                        if (levelOneCatalogId != null && processedLevelOneCatalogIds.add(levelOneCatalogId)) {
+                            levelOneResults.add(result);
+                        }
+                    }
+                }
+
+                // 设置章节数量为去重后的一级标题数量
+                groupedParam.setChapterCount(levelOneResults.size());
+
+                // 转换章节信息，只包含一级标题
+                List<TextbookIntelligentQueryGroupedReturnParam.ChapterInfo> chapters = levelOneResults.stream()
                         .map(this::convertToChapterInfo)
                         .collect(Collectors.toList());
-                
+
                 groupedParam.setChapters(chapters);
                 groupedResults.add(groupedParam);
             }
         }
-        
+
         // 按照修改时间降序排序
         groupedResults.sort(Comparator.comparing(TextbookIntelligentQueryGroupedReturnParam::getUpdateDate,
                 Comparator.nullsLast(Comparator.reverseOrder())));
-        
+
         groupedPage.setRecords(groupedResults);
         return groupedPage;
     }
-    
+
     /**
      * 将原始返回参数转换为章节信息
      */
@@ -280,7 +299,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         chapterInfo.setContent(param.getContent());
         return chapterInfo;
     }
-    
+
     /**
      * 检查用户对教材的访问权限
      * @param textbookId 教材ID
@@ -293,28 +312,28 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         MyLambdaQueryWrapper<TextbookAuthority> authorityWrapper = new MyLambdaQueryWrapper<>();
         authorityWrapper.eq(TextbookAuthority::getTextbookId, textbookId);
         long authorityCount = textbookAuthorityMapper.selectCount(authorityWrapper);
-        
+
         // 如果没有设置权限控制，则默认所有人都可以访问
         if (authorityCount == 0) {
             return true;
         }
-        
+
         // 如果是管理员，可以直接访问
         if (userType != null && userType == 0) {
             return true;
         }
-        
+
         // 检查是否存在类型为2的权限记录（机构可见权限）
         MyLambdaQueryWrapper<TextbookAuthority> type2Wrapper = new MyLambdaQueryWrapper<>();
         type2Wrapper.eq(TextbookAuthority::getTextbookId, textbookId);
         type2Wrapper.eq(TextbookAuthority::getAuthorityType, 2);
         long type2Count = textbookAuthorityMapper.selectCount(type2Wrapper);
-        
+
         // 如果没有类型为2的权限记录，则所有机构都可以访问
         if (type2Count == 0) {
             return true;
         }
-        
+
         // 如果是教师，判断权限
         if (userType != null && userType == 2) {
             // 获取教师所在机构
@@ -332,26 +351,26 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             MyLambdaQueryWrapper<TextbookAuthority> accessWrapper = new MyLambdaQueryWrapper<>();
             accessWrapper.eq(TextbookAuthority::getTextbookId, textbookId);
             List<TextbookAuthority> authorities = textbookAuthorityMapper.selectList(accessWrapper);
-            
+
             // 遍历权限记录，检查是否满足访问条件
             for (TextbookAuthority authority : authorities) {
                 // 检查协作者权限：authority_type = 1 且 user_id = 教师的 user_id
-                if (Integer.valueOf(1).equals(authority.getAuthorityType()) 
-                    && userId.equals(authority.getUserId())) {
+                if (Integer.valueOf(1).equals(authority.getAuthorityType())
+                        && userId.equals(authority.getUserId())) {
                     return true;
                 }
-                
+
                 // 检查机构可见权限：authority_type = 2 且 教师所在机构在可见范围内
-                if (Integer.valueOf(2).equals(authority.getAuthorityType()) 
-                    && authority.getVisibleInstituteId() != null 
-                    && institutionService.judgeInclusion(institutionId, authority.getVisibleInstituteId())) {
+                if (Integer.valueOf(2).equals(authority.getAuthorityType())
+                        && authority.getVisibleInstituteId() != null
+                        && institutionService.judgeInclusion(institutionId, authority.getVisibleInstituteId())) {
                     return true;
                 }
             }
-            
+
             return false;
         }
-        
+
         // 如果是学生，需要检查班级权限
         if (userType != null && userType == 1 && userId != null) {
             // 获取学生信息
@@ -359,40 +378,40 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             if (student == null) {
                 return false;
             }
-            
+
             Long classId = student.getClassId();
             if (classId == null) {
                 return false;
             }
-            
+
             // 获取班级信息
             Group group = groupMapper.selectById(classId);
             if (group == null) {
                 return false;
             }
-            
+
             Long institutionId = group.getInstitutionId();
             if (institutionId == null) {
                 return false;
             }
-            
+
             // 查询该教材的机构可见权限记录
             MyLambdaQueryWrapper<TextbookAuthority> accessWrapper = new MyLambdaQueryWrapper<>();
             accessWrapper.eq(TextbookAuthority::getTextbookId, textbookId)
-                         .eq(TextbookAuthority::getAuthorityType, 2); // 机构权限类型
+                    .eq(TextbookAuthority::getAuthorityType, 2); // 机构权限类型
             List<TextbookAuthority> authorities = textbookAuthorityMapper.selectList(accessWrapper);
-            
+
             // 检查学生所在机构是否在可见范围内
             for (TextbookAuthority authority : authorities) {
-                if (authority.getVisibleInstituteId() != null 
-                    && institutionService.judgeInclusion(institutionId, authority.getVisibleInstituteId())) {
+                if (authority.getVisibleInstituteId() != null
+                        && institutionService.judgeInclusion(institutionId, authority.getVisibleInstituteId())) {
                     return true;
                 }
             }
-            
+
             return false;
         }
-        
+
         return false;
     }
 
@@ -424,16 +443,16 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     private List<Textbook> findAllTextbooksByCatalogName(List<String> keywords) {
         // 使用自定义SQL直接获取每本教材的一个匹配记录
         List<Long> textbookIds = textbookCatalogMapper.selectDistinctTextbookIdsByCatalogName(keywords);
-        
+
         if (textbookIds.isEmpty()) {
             return new ArrayList<>();
         }
-        
+
         // 查询对应的教材信息
         MyLambdaQueryWrapper<Textbook> textbookWrapper = new MyLambdaQueryWrapper<>();
         textbookWrapper.in(Textbook::getId, textbookIds)
-                      .eq(Textbook::getReleaseStatus, 1); // 只查询已发布的教材
-        
+                .eq(Textbook::getReleaseStatus, 1); // 只查询已发布的教材
+
         return textbookMapper.selectList(textbookWrapper);
     }
 
@@ -446,16 +465,16 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     private List<Textbook> findAllTextbooksByContent(List<String> keywords) {
         // 使用自定义SQL直接获取每本教材的一个匹配记录
         List<Long> textbookIds = textbookCatalogMapper.selectDistinctTextbookIdsByContent(keywords);
-        
+
         if (textbookIds.isEmpty()) {
             return new ArrayList<>();
         }
-        
+
         // 查询对应的教材信息
         MyLambdaQueryWrapper<Textbook> textbookWrapper = new MyLambdaQueryWrapper<>();
         textbookWrapper.in(Textbook::getId, textbookIds)
-                      .eq(Textbook::getReleaseStatus, 1); // 只查询已发布的教材
-        
+                .eq(Textbook::getReleaseStatus, 1); // 只查询已发布的教材
+
         return textbookMapper.selectList(textbookWrapper);
     }
 
@@ -515,7 +534,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             }
         }
         this.save(textbook);
-        
+
         // 保存教材后，初始化默认模板
         if (textbook.getId() != null) {
             textbookTemplateService.initDefaultTemplate(textbook.getId());
@@ -552,7 +571,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         }
         List<TextbookPageReturnParam> returnParams = new ArrayList<>();
         Integer userType = UserUtils.get().getUserType();
-        
+
         // 根据用户类型进行不同的权限过滤
         if (userType == 0) {
             // 管理员：查看所有教材
@@ -1009,7 +1028,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
 
         // 先获取所有教材热度数据
         Page<TextbookHotnessDto> resultPage = textbookMapper.selectTextbookHotnessPage(page);
-        
+
         // 对结果进行权限过滤
         List<TextbookHotnessDto> filteredRecords = resultPage.getRecords().stream()
                 .filter(dto -> {
@@ -1021,11 +1040,11 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                     return hasTextbookAccess(dto.getId(), currentUserId, userType);
                 })
                 .collect(Collectors.toList());
-                
+
         // 更新分页结果
         resultPage.setRecords(filteredRecords);
         resultPage.setTotal(filteredRecords.size());
-        
+
         return resultPage;
     }
 
@@ -1091,22 +1110,22 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
 
         List<Textbook> resultTextbooks = textbookIds.isEmpty() ?
                 Collections.emptyList() : textbookMapper.selectBatchIds(textbookIds);
-        
+
         // 添加教材名称和教材类型筛选条件
         if (StringUtils.isNotBlank(param.getTextbookName())) {
             String textbookName = param.getTextbookName().trim();
             resultTextbooks = resultTextbooks.stream()
-                    .filter(textbook -> textbook.getTextbookName() != null && 
+                    .filter(textbook -> textbook.getTextbookName() != null &&
                             textbook.getTextbookName().contains(textbookName))
                     .collect(Collectors.toList());
         }
-        
+
         if (param.getTextbookClassification() != null) {
             resultTextbooks = resultTextbooks.stream()
                     .filter(textbook -> Objects.equals(param.getTextbookClassification(), textbook.getClassification()))
                     .collect(Collectors.toList());
         }
-        
+
         Map<Long, Integer> activityCountMap = countUserActivities(userId, activityType);
         // 转换为返回参数
         List<TextbookCenterPageReturnParam> returnList = new ArrayList<>();
@@ -1148,28 +1167,28 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
      */
     private Map<Long, Integer> countUserActivities(Long userId, Integer activityType) {
         Map<Long, Integer> activityCountMap = new HashMap<>();
-        
+
         // 查询用户参与的discussion_topic_reply记录，且type=1（表示活动）
         LambdaQueryWrapper<DiscussionTopicReply> replyWrapper = new LambdaQueryWrapper<>();
         replyWrapper.and(wrapper -> wrapper.eq(DiscussionTopicReply::getCreator, userId)
-                                          .or()
-                                          .eq(DiscussionTopicReply::getOperator, userId))
-                   .eq(DiscussionTopicReply::getType, 1); // 只统计type=1的记录，表示直接回复教学活动的记录
-        
+                        .or()
+                        .eq(DiscussionTopicReply::getOperator, userId))
+                .eq(DiscussionTopicReply::getType, 1); // 只统计type=1的记录，表示直接回复教学活动的记录
+
         List<DiscussionTopicReply> userReplies = discussionTopicReplyMapper.selectList(replyWrapper);
-        
+
         // 获取这些回复关联的教学活动
         Set<Long> topicIds = userReplies.stream()
                 .map(DiscussionTopicReply::getTopicId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        
+
         if (!topicIds.isEmpty()) {
             // 查询这些教学活动对应的教材
             LambdaQueryWrapper<DiscussionTopic> topicWrapper = new LambdaQueryWrapper<>();
             topicWrapper.in(DiscussionTopic::getId, topicIds);
             List<DiscussionTopic> topics = discussionTopicMapper.selectList(topicWrapper);
-            
+
             // 统计每个教材的活动数量
             Map<Long, Long> textbookActivityCount = topics.stream()
                     .map(DiscussionTopic::getTextbookId)
@@ -1178,20 +1197,20 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                             textbookId -> textbookId,
                             Collectors.counting()
                     ));
-            
+
             // 转换为Integer
-            textbookActivityCount.forEach((textbookId, count) -> 
-                activityCountMap.put(textbookId, count.intValue()));
+            textbookActivityCount.forEach((textbookId, count) ->
+                    activityCountMap.put(textbookId, count.intValue()));
         }
-        
+
         // 如果activityType为0，还需要统计用户创建的教学活动
         if (activityType == 0) {
             LambdaQueryWrapper<DiscussionTopic> userTopicWrapper = new LambdaQueryWrapper<>();
             userTopicWrapper.and(wrapper -> wrapper.eq(DiscussionTopic::getCreator, userId)
-                                                  .or()
-                                                  .eq(DiscussionTopic::getOperator, userId))
-                   .eq(DiscussionTopic::getIdentityType, 0); // 只查找identity_type为0的数据
-    
+                            .or()
+                            .eq(DiscussionTopic::getOperator, userId))
+                    .eq(DiscussionTopic::getIdentityType, 0); // 只查找identity_type为0的数据
+
             List<DiscussionTopic> userTopics = discussionTopicMapper.selectList(userTopicWrapper);
             Map<Long, Long> userTopicCount = userTopics.stream()
                     .map(DiscussionTopic::getTextbookId)
@@ -1200,20 +1219,20 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                             textbookId -> textbookId,
                             Collectors.counting()
                     ));
-    
+
             // 合并统计结果
-            userTopicCount.forEach((textbookId, count) -> 
-                activityCountMap.merge(textbookId, count.intValue(), Integer::sum));
+            userTopicCount.forEach((textbookId, count) ->
+                    activityCountMap.merge(textbookId, count.intValue(), Integer::sum));
         }
-        
+
         // 如果activityType为1，还需要统计用户创建的教学活动
         if (activityType == 1) {
             LambdaQueryWrapper<DiscussionTopic> userTopicWrapper = new LambdaQueryWrapper<>();
             userTopicWrapper.and(wrapper -> wrapper.eq(DiscussionTopic::getCreator, userId)
-                                                  .or()
-                                                  .eq(DiscussionTopic::getOperator, userId))
-                   .eq(DiscussionTopic::getIdentityType, 1); // 只查找identity_type为1的数据
-    
+                            .or()
+                            .eq(DiscussionTopic::getOperator, userId))
+                    .eq(DiscussionTopic::getIdentityType, 1); // 只查找identity_type为1的数据
+
             List<DiscussionTopic> userTopics = discussionTopicMapper.selectList(userTopicWrapper);
             Map<Long, Long> userTopicCount = userTopics.stream()
                     .map(DiscussionTopic::getTextbookId)
@@ -1222,21 +1241,21 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                             textbookId -> textbookId,
                             Collectors.counting()
                     ));
-    
+
             // 合并统计结果
-            userTopicCount.forEach((textbookId, count) -> 
-                activityCountMap.merge(textbookId, count.intValue(), Integer::sum));
+            userTopicCount.forEach((textbookId, count) ->
+                    activityCountMap.merge(textbookId, count.intValue(), Integer::sum));
         }
-        
+
         return activityCountMap;
     }
-    
+
     @Override
     public List<TextbookContentSearchResult> smartSearchInTextbook(Long textbookId, String query) {
         List<TextbookContentSearchResult> results = new ArrayList<>();
 
-        // 【新增】用于去重的 Set，记录已经存在的 fullPath
-        Set<String> existingFullPaths = new HashSet<>();
+        // 【修改】用于去重的 Set，记录已经存在的章节ID
+        Set<Long> existingCatalogIds = new HashSet<>();
 
         // 解析关键词
         List<String> keywords = Arrays.stream(query.split("[,，]"))
@@ -1271,14 +1290,14 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
 
             // 如果章节名称匹配
             if (catalogNameMatches) {
-                String fullPath = buildCatalogFullPath(catalog);
+                Long levelOneCatalogId = getLevelOneCatalogId(catalog);
 
-                // 【关键修改】如果路径已存在，直接跳过，不再添加
-                if (existingFullPaths.contains(fullPath)) {
+                // 【关键修改】如果章节ID已存在，直接跳过，不再添加
+                if (existingCatalogIds.contains(levelOneCatalogId)) {
                     continue;
                 }
 
-                Long levelOneCatalogId = getLevelOneCatalogId(catalog);
+                String fullPath = buildCatalogFullPath(catalog);
 
                 TextbookContentSearchResult result = new TextbookContentSearchResult();
                 result.setFullPath(fullPath);
@@ -1286,7 +1305,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                 result.setMatchedContent(null);
 
                 results.add(result);
-                existingFullPaths.add(fullPath); // 【关键修改】标记该路径已处理
+                existingCatalogIds.add(levelOneCatalogId); // 【关键修改】标记该章节ID已处理
 
                 continue; // 命中名称后，跳过后续内容检查
             }
@@ -1298,15 +1317,15 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                         .allMatch(keyword -> cleanContent.contains(keyword));
 
                 if (allKeywordsMatch) {
-                    String fullPath = buildCatalogFullPath(catalog);
+                    String matchedContent = extractMatchedContent(content, keywords);
+                    Long levelOneCatalogId = getLevelOneCatalogId(catalog);
 
-                    // 【关键修改】再次检查去重（防止虽然名字没匹配，但内容匹配时生成了同样的路径）
-                    if (existingFullPaths.contains(fullPath)) {
+                    // 【关键修改】再次检查去重（按章节ID，防止虽然名字没匹配，但内容匹配时生成了同样的章节）
+                    if (existingCatalogIds.contains(levelOneCatalogId)) {
                         continue;
                     }
 
-                    String matchedContent = extractMatchedContent(content, keywords);
-                    Long levelOneCatalogId = getLevelOneCatalogId(catalog);
+                    String fullPath = buildCatalogFullPath(catalog);
 
                     TextbookContentSearchResult result = new TextbookContentSearchResult();
                     result.setFullPath(fullPath);
@@ -1314,14 +1333,14 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                     result.setMatchedContent(matchedContent);
 
                     results.add(result);
-                    existingFullPaths.add(fullPath); // 【关键修改】标记该路径已处理
+                    existingCatalogIds.add(levelOneCatalogId); // 【关键修改】标记该章节ID已处理
                 }
             }
         }
 
         return results;
     }
-    
+
     /**
      * 提取包含关键词的文本片段
      * @param content 完整内容
@@ -1331,7 +1350,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
     private String extractMatchedContent(String content, List<String> keywords) {
         // 移除HTML标签
         String cleanContent = stripHtml(content);
-        
+
         // 查找第一个关键词的位置
         int firstKeywordIndex = cleanContent.length();
         for (String keyword : keywords) {
@@ -1340,14 +1359,14 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
                 firstKeywordIndex = index;
             }
         }
-        
+
         // 提取关键词周围的文本片段（前后各50个字符）
         int start = Math.max(0, firstKeywordIndex - 50);
         int end = Math.min(cleanContent.length(), firstKeywordIndex + 100);
-        
+
         return cleanContent.substring(start, end);
     }
-    
+
     /**
      * 构建章节的完整路径（包含所有父级目录名称）
      * @param catalog 章节
@@ -1355,12 +1374,12 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
      */
     private String buildCatalogFullPath(TextbookCatalog catalog) {
         List<String> pathNames = new ArrayList<>();
-        
+
         // 添加当前章节名称
         if (StringUtils.isNotBlank(catalog.getCatalogName())) {
             pathNames.add(stripHtml(catalog.getCatalogName()));
         }
-        
+
         // 向上查找所有父级目录
         Long parentId = catalog.getFatherCatalogId();
         while (parentId != null) {
@@ -1368,17 +1387,17 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             if (parentCatalog == null) {
                 break;
             }
-            
+
             if (StringUtils.isNotBlank(parentCatalog.getCatalogName())) {
                 pathNames.add(0, stripHtml(parentCatalog.getCatalogName())); // 添加到开头
             }
-            
+
             parentId = parentCatalog.getFatherCatalogId();
         }
-        
+
         return String.join(" > ", pathNames);
     }
-    
+
     /**
      * 获取一级目录ID（catalog_level为1的目录）
      * @param catalog 章节
@@ -1389,26 +1408,26 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         if (catalog.getCatalogLevel() != null && catalog.getCatalogLevel() == 1) {
             return catalog.getId();
         }
-        
+
         // 向上查找直到找到一级目录
         Long parentId = catalog.getFatherCatalogId();
         TextbookCatalog current = catalog;
-        
+
         while (parentId != null) {
             TextbookCatalog parentCatalog = textbookCatalogMapper.selectById(parentId);
             if (parentCatalog == null) {
                 break;
             }
-            
+
             // 如果找到一级目录
             if (parentCatalog.getCatalogLevel() != null && parentCatalog.getCatalogLevel() == 1) {
                 return parentCatalog.getId();
             }
-            
+
             current = parentCatalog;
             parentId = parentCatalog.getFatherCatalogId();
         }
-        
+
         return null;
     }
 
@@ -1417,7 +1436,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
         if (ids == null || ids.isEmpty()) {
             throw new BusinessException(BusinessErrorEnum.PARAMETER_VALIDATION_ERROR, "教材ID列表不能为空");
         }
-        
+
         // 批量更新教材的is_delete字段
         List<Textbook> textbooksToUpdate = new ArrayList<>();
         for (Long id : ids) {
@@ -1426,7 +1445,7 @@ public class TextbookServiceImpl extends ServiceImpl<TextbookMapper, Textbook> i
             textbook.setIsDelete(isDelete);
             textbooksToUpdate.add(textbook);
         }
-        
+
         this.updateBatchById(textbooksToUpdate);
     }
 }
