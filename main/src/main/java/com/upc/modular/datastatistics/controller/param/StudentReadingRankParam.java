@@ -30,4 +30,7 @@ public class StudentReadingRankParam {
 
     @ApiModelProperty("学习行为类型")
     private String behavior;
+
+    @ApiModelProperty("学习行为分值")
+    private double behaviorScore;
 }

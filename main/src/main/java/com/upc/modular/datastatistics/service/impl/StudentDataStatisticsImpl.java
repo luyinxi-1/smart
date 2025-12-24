@@ -1,4 +1,5 @@
 package com.upc.modular.datastatistics.service.impl;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -20,7 +21,6 @@ import com.upc.modular.group.entity.Group;
 import com.upc.modular.group.mapper.GroupMapper;
 import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.textbook.entity.TextbookCatalog;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.math3.stat.descriptive.moment.Variance;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 import com.upc.modular.datastatistics.mapper.StudentDataStatisticsMapper;
@@ -32,23 +32,25 @@ import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.param.TextbookTree;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.upc.modular.textbook.service.ITextbookService;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.ss.util.CellRangeAddress;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.core.io.ClassPathResource;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.URLEncoder;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 
@@ -58,7 +60,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Service
 public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatisticsMapper,StudentStatisticsData> implements IStudentDataStatistics {
     // 完成度阈值（完成阅读）
@@ -639,8 +640,6 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             score = 100 * Math.exp(-0.1 * averageVariance);
             score = Math.max(0, Math.min(100, score));
         }
-        //log.info("uid={}, readingVar={}, noteVar={}, questionVar={}, avgVar={}, score={}",
-                //userId, readingVariance, noteVariance, questionVariance, averageVariance, score);
 
         // 设置类型和分数
         result.setHabitType(getBehaviorType(averageVariance));
@@ -1343,19 +1342,19 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                     .setGroupName(group.getName());
 
             // 计算该学生的教材阅读时长(小时)
-            Long readingTime = this.countStudentTextbookReadingTimeByUserId(student.getUserId());
-            param.setReadingCount(readingTime == null ? 0L : readingTime);
+            double readingTime = this.countStudentTextbookReadingTimeByUserId(student.getUserId());
+            param.setReadingCount(readingTime);
 
             // 调用countStudentBehavior接口，获取学生行为分析结果
             // StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(null,null);
             StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(student.getUserId(), null, null);
             param.setBehavior(behaviorParam.getHabitType());
-
+            param.setBehaviorScore(behaviorParam.getRegularityScore());
             result.add(param);
         }
 
         // 根据阅读时长排序并设置排名
-        result.sort((a, b) -> b.getReadingCount().compareTo(a.getReadingCount()));
+        result.sort((a, b) -> Double.compare(b.getReadingCount(), a.getReadingCount()));
         for (int i = 0; i < result.size(); i++) {
             result.get(i).setRank((long) (i + 1));
         }
@@ -1612,6 +1611,10 @@ public void exportStudentReadingRank(String groupName, String studentName, Strin
 
 /*    @Override
     public void exportStudentReadingRank(String groupName, String studentName, String idList,HttpServletResponse response) {
+    }
+
+    @Override
+    public void exportStudentReadingRank(String groupName, String studentName, HttpServletResponse response) {
         // 1. 复用已有分页统计逻辑（这里给一个足够大的 size，一次性导出所有）
         Page<StudentReadingRankParam> page = getStudentReadingRankByPage(groupName, studentName, 1L, 100000L);
         List<StudentReadingRankParam> data = page.getRecords();
@@ -1644,6 +1647,9 @@ public void exportStudentReadingRank(String groupName, String studentName, Strin
 
                 row.createCell(col++).setCellValue(
                         param.getGroupName() == null ? "" : param.getGroupName()); // 班级名称
+
+                row.createCell(col++).setCellValue(
+                        param.getReadingCount()); // 阅读教材数量
 
                 *//*row.createCell(col++).setCellValue(
                         param.getReadingCount() == null ? 0L : param.getReadingCount());*//* // 阅读教材数量
@@ -1681,7 +1687,7 @@ public void exportStudentReadingRank(String groupName, String studentName, Strin
                 // ignore
             }
         }
-    }*/
+    }
 
 
     /**
