@@ -1264,8 +1264,25 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                 param.setReadingCount(0.0);
             }
             // 获取行为分析 (保持不变)
+           /* StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(student.getUserId(), null, null);
+            param.setBehavior(behaviorParam.getHabitType());*/
             StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(student.getUserId(), null, null);
-            param.setBehavior(behaviorParam.getHabitType());
+            if (behaviorParam != null) {
+                param.setBehavior(behaviorParam.getHabitType());
+
+                Double score = behaviorParam.getRegularityScore();
+                if (score == null) {
+                    param.setBehaviorScore(0.0);
+                } else {
+                    double score2 = BigDecimal.valueOf(score)
+                            .setScale(2, RoundingMode.HALF_UP)
+                            .doubleValue();
+                    param.setBehaviorScore(score2);
+                }
+            } else {
+                param.setBehavior("");
+                param.setBehaviorScore(0.0);
+            }
 
             result.add(param);
         }
