@@ -116,7 +116,8 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
                 param.setChapterName(cleanName.trim());
             }
         }
-
+        result.sort(Comparator.comparing(ChapterQuestionCorrectRateParam::getSort,
+                Comparator.nullsLast(Comparator.naturalOrder())));
         log.info("获取各章节习题正确率统计完成，结果数量: {}", result.size());
         return result;
     }

@@ -45,6 +45,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.List;
 import com.upc.common.utils.UserInfoToRedis;
@@ -218,16 +219,19 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
 
         switch (timeRange.toLowerCase()) {
             case "week":
-                startDate = now.with(java.time.DayOfWeek.MONDAY);
-                endDate = startDate.plusDays(6);
+                // 计算前7天的数据（包含今天）
+                startDate = now.minusDays(6);
+                endDate = now;
                 break;
             case "month":
-                startDate = now.with(java.time.temporal.TemporalAdjusters.firstDayOfMonth());
-                endDate = now.with(java.time.temporal.TemporalAdjusters.lastDayOfMonth());
+                // 计算前30天的数据（包含今天）
+                startDate = now.minusDays(29);
+                endDate = now;
                 break;
             case "year":
-                startDate = now.with(java.time.temporal.TemporalAdjusters.firstDayOfYear());
-                endDate = now.with(java.time.temporal.TemporalAdjusters.lastDayOfYear());
+                // 计算前365天的数据（包含今天）
+                startDate = now.minusDays(364);
+                endDate = now;
                 break;
             default:
                 throw new IllegalArgumentException("不支持的时间范围: " + timeRange);
@@ -1995,6 +1999,9 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
             param.setCorrectRate(getDoubleValue(item.get("correctRate")));
             result.add(param);
         }
+
+        result.sort(Comparator.comparing(ChapterQuestionCorrectRateParam::getSort,
+                Comparator.nullsLast(Comparator.naturalOrder())));
         return result;
     }
 

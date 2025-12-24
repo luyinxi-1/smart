@@ -32,25 +32,23 @@ import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.param.TextbookTree;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.upc.modular.textbook.service.ITextbookService;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.URLEncoder;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 
@@ -802,7 +800,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
         }
 
         // 按阅读时长（readingTime）进行降序排序
-        result.sort(Comparator.comparingLong(StudentTextbookRankParam::getReadingTime).reversed());
+        result.sort(Comparator.comparingDouble(StudentTextbookRankParam::getReadingTime).reversed());
 
         return result;
     }
@@ -1048,7 +1046,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
 
         // 按阅读时长降序排序，返回所有结果
         return result.stream()
-                .sorted((a, b) -> b.getReadingTime().compareTo(a.getReadingTime()))
+                .sorted((a, b) -> Double.compare(b.getReadingTime(), a.getReadingTime()))
                 .collect(Collectors.toList());
     }
 
@@ -1266,8 +1264,25 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                 param.setReadingCount(0.0);
             }
             // 获取行为分析 (保持不变)
+           /* StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(student.getUserId(), null, null);
+            param.setBehavior(behaviorParam.getHabitType());*/
             StudentBehaviorReturnParam behaviorParam = analyzeStudentBehavior(student.getUserId(), null, null);
-            param.setBehavior(behaviorParam.getHabitType());
+            if (behaviorParam != null) {
+                param.setBehavior(behaviorParam.getHabitType());
+
+                Double score = behaviorParam.getRegularityScore();
+                if (score == null) {
+                    param.setBehaviorScore(0.0);
+                } else {
+                    double score2 = BigDecimal.valueOf(score)
+                            .setScale(2, RoundingMode.HALF_UP)
+                            .doubleValue();
+                    param.setBehaviorScore(score2);
+                }
+            } else {
+                param.setBehavior("");
+                param.setBehaviorScore(0.0);
+            }
 
             result.add(param);
         }
