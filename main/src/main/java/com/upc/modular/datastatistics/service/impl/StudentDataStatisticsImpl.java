@@ -1,5 +1,4 @@
 package com.upc.modular.datastatistics.service.impl;
-
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -21,6 +20,7 @@ import com.upc.modular.group.entity.Group;
 import com.upc.modular.group.mapper.GroupMapper;
 import com.upc.modular.teacher.mapper.TeacherMapper;
 import com.upc.modular.textbook.entity.TextbookCatalog;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.math3.stat.descriptive.moment.Variance;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 import com.upc.modular.datastatistics.mapper.StudentDataStatisticsMapper;
@@ -32,25 +32,23 @@ import com.upc.modular.textbook.entity.Textbook;
 import com.upc.modular.textbook.param.TextbookTree;
 import com.upc.modular.textbook.service.ITextbookCatalogService;
 import com.upc.modular.textbook.service.ITextbookService;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.core.io.ClassPathResource;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.URLEncoder;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 
@@ -60,6 +58,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatisticsMapper,StudentStatisticsData> implements IStudentDataStatistics {
     // 完成度阈值（完成阅读）
@@ -640,6 +639,8 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
             score = 100 * Math.exp(-0.1 * averageVariance);
             score = Math.max(0, Math.min(100, score));
         }
+        //log.info("uid={}, readingVar={}, noteVar={}, questionVar={}, avgVar={}, score={}",
+                //userId, readingVariance, noteVariance, questionVariance, averageVariance, score);
 
         // 设置类型和分数
         result.setHabitType(getBehaviorType(averageVariance));
@@ -1366,9 +1367,251 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
 
         return finalPage;
     }*/
+@Override
+public void exportStudentReadingRank(String groupName, String studentName, String idList, HttpServletResponse response) {
 
-    @Override
-    public void exportStudentReadingRank(String groupName, String studentName, HttpServletResponse response) {
+    Long currentUserId = UserUtils.get().getId();
+
+    // 1) 获取权限班级（这不是复用分页逻辑，只是权限数据）
+    List<Group> authorizedGroups = getGroupsByTeacherUserId(currentUserId);
+    List<Long> groupIds = authorizedGroups.stream().map(Group::getId).collect(Collectors.toList());
+    if (groupIds.isEmpty()) {
+        throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "无可导出班级权限");
+    }
+
+    // 2) 解析 idList
+    List<Long> studentIds = parseIdList(idList);
+
+    // 3) 一次性查出：每学生每教材明细 + 总时长 + rank
+    List<StudentReadingRankExportRow> dbRows =
+            studentDataStatisticsMapper.selectStudentReadingRankExportRows(groupIds, groupName, studentName, studentIds);
+
+    // 4) 行为积极性：按 userId 去重后计算（可复用你现有 analyzeStudentBehavior）
+    Map<Long, String> behaviorMap = new HashMap<>();
+    for (StudentReadingRankExportRow r : dbRows) {
+        if (r.getUserId() == null) continue;
+
+        behaviorMap.computeIfAbsent(r.getUserId(), uid -> {
+            StudentBehaviorReturnParam bp = analyzeStudentBehavior(uid, null, null);
+            if (bp == null) return "";
+
+            String type = bp.getHabitType() == null ? "" : bp.getHabitType();
+            Double score = bp.getRegularityScore(); // 你计算出来的分值
+
+            if (score == null) return type;
+
+            // 保留两位小数，并用中文全角括号
+            String scoreStr = new java.text.DecimalFormat("0.00").format(score);
+            return type + "（" + scoreStr + "）";
+        });
+    }
+
+    dbRows.forEach(r -> r.setBehavior(behaviorMap.getOrDefault(r.getUserId(), "")));
+
+/*
+    Map<Long, String> behaviorMap = new HashMap<>();
+    for (StudentReadingRankExportRow r : dbRows) {
+        if (r.getUserId() == null) continue;
+        behaviorMap.computeIfAbsent(r.getUserId(), uid -> {
+            StudentBehaviorReturnParam bp = analyzeStudentBehavior(uid, null, null);
+            return bp == null ? "" : bp.getHabitType();
+        });
+    }
+    dbRows.forEach(r -> r.setBehavior(behaviorMap.getOrDefault(r.getUserId(), "")));
+*/
+
+    // 5) 若某学生无教材（textbookName 为 null），导出时建议把明细列置空而不是 0
+    dbRows.forEach(r -> {
+        if (r.getTextbookName() == null) {
+            r.setTextbookHours(null);
+        }
+        // 可选：统一保留两位小数
+        r.setTotalHours(round2(r.getTotalHours()));
+        r.setTextbookHours(round2(r.getTextbookHours()));
+    });
+
+    // 6) 按 studentId 分组，后续按组写模板并合并 A~E
+    Map<Long, List<StudentReadingRankExportRow>> grouped = dbRows.stream()
+            .collect(Collectors.groupingBy(
+                    StudentReadingRankExportRow::getStudentId,
+                    LinkedHashMap::new,
+                    Collectors.toList()
+            ));
+
+    // 7) 读取模板并写入
+    try (InputStream is = new ClassPathResource("templates/学生阅读排名模板.xlsx").getInputStream();
+         Workbook wb = WorkbookFactory.create(is)) {
+
+        Sheet sheet = wb.getSheet("学生阅读排名");
+        if (sheet == null) sheet = wb.getSheetAt(0);
+
+        // 清掉模板原有合并（A2:A4 等）
+        for (int i = sheet.getNumMergedRegions() - 1; i >= 0; i--) {
+            sheet.removeMergedRegion(i);
+        }
+
+        // 捕获模板三种样式行：第2/3/4行（index 1/2/3）
+        TemplateRowStyle first = captureRowStyle(sheet, 1, 7);
+        TemplateRowStyle mid   = captureRowStyle(sheet, 2, 7);
+        TemplateRowStyle last  = captureRowStyle(sheet, 3, 7);
+
+        // 删除模板样例行（index 3 -> 2 -> 1）
+        removeRow(sheet, 3);
+        removeRow(sheet, 2);
+        removeRow(sheet, 1);
+
+        int writeRowIdx = 1; // 从第2行开始写（index=1）
+
+        for (List<StudentReadingRankExportRow> list : grouped.values()) {
+            if (list == null || list.isEmpty()) continue;
+
+            int n = Math.max(1, list.size());
+            int startRow = writeRowIdx;
+            int endRow = writeRowIdx + n - 1;
+
+            int lastRow = sheet.getLastRowNum();
+            if (n > 1 && writeRowIdx <= lastRow) {
+                sheet.shiftRows(writeRowIdx, lastRow, n - 1, true, false);
+            }
+
+
+
+            for (int i = 0; i < n; i++) {
+                int rIdx = writeRowIdx + i;
+                Row row = sheet.createRow(rIdx);
+
+                TemplateRowStyle tpl = (i == 0) ? first : (i == n - 1 ? last : mid);
+                applyRowStyle(row, tpl, 7);
+
+                StudentReadingRankExportRow r = list.get(i);
+
+                if (i == 0) {
+                    setCellValue(row, 0, safeLong(r.getRank()));
+                    setCellValue(row, 1, safeStr(r.getGroupName()));
+                    setCellValue(row, 2, safeStr(r.getStudentName()));
+                    setCellValue(row, 3, safeDoubleObj(r.getTotalHours()));
+                    setCellValue(row, 4, safeStr(r.getBehavior()));
+                } else {
+                    clearCellValue(row, 0, 4);
+                }
+
+                setCellValue(row, 5, safeStr(r.getTextbookName()));
+                if (r.getTextbookHours() == null) {
+                    clearCellValue(row, 6, 6);
+                } else {
+                    setCellValue(row, 6, r.getTextbookHours());
+                }
+            }
+
+            if (endRow > startRow) {
+                for (int c = 0; c <= 4; c++) {
+                    sheet.addMergedRegion(new CellRangeAddress(startRow, endRow, c, c));
+                }
+            }
+
+            writeRowIdx = endRow + 1;
+        }
+
+        // 输出
+        String fileName = "学生阅读排名.xlsx";
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        String encoded = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
+        response.setHeader("Content-Disposition",
+                "attachment; filename=\"" + encoded + "\"; filename*=utf-8''" + encoded);
+
+        try (ServletOutputStream out = response.getOutputStream()) {
+            wb.write(out);
+            out.flush();
+        }
+
+    } catch (Exception e) {
+        throw new BusinessException(BusinessErrorEnum.UNKNOWN_ERROR, "导出学生阅读排名失败: " + e.getMessage());
+    }
+}
+
+    /* ----------------- 工具方法（直接复制） ----------------- */
+
+    private static class TemplateRowStyle {
+        short height;
+        CellStyle[] styles;
+    }
+
+    private TemplateRowStyle captureRowStyle(Sheet sheet, int rowIdx, int colCount) {
+        Row r = sheet.getRow(rowIdx);
+        if (r == null) throw new IllegalStateException("模板缺少第 " + (rowIdx + 1) + " 行");
+        TemplateRowStyle t = new TemplateRowStyle();
+        t.height = r.getHeight();
+        t.styles = new CellStyle[colCount];
+        for (int c = 0; c < colCount; c++) {
+            Cell cell = r.getCell(c);
+            t.styles[c] = (cell == null) ? null : cell.getCellStyle();
+        }
+        return t;
+    }
+
+    private void applyRowStyle(Row row, TemplateRowStyle tpl, int colCount) {
+        row.setHeight(tpl.height);
+        for (int c = 0; c < colCount; c++) {
+            Cell cell = row.createCell(c);
+            if (tpl.styles[c] != null) cell.setCellStyle(tpl.styles[c]);
+        }
+    }
+
+    private void removeRow(Sheet sheet, int rowIndex) {
+        int lastRowNum = sheet.getLastRowNum();
+        Row removingRow = sheet.getRow(rowIndex);
+        if (removingRow != null) sheet.removeRow(removingRow);
+        if (rowIndex >= 0 && rowIndex < lastRowNum) {
+            sheet.shiftRows(rowIndex + 1, lastRowNum, -1, true, false);
+        }
+    }
+
+    private void setCellValue(Row row, int col, String v) {
+        Cell cell = row.getCell(col);
+        if (cell == null) cell = row.createCell(col);
+        cell.setCellValue(v == null ? "" : v);
+    }
+    private void setCellValue(Row row, int col, long v) {
+        Cell cell = row.getCell(col);
+        if (cell == null) cell = row.createCell(col);
+        cell.setCellValue(v);
+    }
+    private void setCellValue(Row row, int col, double v) {
+        Cell cell = row.getCell(col);
+        if (cell == null) cell = row.createCell(col);
+        cell.setCellValue(v);
+    }
+
+    private void clearCellValue(Row row, int startCol, int endCol) {
+        for (int c = startCol; c <= endCol; c++) {
+            Cell cell = row.getCell(c);
+            if (cell != null) cell.setBlank();
+        }
+    }
+
+    private List<Long> parseIdList(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return Collections.emptyList();
+        String s = raw.trim().replaceAll("[\\[\\]\\s]", "");
+        if (s.isEmpty()) return Collections.emptyList();
+        List<Long> list = new ArrayList<>();
+        for (String p : s.split(",")) {
+            if (p != null && !p.isEmpty()) list.add(Long.valueOf(p));
+        }
+        return list;
+    }
+
+    private String safeStr(String s) { return s == null ? "" : s; }
+    private long safeLong(Long v) { return v == null ? 0L : v; }
+    private double safeDoubleObj(Double v) { return v == null ? 0.0 : v; }
+
+    private Double round2(Double v) {
+        if (v == null) return null;
+        return new BigDecimal(v.toString()).setScale(2, RoundingMode.HALF_UP).doubleValue();
+    }
+
+/*    @Override
+    public void exportStudentReadingRank(String groupName, String studentName, String idList,HttpServletResponse response) {
         // 1. 复用已有分页统计逻辑（这里给一个足够大的 size，一次性导出所有）
         Page<StudentReadingRankParam> page = getStudentReadingRankByPage(groupName, studentName, 1L, 100000L);
         List<StudentReadingRankParam> data = page.getRecords();
@@ -1402,8 +1645,8 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                 row.createCell(col++).setCellValue(
                         param.getGroupName() == null ? "" : param.getGroupName()); // 班级名称
 
-                /*row.createCell(col++).setCellValue(
-                        param.getReadingCount() == null ? 0L : param.getReadingCount());*/ // 阅读教材数量
+                *//*row.createCell(col++).setCellValue(
+                        param.getReadingCount() == null ? 0L : param.getReadingCount());*//* // 阅读教材数量
                 row.createCell(col++).setCellValue(param.getReadingCount());
                 row.createCell(col++).setCellValue(
                         param.getRank() == null ? 0L : param.getRank()); // 排名
@@ -1438,7 +1681,7 @@ public class StudentDataStatisticsImpl extends ServiceImpl<StudentDataStatistics
                 // ignore
             }
         }
-    }
+    }*/
 
 
     /**
