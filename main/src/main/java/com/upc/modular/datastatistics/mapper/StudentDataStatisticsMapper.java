@@ -3,6 +3,7 @@ package com.upc.modular.datastatistics.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.upc.modular.auth.entity.SysDictData;
 import com.upc.modular.course.entity.CourseClassList;
+import com.upc.modular.datastatistics.controller.param.StudentReadingRankExportRow;
 import com.upc.modular.datastatistics.entity.StudentStatisticsData;
 import com.upc.modular.student.entity.Student;
 import com.upc.modular.textbook.entity.LearningLog;
@@ -139,6 +140,14 @@ public interface StudentDataStatisticsMapper extends BaseMapper<StudentStatistic
 
     @Select("SELECT * FROM learning_log WHERE textbook_id = #{textbookId} ORDER BY add_datetime ASC")
     List<LearningLog> findLearningLogsByTextbookId(@Param("textbookId") Long textbookId);
+
+    List<StudentReadingRankExportRow> selectStudentReadingRankExportRows(
+            @Param("groupIds") List<Long> groupIds,      // 权限班级ID
+            @Param("groupName") String groupName,
+            @Param("studentName") String studentName,
+            @Param("idList") List<Long> idList           // studentId 列表
+    );
+
 
     // 添加getStudentQuestionAnsweringStatistics方法的声明
     List<Map<String, Object>> getStudentQuestionAnsweringStatistics(@Param("textbookId") Long textbookId, @Param("studentId") Long studentId);

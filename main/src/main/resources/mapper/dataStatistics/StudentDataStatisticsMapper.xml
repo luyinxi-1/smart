@@ -269,6 +269,109 @@
                  JOIN course_textbook_list ctl on ccl.course_id = ctl.course_id
         where s.user_id = #{userId}
     </select>
+    <select id="selectStudentReadingRankExportRows"
+            resultType="com.upc.modular.datastatistics.controller.param.StudentReadingRankExportRow">
+
+        WITH student_base AS (
+        SELECT
+        s.id        AS studentId,
+        s.user_id   AS userId,
+        g.name      AS groupName,
+        s.name      AS studentName
+        FROM student s
+        JOIN "group" g ON g.id = s.class_id
+        WHERE s.class_id IN
+        <foreach collection="groupIds" item="gid" open="(" separator="," close=")">
+            #{gid}
+        </foreach>
+
+        <if test="groupName != null and groupName != ''">
+            AND g.name LIKE CONCAT('%', #{groupName}, '%')
+        </if>
+        <if test="studentName != null and studentName != ''">
+            AND s.name LIKE CONCAT('%', #{studentName}, '%')
+        </if>
+        <if test="idList != null and idList.size() > 0">
+            AND s.id IN
+            <foreach collection="idList" item="sid" open="(" separator="," close=")">
+                #{sid}
+            </foreach>
+        </if>
+        ),
+
+        logs AS (
+        SELECT
+        ll.creator       AS userId,
+        ll.textbook_id   AS textbookId,
+        ll.add_datetime  AS addDatetime,
+        LEAD(ll.add_datetime, 1) OVER (
+        PARTITION BY ll.creator, ll.textbook_id
+        ORDER BY ll.add_datetime
+        ) AS nextAddDatetime
+        FROM learning_log ll
+        WHERE ll.textbook_id IS NOT NULL
+        ),
+
+        dur AS (
+        SELECT
+        userId,
+        textbookId,
+        CASE
+        WHEN nextAddDatetime IS NULL THEN 0
+        WHEN EXTRACT(EPOCH FROM age(nextAddDatetime, addDatetime)) BETWEEN 55 AND 65 THEN 60
+        ELSE 0
+        END AS duration_seconds
+        FROM logs
+        ),
+
+        agg AS (
+        SELECT
+        userId,
+        textbookId,
+        SUM(duration_seconds) / 3600.0 AS hours
+        FROM dur
+        GROUP BY userId, textbookId
+        ),
+
+        joined AS (
+        SELECT
+        sb.studentId,
+        sb.userId,
+        sb.groupName,
+        sb.studentName,
+        t.textbook_name AS textbookName,
+        COALESCE(a.hours, 0) AS textbookHours
+        FROM student_base sb
+        LEFT JOIN agg a ON a.userId = sb.userId
+        LEFT JOIN textbook t ON t.id = a.textbookId
+        ),
+
+        totals AS (
+        SELECT
+        studentId,
+        userId,
+        groupName,
+        studentName,
+        SUM(textbookHours) AS totalHours
+        FROM joined
+        GROUP BY studentId, userId, groupName, studentName
+        )
+
+        SELECT
+        j.studentId        AS studentId,
+        j.userId           AS userId,
+        DENSE_RANK() OVER (ORDER BY tot.totalHours DESC) AS rank,
+        j.groupName        AS groupName,
+        j.studentName      AS studentName,
+        tot.totalHours     AS totalHours,
+        CAST(NULL AS VARCHAR) AS behavior,
+        j.textbookName     AS textbookName,
+        j.textbookHours    AS textbookHours
+        FROM joined j
+        JOIN totals tot ON tot.studentId = j.studentId
+        ORDER BY rank ASC, j.studentId ASC, j.textbookHours DESC;
+
+    </select>
 
 
 </mapper>

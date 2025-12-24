@@ -173,11 +173,23 @@ public class StudentDataStatisticsController {
     public void exportStudentReadingRank(
             @RequestParam(required = false) String groupName,
             @RequestParam(required = false) String studentName,
+            @RequestParam(required = false) String idList,   // 新增："[1,2]" or "1,2"
+            HttpServletResponse response
+    ) {
+        iStudentDataStatistics.exportStudentReadingRank(groupName, studentName, idList, response);
+    }
+
+
+/*    @ApiOperation("导出学生阅读排名（Excel）")
+    @GetMapping("/reading-rank-export")
+    public void exportStudentReadingRank(
+            @RequestParam(required = false) String groupName,
+            @RequestParam(required = false) String studentName,
             HttpServletResponse response
     ) {
         // 所有业务逻辑交给 Service
         iStudentDataStatistics.exportStudentReadingRank(groupName, studentName, response);
-    }
+    }*/
 
     @ApiOperation("根据学生ID查询阅读过的教材，按阅读量排名返回")
     @GetMapping("/textbook-rank-by-student")
