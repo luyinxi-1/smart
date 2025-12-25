@@ -17,6 +17,8 @@ public class TextbookTimeStatisticsReturnParam {
     @ApiModelProperty("数量")
     private Long count;
 
-    @ApiModelProperty("时长(分钟)")
-    private Long duration;
+    /*@ApiModelProperty("时长(分钟)")
+    private Long duration;*/
+    @ApiModelProperty("时长(小时)")
+    private Double duration;
 } 
