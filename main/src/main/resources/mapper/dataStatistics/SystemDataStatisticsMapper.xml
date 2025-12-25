@@ -1004,60 +1004,38 @@
     <!-- 导出全系统教材统计概览 -->
     <select id="exportSystemTextbookStatisticsOverview" resultType="map">
         WITH textbook_correct_rate AS (
-        -- 修正后的答题正确率统计
+        -- 答题正确率统计
         SELECT
         tqb.textbook_id,
-        -- 平均得分率（避免扇入问题）
         ROUND(AVG(
         CASE
         WHEN qbl.total_score > 0
         THEN sfg.final_score * 1.0 / qbl.total_score
         ELSE 0
         END
-        ) * 100, 2) as question_correct_rate,
-        -- 同时统计合格率（可选）
-        CASE
-        WHEN COUNT(*) > 0 THEN
-        ROUND(
-        SUM(CASE
-        WHEN qbl.total_score > 0
-        AND sfg.final_score * 1.0 / qbl.total_score >= 0.6
-        THEN 1
-        ELSE 0
-        END) * 100.0 / COUNT(*),
-        2
-        )
-        ELSE 0
-        END as pass_rate
+        ) * 100, 2) as question_correct_rate
         FROM teaching_question_bank tqb
-        -- 题库总分
         INNER JOIN (
         SELECT bank_id, SUM(score) as total_score
         FROM questions_banks_list
         GROUP BY bank_id
         ) qbl ON tqb.id = qbl.bank_id
-        -- 学生答题（每个学生取最高分）
         LEFT JOIN (
         SELECT
         bank_id,
         student_id,
         MAX(final_score) as final_score
         FROM student_final_grade
-        <if test="startTime != null and endTime != null">
-            WHERE operation_datetime BETWEEN #{startTime} AND #{endTime}
-        </if>
         GROUP BY bank_id, student_id
         ) sfg ON tqb.id = sfg.bank_id
         WHERE tqb.status = 1
         GROUP BY tqb.textbook_id
         ),
         textbook_material_stats AS (
-        -- 合并所有素材统计（大幅减少JOIN次数）
+        -- 合并所有素材统计
         SELECT
         mtm.textbook_id,
-        -- 素材总数
         COUNT(*) as material_count,
-        -- 各类素材数量
         COUNT(CASE WHEN LOWER(tm.type) = 'image' THEN 1 END) as image_count,
         COUNT(CASE WHEN LOWER(tm.type) = 'video' THEN 1 END) as video_count,
         COUNT(CASE WHEN LOWER(tm.type) = 'audio' THEN 1 END) as audio_count,
@@ -1074,72 +1052,44 @@
         'word', 'excel', 'h5', 'simulation'
         ) THEN 1 END) as other_count
         FROM materials_textbook_mapping mtm
-        INNER JOIN teaching_materials tm ON mtm.material_id = tm.id
-        <if test="startTime != null and endTime != null">
-            WHERE tm.operation_datetime BETWEEN #{startTime} AND #{endTime}
-        </if>
+        LEFT JOIN teaching_materials tm ON mtm.material_id = tm.id
         GROUP BY mtm.textbook_id
         ),
         textbook_discussion_stats AS (
         -- 合并讨论相关统计
         SELECT
         dt.textbook_id,
-        -- 教学活动数量
         COUNT(DISTINCT CASE WHEN dt.identity_type = 1 THEN dt.id END) as teaching_activity_count,
-        -- 交流反馈总数（回复数）
         COUNT(dtr.id) as communication_feedback_count,
-        -- 交流反馈参与人数
         COUNT(DISTINCT dtr.creator) as communication_participation_count
         FROM discussion_topic dt
         LEFT JOIN discussion_topic_reply dtr ON dt.id = dtr.topic_id
-        <if test="startTime != null and endTime != null">
-            WHERE (dt.operation_datetime BETWEEN #{startTime} AND #{endTime})
-            OR (dtr.operation_datetime BETWEEN #{startTime} AND #{endTime})
-        </if>
         GROUP BY dt.textbook_id
         )
         SELECT
         t.id AS "textbookId",
         t.textbook_name AS "textbookName",
-        -- 阅读人数（修正：统计学生用户）
+        -- 阅读人数（统计所有用户）
         COALESCE((
         SELECT COUNT(DISTINCT ll.creator)
         FROM learning_log ll
-        INNER JOIN student s ON ll.creator = s.user_id  -- 确保是学生
         WHERE ll.textbook_id = t.id
-        <if test="startTime != null and endTime != null">
-            AND ll.add_datetime BETWEEN #{startTime} AND #{endTime}
-        </if>
         ), 0) as "readerCount",
-        -- 教学活动数量
         COALESCE(ds.teaching_activity_count, 0) as "teachingActivityCount",
-        -- 素材总数
         COALESCE(ms.material_count, 0) as "materialCount",
-        -- 交流反馈数量
         COALESCE(ds.communication_feedback_count, 0) as "communicationFeedbackCount",
-        -- 教学思政数量
         COALESCE((
         SELECT COUNT(*)
         FROM ideological_material im
         WHERE im.textbook_id = t.id
-        <if test="startTime != null and endTime != null">
-            AND im.operation_datetime BETWEEN #{startTime} AND #{endTime}
-        </if>
         ), 0) as "ideologicalMaterialCount",
-        -- 答题正确率（修正后）
         COALESCE(cr.question_correct_rate, 0) as "questionCorrectRate",
-        -- 交流反馈参与量
         COALESCE(ds.communication_participation_count, 0) as "communicationParticipationCount",
-        -- 知识点批注量
         COALESCE((
         SELECT COUNT(*)
         FROM teacher_annotation ta
         WHERE ta.textbook_id = t.id
-        <if test="startTime != null and endTime != null">
-            AND ta.operation_datetime BETWEEN #{startTime} AND #{endTime}
-        </if>
         ), 0) as "annotationCount",
-        -- 各类素材数量
         COALESCE(ms.image_count, 0) as "imageMaterialCount",
         COALESCE(ms.video_count, 0) as "videoMaterialCount",
         COALESCE(ms.audio_count, 0) as "audioMaterialCount",
@@ -1151,12 +1101,7 @@
         COALESCE(ms.excel_count, 0) as "excelMaterialCount",
         COALESCE(ms.h5_count, 0) as "h5MaterialCount",
         COALESCE(ms.simulation_count, 0) as "simulationMaterialCount",
-        COALESCE(ms.other_count, 0) as "otherMaterialCount",
-        -- 额外统计：教材创建时间、作者等（根据需要添加）
-        t.creator as "creatorId",
-        (SELECT real_name FROM "user" WHERE id = t.creator) as "creatorName",
-        t.add_datetime as "createTime",
-        t.release_status as "releaseStatus"
+        COALESCE(ms.other_count, 0) as "otherMaterialCount"
         FROM textbook t
         LEFT JOIN textbook_correct_rate cr ON t.id = cr.textbook_id
         LEFT JOIN textbook_material_stats ms ON t.id = ms.textbook_id
@@ -1164,12 +1109,6 @@
         WHERE t.release_status = '1'
         <if test="textbookName != null and textbookName != ''">
             AND t.textbook_name LIKE CONCAT('%', #{textbookName}, '%')
-        </if>
-        <if test="creatorId != null">
-            AND t.creator = #{creatorId}
-        </if>
-        <if test="startTime != null and endTime != null">
-            AND t.add_datetime BETWEEN #{startTime} AND #{endTime}
         </if>
         ORDER BY t.textbook_name
     </select>
@@ -1184,7 +1123,6 @@
         COALESCE(material_stats.material_count, 0) as "materialCount",
         COALESCE(feedback_stats.communication_feedback_count, 0) as "communicationFeedbackCount",
         COALESCE(ideological_stats.ideological_material_count, 0) as "ideologicalMaterialCount",
-        -- 使用修正后的答题正确率
         COALESCE(correct_stats.question_correct_rate, 0) as "questionCorrectRate",
         COALESCE(participation_stats.communication_participation_count, 0) as "communicationParticipationCount",
         COALESCE(annotation_stats.annotation_count, 0) as "annotationCount",
@@ -1216,16 +1154,12 @@
         WHERE ta.user_id = #{userId} AND ta.authority_type = 1 AND t.release_status = '1'
         ) teacher_textbooks ON t.id = teacher_textbooks.textbook_id
         LEFT JOIN (
-        -- 统计阅读人数
+        -- 统计阅读人数（所有用户）
         SELECT
-        ctl.textbook_id,
-        COUNT(DISTINCT s.id) as reader_count
-        FROM student s
-        INNER JOIN user_class_list ucl ON s.user_id = ucl.user_id
-        INNER JOIN course_class_list ccl ON ucl.class_id = ccl.class_id
-        INNER JOIN course_textbook_list ctl ON ccl.course_id = ctl.course_id
-        WHERE ucl.type = 1
-        GROUP BY ctl.textbook_id
+        ll.textbook_id,
+        COUNT(DISTINCT ll.creator) as reader_count
+        FROM learning_log ll
+        GROUP BY ll.textbook_id
         ) reader_stats ON t.id = reader_stats.textbook_id
         LEFT JOIN (
         -- 统计教学活动数量
@@ -1260,11 +1194,10 @@
         FROM ideological_material im
         GROUP BY im.textbook_id
         ) ideological_stats ON t.id = ideological_stats.textbook_id
-        -- 修正后的答题正确率统计（关键修改部分）
         LEFT JOIN (
+        -- 答题正确率统计
         SELECT
         tqb.textbook_id,
-        -- 平均得分率（正确的计算方式）
         ROUND(AVG(
         CASE
         WHEN qbl.total_score > 0
@@ -1273,13 +1206,11 @@
         END
         ) * 100, 2) as question_correct_rate
         FROM teaching_question_bank tqb
-        -- 题库总分
         INNER JOIN (
         SELECT bank_id, SUM(score) as total_score
         FROM questions_banks_list
         GROUP BY bank_id
         ) qbl ON tqb.id = qbl.bank_id
-        -- 学生答题（每个学生取最高分，避免扇入）
         LEFT JOIN (
         SELECT
         bank_id,
@@ -1312,7 +1243,7 @@
         -- 统计图片素材数量
         SELECT mtm.textbook_id, COUNT(*) as image_count
         FROM materials_textbook_mapping mtm
-        JOIN teaching_materials tm ON mtm.material_id = tm.id
+        LEFT JOIN teaching_materials tm ON mtm.material_id = tm.id
         WHERE tm.type = 'image'
         GROUP BY mtm.textbook_id
         ) image_stats ON t.id = image_stats.textbook_id
@@ -1320,7 +1251,7 @@
         -- 统计视频素材数量
         SELECT mtm.textbook_id, COUNT(*) as video_count
         FROM materials_textbook_mapping mtm
-        JOIN teaching_materials tm ON mtm.material_id = tm.id
+        LEFT JOIN teaching_materials tm ON mtm.material_id = tm.id
         WHERE tm.type = 'video'
         GROUP BY mtm.textbook_id
         ) video_stats ON t.id = video_stats.textbook_id
@@ -1328,7 +1259,7 @@
         -- 统计音频素材数量
         SELECT mtm.textbook_id, COUNT(*) as audio_count
         FROM materials_textbook_mapping mtm
-        JOIN teaching_materials tm ON mtm.material_id = tm.id
+        LEFT JOIN teaching_materials tm ON mtm.material_id = tm.id
         WHERE tm.type = 'audio'
         GROUP BY mtm.textbook_id
         ) audio_stats ON t.id = audio_stats.textbook_id
@@ -1336,7 +1267,7 @@
         -- 统计3D模型素材数量
         SELECT mtm.textbook_id, COUNT(*) as model3d_count
         FROM materials_textbook_mapping mtm
-        JOIN teaching_materials tm ON mtm.material_id = tm.id
+        LEFT JOIN teaching_materials tm ON mtm.material_id = tm.id
         WHERE tm.type = '3DModel'
         GROUP BY mtm.textbook_id
         ) model3d_stats ON t.id = model3d_stats.textbook_id
@@ -1344,7 +1275,7 @@
         -- 统计链接素材数量
         SELECT mtm.textbook_id, COUNT(*) as link_count
         FROM materials_textbook_mapping mtm
-        JOIN teaching_materials tm ON mtm.material_id = tm.id
+        LEFT JOIN teaching_materials tm ON mtm.material_id = tm.id
         WHERE tm.type = 'link'
         GROUP BY mtm.textbook_id
         ) link_stats ON t.id = link_stats.textbook_id
@@ -1352,7 +1283,7 @@
         -- 统计PPT素材数量
         SELECT mtm.textbook_id, COUNT(*) as ppt_count
         FROM materials_textbook_mapping mtm
-        JOIN teaching_materials tm ON mtm.material_id = tm.id
+        LEFT JOIN teaching_materials tm ON mtm.material_id = tm.id
         WHERE tm.type = 'ppt'
         GROUP BY mtm.textbook_id
         ) ppt_stats ON t.id = ppt_stats.textbook_id
@@ -1360,7 +1291,7 @@
         -- 统计PDF素材数量
         SELECT mtm.textbook_id, COUNT(*) as pdf_count
         FROM materials_textbook_mapping mtm
-        JOIN teaching_materials tm ON mtm.material_id = tm.id
+        LEFT JOIN teaching_materials tm ON mtm.material_id = tm.id
         WHERE tm.type = 'pdf'
         GROUP BY mtm.textbook_id
         ) pdf_stats ON t.id = pdf_stats.textbook_id
@@ -1368,7 +1299,7 @@
         -- 统计Word素材数量
         SELECT mtm.textbook_id, COUNT(*) as word_count
         FROM materials_textbook_mapping mtm
-        JOIN teaching_materials tm ON mtm.material_id = tm.id
+        LEFT JOIN teaching_materials tm ON mtm.material_id = tm.id
         WHERE tm.type = 'word'
         GROUP BY mtm.textbook_id
         ) word_stats ON t.id = word_stats.textbook_id
@@ -1376,7 +1307,7 @@
         -- 统计Excel素材数量
         SELECT mtm.textbook_id, COUNT(*) as excel_count
         FROM materials_textbook_mapping mtm
-        JOIN teaching_materials tm ON mtm.material_id = tm.id
+        LEFT JOIN teaching_materials tm ON mtm.material_id = tm.id
         WHERE tm.type = 'excel'
         GROUP BY mtm.textbook_id
         ) excel_stats ON t.id = excel_stats.textbook_id
@@ -1384,7 +1315,7 @@
         -- 统计H5页面素材数量
         SELECT mtm.textbook_id, COUNT(*) as h5_count
         FROM materials_textbook_mapping mtm
-        JOIN teaching_materials tm ON mtm.material_id = tm.id
+        LEFT JOIN teaching_materials tm ON mtm.material_id = tm.id
         WHERE tm.type = 'H5'
         GROUP BY mtm.textbook_id
         ) h5_stats ON t.id = h5_stats.textbook_id
@@ -1392,7 +1323,7 @@
         -- 统计3D仿真素材数量
         SELECT mtm.textbook_id, COUNT(*) as simulation_count
         FROM materials_textbook_mapping mtm
-        JOIN teaching_materials tm ON mtm.material_id = tm.id
+        LEFT JOIN teaching_materials tm ON mtm.material_id = tm.id
         WHERE tm.type = 'simulation'
         GROUP BY mtm.textbook_id
         ) simulation_stats ON t.id = simulation_stats.textbook_id
@@ -1400,7 +1331,7 @@
         -- 统计其他类型素材数量
         SELECT mtm.textbook_id, COUNT(*) as other_count
         FROM materials_textbook_mapping mtm
-        JOIN teaching_materials tm ON mtm.material_id = tm.id
+        LEFT JOIN teaching_materials tm ON mtm.material_id = tm.id
         WHERE tm.type = 'other'
         GROUP BY mtm.textbook_id
         ) other_stats ON t.id = other_stats.textbook_id
