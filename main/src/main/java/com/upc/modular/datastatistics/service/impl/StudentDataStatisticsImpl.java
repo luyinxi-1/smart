@@ -1780,8 +1780,6 @@ public void exportStudentReadingRank(String groupName, String studentName, Strin
 
     @Override
     public List<TextStudentRankParam> countStudentTextbookReadingRankByTextbookId(Long textbookId) {
-        // 获取当前登录用户ID
-        Long currentUserId = UserUtils.get().getId();
 
         // 获取阅读过该教材的所有学生的学习日志记录
         List<LearningLog> records = studentDataStatisticsMapper.findLearningLogsByTextbookId(textbookId);
@@ -1832,7 +1830,7 @@ public void exportStudentReadingRank(String groupName, String studentName, Strin
             TextStudentRankParam param = new TextStudentRankParam();
             param.setStudent_name(studentName);
             param.setRead_time(readingTime);
-            param.setUser_id(currentUserId);
+            param.setUser_id(userId);
 
             result.add(param);
         }
