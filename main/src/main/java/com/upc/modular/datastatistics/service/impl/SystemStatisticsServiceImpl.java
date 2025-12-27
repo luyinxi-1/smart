@@ -1536,19 +1536,6 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
             param.setQuestionCorrectRate(getDoubleValue(data.get("questionCorrectRate")));
             param.setCommunicationParticipationCount(getLongValue(data.get("communicationParticipationCount")));
             param.setAnnotationCount(getLongValue(data.get("annotationCount")));
-            // 设置各种素材类型的数量
-            param.setImageMaterialCount(getLongValue(data.get("imageMaterialCount")));
-            param.setVideoMaterialCount(getLongValue(data.get("videoMaterialCount")));
-            param.setAudioMaterialCount(getLongValue(data.get("audioMaterialCount")));
-            param.setModel3dMaterialCount(getLongValue(data.get("model3dMaterialCount")));
-            param.setLinkMaterialCount(getLongValue(data.get("linkMaterialCount")));
-            param.setPptMaterialCount(getLongValue(data.get("pptMaterialCount")));
-            param.setPdfMaterialCount(getLongValue(data.get("pdfMaterialCount")));
-            param.setWordMaterialCount(getLongValue(data.get("wordMaterialCount")));
-            param.setExcelMaterialCount(getLongValue(data.get("excelMaterialCount")));
-            param.setH5MaterialCount(getLongValue(data.get("h5MaterialCount")));
-            param.setSimulationMaterialCount(getLongValue(data.get("simulationMaterialCount")));
-            param.setOtherMaterialCount(getLongValue(data.get("otherMaterialCount")));
             return param;
         });
     }
@@ -1902,7 +1889,17 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
         for (Map.Entry<String, Long> entry : timeReadingMap.entrySet()) {
             TextbookTimeStatisticsReturnParam returnParam = new TextbookTimeStatisticsReturnParam();
             returnParam.setTime(entry.getKey());
-            returnParam.setDuration(entry.getValue()); // 阅读时长（分钟）
+            Long minutes = entry.getValue(); // 获取分钟数
+
+            if (minutes == null || minutes == 0) {
+                returnParam.setDuration(0.00);
+            } else {
+                // 分钟转小时：除以60，保留2位小数
+                BigDecimal bd = new BigDecimal(minutes);
+                double hours = bd.divide(new BigDecimal(60), 2, RoundingMode.HALF_UP).doubleValue();
+                returnParam.setDuration(hours);
+            }
+           // returnParam.setDuration(entry.getValue()); // 阅读时长（分钟）
             returnParam.setCount(entry.getValue()); // 同时设置count字段，保持兼容性
             result.add(returnParam);
         }
@@ -1972,7 +1969,8 @@ public class SystemStatisticsServiceImpl implements ISystemStatisticsService {
             TextbookTimeStatisticsReturnParam returnParam = new TextbookTimeStatisticsReturnParam();
             returnParam.setTime(entry.getKey());
             returnParam.setCount(entry.getValue()); // 交流反馈数量
-            returnParam.setDuration(entry.getValue()); // 同时设置duration字段，保持兼容性
+            returnParam.setDuration(entry.getValue().doubleValue());
+            //returnParam.setDuration(entry.getValue()); // 同时设置duration字段，保持兼容性
             result.add(returnParam);
         }
 

@@ -12,6 +12,7 @@ import org.apache.ibatis.annotations.MapKey;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -68,7 +69,28 @@ public interface StudentDataStatisticsMapper extends BaseMapper<StudentStatistic
             ") t " +
             "WHERE diff_seconds BETWEEN 55 AND 65")
     Long getStudentReadingTimeByUserId(@Param("userId") Long userId);
-    
+
+    @Select({
+            "<script>",
+            "SELECT COALESCE(SUM(diff_seconds),0) ",
+            "FROM (",
+            "  SELECT ",
+            "    creator, textbook_id, add_datetime,",
+            "    DATEDIFF(SECOND, add_datetime,",
+            "      LEAD(add_datetime) OVER (PARTITION BY creator, textbook_id ORDER BY add_datetime)",
+            "    ) AS diff_seconds",
+            "  FROM learning_log",
+            "  WHERE textbook_id IS NOT NULL",
+            "    AND creator IN",
+            "    <foreach collection='userIds' item='id' open='(' separator=',' close=')'>",
+            "      #{id}",
+            "    </foreach>",
+            ") t",
+            "WHERE diff_seconds BETWEEN 55 AND 65",
+            "</script>"
+    })
+    Long sumReadingSecondsByUserIds(@Param("userIds") Collection<Long> userIds);
+
     @Select("SELECT * FROM learning_log WHERE creator = #{userId} AND EXTRACT(YEAR FROM add_datetime) = #{year} ORDER BY add_datetime ASC")
     List<LearningLog> findAddDatetimeByYear(
             @Param("userId") Long currentUserId,

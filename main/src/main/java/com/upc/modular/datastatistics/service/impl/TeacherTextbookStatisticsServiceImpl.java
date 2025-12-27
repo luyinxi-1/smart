@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
@@ -162,8 +164,16 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
         for (String date : dateSequence) {
             TextbookTimeStatisticsReturnParam returnParam = new TextbookTimeStatisticsReturnParam();
             returnParam.setTime(date);
-            returnParam.setCount(timeFeedbackMap.getOrDefault(date, 0L)); // 交流反馈数量
-            returnParam.setDuration(timeFeedbackMap.getOrDefault(date, 0L)); // 同时设置duration字段，保持兼容性
+            // 1. 先把值取出来，赋值给局部变量 count
+            Long count = timeFeedbackMap.getOrDefault(date, 0L);
+
+            // 2. 设置给 count 字段
+            returnParam.setCount(count);
+
+            // 3. 将变量 count 转为 double 设置给 duration 字段
+            returnParam.setDuration(count.doubleValue());
+            //returnParam.setCount(timeFeedbackMap.getOrDefault(date, 0L)); // 交流反馈数量
+            //returnParam.setDuration(timeFeedbackMap.getOrDefault(date, 0L)); // 同时设置duration字段，保持兼容性
             result.add(returnParam);
         }
 
@@ -294,7 +304,19 @@ public class TeacherTextbookStatisticsServiceImpl implements ITeacherTextbookSta
         for (String date : dateSequence) {
             TextbookTimeStatisticsReturnParam returnParam = new TextbookTimeStatisticsReturnParam();
             returnParam.setTime(date);
-            returnParam.setDuration(timeReadingMap.getOrDefault(date, 0L)); // 阅读时长（分钟）
+            long minutes = timeReadingMap.getOrDefault(date, 0L);
+
+            // --- 修改开始：分钟转小时，保留两位小数 ---
+            if (minutes == 0) {
+                returnParam.setDuration(0.00);
+            } else {
+                // 公式：分钟 / 60
+                BigDecimal bd = new BigDecimal(minutes);
+                // divide(除数, 小数位数, 舍入模式) -> 2位小数，四舍五入(HALF_UP)
+                double hours = bd.divide(new BigDecimal(60), 2, RoundingMode.HALF_UP).doubleValue();
+                returnParam.setDuration(hours);
+            }
+            //returnParam.setDuration(timeReadingMap.getOrDefault(date, 0L)); // 阅读时长（分钟）
             returnParam.setCount(timeReadingMap.getOrDefault(date, 0L)); // 同时设置count字段，保持兼容性
             result.add(returnParam);
         }

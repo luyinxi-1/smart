@@ -32,6 +32,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -353,50 +355,45 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
         return groupsByTeacher;
     }
 
-    @Override
     public Map<String, Object> getClassStatisticsByUserId(Long userId) {
         Map<String, Object> result = new HashMap<>();
 
-        // 获取班级列表（管理员获取所有班级，教师只获取筛选后的班级）
+        // 获取班级列表
         List<Group> groups = getGroupsByTeacherUserId(userId);
-        
+
         // 1. 班级数量
         int classCount = groups.size();
         result.put("classCount", classCount);
-        
+
         // 2. 班级总人数
         Set<Long> studentUserIds = new HashSet<>();
         if (!groups.isEmpty()) {
             List<Long> groupIds = groups.stream()
                     .map(Group::getId)
                     .collect(Collectors.toList());
-            
+
             // 查询这些班级中的所有学生
             LambdaQueryWrapper<Student> studentQueryWrapper = new LambdaQueryWrapper<>();
             studentQueryWrapper.in(Student::getClassId, groupIds);
             List<Student> students = studentMapper.selectList(studentQueryWrapper);
-            
+
             // 收集学生用户ID
             students.forEach(student -> studentUserIds.add(student.getUserId()));
         }
         result.put("studentCount", studentUserIds.size());
-        
-        // 3. 班级总阅读时长(小时) - 使用批量查询优化性能
-        double totalReadingHours = 0;
-        if (!studentUserIds.isEmpty()) {
-            // 批量查询所有学生的阅读时长
-            for (Long studentUserId : studentUserIds) {
-                // 获取每个学生的阅读时长并累加(以秒为单位)
-                Long studentReadingTime = studentDataStatisticsMapper.getStudentReadingTimeByUserId(studentUserId);
-                if (studentReadingTime != null) {
-                    totalReadingHours += studentReadingTime;
-                }
-            }
-            // 将秒转换为小时
-            totalReadingHours = totalReadingHours / 3600;
-        }
-        result.put("readingCount", totalReadingHours);
-        
+
+        Long totalSeconds = studentUserIds.isEmpty()
+                ? 0L
+                : studentDataStatisticsMapper.sumReadingSecondsByUserIds(studentUserIds);
+
+        double readingHours = BigDecimal.valueOf(totalSeconds)
+                .divide(new BigDecimal("3600"), 2, RoundingMode.HALF_UP)
+                .doubleValue();
+
+
+        // 放入 Map，类型为 Double
+        result.put("readingCount", readingHours);
+
         return result;
     }
 }
